@@ -9,11 +9,13 @@ In addition, Circadian Lighting can set your lights to a nice cool white at 1% i
 
 
 <details><summary>Expand for articles explaining the benefits of maintaining a natural Circadian rhythm</summary>
+  
 * [Circadian Rhythms - National Institute of General Medical Sciences](https://www.nigms.nih.gov/Education/Pages/Factsheet_CircadianRhythms.aspx)
 * [Circadian Rhythms Linked to Aging and Well-Being | Psychology Today](https://www.psychologytoday.com/us/blog/the-athletes-way/201306/circadian-rhythms-linked-aging-and-well-being)
 * [Maintaining a daily rhythm is important for mental health, study suggests - CNN](https://www.cnn.com/2018/05/15/health/circadian-rhythm-mood-disorder-study/index.html)
 * [How Nobel Winning Circadian Rhythm Research Benefits Pregnancy](https://www.healthypregnancy.com/how-nobel-prize-winning-circadian-rhythms-research-benefits-a-healthy-pregnancy/)
 * [Body Clock & Sleep - National Sleep Foundation](https://sleepfoundation.org/sleep-topics/sleep-drive-and-your-body-clock)
+
 </details>
 
 ### Visit the [Wiki](https://github.com/claytonjn/hass-circadian_lighting/wiki) for more information.
