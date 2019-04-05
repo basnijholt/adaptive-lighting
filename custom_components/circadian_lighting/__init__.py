@@ -96,9 +96,9 @@ def setup(hass, config):
     sunrise_time = conf.get(CONF_SUNRISE_TIME)
     sunset_time = conf.get(CONF_SUNSET_TIME)
 
-    latitude = conf.get(CONF_LATITUDE, hass.config.latitude or None)
-    longitude = conf.get(CONF_LONGITUDE, hass.config.longitude or None)
-    elevation = conf.get(CONF_ELEVATION, hass.config.elevation or None)
+    latitude = conf.get(CONF_LATITUDE, hass.config.latitude)
+    longitude = conf.get(CONF_LONGITUDE, hass.config.longitude)
+    elevation = conf.get(CONF_ELEVATION, hass.config.elevation)
 
     load_platform(hass, 'sensor', DOMAIN, {}, config)
 
