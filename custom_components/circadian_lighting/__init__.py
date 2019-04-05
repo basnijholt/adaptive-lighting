@@ -35,7 +35,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import (
     VALID_TRANSITION, ATTR_TRANSITION)
 from homeassistant.const import (
-    CONF_LATITUDE, CONF_LONGITUDE,
+    CONF_LATITUDE, CONF_LONGITUDE, CONF_TIME_ZONE, CONF_ELEVATION,
     SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET)
 from homeassistant.util import Throttle
 from homeassistant.helpers.discovery import load_platform
@@ -46,10 +46,9 @@ from homeassistant.util.color import (
     color_xy_to_hs)
 from homeassistant.util.dt import utcnow as dt_utcnow, as_local
 
-import astral
 from datetime import datetime, timedelta
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,6 +80,8 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_SUNSET_TIME): cv.time,
         vol.Optional(CONF_LATITUDE): cv.latitude,
         vol.Optional(CONF_LONGITUDE): cv.longitude,
+        vol.Optional(CONF_TIME_ZONE): cv.time_zone,
+        vol.Optional(CONF_ELEVATION): float,
         vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.positive_int,
         vol.Optional(ATTR_TRANSITION, default=DEFAULT_INTERVAL): VALID_TRANSITION
     }),
@@ -96,15 +97,10 @@ def setup(hass, config):
     sunrise_time = conf.get(CONF_SUNRISE_TIME)
     sunset_time = conf.get(CONF_SUNSET_TIME)
 
-    if conf.get(CONF_LATITUDE) is None:
-        latitude = hass.config.latitude
-    else:
-        latitude = conf.get(CONF_LATITUDE)
-
-    if conf.get(CONF_LONGITUDE) is None:
-        longitude = hass.config.longitude
-    else:
-        longitude = conf.get(CONF_LONGITUDE)
+    latitude = conf.get(CONF_LATITUDE, hass.config.latitude or None)
+    longitude = conf.get(CONF_LONGITUDE, hass.config.longitude or None)
+    time_zone = conf.get(CONF_TIME_ZONE, hass.config.time_zone or None)
+    elevation = conf.get(CONF_ELEVATION, hass.config.elevation or None)
 
     load_platform(hass, 'sensor', DOMAIN, {}, config)
 
@@ -113,7 +109,7 @@ def setup(hass, config):
 
     cl = CircadianLighting(hass, min_colortemp, max_colortemp,
                     sunrise_offset, sunset_offset, sunrise_time, sunset_time,
-                    latitude, longitude,
+                    latitude, longitude, time_zone, elevation,
                     interval, transition)
 
     hass.data[DATA_CIRCADIAN_LIGHTING] = cl
@@ -125,7 +121,7 @@ class CircadianLighting(object):
 
     def __init__(self, hass, min_colortemp, max_colortemp,
                     sunrise_offset, sunset_offset, sunrise_time, sunset_time,
-                    latitude, longitude,
+                    latitude, longitude, time_zone, elevation,
                     interval, transition):
         self.hass = hass
         self.data = {}
@@ -137,6 +133,8 @@ class CircadianLighting(object):
         self.data['sunset_time'] = sunset_time
         self.data['latitude'] = latitude
         self.data['longitude'] = longitude
+        self.data['time_zone'] = time_zone
+        self.data['elevation'] = elevation
         self.data['interval'] = interval
         self.data['transition'] = transition
         self.data['percent'] = self.calc_percent()
@@ -166,9 +164,15 @@ class CircadianLighting(object):
             solar_noon = sunrise + (sunset - sunrise)/2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset)/2
         else:
+            import astral
             location = astral.Location()
+            location.name = 'name'
+            location.region = 'region'
             location.latitude = self.data['latitude']
             location.longitude = self.data['longitude']
+            location.timezone = self.data['time_zone']
+            location.elevation = self.data['elevation']
+            _LOGGER.debug("Astral location: " + str(location))
             if self.data['sunrise_time'] is not None:
                 if date is None:
                     utcdate = dt_utcnow()
@@ -199,7 +203,7 @@ class CircadianLighting(object):
     def calc_percent(self):
         utcnow = dt_utcnow()
         now = as_local(utcnow)
-        today_sun_times = self.get_sunrise_sunset()
+        today_sun_times = self.get_sunrise_sunset(now)
 
         now_seconds = now.timestamp()
         today_sunrise_seconds = today_sun_times[SUN_EVENT_SUNRISE].timestamp()
@@ -207,11 +211,15 @@ class CircadianLighting(object):
         today_solar_noon_seconds = today_sun_times['solar_noon'].timestamp()
         today_solar_midnight_seconds = today_sun_times['solar_midnight'].timestamp()
 
+        _LOGGER.debug("now: " + str(now) + "\n\n today_sun_times: " + str(today_sun_times))
+
         if now < today_sun_times[SUN_EVENT_SUNRISE]:
             yesterday_sun_times = self.get_sunrise_sunset(now - timedelta(days=1))
             yesterday_sunrise_seconds = yesterday_sun_times[SUN_EVENT_SUNRISE].timestamp()
             yesterday_sunset_seconds = yesterday_sun_times[SUN_EVENT_SUNSET].timestamp()
             yesterday_solar_midnight_seconds = yesterday_sun_times['solar_midnight'].timestamp()
+
+            _LOGGER.debug("yesterday_sun_times: " + str(yesterday_sun_times))
 
             x1 = yesterday_sunset_seconds
             y1 = 0
@@ -249,6 +257,8 @@ class CircadianLighting(object):
             x3 = today_sunset_seconds
             y3 = 0
 
+        _LOGGER.debug("x1: " + str(x1) + "\n\n y1: " + str(y1) + "\n\n x2: " + str(x2) + "\n\n y2: " + str(y2))
+
         # Generate color temperature parabola from points
         a1 = -x1**2+x2**2
         b1 = -x1+x2
@@ -263,6 +273,8 @@ class CircadianLighting(object):
         b = (d1-a1*a)/b1
         c = y1-a*x1**2-b*x1
         percentage = a*now_seconds**2+b*now_seconds+c
+
+        _LOGGER.debug("percentage: " + str(percentage))
 
         return percentage
 
