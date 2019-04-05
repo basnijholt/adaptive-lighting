@@ -35,7 +35,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import (
     VALID_TRANSITION, ATTR_TRANSITION)
 from homeassistant.const import (
-    CONF_LATITUDE, CONF_LONGITUDE, CONF_TIME_ZONE, CONF_ELEVATION,
+    CONF_LATITUDE, CONF_LONGITUDE, CONF_ELEVATION,
     SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET)
 from homeassistant.util import Throttle
 from homeassistant.helpers.discovery import load_platform
@@ -48,7 +48,7 @@ from homeassistant.util.dt import utcnow as dt_utcnow, as_local
 
 from datetime import datetime, timedelta
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,7 +80,6 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_SUNSET_TIME): cv.time,
         vol.Optional(CONF_LATITUDE): cv.latitude,
         vol.Optional(CONF_LONGITUDE): cv.longitude,
-        vol.Optional(CONF_TIME_ZONE): cv.time_zone,
         vol.Optional(CONF_ELEVATION): float,
         vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.positive_int,
         vol.Optional(ATTR_TRANSITION, default=DEFAULT_INTERVAL): VALID_TRANSITION
@@ -99,7 +98,6 @@ def setup(hass, config):
 
     latitude = conf.get(CONF_LATITUDE, hass.config.latitude or None)
     longitude = conf.get(CONF_LONGITUDE, hass.config.longitude or None)
-    time_zone = conf.get(CONF_TIME_ZONE, hass.config.time_zone or None)
     elevation = conf.get(CONF_ELEVATION, hass.config.elevation or None)
 
     load_platform(hass, 'sensor', DOMAIN, {}, config)
@@ -109,7 +107,7 @@ def setup(hass, config):
 
     cl = CircadianLighting(hass, min_colortemp, max_colortemp,
                     sunrise_offset, sunset_offset, sunrise_time, sunset_time,
-                    latitude, longitude, time_zone, elevation,
+                    latitude, longitude, elevation,
                     interval, transition)
 
     hass.data[DATA_CIRCADIAN_LIGHTING] = cl
@@ -121,7 +119,7 @@ class CircadianLighting(object):
 
     def __init__(self, hass, min_colortemp, max_colortemp,
                     sunrise_offset, sunset_offset, sunrise_time, sunset_time,
-                    latitude, longitude, time_zone, elevation,
+                    latitude, longitude, elevation,
                     interval, transition):
         self.hass = hass
         self.data = {}
@@ -133,7 +131,6 @@ class CircadianLighting(object):
         self.data['sunset_time'] = sunset_time
         self.data['latitude'] = latitude
         self.data['longitude'] = longitude
-        self.data['time_zone'] = time_zone
         self.data['elevation'] = elevation
         self.data['interval'] = interval
         self.data['transition'] = transition
@@ -170,7 +167,6 @@ class CircadianLighting(object):
             location.region = 'region'
             location.latitude = self.data['latitude']
             location.longitude = self.data['longitude']
-            location.timezone = self.data['time_zone']
             location.elevation = self.data['elevation']
             _LOGGER.debug("Astral location: " + str(location))
             if self.data['sunrise_time'] is not None:
