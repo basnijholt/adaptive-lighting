@@ -7,7 +7,6 @@
         "visit_repo": "https://github.com/claytonjn/hass-circadian_lighting",
         "changelog": "https://github.com/claytonjn/hass-circadian_lighting/releases",
         "resources": [
-            "https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/const.py",
             "https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/sensor.py",
             "https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/switch.py"
         ]
