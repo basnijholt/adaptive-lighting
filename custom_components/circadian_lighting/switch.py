@@ -26,8 +26,6 @@ from homeassistant.util.color import (
     color_RGB_to_xy, color_temperature_kelvin_to_mired,
     color_temperature_to_rgb, color_xy_to_hs)
 
-from .const import VERSION
-
 _LOGGER = logging.getLogger(__name__)
 
 ICON = 'mdi:theme-light-dark'
