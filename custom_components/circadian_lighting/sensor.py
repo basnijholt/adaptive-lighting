@@ -13,8 +13,6 @@ from homeassistant.helpers.entity import Entity
 
 import datetime
 
-from .const import VERSION
-
 _LOGGER = logging.getLogger(__name__)
 
 ICON = 'mdi:theme-light-dark'

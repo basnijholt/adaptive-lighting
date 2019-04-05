@@ -49,7 +49,7 @@ from homeassistant.util.dt import utcnow as dt_utcnow, as_local
 import astral
 from datetime import datetime, timedelta
 
-from .const import VERSION
+VERSION = '1.0.0'
 
 _LOGGER = logging.getLogger(__name__)
 
