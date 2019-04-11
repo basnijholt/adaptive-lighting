@@ -23,10 +23,8 @@ In addition, Circadian Lighting can set your lights to a nice cool white at 1% i
 
 ## Basic Installation/Configuration Instructions:
 
-#### Files - ALL THREE REQUIRED!
-* [config/custom_components/circadian_lighting/\_\_init__.py](https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/__init__.py)
-* [config/custom_components/circadian_lighting/sensor.py](https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/sensor.py)
-* [config/custom_components/circadian_lighting/switch.py](https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/switch.py)
+#### Installation:
+Install `custom_component` files automatically using [Custom Updater](https://github.com/claytonjn/hass-circadian_lighting/wiki/Installation-Instructions#automatic-installation) or [Manually](https://github.com/claytonjn/hass-circadian_lighting/wiki/Installation-Instructions#manual-installation).
 
 #### Component Configuration:
 ```yaml
