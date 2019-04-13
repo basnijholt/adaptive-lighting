@@ -15,6 +15,7 @@ In addition, Circadian Lighting can set your lights to a nice cool white at 1% i
 * [Maintaining a daily rhythm is important for mental health, study suggests - CNN](https://www.cnn.com/2018/05/15/health/circadian-rhythm-mood-disorder-study/index.html)
 * [How Nobel Winning Circadian Rhythm Research Benefits Pregnancy](https://www.healthypregnancy.com/how-nobel-prize-winning-circadian-rhythms-research-benefits-a-healthy-pregnancy/)
 * [Body Clock & Sleep - National Sleep Foundation](https://sleepfoundation.org/sleep-topics/sleep-drive-and-your-body-clock)
+* [How our body’s circadian clocks affect our health beyond sleep](https://www.theverge.com/2018/6/12/17453398/sleep-circadian-code-satchin-panda-clock-health-science)
 
 </details>
 
