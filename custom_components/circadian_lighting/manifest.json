@@ -1,0 +1,8 @@
+{
+  "domain": "circadian_lighting",
+  "name": "Circadian Lighting",
+  "documentation": "https://github.com/claytonjn/hass-circadian_lighting",
+  "dependencies": [],
+  "codeowners": ["@claytonjn"],
+  "requirements": []
+}
