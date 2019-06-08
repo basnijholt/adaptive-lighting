@@ -66,7 +66,8 @@ CONF_SUNSET_OFFSET = 'sunset_offset'
 CONF_SUNRISE_TIME = 'sunrise_time'
 CONF_SUNSET_TIME = 'sunset_time'
 CONF_INTERVAL = 'interval'
-DEFAULT_INTERVAL = 900
+DEFAULT_INTERVAL = 300
+DEFAULT_TRANSITION = 60
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
@@ -82,7 +83,7 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_LONGITUDE): cv.longitude,
         vol.Optional(CONF_ELEVATION): float,
         vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.positive_int,
-        vol.Optional(ATTR_TRANSITION, default=DEFAULT_INTERVAL): VALID_TRANSITION
+        vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION
     }),
 }, extra=vol.ALLOW_EXTRA)
 
