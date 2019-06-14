@@ -115,20 +115,20 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         self._state = None
         self._icon = ICON
         self._hs_color = None
+        self._lights_ct = lights_ct
+        self._lights_rgb = lights_rgb
+        self._lights_xy = lights_xy
+        self._lights_brightness = lights_brightness
+        self._disable_brightness_adjust = disable_brightness_adjust
+        self._min_brightness = min_brightness
+        self._max_brightness = max_brightness
+        self._sleep_entity = sleep_entity
+        self._sleep_state = sleep_state
+        self._sleep_colortemp = sleep_colortemp
+        self._sleep_brightness = sleep_brightness
+        self._disable_entity = disable_entity
+        self._disable_state = disable_state
         self._attributes = {}
-        self._attributes['lights_ct'] = lights_ct
-        self._attributes['lights_rgb'] = lights_rgb
-        self._attributes['lights_xy'] = lights_xy
-        self._attributes['lights_brightness'] = lights_brightness
-        self._attributes['disable_brightness_adjust'] = disable_brightness_adjust
-        self._attributes['min_brightness'] = min_brightness
-        self._attributes['max_brightness'] = max_brightness
-        self._attributes['sleep_entity'] = sleep_entity
-        self._attributes['sleep_state'] = sleep_state
-        self._attributes['sleep_colortemp'] = sleep_colortemp
-        self._attributes['sleep_brightness'] = sleep_brightness
-        self._attributes['disable_entity'] = disable_entity
-        self._attributes['disable_state'] = disable_state
         self._attributes['hs_color'] = self._hs_color
         self._attributes['brightness'] = None
 
@@ -145,8 +145,8 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         """Register callbacks."""
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_switch)
         track_state_change(hass, self._lights, self.light_state_changed)
-        if self._attributes['sleep_entity'] is not None:
-            track_state_change(hass, self._attributes['sleep_entity'], self.sleep_state_changed)
+        if self._sleep_entity is not None:
+            track_state_change(hass, self._sleep_entity, self.sleep_state_changed)
 
     @property
     def entity_id(self):
@@ -205,19 +205,19 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         self._attributes['brightness'] = None
 
     def is_sleep(self):
-        return self._attributes['sleep_entity'] is not None and self.hass.states.get(self._attributes['sleep_entity']).state == self._attributes['sleep_state']
+        return self._sleep_entity is not None and self.hass.states.get(self._sleep_entity).state == self._sleep_state
 
     def calc_ct(self):
         if self.is_sleep():
             _LOGGER.debug(self._name + " in Sleep mode")
-            return color_temperature_kelvin_to_mired(self._attributes['sleep_colortemp'])
+            return color_temperature_kelvin_to_mired(self._sleep_colortemp)
         else:
             return color_temperature_kelvin_to_mired(self._cl.data['colortemp'])
 
     def calc_rgb(self):
         if self.is_sleep():
             _LOGGER.debug(self._name + " in Sleep mode")
-            return color_temperature_to_rgb(self._attributes['sleep_colortemp'])
+            return color_temperature_to_rgb(self._sleep_colortemp)
         else:
             return color_temperature_to_rgb(self._cl.data['colortemp'])
 
@@ -228,17 +228,17 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         return color_xy_to_hs(*self.calc_xy())
 
     def calc_brightness(self):
-        if self._attributes['disable_brightness_adjust'] is True:
+        if self._disable_brightness_adjust is True:
             return None
         else:
             if self.is_sleep():
                 _LOGGER.debug(self._name + " in Sleep mode")
-                return self._attributes['sleep_brightness']
+                return self._sleep_brightness
             else:
                 if self._cl.data['percent'] > 0:
-                    return self._attributes['max_brightness']
+                    return self._max_brightness
                 else:
-                    return ((self._attributes['max_brightness'] - self._attributes['min_brightness']) * ((100+self._cl.data['percent']) / 100)) + self._attributes['min_brightness']
+                    return ((self._max_brightness - self._min_brightness) * ((100+self._cl.data['percent']) / 100)) + self._min_brightness
 
     def update_switch(self, transition=None):
         if self._cl.data is not None:
@@ -256,8 +256,8 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         elif self._cl.data is None:
             _LOGGER.debug(self._name + " could not retrieve Circadian Lighting data")
             return False
-        elif self._attributes['disable_entity'] is not None and self.hass.states.get(self._attributes['disable_entity']).state == self._attributes['disable_state']:
-            _LOGGER.debug(self._name + " disabled by " + str(self._attributes['disable_entity']))
+        elif self._disable_entity is not None and self.hass.states.get(self._disable_entity).state == self._disable_state:
+            _LOGGER.debug(self._name + " disabled by " + str(self._disable_entity))
             return False
         else:
             return True
@@ -271,7 +271,7 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
 
             for light in lights:
                 """Set color of array of ct light."""
-                if self._attributes['lights_ct'] is not None and light in self._attributes['lights_ct']:
+                if self._lights_ct is not None and light in self._lights_ct:
                     mired = int(self.calc_ct())
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
@@ -286,7 +286,7 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                         _LOGGER.debug(light + " CT Adjusted - color_temp: " + str(mired) + ", brightness: " + str(brightness) + ", transition: " + str(transition))
 
                 """Set color of array of rgb light."""
-                if self._attributes['lights_rgb'] is not None and light in self._attributes['lights_rgb']:
+                if self._lights_rgb is not None and light in self._lights_rgb:
                     rgb = self.calc_rgb()
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
@@ -301,7 +301,7 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                         _LOGGER.debug(light + " RGB Adjusted - rgb_color: " + str(rgb) + ", brightness: " + str(brightness) + ", transition: " + str(transition))
 
                 """Set color of array of xy light."""
-                if self._attributes['lights_xy'] is not None and light in self._attributes['lights_xy']:
+                if self._lights_xy is not None and light in self._lights_xy:
                     x_val, y_val = self.calc_xy()
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
@@ -317,7 +317,7 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                         _LOGGER.debug(light + " XY Adjusted - xy_color: [" + str(x_val) + ", " + str(y_val) + "], brightness: " + str(brightness) + ", transition: " + str(transition) + ", white_value: " + str(brightness))
 
                 """Set color of array of brightness light."""
-                if self._attributes['lights_brightness'] is not None and light in self._attributes['lights_brightness']:
+                if self._lights_brightness is not None and light in self._lights_brightness:
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
                         if brightness is not None:
@@ -332,5 +332,5 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         self.adjust_lights([entity_id], 1)
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
-        if to_state.state == self._attributes['sleep_state'] or from_state.state == self._attributes['sleep_state']:
+        if to_state.state == self._sleep_state or from_state.state == self._sleep_state:
             self.update_switch(1)
