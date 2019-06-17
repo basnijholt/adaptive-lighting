@@ -45,7 +45,10 @@ class CircadianSensor(Entity):
         self._unit_of_measurement = '%'
         self._icon = ICON
         self._hs_color = self._cl.data['hs_color']
-        self._attributes = self._cl.data
+        self._attributes = {}
+        self._attributes['colortemp'] = self._cl.data['colortemp']
+        self._attributes['rgb_color'] = self._cl.data['rgb_color']
+        self._attributes['xy_color'] = self._cl.data['xy_color']
 
         """Register callbacks."""
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_sensor)
@@ -82,7 +85,7 @@ class CircadianSensor(Entity):
     @property
     def device_state_attributes(self):
         """Return the attributes of the sensor."""
-        return dict((k,str(v) if isinstance(v, datetime.time) or isinstance(v, datetime.timedelta) else v) for k,v in self._attributes.items())
+        return self._attributes
 
     def update(self):
         """Fetch new state data for the sensor.
@@ -95,5 +98,7 @@ class CircadianSensor(Entity):
         if self._cl.data is not None:
             self._state = self._cl.data['percent']
             self._hs_color = self._cl.data['hs_color']
-            self._attributes = self._cl.data
+            self._attributes['colortemp'] = self._cl.data['colortemp']
+            self._attributes['rgb_color'] = self._cl.data['rgb_color']
+            self._attributes['xy_color'] = self._cl.data['xy_color']
             _LOGGER.debug("Circadian Lighting Sensor Updated")
