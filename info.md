@@ -1,6 +1,6 @@
 ## Stay healthier and sleep better by syncing your lights with natural daylight to maintain your circadian rhythm!
 
-![Circadian Light Rhythm|690x287](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/f/5fe7a780e9f8905fea4d1cbb66cdbe35858a6e36.jpg)
+<img src="https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/f/5fe7a780e9f8905fea4d1cbb66cdbe35858a6e36.jpg" width="690px">
 
 Circadian Lighting slowly synchronizes your color changing lights with the regular naturally occuring color temperature of the sky throughout the day. This gives your environment a more natural feel, with cooler hues during the midday and warmer tints near twilight and dawn.
 
