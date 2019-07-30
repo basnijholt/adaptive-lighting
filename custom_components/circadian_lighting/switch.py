@@ -267,7 +267,7 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
             if transition == None:
                 transition = self._cl.data['transition']
 
-            brightness = (self._attributes['brightness'] / 100) * 255 if self._attributes['brightness'] is not None else None
+            brightness = int((self._attributes['brightness'] / 100) * 255) if self._attributes['brightness'] is not None else None
 
             for light in lights:
                 """Set color of array of ct light."""
@@ -276,18 +276,23 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
                         if mired is not None:
-                            service_data[ATTR_COLOR_TEMP] = int(mired)
+                            service_data[ATTR_COLOR_TEMP] = mired
                         if brightness is not None:
                             service_data[ATTR_BRIGHTNESS] = brightness
                         if transition is not None:
                             service_data[ATTR_TRANSITION] = transition
-                        self.hass.services.call(
-                            LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                        _LOGGER.debug(light + " CT Adjusted - color_temp: " + str(mired) + ", brightness: " + str(brightness) + ", transition: " + str(transition))
+                        lightAttrs = self.hass.states.get(light).attributes                        
+                        if ( (ATTR_COLOR_TEMP in lightAttrs and lightAttrs[ATTR_COLOR_TEMP] == mired) and
+                             (ATTR_BRIGHTNESS in lightAttrs and lightAttrs[ATTR_BRIGHTNESS] == brightness) ):
+                            _LOGGER.debug(light + " already set to the proper values, not adjusting")
+                        else:
+                            self.hass.services.call(
+                                LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                            _LOGGER.debug(light + " CT Adjusted - color_temp: " + str(mired) + ", brightness: " + str(brightness) + ", transition: " + str(transition))
 
                 """Set color of array of rgb light."""
                 if self._lights_rgb is not None and light in self._lights_rgb:
-                    rgb = self.calc_rgb()
+                    rgb = tuple(map(int, self.calc_rgb()))
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
                         if rgb is not None:
@@ -296,25 +301,36 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                             service_data[ATTR_BRIGHTNESS] = brightness
                         if transition is not None:
                             service_data[ATTR_TRANSITION] = transition
-                        self.hass.services.call(
-                            LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                        _LOGGER.debug(light + " RGB Adjusted - rgb_color: " + str(rgb) + ", brightness: " + str(brightness) + ", transition: " + str(transition))
+                        lightAttrs = self.hass.states.get(light).attributes
+                        if ( (ATTR_RGB_COLOR in lightAttrs and lightAttrs[ATTR_RGB_COLOR] == rgb) and
+                             (ATTR_BRIGHTNESS in lightAttrs and lightAttrs[ATTR_BRIGHTNESS] == brightness) ):
+                            _LOGGER.debug(light + " already set to the proper values, not adjusting")
+                        else:
+                            self.hass.services.call(
+                                LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                            _LOGGER.debug(light + " RGB Adjusted - rgb_color: " + str(rgb) + ", brightness: " + str(brightness) + ", transition: " + str(transition))
 
                 """Set color of array of xy light."""
                 if self._lights_xy is not None and light in self._lights_xy:
-                    x_val, y_val = self.calc_xy()
+                    xy = self.calc_xy()
                     if is_on(self.hass, light):
                         service_data = {ATTR_ENTITY_ID: light}
-                        if x_val is not None and y_val is not None:
-                            service_data[ATTR_XY_COLOR] = [x_val, y_val]
+                        if xy is not None:
+                            service_data[ATTR_XY_COLOR] = xy
                         if brightness is not None:
                             service_data[ATTR_BRIGHTNESS] = brightness
                             service_data[ATTR_WHITE_VALUE] = brightness
                         if transition is not None:
                             service_data[ATTR_TRANSITION] = transition
-                        self.hass.services.call(
-                            LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                        _LOGGER.debug(light + " XY Adjusted - xy_color: [" + str(x_val) + ", " + str(y_val) + "], brightness: " + str(brightness) + ", transition: " + str(transition) + ", white_value: " + str(brightness))
+                        lightAttrs = self.hass.states.get(light).attributes
+                        if ( (ATTR_XY_COLOR in lightAttrs and lightAttrs[ATTR_XY_COLOR] == xy) and
+                             (ATTR_BRIGHTNESS in lightAttrs and lightAttrs[ATTR_BRIGHTNESS] == brightness) and
+                             (ATTR_WHITE_VALUE in lightAttrs and lightAttrs[ATTR_WHITE_VALUE] == brightness) ):
+                            _LOGGER.debug(light + " already set to the proper values, not adjusting")
+                        else:
+                            self.hass.services.call(
+                                LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                            _LOGGER.debug(light + " XY Adjusted - xy_color: " + str(xy) + ", brightness: " + str(brightness) + ", transition: " + str(transition) + ", white_value: " + str(brightness))
 
                 """Set color of array of brightness light."""
                 if self._lights_brightness is not None and light in self._lights_brightness:
@@ -324,9 +340,13 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                             service_data[ATTR_BRIGHTNESS] = brightness
                         if transition is not None:
                             service_data[ATTR_TRANSITION] = transition
-                        self.hass.services.call(
-                            LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                        _LOGGER.debug(light + " Brightness Adjusted - brightness: " + str(brightness) + ", transition: " + str(transition))
+                        lightAttrs = self.hass.states.get(light).attributes
+                        if (ATTR_BRIGHTNESS in lightAttrs and lightAttrs[ATTR_BRIGHTNESS] == brightness):
+                            _LOGGER.debug(light + " already set to the proper values, not adjusting")
+                        else:
+                            self.hass.services.call(
+                                LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                            _LOGGER.debug(light + " Brightness Adjusted - brightness: " + str(brightness) + ", transition: " + str(transition))
 
     def light_state_changed(self, entity_id, from_state, to_state):
         self.adjust_lights([entity_id], 1)
