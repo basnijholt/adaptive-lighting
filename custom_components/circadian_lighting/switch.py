@@ -328,16 +328,25 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
                     _LOGGER.debug(light + " Brightness Adjusted - brightness: " + str(brightness) + ", transition: " + str(transition))
 
     def light_state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
-        if to_state.state == 'on' and from_state.state != 'on':
-            self.adjust_lights([entity_id], DEFAULT_INITIAL_TRANSITION)
+        try:
+            _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
+            if to_state.state == 'on' and from_state.state != 'on':
+                self.adjust_lights([entity_id], DEFAULT_INITIAL_TRANSITION)
+        except:
+            pass
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
-        if to_state.state == self._sleep_state or from_state.state == self._sleep_state:
-            self.update_switch(DEFAULT_INITIAL_TRANSITION)
+        try:
+            _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
+            if to_state.state == self._sleep_state or from_state.state == self._sleep_state:
+                self.update_switch(DEFAULT_INITIAL_TRANSITION)
+        except:
+            pass
     
     def disable_state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
-        if from_state.state == self._disable_state:
-            self.update_switch(DEFAULT_INITIAL_TRANSITION)
+        try:
+            _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
+            if from_state.state == self._disable_state:
+                self.update_switch(DEFAULT_INITIAL_TRANSITION)
+        except:
+            pass
