@@ -45,6 +45,7 @@ CONF_SLEEP_CT = 'sleep_colortemp'
 CONF_SLEEP_BRIGHT = 'sleep_brightness'
 CONF_DISABLE_ENTITY = 'disable_entity'
 CONF_DISABLE_STATE = 'disable_state'
+DEFAULT_INITIAL_TRANSITION = 1
 
 PLATFORM_SCHEMA = vol.Schema({
     vol.Required(CONF_PLATFORM): 'circadian_lighting',
@@ -192,7 +193,7 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         self._state = True
 
         # Make initial update
-        self.update_switch()
+        self.update_switch(DEFAULT_INITIAL_TRANSITION)
 
         self.schedule_update_ha_state()
 
@@ -327,9 +328,9 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
     def light_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
         if to_state.state == 'on' and from_state.state != 'on':
-            self.adjust_lights([entity_id], 1)
+            self.adjust_lights([entity_id], DEFAULT_INITIAL_TRANSITION)
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
         if to_state.state == self._sleep_state or from_state.state == self._sleep_state:
-            self.update_switch(1)
+            self.update_switch(DEFAULT_INITIAL_TRANSITION)
