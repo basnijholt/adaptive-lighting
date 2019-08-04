@@ -148,6 +148,8 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
         track_state_change(hass, self._lights, self.light_state_changed)
         if self._sleep_entity is not None:
             track_state_change(hass, self._sleep_entity, self.sleep_state_changed)
+        if self._disable_entity is not None:
+            track_state_change(hass, self._disable_entity, self.disable_state_changed)
 
     @property
     def entity_id(self):
@@ -333,4 +335,9 @@ class CircadianSwitch(SwitchDevice, RestoreEntity):
     def sleep_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
         if to_state.state == self._sleep_state or from_state.state == self._sleep_state:
+            self.update_switch(DEFAULT_INITIAL_TRANSITION)
+    
+    def disable_state_changed(self, entity_id, from_state, to_state):
+        _LOGGER.debug(entity_id + " change from " + str(from_state) + " to " + str(to_state))
+        if from_state.state == self._disable_state:
             self.update_switch(DEFAULT_INITIAL_TRANSITION)
