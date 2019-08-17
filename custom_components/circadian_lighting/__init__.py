@@ -48,7 +48,7 @@ from homeassistant.util.dt import utcnow as dt_utcnow, as_local
 
 from datetime import datetime, timedelta
 
-VERSION = '1.0.6'
+VERSION = '1.0.9'
 
 _LOGGER = logging.getLogger(__name__)
 
