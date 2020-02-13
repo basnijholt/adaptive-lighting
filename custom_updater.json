@@ -1,7 +1,7 @@
 {
     "circadian_lighting": {
-        "updated_at": "2019-08-17",
-        "version": "1.0.9",
+        "updated_at": "2020-02-12",
+        "version": "1.0.10b",
         "local_location": "/custom_components/circadian_lighting/__init__.py",
         "remote_location": "https://raw.githubusercontent.com/claytonjn/hass-circadian_lighting/master/custom_components/circadian_lighting/__init__.py",
         "visit_repo": "https://github.com/claytonjn/hass-circadian_lighting",
