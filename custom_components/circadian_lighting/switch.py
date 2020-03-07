@@ -16,7 +16,7 @@ from homeassistant.helpers.event import track_state_change
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.components.light import (
     is_on, ATTR_BRIGHTNESS, ATTR_COLOR_TEMP, ATTR_RGB_COLOR, ATTR_TRANSITION,
-    ATTR_WHITE_VALUE, ATTR_XY_COLOR, DOMAIN as LIGHT_DOMAIN)
+    VALID_TRANSITION, ATTR_WHITE_VALUE, ATTR_XY_COLOR, DOMAIN as LIGHT_DOMAIN)
 from homeassistant.components.switch import SwitchDevice
 from homeassistant.const import (
     ATTR_ENTITY_ID, CONF_NAME, CONF_PLATFORM, STATE_ON,
@@ -69,7 +69,7 @@ PLATFORM_SCHEMA = vol.Schema({
     vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
     vol.Optional(CONF_DISABLE_STATE): cv.string,
     vol.Optional(CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION):
-        vol.All(vol.Coerce(int), vol.Range(min=1, max=1000))
+        VALID_TRANSITION
 })
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
