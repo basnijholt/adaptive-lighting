@@ -48,7 +48,7 @@ from homeassistant.util.dt import now as dt_now
 
 from datetime import timedelta
 
-VERSION = '1.0.11b'
+VERSION = '1.0.12b'
 
 _LOGGER = logging.getLogger(__name__)
 
