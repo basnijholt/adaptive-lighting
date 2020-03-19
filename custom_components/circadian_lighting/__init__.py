@@ -44,9 +44,9 @@ from homeassistant.helpers.event import track_sunrise, track_sunset, track_time_
 from homeassistant.util.color import (
     color_temperature_to_rgb, color_RGB_to_xy,
     color_xy_to_hs)
-from homeassistant.util.dt import now as dt_now
+from homeassistant.util.dt import now as dt_now, get_time_zone
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 VERSION = '1.0.12b'
 
@@ -153,19 +153,11 @@ class CircadianLighting(object):
         else:
             track_sunset(self.hass, self._update, self.data['sunset_offset'])
 
-    def get_astral_location(self):
-        import astral
-        location = astral.Location()
-        location.name = 'name'
-        location.region = 'region'
-        location.latitude = self.data['latitude']
-        location.longitude = self.data['longitude']
-        location.elevation = self.data['elevation']
-        _LOGGER.debug("Astral location: " + str(location))
-        return location
-    
     def get_timezone(self):
-        timezone = self.get_astral_location().tz
+        from timezonefinder import TimezoneFinder
+        tf = TimezoneFinder()
+        timezone_string = tf.timezone_at(lng=self.data['longitude'], lat=self.data['latitude'])
+        timezone = get_time_zone(timezone_string)
         _LOGGER.debug("Timezone: " + str(timezone))
         return timezone
     
@@ -178,7 +170,14 @@ class CircadianLighting(object):
             solar_noon = sunrise + (sunset - sunrise)/2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset)/2
         else:
-            location = self.get_astral_location()
+            import astral
+            location = astral.Location()
+            location.name = 'name'
+            location.region = 'region'
+            location.latitude = self.data['latitude']
+            location.longitude = self.data['longitude']
+            location.elevation = self.data['elevation']
+            _LOGGER.debug("Astral location: " + str(location))
             if self.data['sunrise_time'] is not None:
                 if date is None:
                     date = dt_now(self.data['timezone'])
@@ -198,10 +197,10 @@ class CircadianLighting(object):
         if self.data['sunset_offset'] is not None:
             sunset = sunset + self.data['sunset_offset']
         return {
-            SUN_EVENT_SUNRISE: sunrise,
-            SUN_EVENT_SUNSET: sunset,
-            'solar_noon': solar_noon,
-            'solar_midnight': solar_midnight
+            SUN_EVENT_SUNRISE: sunrise.astimezone(self.data['timezone']),
+            SUN_EVENT_SUNSET: sunset.astimezone(self.data['timezone']),
+            'solar_noon': solar_noon.astimezone(self.data['timezone']),
+            'solar_midnight': solar_midnight.astimezone(self.data['timezone'])
         }
 
     def calc_percent(self):
