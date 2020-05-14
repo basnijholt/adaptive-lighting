@@ -105,7 +105,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         return False
 
 
-class CircadianSwitch(SwitchDevice, RestoreEntity):
+class CircadianSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Circadian Lighting switch."""
 
     def __init__(self, hass, cl, name, lights_ct, lights_rgb, lights_xy, lights_brightness,
