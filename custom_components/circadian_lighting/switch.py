@@ -17,6 +17,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.components.light import (
     is_on, ATTR_BRIGHTNESS, ATTR_COLOR_TEMP, ATTR_RGB_COLOR, ATTR_TRANSITION,
     VALID_TRANSITION, ATTR_WHITE_VALUE, ATTR_XY_COLOR, DOMAIN as LIGHT_DOMAIN)
+from homeassistant.components.switch import SwitchDevice
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import (
     ATTR_ENTITY_ID, CONF_NAME, CONF_PLATFORM, STATE_ON,
@@ -105,7 +106,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         return False
 
 
-class CircadianSwitch(SwitchEntity, RestoreEntity):
+class CircadianSwitch(SwitchEntity, SwitchDevice, RestoreEntity):
     """Representation of a Circadian Lighting switch."""
 
     def __init__(self, hass, cl, name, lights_ct, lights_rgb, lights_xy, lights_brightness,
