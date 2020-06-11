@@ -4,5 +4,5 @@
   "documentation": "https://github.com/claytonjn/hass-circadian_lighting",
   "dependencies": [],
   "codeowners": ["@claytonjn"],
-  "requirements": []
+  "requirements": ["timezonefinder==4.2.0"]
 }
