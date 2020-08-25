@@ -196,6 +196,14 @@ class CircadianLighting(object):
         _LOGGER.debug("Timezone: " + str(timezone))
         return timezone
 
+    def _time_dict(self, key):
+        return dict(
+            hour=int(self.data[key].strftime("%H")),
+            minute=int(self.data[key].strftime("%M")),
+            second=int(self.data[key].strftime("%S")),
+            microsecond=int(self.data[key].strftime("%f")),
+        )
+
     def get_sunrise_sunset(self, date=None):
         if (
             self.data["sunrise_time"] is not None
@@ -203,18 +211,8 @@ class CircadianLighting(object):
         ):
             if date is None:
                 date = dt_now(self.data["timezone"])
-            sunrise = date.replace(
-                hour=int(self.data["sunrise_time"].strftime("%H")),
-                minute=int(self.data["sunrise_time"].strftime("%M")),
-                second=int(self.data["sunrise_time"].strftime("%S")),
-                microsecond=int(self.data["sunrise_time"].strftime("%f")),
-            )
-            sunset = date.replace(
-                hour=int(self.data["sunset_time"].strftime("%H")),
-                minute=int(self.data["sunset_time"].strftime("%M")),
-                second=int(self.data["sunset_time"].strftime("%S")),
-                microsecond=int(self.data["sunset_time"].strftime("%f")),
-            )
+            sunrise = date.replace(**self._time_dict("sunrise_time"))
+            sunset = date.replace(**self._time_dict("sunset_time"))
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
         else:
@@ -230,23 +228,13 @@ class CircadianLighting(object):
             if self.data["sunrise_time"] is not None:
                 if date is None:
                     date = dt_now(self.data["timezone"])
-                sunrise = date.replace(
-                    hour=int(self.data["sunrise_time"].strftime("%H")),
-                    minute=int(self.data["sunrise_time"].strftime("%M")),
-                    second=int(self.data["sunrise_time"].strftime("%S")),
-                    microsecond=int(self.data["sunrise_time"].strftime("%f")),
-                )
+                sunrise = date.replace(**self._time_dict("sunrise_time"))
             else:
                 sunrise = location.sunrise(date)
             if self.data["sunset_time"] is not None:
                 if date is None:
                     date = dt_now(self.data["timezone"])
-                sunset = date.replace(
-                    hour=int(self.data["sunset_time"].strftime("%H")),
-                    minute=int(self.data["sunset_time"].strftime("%M")),
-                    second=int(self.data["sunset_time"].strftime("%S")),
-                    microsecond=int(self.data["sunset_time"].strftime("%f")),
-                )
+                sunset = date.replace(**self._time_dict("sunset_time"))
             else:
                 sunset = location.sunset(date)
             solar_noon = location.solar_noon(date)
