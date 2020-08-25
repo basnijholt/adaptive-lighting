@@ -106,39 +106,24 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting switches."""
     cl = hass.data.get(DATA_CIRCADIAN_LIGHTING)
     if cl:
-        lights_ct = config.get(CONF_LIGHTS_CT)
-        lights_rgb = config.get(CONF_LIGHTS_RGB)
-        lights_xy = config.get(CONF_LIGHTS_XY)
-        lights_brightness = config.get(CONF_LIGHTS_BRIGHT)
-        disable_brightness_adjust = config.get(CONF_DISABLE_BRIGHTNESS_ADJUST)
-        name = config.get(CONF_NAME)
-        min_brightness = config.get(CONF_MIN_BRIGHT)
-        max_brightness = config.get(CONF_MAX_BRIGHT)
-        sleep_entity = config.get(CONF_SLEEP_ENTITY)
-        sleep_state = config.get(CONF_SLEEP_STATE)
-        sleep_colortemp = config.get(CONF_SLEEP_CT)
-        sleep_brightness = config.get(CONF_SLEEP_BRIGHT)
-        disable_entity = config.get(CONF_DISABLE_ENTITY)
-        disable_state = config.get(CONF_DISABLE_STATE)
-        initial_transition = config.get(CONF_INITIAL_TRANSITION)
         cs = CircadianSwitch(
             hass,
             cl,
-            name,
-            lights_ct,
-            lights_rgb,
-            lights_xy,
-            lights_brightness,
-            disable_brightness_adjust,
-            min_brightness,
-            max_brightness,
-            sleep_entity,
-            sleep_state,
-            sleep_colortemp,
-            sleep_brightness,
-            disable_entity,
-            disable_state,
-            initial_transition,
+            name=config.get(CONF_NAME),
+            lights_ct=config.get(CONF_LIGHTS_CT),
+            lights_rgb=config.get(CONF_LIGHTS_RGB),
+            lights_xy=config.get(CONF_LIGHTS_XY),
+            lights_brightness=config.get(CONF_LIGHTS_BRIGHT),
+            disable_brightness_adjust=config.get(CONF_DISABLE_BRIGHTNESS_ADJUST),
+            min_brightness=config.get(CONF_MIN_BRIGHT),
+            max_brightness=config.get(CONF_MAX_BRIGHT),
+            sleep_entity=config.get(CONF_SLEEP_ENTITY),
+            sleep_state=config.get(CONF_SLEEP_STATE),
+            sleep_colortemp=config.get(CONF_SLEEP_CT),
+            sleep_brightness=config.get(CONF_SLEEP_BRIGHT),
+            disable_entity=config.get(CONF_DISABLE_ENTITY),
+            disable_state=config.get(CONF_DISABLE_STATE),
+            initial_transition=config.get(CONF_INITIAL_TRANSITION),
         )
         add_devices([cs])
 
