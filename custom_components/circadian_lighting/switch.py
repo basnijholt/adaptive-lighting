@@ -338,98 +338,96 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return True
 
     def adjust_lights(self, lights, transition=None):
-        if self.should_adjust():
-            if transition is None:
-                transition = self._cl.data["transition"]
+        if not self.should_adjust():
+            return
 
-            brightness = (
-                int((self._attributes["brightness"] / 100) * 254)
-                if self._attributes["brightness"] is not None
-                else None
-            )
-            mired = int(self.calc_ct()) if self._lights_ct is not None else None
-            rgb = (
-                tuple(map(int, self.calc_rgb()))
-                if self._lights_rgb is not None
-                else None
-            )
-            xy = self.calc_xy() if self._lights_xy is not None else None
+        if transition is None:
+            transition = self._cl.data["transition"]
 
-            for light in lights:
-                """Set color of array of ct light if on."""
-                if (
-                    self._lights_ct is not None
-                    and light in self._lights_ct
-                    and is_on(self.hass, light)
-                ):
-                    service_data = {ATTR_ENTITY_ID: light}
-                    if mired is not None:
-                        service_data[ATTR_COLOR_TEMP] = mired
-                    if brightness is not None:
-                        service_data[ATTR_BRIGHTNESS] = brightness
-                    if transition is not None:
-                        service_data[ATTR_TRANSITION] = transition
-                    self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                    _LOGGER.debug(
-                        f"{light} CT Adjusted - color_temp: {mired}, "
-                        f"brightness: {brightness}, transition: {transition}"
-                    )
+        brightness = (
+            int((self._attributes["brightness"] / 100) * 254)
+            if self._attributes["brightness"] is not None
+            else None
+        )
+        mired = int(self.calc_ct()) if self._lights_ct is not None else None
+        rgb = tuple(map(int, self.calc_rgb())) if self._lights_rgb is not None else None
+        xy = self.calc_xy() if self._lights_xy is not None else None
 
-                """Set color of array of rgb light if on."""
-                if (
-                    self._lights_rgb is not None
-                    and light in self._lights_rgb
-                    and is_on(self.hass, light)
-                ):
-                    service_data = {ATTR_ENTITY_ID: light}
-                    if rgb is not None:
-                        service_data[ATTR_RGB_COLOR] = rgb
-                    if brightness is not None:
-                        service_data[ATTR_BRIGHTNESS] = brightness
-                    if transition is not None:
-                        service_data[ATTR_TRANSITION] = transition
-                    self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                    _LOGGER.debug(
-                        f"{light} RGB Adjusted - rgb_color: {rgb}, "
-                        f"brightness: {brightness}, transition: {transition}"
-                    )
+        for light in lights:
+            """Set color of array of ct light if on."""
+            if (
+                self._lights_ct is not None
+                and light in self._lights_ct
+                and is_on(self.hass, light)
+            ):
+                service_data = {ATTR_ENTITY_ID: light}
+                if mired is not None:
+                    service_data[ATTR_COLOR_TEMP] = mired
+                if brightness is not None:
+                    service_data[ATTR_BRIGHTNESS] = brightness
+                if transition is not None:
+                    service_data[ATTR_TRANSITION] = transition
+                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                _LOGGER.debug(
+                    f"{light} CT Adjusted - color_temp: {mired}, "
+                    f"brightness: {brightness}, transition: {transition}"
+                )
 
-                """Set color of array of xy light if on."""
-                if (
-                    self._lights_xy is not None
-                    and light in self._lights_xy
-                    and is_on(self.hass, light)
-                ):
-                    service_data = {ATTR_ENTITY_ID: light}
-                    if xy is not None:
-                        service_data[ATTR_XY_COLOR] = xy
-                    if brightness is not None:
-                        service_data[ATTR_BRIGHTNESS] = brightness
-                        service_data[ATTR_WHITE_VALUE] = brightness
-                    if transition is not None:
-                        service_data[ATTR_TRANSITION] = transition
-                    self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                    _LOGGER.debug(
-                        f"{light} XY Adjusted - xy_color: {xy}, brightness: {brightness}, "
-                        f"transition: {transition}, white_value: {brightness}"
-                    )
+            """Set color of array of rgb light if on."""
+            if (
+                self._lights_rgb is not None
+                and light in self._lights_rgb
+                and is_on(self.hass, light)
+            ):
+                service_data = {ATTR_ENTITY_ID: light}
+                if rgb is not None:
+                    service_data[ATTR_RGB_COLOR] = rgb
+                if brightness is not None:
+                    service_data[ATTR_BRIGHTNESS] = brightness
+                if transition is not None:
+                    service_data[ATTR_TRANSITION] = transition
+                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                _LOGGER.debug(
+                    f"{light} RGB Adjusted - rgb_color: {rgb}, "
+                    f"brightness: {brightness}, transition: {transition}"
+                )
 
-                """Set color of array of brightness light if on."""
-                if (
-                    self._lights_brightness is not None
-                    and light in self._lights_brightness
-                    and is_on(self.hass, light)
-                ):
-                    service_data = {ATTR_ENTITY_ID: light}
-                    if brightness is not None:
-                        service_data[ATTR_BRIGHTNESS] = brightness
-                    if transition is not None:
-                        service_data[ATTR_TRANSITION] = transition
-                    self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                    _LOGGER.debug(
-                        f"{light} Brightness Adjusted - brightness: {brightness}, "
-                        f"transition: {transition}"
-                    )
+            """Set color of array of xy light if on."""
+            if (
+                self._lights_xy is not None
+                and light in self._lights_xy
+                and is_on(self.hass, light)
+            ):
+                service_data = {ATTR_ENTITY_ID: light}
+                if xy is not None:
+                    service_data[ATTR_XY_COLOR] = xy
+                if brightness is not None:
+                    service_data[ATTR_BRIGHTNESS] = brightness
+                    service_data[ATTR_WHITE_VALUE] = brightness
+                if transition is not None:
+                    service_data[ATTR_TRANSITION] = transition
+                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                _LOGGER.debug(
+                    f"{light} XY Adjusted - xy_color: {xy}, brightness: {brightness}, "
+                    f"transition: {transition}, white_value: {brightness}"
+                )
+
+            """Set color of array of brightness light if on."""
+            if (
+                self._lights_brightness is not None
+                and light in self._lights_brightness
+                and is_on(self.hass, light)
+            ):
+                service_data = {ATTR_ENTITY_ID: light}
+                if brightness is not None:
+                    service_data[ATTR_BRIGHTNESS] = brightness
+                if transition is not None:
+                    service_data[ATTR_TRANSITION] = transition
+                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+                _LOGGER.debug(
+                    f"{light} Brightness Adjusted - brightness: {brightness}, "
+                    f"transition: {transition}"
+                )
 
     def light_state_changed(self, entity_id, from_state, to_state):
         with suppress(Exception):
