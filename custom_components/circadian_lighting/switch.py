@@ -354,12 +354,11 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         xy = self.calc_xy() if self._lights_xy is not None else None
 
         for light in lights:
-            """Set color of array of ct light if on."""
-            if (
-                self._lights_ct is not None
-                and light in self._lights_ct
-                and is_on(self.hass, light)
-            ):
+            if not is_on(self.hass, light):
+                continue
+
+            # Set color of array of ct.
+            if self._lights_ct is not None and light in self._lights_ct:
                 service_data = {ATTR_ENTITY_ID: light}
                 if mired is not None:
                     service_data[ATTR_COLOR_TEMP] = mired
@@ -373,12 +372,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                     f"brightness: {brightness}, transition: {transition}"
                 )
 
-            """Set color of array of rgb light if on."""
-            if (
-                self._lights_rgb is not None
-                and light in self._lights_rgb
-                and is_on(self.hass, light)
-            ):
+            # Set color of array of rgb.
+            if self._lights_rgb is not None and light in self._lights_rgb:
                 service_data = {ATTR_ENTITY_ID: light}
                 if rgb is not None:
                     service_data[ATTR_RGB_COLOR] = rgb
@@ -392,12 +387,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                     f"brightness: {brightness}, transition: {transition}"
                 )
 
-            """Set color of array of xy light if on."""
-            if (
-                self._lights_xy is not None
-                and light in self._lights_xy
-                and is_on(self.hass, light)
-            ):
+            # Set color of array of xy.
+            if self._lights_xy is not None and light in self._lights_xy:
                 service_data = {ATTR_ENTITY_ID: light}
                 if xy is not None:
                     service_data[ATTR_XY_COLOR] = xy
@@ -412,12 +403,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                     f"transition: {transition}, white_value: {brightness}"
                 )
 
-            """Set color of array of brightness light if on."""
-            if (
-                self._lights_brightness is not None
-                and light in self._lights_brightness
-                and is_on(self.hass, light)
-            ):
+            # Set color of array of brightness.
+            if self._lights_brightness is not None and light in self._lights_brightness:
                 service_data = {ATTR_ENTITY_ID: light}
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
