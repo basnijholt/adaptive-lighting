@@ -283,16 +283,11 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         return is_sleep
 
     def calc_ct(self):
-        if self.is_sleep():
-            return color_temperature_kelvin_to_mired(self._sleep_colortemp)
-        else:
-            return color_temperature_kelvin_to_mired(self._cl.data["colortemp"])
+        col_temp = self._sleep_colortemp if self.is_sleep() else self._cl.data["colortemp"]
+        return color_temperature_kelvin_to_mired(col_temp)
 
     def calc_rgb(self):
-        if self.is_sleep():
-            return color_temperature_to_rgb(self._sleep_colortemp)
-        else:
-            return color_temperature_to_rgb(self._cl.data["colortemp"])
+        return self.calc_ct()
 
     def calc_xy(self):
         return color_RGB_to_xy(*self.calc_rgb())
