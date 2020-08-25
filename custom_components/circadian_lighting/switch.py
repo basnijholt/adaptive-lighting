@@ -203,13 +203,13 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._attributes["brightness"] = None
 
         self._lights = []
-        if lights_ct != None:
+        if lights_ct is not None:
             self._lights += lights_ct
-        if lights_rgb != None:
+        if lights_rgb is not None:
             self._lights += lights_rgb
-        if lights_xy != None:
+        if lights_xy is not None:
             self._lights += lights_xy
-        if lights_brightness != None:
+        if lights_brightness is not None:
             self._lights += lights_brightness
 
         """Register callbacks."""
