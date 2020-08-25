@@ -273,21 +273,23 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._attributes["brightness"] = None
 
     def is_sleep(self):
-        return (
+        is_sleep = (
             self._sleep_entity is not None
             and self.hass.states.get(self._sleep_entity).state == self._sleep_state
         )
+        if is_sleep:
+            _LOGGER.debug(f"{self._name} in Sleep mode")
+
+        return is_sleep
 
     def calc_ct(self):
         if self.is_sleep():
-            _LOGGER.debug(f"{self._name} in Sleep mode")
             return color_temperature_kelvin_to_mired(self._sleep_colortemp)
         else:
             return color_temperature_kelvin_to_mired(self._cl.data["colortemp"])
 
     def calc_rgb(self):
         if self.is_sleep():
-            _LOGGER.debug(f"{self._name} in Sleep mode")
             return color_temperature_to_rgb(self._sleep_colortemp)
         else:
             return color_temperature_to_rgb(self._cl.data["colortemp"])
@@ -302,7 +304,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         if self._disable_brightness_adjust is True:
             return None
         elif self.is_sleep():
-            _LOGGER.debug(f"{self._name} in Sleep mode")
             return self._sleep_brightness
         elif self._cl.data["percent"] > 0:
             return self._max_brightness
