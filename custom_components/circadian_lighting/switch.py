@@ -200,13 +200,13 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
         self._lights = []
         if lights_ct is not None:
-            self._lights += lights_ct
+            self._lights.extend(lights_ct)
         if lights_rgb is not None:
-            self._lights += lights_rgb
+            self._lights.extend(lights_rgb)
         if lights_xy is not None:
-            self._lights += lights_xy
+            self._lights.extend(lights_xy)
         if lights_brightness is not None:
-            self._lights += lights_brightness
+            self._lights.extend(lights_brightness)
 
         """Register callbacks."""
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_switch)
