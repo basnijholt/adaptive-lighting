@@ -164,26 +164,20 @@ class CircadianLighting(object):
 
         self.update = Throttle(timedelta(seconds=interval))(self._update)
 
-        if self.data["sunrise_time"] is not None:
-            track_time_change(
-                self.hass,
-                self._update,
-                hour=int(self.data["sunrise_time"].strftime("%H")),
-                minute=int(self.data["sunrise_time"].strftime("%M")),
-                second=int(self.data["sunrise_time"].strftime("%S")),
-            )
-        else:
-            track_sunrise(self.hass, self._update, self.data["sunrise_offset"])
-        if self.data["sunset_time"] is not None:
-            track_time_change(
-                self.hass,
-                self._update,
-                hour=int(self.data["sunset_time"].strftime("%H")),
-                minute=int(self.data["sunset_time"].strftime("%M")),
-                second=int(self.data["sunset_time"].strftime("%S")),
-            )
-        else:
-            track_sunset(self.hass, self._update, self.data["sunset_offset"])
+        for which in ["sunrise", "sunrise"]:
+            time = self.data[f"{which}_time"]
+            if time is not None:
+                track_time_change(
+                    self.hass,
+                    self._update,
+                    hour=int(time.strftime("%H")),
+                    minute=int(time.strftime("%M")),
+                    second=int(time.strftime("%S")),
+                )
+            elif which == "sunrise":
+                track_sunrise(self.hass, self._update, self.data["sunrise_offset"])
+            elif which == "sunset":
+                track_sunset(self.hass, self._update, self.data["sunset_offset"])
 
     def get_timezone(self):
         from timezonefinder import TimezoneFinder
