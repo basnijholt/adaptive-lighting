@@ -178,9 +178,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         self._cl = cl
         self._name = name
-        self._entity_id = "switch." + slugify(
-            "{} {}".format("circadian_lighting", name)
-        )
+        self._entity_id = "switch." + slugify(f"circadian_lighting {name}")
         self._state = None
         self._icon = ICON
         self._hs_color = None
@@ -198,9 +196,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._disable_entity = disable_entity
         self._disable_state = disable_state
         self._initial_transition = initial_transition
-        self._attributes = {}
-        self._attributes["hs_color"] = self._hs_color
-        self._attributes["brightness"] = None
+        self._attributes = {"hs_color": self._hs_color, "brightness": None}
 
         self._lights = []
         if lights_ct is not None:
