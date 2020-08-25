@@ -208,7 +208,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         if lights_brightness is not None:
             self._lights.extend(lights_brightness)
 
-        """Register callbacks."""
+        # Register callbacks
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_switch)
         track_state_change(hass, self._lights, self.light_state_changed)
         if self._sleep_entity is not None:
