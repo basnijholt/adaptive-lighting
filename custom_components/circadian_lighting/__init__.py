@@ -28,7 +28,7 @@ Technical notes: I had to make a lot of assumptions when writing this app
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
