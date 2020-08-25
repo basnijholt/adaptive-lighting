@@ -2,20 +2,24 @@
 Circadian Lighting Sensor for Home-Assistant.
 """
 
-DEPENDENCIES = ['circadian_lighting']
+DEPENDENCIES = ["circadian_lighting"]
 
+import datetime
 import logging
-
-from custom_components.circadian_lighting import DOMAIN, CIRCADIAN_LIGHTING_UPDATE_TOPIC, DATA_CIRCADIAN_LIGHTING
 
 from homeassistant.helpers.dispatcher import dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-import datetime
+from custom_components.circadian_lighting import (
+    CIRCADIAN_LIGHTING_UPDATE_TOPIC,
+    DATA_CIRCADIAN_LIGHTING,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-ICON = 'mdi:theme-light-dark'
+ICON = "mdi:theme-light-dark"
+
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting sensor."""
@@ -27,11 +31,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         def update(call=None):
             """Update component."""
             cl._update()
+
         service_name = "values_update"
         hass.services.register(DOMAIN, service_name, update)
         return True
     else:
         return False
+
 
 class CircadianSensor(Entity):
     """Representation of a Circadian Lighting sensor."""
@@ -39,16 +45,16 @@ class CircadianSensor(Entity):
     def __init__(self, hass, cl):
         """Initialize the Circadian Lighting sensor."""
         self._cl = cl
-        self._name = 'Circadian Values'
-        self._entity_id = 'sensor.circadian_values'
-        self._state = self._cl.data['percent']
-        self._unit_of_measurement = '%'
+        self._name = "Circadian Values"
+        self._entity_id = "sensor.circadian_values"
+        self._state = self._cl.data["percent"]
+        self._unit_of_measurement = "%"
         self._icon = ICON
-        self._hs_color = self._cl.data['hs_color']
+        self._hs_color = self._cl.data["hs_color"]
         self._attributes = {}
-        self._attributes['colortemp'] = self._cl.data['colortemp']
-        self._attributes['rgb_color'] = self._cl.data['rgb_color']
-        self._attributes['xy_color'] = self._cl.data['xy_color']
+        self._attributes["colortemp"] = self._cl.data["colortemp"]
+        self._attributes["rgb_color"] = self._cl.data["rgb_color"]
+        self._attributes["xy_color"] = self._cl.data["xy_color"]
 
         """Register callbacks."""
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_sensor)
@@ -96,9 +102,9 @@ class CircadianSensor(Entity):
 
     def update_sensor(self):
         if self._cl.data is not None:
-            self._state = self._cl.data['percent']
-            self._hs_color = self._cl.data['hs_color']
-            self._attributes['colortemp'] = self._cl.data['colortemp']
-            self._attributes['rgb_color'] = self._cl.data['rgb_color']
-            self._attributes['xy_color'] = self._cl.data['xy_color']
+            self._state = self._cl.data["percent"]
+            self._hs_color = self._cl.data["hs_color"]
+            self._attributes["colortemp"] = self._cl.data["colortemp"]
+            self._attributes["rgb_color"] = self._cl.data["rgb_color"]
+            self._attributes["xy_color"] = self._cl.data["xy_color"]
             _LOGGER.debug("Circadian Lighting Sensor Updated")

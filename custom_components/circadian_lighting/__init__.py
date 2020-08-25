@@ -28,64 +28,78 @@ Technical notes: I had to make a lot of assumptions when writing this app
 """
 
 import logging
-
-import voluptuous as vol
+from datetime import datetime, timedelta
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.light import (
-    VALID_TRANSITION, ATTR_TRANSITION)
+import voluptuous as vol
+from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
 from homeassistant.const import (
-    CONF_LATITUDE, CONF_LONGITUDE, CONF_ELEVATION,
-    SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET)
-from homeassistant.util import Throttle
+    CONF_ELEVATION,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    SUN_EVENT_SUNRISE,
+    SUN_EVENT_SUNSET,
+)
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.dispatcher import dispatcher_send
 from homeassistant.helpers.event import track_sunrise, track_sunset, track_time_change
+from homeassistant.util import Throttle
 from homeassistant.util.color import (
-    color_temperature_to_rgb, color_RGB_to_xy,
-    color_xy_to_hs)
-from homeassistant.util.dt import now as dt_now, get_time_zone
+    color_RGB_to_xy,
+    color_temperature_to_rgb,
+    color_xy_to_hs,
+)
+from homeassistant.util.dt import get_time_zone
+from homeassistant.util.dt import now as dt_now
 
-from datetime import datetime, timedelta
-
-VERSION = '1.0.13'
+VERSION = "1.0.13"
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = 'circadian_lighting'
-CIRCADIAN_LIGHTING_PLATFORMS = ['sensor', 'switch']
-CIRCADIAN_LIGHTING_UPDATE_TOPIC = '{0}_update'.format(DOMAIN)
-DATA_CIRCADIAN_LIGHTING = 'data_cl'
+DOMAIN = "circadian_lighting"
+CIRCADIAN_LIGHTING_PLATFORMS = ["sensor", "switch"]
+CIRCADIAN_LIGHTING_UPDATE_TOPIC = "{}_update".format(DOMAIN)
+DATA_CIRCADIAN_LIGHTING = "data_cl"
 
-CONF_MIN_CT = 'min_colortemp'
+CONF_MIN_CT = "min_colortemp"
 DEFAULT_MIN_CT = 2500
-CONF_MAX_CT = 'max_colortemp'
+CONF_MAX_CT = "max_colortemp"
 DEFAULT_MAX_CT = 5500
-CONF_SUNRISE_OFFSET = 'sunrise_offset'
-CONF_SUNSET_OFFSET = 'sunset_offset'
-CONF_SUNRISE_TIME = 'sunrise_time'
-CONF_SUNSET_TIME = 'sunset_time'
-CONF_INTERVAL = 'interval'
+CONF_SUNRISE_OFFSET = "sunrise_offset"
+CONF_SUNSET_OFFSET = "sunset_offset"
+CONF_SUNRISE_TIME = "sunrise_time"
+CONF_SUNSET_TIME = "sunset_time"
+CONF_INTERVAL = "interval"
 DEFAULT_INTERVAL = 300
 DEFAULT_TRANSITION = 60
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT):
-            vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-        vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT):
-            vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-        vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
-        vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
-        vol.Optional(CONF_SUNRISE_TIME): cv.time,
-        vol.Optional(CONF_SUNSET_TIME): cv.time,
-        vol.Optional(CONF_LATITUDE): cv.latitude,
-        vol.Optional(CONF_LONGITUDE): cv.longitude,
-        vol.Optional(CONF_ELEVATION): float,
-        vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.positive_int,
-        vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION
-    }),
-}, extra=vol.ALLOW_EXTRA)
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1000, max=10000)
+                ),
+                vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1000, max=10000)
+                ),
+                vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
+                vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
+                vol.Optional(CONF_SUNRISE_TIME): cv.time,
+                vol.Optional(CONF_SUNSET_TIME): cv.time,
+                vol.Optional(CONF_LATITUDE): cv.latitude,
+                vol.Optional(CONF_LONGITUDE): cv.longitude,
+                vol.Optional(CONF_ELEVATION): float,
+                vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.positive_int,
+                vol.Optional(
+                    ATTR_TRANSITION, default=DEFAULT_TRANSITION
+                ): VALID_TRANSITION,
+            }
+        ),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 
 def setup(hass, config):
     """Set up the Circadian Lighting component."""
@@ -101,110 +115,171 @@ def setup(hass, config):
     longitude = conf.get(CONF_LONGITUDE, hass.config.longitude)
     elevation = conf.get(CONF_ELEVATION, hass.config.elevation)
 
-    load_platform(hass, 'sensor', DOMAIN, {}, config)
+    load_platform(hass, "sensor", DOMAIN, {}, config)
 
     interval = conf.get(CONF_INTERVAL)
     transition = conf.get(ATTR_TRANSITION)
 
-    cl = CircadianLighting(hass, min_colortemp, max_colortemp,
-                    sunrise_offset, sunset_offset, sunrise_time, sunset_time,
-                    latitude, longitude, elevation,
-                    interval, transition)
+    cl = CircadianLighting(
+        hass,
+        min_colortemp,
+        max_colortemp,
+        sunrise_offset,
+        sunset_offset,
+        sunrise_time,
+        sunset_time,
+        latitude,
+        longitude,
+        elevation,
+        interval,
+        transition,
+    )
 
     hass.data[DATA_CIRCADIAN_LIGHTING] = cl
 
     return True
 
+
 class CircadianLighting(object):
     """Calculate universal Circadian values."""
 
-    def __init__(self, hass, min_colortemp, max_colortemp,
-                    sunrise_offset, sunset_offset, sunrise_time, sunset_time,
-                    latitude, longitude, elevation,
-                    interval, transition):
+    def __init__(
+        self,
+        hass,
+        min_colortemp,
+        max_colortemp,
+        sunrise_offset,
+        sunset_offset,
+        sunrise_time,
+        sunset_time,
+        latitude,
+        longitude,
+        elevation,
+        interval,
+        transition,
+    ):
         self.hass = hass
         self.data = {}
-        self.data['min_colortemp'] = min_colortemp
-        self.data['max_colortemp'] = max_colortemp
-        self.data['sunrise_offset'] = sunrise_offset
-        self.data['sunset_offset'] = sunset_offset
-        self.data['sunrise_time'] = sunrise_time
-        self.data['sunset_time'] = sunset_time
-        self.data['latitude'] = latitude
-        self.data['longitude'] = longitude
-        self.data['elevation'] = elevation
-        self.data['interval'] = interval
-        self.data['transition'] = transition
-        self.data['timezone'] = self.get_timezone()
-        self.data['percent'] = self.calc_percent()
-        self.data['colortemp'] = self.calc_colortemp()
-        self.data['rgb_color'] = self.calc_rgb()
-        self.data['xy_color'] = self.calc_xy()
-        self.data['hs_color'] = self.calc_hs()
+        self.data["min_colortemp"] = min_colortemp
+        self.data["max_colortemp"] = max_colortemp
+        self.data["sunrise_offset"] = sunrise_offset
+        self.data["sunset_offset"] = sunset_offset
+        self.data["sunrise_time"] = sunrise_time
+        self.data["sunset_time"] = sunset_time
+        self.data["latitude"] = latitude
+        self.data["longitude"] = longitude
+        self.data["elevation"] = elevation
+        self.data["interval"] = interval
+        self.data["transition"] = transition
+        self.data["timezone"] = self.get_timezone()
+        self.data["percent"] = self.calc_percent()
+        self.data["colortemp"] = self.calc_colortemp()
+        self.data["rgb_color"] = self.calc_rgb()
+        self.data["xy_color"] = self.calc_xy()
+        self.data["hs_color"] = self.calc_hs()
 
         self.update = Throttle(timedelta(seconds=interval))(self._update)
 
-        if self.data['sunrise_time'] is not None:
-            track_time_change(self.hass, self._update, hour=int(self.data['sunrise_time'].strftime("%H")), minute=int(self.data['sunrise_time'].strftime("%M")), second=int(self.data['sunrise_time'].strftime("%S")))
+        if self.data["sunrise_time"] is not None:
+            track_time_change(
+                self.hass,
+                self._update,
+                hour=int(self.data["sunrise_time"].strftime("%H")),
+                minute=int(self.data["sunrise_time"].strftime("%M")),
+                second=int(self.data["sunrise_time"].strftime("%S")),
+            )
         else:
-            track_sunrise(self.hass, self._update, self.data['sunrise_offset'])
-        if self.data['sunset_time'] is not None:
-            track_time_change(self.hass, self._update, hour=int(self.data['sunset_time'].strftime("%H")), minute=int(self.data['sunset_time'].strftime("%M")), second=int(self.data['sunset_time'].strftime("%S")))
+            track_sunrise(self.hass, self._update, self.data["sunrise_offset"])
+        if self.data["sunset_time"] is not None:
+            track_time_change(
+                self.hass,
+                self._update,
+                hour=int(self.data["sunset_time"].strftime("%H")),
+                minute=int(self.data["sunset_time"].strftime("%M")),
+                second=int(self.data["sunset_time"].strftime("%S")),
+            )
         else:
-            track_sunset(self.hass, self._update, self.data['sunset_offset'])
+            track_sunset(self.hass, self._update, self.data["sunset_offset"])
 
     def get_timezone(self):
         from timezonefinder import TimezoneFinder
+
         tf = TimezoneFinder()
-        timezone_string = tf.timezone_at(lng=self.data['longitude'], lat=self.data['latitude'])
+        timezone_string = tf.timezone_at(
+            lng=self.data["longitude"], lat=self.data["latitude"]
+        )
         timezone = get_time_zone(timezone_string)
         _LOGGER.debug("Timezone: " + str(timezone))
         return timezone
-    
-    def get_sunrise_sunset(self, date = None):
-        if self.data['sunrise_time'] is not None and self.data['sunset_time'] is not None:
+
+    def get_sunrise_sunset(self, date=None):
+        if (
+            self.data["sunrise_time"] is not None
+            and self.data["sunset_time"] is not None
+        ):
             if date is None:
-                date = dt_now(self.data['timezone'])
-            sunrise = date.replace(hour=int(self.data['sunrise_time'].strftime("%H")), minute=int(self.data['sunrise_time'].strftime("%M")), second=int(self.data['sunrise_time'].strftime("%S")), microsecond=int(self.data['sunrise_time'].strftime("%f")))
-            sunset = date.replace(hour=int(self.data['sunset_time'].strftime("%H")), minute=int(self.data['sunset_time'].strftime("%M")), second=int(self.data['sunset_time'].strftime("%S")), microsecond=int(self.data['sunset_time'].strftime("%f")))
-            solar_noon = sunrise + (sunset - sunrise)/2
-            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset)/2
+                date = dt_now(self.data["timezone"])
+            sunrise = date.replace(
+                hour=int(self.data["sunrise_time"].strftime("%H")),
+                minute=int(self.data["sunrise_time"].strftime("%M")),
+                second=int(self.data["sunrise_time"].strftime("%S")),
+                microsecond=int(self.data["sunrise_time"].strftime("%f")),
+            )
+            sunset = date.replace(
+                hour=int(self.data["sunset_time"].strftime("%H")),
+                minute=int(self.data["sunset_time"].strftime("%M")),
+                second=int(self.data["sunset_time"].strftime("%S")),
+                microsecond=int(self.data["sunset_time"].strftime("%f")),
+            )
+            solar_noon = sunrise + (sunset - sunrise) / 2
+            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
         else:
             import astral
+
             location = astral.Location()
-            location.name = 'name'
-            location.region = 'region'
-            location.latitude = self.data['latitude']
-            location.longitude = self.data['longitude']
-            location.elevation = self.data['elevation']
+            location.name = "name"
+            location.region = "region"
+            location.latitude = self.data["latitude"]
+            location.longitude = self.data["longitude"]
+            location.elevation = self.data["elevation"]
             _LOGGER.debug("Astral location: " + str(location))
-            if self.data['sunrise_time'] is not None:
+            if self.data["sunrise_time"] is not None:
                 if date is None:
-                    date = dt_now(self.data['timezone'])
-                sunrise = date.replace(hour=int(self.data['sunrise_time'].strftime("%H")), minute=int(self.data['sunrise_time'].strftime("%M")), second=int(self.data['sunrise_time'].strftime("%S")), microsecond=int(self.data['sunrise_time'].strftime("%f")))
+                    date = dt_now(self.data["timezone"])
+                sunrise = date.replace(
+                    hour=int(self.data["sunrise_time"].strftime("%H")),
+                    minute=int(self.data["sunrise_time"].strftime("%M")),
+                    second=int(self.data["sunrise_time"].strftime("%S")),
+                    microsecond=int(self.data["sunrise_time"].strftime("%f")),
+                )
             else:
                 sunrise = location.sunrise(date)
-            if self.data['sunset_time'] is not None:
+            if self.data["sunset_time"] is not None:
                 if date is None:
-                    date = dt_now(self.data['timezone'])
-                sunset = date.replace(hour=int(self.data['sunset_time'].strftime("%H")), minute=int(self.data['sunset_time'].strftime("%M")), second=int(self.data['sunset_time'].strftime("%S")), microsecond=int(self.data['sunset_time'].strftime("%f")))
+                    date = dt_now(self.data["timezone"])
+                sunset = date.replace(
+                    hour=int(self.data["sunset_time"].strftime("%H")),
+                    minute=int(self.data["sunset_time"].strftime("%M")),
+                    second=int(self.data["sunset_time"].strftime("%S")),
+                    microsecond=int(self.data["sunset_time"].strftime("%f")),
+                )
             else:
                 sunset = location.sunset(date)
             solar_noon = location.solar_noon(date)
             solar_midnight = location.solar_midnight(date)
-        if self.data['sunrise_offset'] is not None:
-            sunrise = sunrise + self.data['sunrise_offset']
-        if self.data['sunset_offset'] is not None:
-            sunset = sunset + self.data['sunset_offset']
+        if self.data["sunrise_offset"] is not None:
+            sunrise = sunrise + self.data["sunrise_offset"]
+        if self.data["sunset_offset"] is not None:
+            sunset = sunset + self.data["sunset_offset"]
         return {
-            SUN_EVENT_SUNRISE: sunrise.astimezone(self.data['timezone']),
-            SUN_EVENT_SUNSET: sunset.astimezone(self.data['timezone']),
-            'solar_noon': solar_noon.astimezone(self.data['timezone']),
-            'solar_midnight': solar_midnight.astimezone(self.data['timezone'])
+            SUN_EVENT_SUNRISE: sunrise.astimezone(self.data["timezone"]),
+            SUN_EVENT_SUNSET: sunset.astimezone(self.data["timezone"]),
+            "solar_noon": solar_noon.astimezone(self.data["timezone"]),
+            "solar_midnight": solar_midnight.astimezone(self.data["timezone"]),
         }
 
     def calc_percent(self):
-        now = dt_now(self.data['timezone'])
+        now = dt_now(self.data["timezone"])
         _LOGGER.debug("now: " + str(now))
 
         today_sun_times = self.get_sunrise_sunset(now)
@@ -214,25 +289,41 @@ class CircadianLighting(object):
         now_seconds = now.timestamp()
         sunrise_seconds = today_sun_times[SUN_EVENT_SUNRISE].timestamp()
         sunset_seconds = today_sun_times[SUN_EVENT_SUNSET].timestamp()
-        solar_noon_seconds = today_sun_times['solar_noon'].timestamp()
-        solar_midnight_seconds = today_sun_times['solar_midnight'].timestamp()
+        solar_noon_seconds = today_sun_times["solar_noon"].timestamp()
+        solar_midnight_seconds = today_sun_times["solar_midnight"].timestamp()
 
-        if now < today_sun_times[SUN_EVENT_SUNRISE]: # It's before sunrise (after midnight)
+        if (
+            now < today_sun_times[SUN_EVENT_SUNRISE]
+        ):  # It's before sunrise (after midnight)
             # Because it's before sunrise (and after midnight) sunset must have happend yesterday
             yesterday_sun_times = self.get_sunrise_sunset(now - timedelta(days=1))
             _LOGGER.debug("yesterday_sun_times: " + str(yesterday_sun_times))
             sunset_seconds = yesterday_sun_times[SUN_EVENT_SUNSET].timestamp()
-            if today_sun_times['solar_midnight'] > today_sun_times[SUN_EVENT_SUNSET] and yesterday_sun_times['solar_midnight'] > yesterday_sun_times[SUN_EVENT_SUNSET]:
+            if (
+                today_sun_times["solar_midnight"] > today_sun_times[SUN_EVENT_SUNSET]
+                and yesterday_sun_times["solar_midnight"]
+                > yesterday_sun_times[SUN_EVENT_SUNSET]
+            ):
                 # Solar midnight is after sunset so use yesterdays's time
-                solar_midnight_seconds = yesterday_sun_times['solar_midnight'].timestamp()
-        elif now > today_sun_times[SUN_EVENT_SUNSET]: # It's after sunset (before midnight)
+                solar_midnight_seconds = yesterday_sun_times[
+                    "solar_midnight"
+                ].timestamp()
+        elif (
+            now > today_sun_times[SUN_EVENT_SUNSET]
+        ):  # It's after sunset (before midnight)
             # Because it's after sunset (and before midnight) sunrise should happen tomorrow
             tomorrow_sun_times = self.get_sunrise_sunset(now + timedelta(days=1))
             _LOGGER.debug("tomorrow_sun_times: " + str(tomorrow_sun_times))
             sunrise_seconds = tomorrow_sun_times[SUN_EVENT_SUNRISE].timestamp()
-            if today_sun_times['solar_midnight'] < today_sun_times[SUN_EVENT_SUNRISE] and tomorrow_sun_times['solar_midnight'] < tomorrow_sun_times[SUN_EVENT_SUNRISE]:
+            if (
+                today_sun_times["solar_midnight"] < today_sun_times[SUN_EVENT_SUNRISE]
+                and tomorrow_sun_times["solar_midnight"]
+                < tomorrow_sun_times[SUN_EVENT_SUNRISE]
+            ):
                 # Solar midnight is before sunrise so use tomorrow's time
-                solar_midnight_seconds = tomorrow_sun_times['solar_midnight'].timestamp()
+                solar_midnight_seconds = tomorrow_sun_times[
+                    "solar_midnight"
+                ].timestamp()
 
         _LOGGER.debug("now_seconds: " + str(now_seconds))
         _LOGGER.debug("sunrise_seconds: " + str(sunrise_seconds))
@@ -269,8 +360,8 @@ class CircadianLighting(object):
                 x = sunrise_seconds
             y = 0
 
-        a = (y-k)/(h-x)**2
-        percentage = a*(now_seconds-h)**2+k
+        a = (y - k) / (h - x) ** 2
+        percentage = a * (now_seconds - h) ** 2 + k
 
         _LOGGER.debug("h: " + str(h))
         _LOGGER.debug("k: " + str(k))
@@ -282,13 +373,16 @@ class CircadianLighting(object):
         return percentage
 
     def calc_colortemp(self):
-        if self.data['percent'] > 0:
-            return ((self.data['max_colortemp'] - self.data['min_colortemp']) * (self.data['percent'] / 100)) + self.data['min_colortemp']
+        if self.data["percent"] > 0:
+            return (
+                (self.data["max_colortemp"] - self.data["min_colortemp"])
+                * (self.data["percent"] / 100)
+            ) + self.data["min_colortemp"]
         else:
-            return self.data['min_colortemp']
+            return self.data["min_colortemp"]
 
     def calc_rgb(self):
-        return color_temperature_to_rgb(self.data['colortemp'])
+        return color_temperature_to_rgb(self.data["colortemp"])
 
     def calc_xy(self):
         rgb = self.calc_rgb()
@@ -307,10 +401,10 @@ class CircadianLighting(object):
 
     def _update(self, *args, **kwargs):
         """Update Circadian Values."""
-        self.data['percent'] = self.calc_percent()
-        self.data['colortemp'] = self.calc_colortemp()
-        self.data['rgb_color'] = self.calc_rgb()
-        self.data['xy_color'] = self.calc_xy()
-        self.data['hs_color'] = self.calc_hs()
+        self.data["percent"] = self.calc_percent()
+        self.data["colortemp"] = self.calc_colortemp()
+        self.data["rgb_color"] = self.calc_rgb()
+        self.data["xy_color"] = self.calc_xy()
+        self.data["hs_color"] = self.calc_hs()
         dispatcher_send(self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC)
         _LOGGER.debug("Circadian Lighting Component Updated")
