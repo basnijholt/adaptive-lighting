@@ -357,64 +357,50 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if not is_on(self.hass, light):
                 continue
 
+            which = None
+            service_data = {ATTR_ENTITY_ID: light}
+            if transition is not None:
+                service_data[ATTR_TRANSITION] = transition
+
             # Set color of array of ct.
             if self._lights_ct is not None and light in self._lights_ct:
-                service_data = {ATTR_ENTITY_ID: light}
+                which = "CT"
                 if mired is not None:
                     service_data[ATTR_COLOR_TEMP] = mired
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
-                if transition is not None:
-                    service_data[ATTR_TRANSITION] = transition
-                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                _LOGGER.debug(
-                    f"{light} CT Adjusted - color_temp: {mired}, "
-                    f"brightness: {brightness}, transition: {transition}"
-                )
 
             # Set color of array of rgb.
             elif self._lights_rgb is not None and light in self._lights_rgb:
-                service_data = {ATTR_ENTITY_ID: light}
+                which = "RGB"
                 if rgb is not None:
                     service_data[ATTR_RGB_COLOR] = rgb
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
-                if transition is not None:
-                    service_data[ATTR_TRANSITION] = transition
-                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                _LOGGER.debug(
-                    f"{light} RGB Adjusted - rgb_color: {rgb}, "
-                    f"brightness: {brightness}, transition: {transition}"
-                )
 
             # Set color of array of xy.
             elif self._lights_xy is not None and light in self._lights_xy:
-                service_data = {ATTR_ENTITY_ID: light}
+                which = "XY"
                 if xy is not None:
                     service_data[ATTR_XY_COLOR] = xy
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
                     service_data[ATTR_WHITE_VALUE] = brightness
-                if transition is not None:
-                    service_data[ATTR_TRANSITION] = transition
-                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                _LOGGER.debug(
-                    f"{light} XY Adjusted - xy_color: {xy}, brightness: {brightness}, "
-                    f"transition: {transition}, white_value: {brightness}"
-                )
 
             # Set color of array of brightness.
-            elif self._lights_brightness is not None and light in self._lights_brightness:
-                service_data = {ATTR_ENTITY_ID: light}
+            elif (
+                self._lights_brightness is not None and light in self._lights_brightness
+            ):
+                which = "Brightness"
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
-                if transition is not None:
-                    service_data[ATTR_TRANSITION] = transition
+
+            if which is not None:
                 self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                _LOGGER.debug(
-                    f"{light} Brightness Adjusted - brightness: {brightness}, "
-                    f"transition: {transition}"
+                msg = ", ".join(
+                    [f"{k}: v" for k, v in d.items() if k != ATTR_ENTITY_ID]
                 )
+                _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
     def light_state_changed(self, entity_id, from_state, to_state):
         with suppress(Exception):
