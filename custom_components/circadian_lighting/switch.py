@@ -40,7 +40,6 @@ from homeassistant.util.color import (
 from custom_components.circadian_lighting import (
     CIRCADIAN_LIGHTING_UPDATE_TOPIC,
     DATA_CIRCADIAN_LIGHTING,
-    DOMAIN,
 )
 
 try:
