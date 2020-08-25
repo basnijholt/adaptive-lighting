@@ -325,11 +325,13 @@ class CircadianLighting(object):
                     "solar_midnight"
                 ].timestamp()
 
-        _LOGGER.debug("now_seconds: " + str(now_seconds))
-        _LOGGER.debug("sunrise_seconds: " + str(sunrise_seconds))
-        _LOGGER.debug("sunset_seconds: " + str(sunset_seconds))
-        _LOGGER.debug("solar_midnight_seconds: " + str(solar_midnight_seconds))
-        _LOGGER.debug("solar_noon_seconds: " + str(solar_noon_seconds))
+        _LOGGER.debug(
+            f"now_seconds: {now_seconds}, "
+            f"sunrise_seconds: {sunrise_seconds}, "
+            f"sunset_seconds: {sunset_seconds}, "
+            f"solar_midnight_seconds: {solar_midnight_seconds}, "
+            f"solar_noon_seconds: {solar_noon_seconds}"
+        )
 
         # Figure out where we are in time so we know which half of the parabola to calculate
         # We're generating a different sunset-sunrise parabola for before and after solar midnight
@@ -363,12 +365,9 @@ class CircadianLighting(object):
         a = (y - k) / (h - x) ** 2
         percentage = a * (now_seconds - h) ** 2 + k
 
-        _LOGGER.debug("h: " + str(h))
-        _LOGGER.debug("k: " + str(k))
-        _LOGGER.debug("x: " + str(x))
-        _LOGGER.debug("y: " + str(y))
-        _LOGGER.debug("a: " + str(a))
-        _LOGGER.debug("percentage: " + str(percentage))
+        _LOGGER.debug(
+            f"h: {h}, k: {k}, x: {x}, y: {y}, a: {a}, percentage: {percentage}"
+        )
 
         return percentage
 
