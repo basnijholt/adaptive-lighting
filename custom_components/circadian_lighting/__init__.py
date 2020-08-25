@@ -258,9 +258,8 @@ class CircadianLighting(object):
         solar_noon_seconds = today_sun_times["solar_noon"].timestamp()
         solar_midnight_seconds = today_sun_times["solar_midnight"].timestamp()
 
-        if (
-            now < today_sun_times[SUN_EVENT_SUNRISE]
-        ):  # It's before sunrise (after midnight)
+        if now < today_sun_times[SUN_EVENT_SUNRISE]:
+            # It's before sunrise (after midnight)
             # Because it's before sunrise (and after midnight) sunset must have happend yesterday
             yesterday_sun_times = self.get_sunrise_sunset(now - timedelta(days=1))
             _LOGGER.debug("yesterday_sun_times: " + str(yesterday_sun_times))
@@ -274,9 +273,8 @@ class CircadianLighting(object):
                 solar_midnight_seconds = yesterday_sun_times[
                     "solar_midnight"
                 ].timestamp()
-        elif (
-            now > today_sun_times[SUN_EVENT_SUNSET]
-        ):  # It's after sunset (before midnight)
+        elif now > today_sun_times[SUN_EVENT_SUNSET]:
+            # It's after sunset (before midnight)
             # Because it's after sunset (and before midnight) sunrise should happen tomorrow
             tomorrow_sun_times = self.get_sunrise_sunset(now + timedelta(days=1))
             _LOGGER.debug("tomorrow_sun_times: " + str(tomorrow_sun_times))
