@@ -339,7 +339,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             self._disable_entity is not None
             and self.hass.states.get(self._disable_entity).state == self._disable_state
         ):
-            _LOGGER.debug(f"{self._name} disabled by " + str(self._disable_entity))
+            _LOGGER.debug(f"{self._name} disabled by {self._disable_entity}")
             return False
         else:
             return True
