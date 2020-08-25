@@ -104,38 +104,22 @@ CONFIG_SCHEMA = vol.Schema(
 def setup(hass, config):
     """Set up the Circadian Lighting component."""
     conf = config[DOMAIN]
-    min_colortemp = conf.get(CONF_MIN_CT)
-    max_colortemp = conf.get(CONF_MAX_CT)
-    sunrise_offset = conf.get(CONF_SUNRISE_OFFSET)
-    sunset_offset = conf.get(CONF_SUNSET_OFFSET)
-    sunrise_time = conf.get(CONF_SUNRISE_TIME)
-    sunset_time = conf.get(CONF_SUNSET_TIME)
-
-    latitude = conf.get(CONF_LATITUDE, hass.config.latitude)
-    longitude = conf.get(CONF_LONGITUDE, hass.config.longitude)
-    elevation = conf.get(CONF_ELEVATION, hass.config.elevation)
-
     load_platform(hass, "sensor", DOMAIN, {}, config)
 
-    interval = conf.get(CONF_INTERVAL)
-    transition = conf.get(ATTR_TRANSITION)
-
-    cl = CircadianLighting(
+    hass.data[DATA_CIRCADIAN_LIGHTING] = CircadianLighting(
         hass,
-        min_colortemp,
-        max_colortemp,
-        sunrise_offset,
-        sunset_offset,
-        sunrise_time,
-        sunset_time,
-        latitude,
-        longitude,
-        elevation,
-        interval,
-        transition,
+        min_colortemp=conf.get(CONF_MIN_CT),
+        max_colortemp=conf.get(CONF_MAX_CT),
+        sunrise_offset=conf.get(CONF_SUNRISE_OFFSET),
+        sunset_offset=conf.get(CONF_SUNSET_OFFSET),
+        sunrise_time=conf.get(CONF_SUNRISE_TIME),
+        sunset_time=conf.get(CONF_SUNSET_TIME),
+        latitude=conf.get(CONF_LATITUDE, hass.config.latitude),
+        longitude=conf.get(CONF_LONGITUDE, hass.config.longitude),
+        elevation=conf.get(CONF_ELEVATION, hass.config.elevation),
+        interval=conf.get(CONF_INTERVAL),
+        transition=conf.get(ATTR_TRANSITION),
     )
-
-    hass.data[DATA_CIRCADIAN_LIGHTING] = cl
 
     return True
 
