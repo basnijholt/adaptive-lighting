@@ -373,7 +373,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 )
 
             # Set color of array of rgb.
-            if self._lights_rgb is not None and light in self._lights_rgb:
+            elif self._lights_rgb is not None and light in self._lights_rgb:
                 service_data = {ATTR_ENTITY_ID: light}
                 if rgb is not None:
                     service_data[ATTR_RGB_COLOR] = rgb
@@ -388,7 +388,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 )
 
             # Set color of array of xy.
-            if self._lights_xy is not None and light in self._lights_xy:
+            elif self._lights_xy is not None and light in self._lights_xy:
                 service_data = {ATTR_ENTITY_ID: light}
                 if xy is not None:
                     service_data[ATTR_XY_COLOR] = xy
@@ -404,7 +404,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 )
 
             # Set color of array of brightness.
-            if self._lights_brightness is not None and light in self._lights_brightness:
+            elif self._lights_brightness is not None and light in self._lights_brightness:
                 service_data = {ATTR_ENTITY_ID: light}
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
