@@ -5,6 +5,7 @@ Circadian Lighting Switch for Home-Assistant.
 DEPENDENCIES = ["circadian_lighting", "light"]
 
 import logging
+from contextlib import suppress
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -438,28 +439,22 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                     )
 
     def light_state_changed(self, entity_id, from_state, to_state):
-        try:
+        with suppress(Exception):
             _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
             if to_state.state == "on" and from_state.state != "on":
                 self.adjust_lights([entity_id], self._initial_transition)
-        except:
-            pass
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
-        try:
+        with suppress(Exception):
             _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
             if (
                 to_state.state == self._sleep_state
                 or from_state.state == self._sleep_state
             ):
                 self.update_switch(self._initial_transition)
-        except:
-            pass
 
     def disable_state_changed(self, entity_id, from_state, to_state):
-        try:
+        with suppress(Exception):
             _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
             if from_state.state == self._disable_state:
                 self.update_switch(self._initial_transition)
-        except:
-            pass
