@@ -284,14 +284,14 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def calc_ct(self):
         if self.is_sleep():
-            _LOGGER.debug(self._name + " in Sleep mode")
+            _LOGGER.debug(f"{self._name} in Sleep mode")
             return color_temperature_kelvin_to_mired(self._sleep_colortemp)
         else:
             return color_temperature_kelvin_to_mired(self._cl.data["colortemp"])
 
     def calc_rgb(self):
         if self.is_sleep():
-            _LOGGER.debug(self._name + " in Sleep mode")
+            _LOGGER.debug(f"{self._name} in Sleep mode")
             return color_temperature_to_rgb(self._sleep_colortemp)
         else:
             return color_temperature_to_rgb(self._cl.data["colortemp"])
@@ -307,7 +307,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return None
         else:
             if self.is_sleep():
-                _LOGGER.debug(self._name + " in Sleep mode")
+                _LOGGER.debug(f"{self._name} in Sleep mode")
                 return self._sleep_brightness
             else:
                 if self._cl.data["percent"] > 0:
@@ -323,29 +323,29 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             self._hs_color = self.calc_hs()
             self._attributes["hs_color"] = self._hs_color
             self._attributes["brightness"] = self.calc_brightness()
-            _LOGGER.debug(self._name + " Switch Updated")
+            _LOGGER.debug(f"{self._name} Switch Updated")
 
         self.adjust_lights(self._lights, transition)
 
     def should_adjust(self):
         if self._state is not True:
-            _LOGGER.debug(self._name + " off - not adjusting")
+            _LOGGER.debug(f"{self._name} off - not adjusting")
             return False
         elif self._cl.data is None:
-            _LOGGER.debug(self._name + " could not retrieve Circadian Lighting data")
+            _LOGGER.debug(f"{self._name} could not retrieve Circadian Lighting data")
             return False
         elif (
             self._disable_entity is not None
             and self.hass.states.get(self._disable_entity).state == self._disable_state
         ):
-            _LOGGER.debug(self._name + " disabled by " + str(self._disable_entity))
+            _LOGGER.debug(f"{self._name} disabled by " + str(self._disable_entity))
             return False
         else:
             return True
 
     def adjust_lights(self, lights, transition=None):
         if self.should_adjust():
-            if transition == None:
+            if transition is None:
                 transition = self._cl.data["transition"]
 
             brightness = (
@@ -377,13 +377,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                         service_data[ATTR_TRANSITION] = transition
                     self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
                     _LOGGER.debug(
-                        light
-                        + " CT Adjusted - color_temp: "
-                        + str(mired)
-                        + ", brightness: "
-                        + str(brightness)
-                        + ", transition: "
-                        + str(transition)
+                        f"{light} CT Adjusted - color_temp: {mired}, "
+                        f"brightness: {brightness}, transition: {transition}"
                     )
 
                 """Set color of array of rgb light if on."""
@@ -401,13 +396,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                         service_data[ATTR_TRANSITION] = transition
                     self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
                     _LOGGER.debug(
-                        light
-                        + " RGB Adjusted - rgb_color: "
-                        + str(rgb)
-                        + ", brightness: "
-                        + str(brightness)
-                        + ", transition: "
-                        + str(transition)
+                        f"{light} RGB Adjusted - rgb_color: {rgb}, "
+                        f"brightness: {brightness}, transition: {transition}"
                     )
 
                 """Set color of array of xy light if on."""
@@ -426,15 +416,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                         service_data[ATTR_TRANSITION] = transition
                     self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
                     _LOGGER.debug(
-                        light
-                        + " XY Adjusted - xy_color: "
-                        + str(xy)
-                        + ", brightness: "
-                        + str(brightness)
-                        + ", transition: "
-                        + str(transition)
-                        + ", white_value: "
-                        + str(brightness)
+                        f"{light} XY Adjusted - xy_color: {xy}, brightness: {brightness}, "
+                        f"transition: {transition}, white_value: {brightness}"
                     )
 
                 """Set color of array of brightness light if on."""
@@ -450,18 +433,13 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                         service_data[ATTR_TRANSITION] = transition
                     self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
                     _LOGGER.debug(
-                        light
-                        + " Brightness Adjusted - brightness: "
-                        + str(brightness)
-                        + ", transition: "
-                        + str(transition)
+                        f"{light} Brightness Adjusted - brightness: {brightness}, "
+                        f"transition: {transition}"
                     )
 
     def light_state_changed(self, entity_id, from_state, to_state):
         try:
-            _LOGGER.debug(
-                entity_id + " change from " + str(from_state) + " to " + str(to_state)
-            )
+            _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
             if to_state.state == "on" and from_state.state != "on":
                 self.adjust_lights([entity_id], self._initial_transition)
         except:
@@ -469,9 +447,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
         try:
-            _LOGGER.debug(
-                entity_id + " change from " + str(from_state) + " to " + str(to_state)
-            )
+            _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
             if (
                 to_state.state == self._sleep_state
                 or from_state.state == self._sleep_state
@@ -482,9 +458,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def disable_state_changed(self, entity_id, from_state, to_state):
         try:
-            _LOGGER.debug(
-                entity_id + " change from " + str(from_state) + " to " + str(to_state)
-            )
+            _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
             if from_state.state == self._disable_state:
                 self.update_switch(self._initial_transition)
         except:
