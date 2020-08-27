@@ -346,27 +346,21 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             # Set color of array of ct.
             if self._lights_ct is not None and light in self._lights_ct:
                 which = "CT"
-                mired = int(self.calc_ct()) if self._lights_ct is not None else None
-                if mired is not None:
-                    service_data[ATTR_COLOR_TEMP] = mired
+                service_data[ATTR_COLOR_TEMP] = int(self.calc_ct())
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
 
             # Set color of array of rgb.
             elif self._lights_rgb is not None and light in self._lights_rgb:
                 which = "RGB"
-                rgb = tuple(map(int, self.calc_rgb())) if self._lights_rgb is not None else None
-                if rgb is not None:
-                    service_data[ATTR_RGB_COLOR] = rgb
+                service_data[ATTR_RGB_COLOR] = tuple(map(int, self.calc_rgb()))
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
 
             # Set color of array of xy.
             elif self._lights_xy is not None and light in self._lights_xy:
                 which = "XY"
-                xy = self.calc_xy() if self._lights_xy is not None else None
-                if xy is not None:
-                    service_data[ATTR_XY_COLOR] = xy
+                service_data[ATTR_XY_COLOR] = self.calc_xy()
                 if brightness is not None:
                     service_data[ATTR_BRIGHTNESS] = brightness
                     service_data[ATTR_WHITE_VALUE] = brightness
