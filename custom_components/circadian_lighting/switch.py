@@ -324,7 +324,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if not is_on(self.hass, light):
                 continue
 
-            which = None
             service_data = {ATTR_ENTITY_ID: light}
             brightness = self._attributes["brightness"]
             if brightness is not None:
@@ -353,13 +352,12 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             elif light in self._lights_brightness:
                 which = "Brightness"
 
-            if which is not None:
-                self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                key_value_strings = [
-                    f"{k}: {v}" for k, v in service_data.items() if k != ATTR_ENTITY_ID
-                ]
-                msg = ", ".join(key_value_strings)
-                _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
+            self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
+            key_value_strings = [
+                f"{k}: {v}" for k, v in service_data.items() if k != ATTR_ENTITY_ID
+            ]
+            msg = ", ".join(key_value_strings)
+            _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
     def light_state_changed(self, entity_id, from_state, to_state):
         with suppress(Exception):
