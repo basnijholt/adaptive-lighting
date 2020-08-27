@@ -328,18 +328,16 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         if transition is None:
             transition = self._cl.data["transition"]
 
-        brightness = (
-            int((self._attributes["brightness"] / 100) * 254)
-            if self._attributes["brightness"] is not None
-            else None
-        )
-
         for light in lights:
             if not is_on(self.hass, light):
                 continue
 
             which = None
             service_data = {ATTR_ENTITY_ID: light}
+            if self._attributes["brightness"] is not None:
+                service_data[ATTR_BRIGHTNESS] = int(
+                    (self._attributes["brightness"] / 100) * 254
+                )
             if transition is not None:
                 service_data[ATTR_TRANSITION] = transition
 
@@ -347,37 +345,31 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if self._lights_ct is not None and light in self._lights_ct:
                 which = "CT"
                 service_data[ATTR_COLOR_TEMP] = int(self.calc_ct())
-                if brightness is not None:
-                    service_data[ATTR_BRIGHTNESS] = brightness
 
             # Set color of array of rgb.
             elif self._lights_rgb is not None and light in self._lights_rgb:
                 which = "RGB"
                 service_data[ATTR_RGB_COLOR] = tuple(map(int, self.calc_rgb()))
-                if brightness is not None:
-                    service_data[ATTR_BRIGHTNESS] = brightness
 
             # Set color of array of xy.
             elif self._lights_xy is not None and light in self._lights_xy:
                 which = "XY"
                 service_data[ATTR_XY_COLOR] = self.calc_xy()
-                if brightness is not None:
-                    service_data[ATTR_BRIGHTNESS] = brightness
-                    service_data[ATTR_WHITE_VALUE] = brightness
+                if service_data.get(ATTR_BRIGHTNESS, False):
+                    service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
 
             # Set color of array of brightness.
             elif (
                 self._lights_brightness is not None and light in self._lights_brightness
             ):
                 which = "Brightness"
-                if brightness is not None:
-                    service_data[ATTR_BRIGHTNESS] = brightness
 
             if which is not None:
                 self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-                msg = ", ".join(
-                    [f"{k}: {v}" for k, v in service_data.items() if k != ATTR_ENTITY_ID]
-                )
+                key_value_strings = [
+                    f"{k}: {v}" for k, v in service_data.items() if k != ATTR_ENTITY_ID
+                ]
+                msg = ", ".join(key_value_strings)
                 _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
     def light_state_changed(self, entity_id, from_state, to_state):
