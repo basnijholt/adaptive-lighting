@@ -110,10 +110,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             hass,
             cl,
             name=config.get(CONF_NAME),
-            lights_ct=config.get(CONF_LIGHTS_CT),
-            lights_rgb=config.get(CONF_LIGHTS_RGB),
-            lights_xy=config.get(CONF_LIGHTS_XY),
-            lights_brightness=config.get(CONF_LIGHTS_BRIGHT),
+            lights_ct=config.get(CONF_LIGHTS_CT, []),
+            lights_rgb=config.get(CONF_LIGHTS_RGB, []),
+            lights_xy=config.get(CONF_LIGHTS_XY, []),
+            lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
             disable_brightness_adjust=config.get(CONF_DISABLE_BRIGHTNESS_ADJUST),
             min_brightness=config.get(CONF_MIN_BRIGHT),
             max_brightness=config.get(CONF_MAX_BRIGHT),
@@ -183,15 +183,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._initial_transition = initial_transition
         self._attributes = {"hs_color": self._hs_color, "brightness": None}
 
-        self._lights = []
-        if lights_ct is not None:
-            self._lights.extend(lights_ct)
-        if lights_rgb is not None:
-            self._lights.extend(lights_rgb)
-        if lights_xy is not None:
-            self._lights.extend(lights_xy)
-        if lights_brightness is not None:
-            self._lights.extend(lights_brightness)
+        self._lights = lights_ct + lights_rgb + lights_xy + lights_brightness
 
         # Register callbacks
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_switch)
@@ -342,26 +334,24 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 service_data[ATTR_TRANSITION] = transition
 
             # Set color of array of ct.
-            if self._lights_ct is not None and light in self._lights_ct:
+            if light in self._lights_ct:
                 which = "CT"
                 service_data[ATTR_COLOR_TEMP] = int(self.calc_ct())
 
             # Set color of array of rgb.
-            elif self._lights_rgb is not None and light in self._lights_rgb:
+            elif light in self._lights_rgb:
                 which = "RGB"
                 service_data[ATTR_RGB_COLOR] = tuple(map(int, self.calc_rgb()))
 
             # Set color of array of xy.
-            elif self._lights_xy is not None and light in self._lights_xy:
+            elif light in self._lights_xy:
                 which = "XY"
                 service_data[ATTR_XY_COLOR] = self.calc_xy()
                 if service_data.get(ATTR_BRIGHTNESS, False):
                     service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
 
             # Set color of array of brightness.
-            elif (
-                self._lights_brightness is not None and light in self._lights_brightness
-            ):
+            elif light in self._lights_brightness:
                 which = "Brightness"
 
             if which is not None:
