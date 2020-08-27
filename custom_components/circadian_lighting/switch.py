@@ -326,10 +326,9 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
             which = None
             service_data = {ATTR_ENTITY_ID: light}
-            if self._attributes["brightness"] is not None:
-                service_data[ATTR_BRIGHTNESS] = int(
-                    (self._attributes["brightness"] / 100) * 254
-                )
+            brightness = self._attributes["brightness"]
+            if brightness is not None:
+                service_data[ATTR_BRIGHTNESS] = int((brightness / 100) * 254)
             if transition is not None:
                 service_data[ATTR_TRANSITION] = transition
 
