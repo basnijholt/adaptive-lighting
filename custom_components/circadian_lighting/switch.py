@@ -382,7 +382,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if which is not None:
                 self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
                 msg = ", ".join(
-                    [f"{k}: v" for k, v in d.items() if k != ATTR_ENTITY_ID]
+                    [f"{k}: {v}" for k, v in service_data.items() if k != ATTR_ENTITY_ID]
                 )
                 _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
