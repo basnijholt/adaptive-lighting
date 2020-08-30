@@ -6,7 +6,6 @@ DEPENDENCIES = ["circadian_lighting", "light"]
 
 import logging
 from contextlib import suppress
-from typing import Optional
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -40,7 +39,7 @@ from homeassistant.util.color import (
 
 from custom_components.circadian_lighting import (
     CIRCADIAN_LIGHTING_UPDATE_TOPIC,
-    DATA_CIRCADIAN_LIGHTING,
+    DOMAIN,
 )
 
 try:
@@ -107,9 +106,9 @@ PLATFORM_SCHEMA = vol.Schema(
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting switches."""
-    cl = hass.data.get(DATA_CIRCADIAN_LIGHTING)
+    cl = hass.data.get(DOMAIN)
     if cl:
-        cs = CircadianSwitch(
+        switch = CircadianSwitch(
             hass,
             cl,
             name=config.get(CONF_NAME),
@@ -129,7 +128,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             initial_transition=config.get(CONF_INITIAL_TRANSITION),
             once_only=config.get(CONF_ONCE_ONLY),
         )
-        add_devices([cs])
+        add_devices([switch])
 
         return True
     else:

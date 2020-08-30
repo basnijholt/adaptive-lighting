@@ -12,7 +12,6 @@ from homeassistant.helpers.entity import Entity
 
 from custom_components.circadian_lighting import (
     CIRCADIAN_LIGHTING_UPDATE_TOPIC,
-    DATA_CIRCADIAN_LIGHTING,
     DOMAIN,
 )
 
@@ -23,7 +22,7 @@ ICON = "mdi:theme-light-dark"
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting sensor."""
-    cl = hass.data.get(DATA_CIRCADIAN_LIGHTING)
+    cl = hass.data.get(DOMAIN)
     if cl:
         cs = CircadianSensor(hass, cl)
         add_devices([cs])

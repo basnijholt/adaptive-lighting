@@ -57,9 +57,7 @@ VERSION = "1.0.13"
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "circadian_lighting"
-CIRCADIAN_LIGHTING_PLATFORMS = ["sensor", "switch"]
-CIRCADIAN_LIGHTING_UPDATE_TOPIC = "{}_update".format(DOMAIN)
-DATA_CIRCADIAN_LIGHTING = "data_cl"
+CIRCADIAN_LIGHTING_UPDATE_TOPIC = f"{DOMAIN}_update"
 
 CONF_MIN_CT = "min_colortemp"
 DEFAULT_MIN_CT = 2500
@@ -106,7 +104,7 @@ def setup(hass, config):
     conf = config[DOMAIN]
     load_platform(hass, "sensor", DOMAIN, {}, config)
 
-    hass.data[DATA_CIRCADIAN_LIGHTING] = CircadianLighting(
+    hass.data[DOMAIN] = CircadianLighting(
         hass,
         min_colortemp=conf.get(CONF_MIN_CT),
         max_colortemp=conf.get(CONF_MAX_CT),
