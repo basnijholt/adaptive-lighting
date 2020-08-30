@@ -99,7 +99,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
-        vol.Optional(CONF_ONCE_ONLY): cv.bool,
+        vol.Optional(CONF_ONCE_ONLY): cv.boolean,
     }
 )
 
