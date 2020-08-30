@@ -142,23 +142,23 @@ class CircadianLighting(object):
     ):
         self.hass = hass
         self.data = {}
-        self.data["min_colortemp"] = min_colortemp
-        self.data["max_colortemp"] = max_colortemp
-        self.data["sunrise_offset"] = sunrise_offset
-        self.data["sunset_offset"] = sunset_offset
+        self._min_colortemp = min_colortemp
+        self._max_colortemp = max_colortemp
+        self._sunrise_offset = sunrise_offset
+        self._sunset_offset = sunset_offset
         self.data["sunrise_time"] = sunrise_time
         self.data["sunset_time"] = sunset_time
-        self.data["latitude"] = latitude
-        self.data["longitude"] = longitude
-        self.data["elevation"] = elevation
-        self.data["interval"] = interval
-        self.data["transition"] = transition
-        self.data["timezone"] = self.get_timezone()
-        self.data["percent"] = self.calc_percent()
-        self.data["colortemp"] = self.calc_colortemp()
-        self.data["rgb_color"] = self.calc_rgb()
-        self.data["xy_color"] = self.calc_xy()
-        self.data["hs_color"] = self.calc_hs()
+        self._latitude = latitude
+        self._longitude = longitude
+        self._elevation = elevation
+        self._interval = interval
+        self._transition = transition
+        self._timezone = self.get_timezone()
+        self._percent = self.calc_percent()
+        self._colortemp = self.calc_colortemp()
+        self._rgb_color = self.calc_rgb()
+        self._xy_color = self.calc_xy()
+        self._hs_color = self.calc_hs()
 
         self.update = Throttle(timedelta(seconds=interval))(self._update)
 
@@ -173,16 +173,16 @@ class CircadianLighting(object):
                     second=int(time.strftime("%S")),
                 )
             elif which == "sunrise":
-                track_sunrise(self.hass, self._update, self.data["sunrise_offset"])
+                track_sunrise(self.hass, self._update, self._sunrise_offset)
             elif which == "sunset":
-                track_sunset(self.hass, self._update, self.data["sunset_offset"])
+                track_sunset(self.hass, self._update, self._sunset_offset)
 
     def get_timezone(self):
         from timezonefinder import TimezoneFinder
 
         tf = TimezoneFinder()
         timezone_string = tf.timezone_at(
-            lng=self.data["longitude"], lat=self.data["latitude"]
+            lng=self._longitude, lat=self._latitude
         )
         timezone = get_time_zone(timezone_string)
         _LOGGER.debug("Timezone: " + str(timezone))
@@ -202,7 +202,7 @@ class CircadianLighting(object):
             and self.data["sunset_time"] is not None
         ):
             if date is None:
-                date = dt_now(self.data["timezone"])
+                date = dt_now(self._timezone)
             sunrise = date.replace(**self._time_dict("sunrise_time"))
             sunset = date.replace(**self._time_dict("sunset_time"))
             solar_noon = sunrise + (sunset - sunrise) / 2
@@ -213,37 +213,37 @@ class CircadianLighting(object):
             location = astral.Location()
             location.name = "name"
             location.region = "region"
-            location.latitude = self.data["latitude"]
-            location.longitude = self.data["longitude"]
-            location.elevation = self.data["elevation"]
+            location.latitude = self._latitude
+            location.longitude = self._longitude
+            location.elevation = self._elevation
             _LOGGER.debug("Astral location: " + str(location))
             if self.data["sunrise_time"] is not None:
                 if date is None:
-                    date = dt_now(self.data["timezone"])
+                    date = dt_now(self._timezone)
                 sunrise = date.replace(**self._time_dict("sunrise_time"))
             else:
                 sunrise = location.sunrise(date)
             if self.data["sunset_time"] is not None:
                 if date is None:
-                    date = dt_now(self.data["timezone"])
+                    date = dt_now(self._timezone)
                 sunset = date.replace(**self._time_dict("sunset_time"))
             else:
                 sunset = location.sunset(date)
             solar_noon = location.solar_noon(date)
             solar_midnight = location.solar_midnight(date)
-        if self.data["sunrise_offset"] is not None:
-            sunrise = sunrise + self.data["sunrise_offset"]
-        if self.data["sunset_offset"] is not None:
-            sunset = sunset + self.data["sunset_offset"]
+        if self._sunrise_offset is not None:
+            sunrise = sunrise + self._sunrise_offset
+        if self._sunset_offset is not None:
+            sunset = sunset + self._sunset_offset
         return {
-            SUN_EVENT_SUNRISE: sunrise.astimezone(self.data["timezone"]),
-            SUN_EVENT_SUNSET: sunset.astimezone(self.data["timezone"]),
-            "solar_noon": solar_noon.astimezone(self.data["timezone"]),
-            "solar_midnight": solar_midnight.astimezone(self.data["timezone"]),
+            SUN_EVENT_SUNRISE: sunrise.astimezone(self._timezone),
+            SUN_EVENT_SUNSET: sunset.astimezone(self._timezone),
+            "solar_noon": solar_noon.astimezone(self._timezone),
+            "solar_midnight": solar_midnight.astimezone(self._timezone),
         }
 
     def calc_percent(self):
-        now = dt_now(self.data["timezone"])
+        now = dt_now(self._timezone)
         _LOGGER.debug("now: " + str(now))
 
         today_sun_times = self.get_sunrise_sunset(now)
@@ -334,16 +334,16 @@ class CircadianLighting(object):
         return percentage
 
     def calc_colortemp(self):
-        if self.data["percent"] > 0:
+        if self._percent > 0:
             return (
-                (self.data["max_colortemp"] - self.data["min_colortemp"])
-                * (self.data["percent"] / 100)
-            ) + self.data["min_colortemp"]
+                (self._max_colortemp - self._min_colortemp)
+                * (self._percent / 100)
+            ) + self._min_colortemp
         else:
-            return self.data["min_colortemp"]
+            return self._min_colortemp
 
     def calc_rgb(self):
-        return color_temperature_to_rgb(self.data["colortemp"])
+        return color_temperature_to_rgb(self._colortemp)
 
     def calc_xy(self):
         rgb = self.calc_rgb()
@@ -362,10 +362,10 @@ class CircadianLighting(object):
 
     def _update(self, *args, **kwargs):
         """Update Circadian Values."""
-        self.data["percent"] = self.calc_percent()
-        self.data["colortemp"] = self.calc_colortemp()
-        self.data["rgb_color"] = self.calc_rgb()
-        self.data["xy_color"] = self.calc_xy()
-        self.data["hs_color"] = self.calc_hs()
+        self._percent = self.calc_percent()
+        self._colortemp = self.calc_colortemp()
+        self._rgb_color = self.calc_rgb()
+        self._xy_color = self.calc_xy()
+        self._hs_color = self.calc_hs()
         dispatcher_send(self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC)
         _LOGGER.debug("Circadian Lighting Component Updated")
