@@ -6,6 +6,7 @@ DEPENDENCIES = ["circadian_lighting", "light"]
 
 import logging
 from contextlib import suppress
+from typing import Optional
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -69,6 +70,7 @@ CONF_DISABLE_ENTITY = "disable_entity"
 CONF_DISABLE_STATE = "disable_state"
 CONF_INITIAL_TRANSITION = "initial_transition"
 DEFAULT_INITIAL_TRANSITION = 1
+CONF_ONCE_ONLY = "once_only"
 
 PLATFORM_SCHEMA = vol.Schema(
     {
@@ -98,6 +100,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
+        vol.Optional(CONF_ONCE_ONLY): cv.bool,
     }
 )
 
@@ -124,12 +127,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             disable_entity=config.get(CONF_DISABLE_ENTITY),
             disable_state=config.get(CONF_DISABLE_STATE),
             initial_transition=config.get(CONF_INITIAL_TRANSITION),
+            once_only=config.get(CONF_ONCE_ONLY),
         )
         add_devices([cs])
-
-        def update(call=None):
-            """Update lights."""
-            cs.update_switch()
 
         return True
     else:
@@ -158,6 +158,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         disable_entity,
         disable_state,
         initial_transition,
+        once_only,
     ):
         """Initialize the Circadian Lighting switch."""
         self.hass = hass
@@ -181,12 +182,12 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._disable_entity = disable_entity
         self._disable_state = disable_state
         self._initial_transition = initial_transition
-        self._attributes = {"hs_color": self._hs_color, "brightness": None}
+        self._once_only = once_only
 
         self._lights = lights_ct + lights_rgb + lights_xy + lights_brightness
 
         # Register callbacks
-        dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_switch)
+        dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self._update_switch)
         track_state_change(hass, self._lights, self.light_state_changed)
         if self._sleep_entity is not None:
             track_state_change(hass, self._sleep_entity, self.sleep_state_changed)
@@ -230,14 +231,14 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     @property
     def device_state_attributes(self):
         """Return the attributes of the switch."""
-        return self._attributes
+        return {"hs_color": self._hs_color, "brightness": self._brightness}
 
     def turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
 
         # Make initial update
-        self.update_switch(self._initial_transition)
+        self._update_switch(self._initial_transition, force=True)
 
         self.schedule_update_ha_state()
 
@@ -246,8 +247,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._state = False
         self.schedule_update_ha_state()
         self._hs_color = None
-        self._attributes["hs_color"] = self._hs_color
-        self._attributes["brightness"] = None
+        self._brightness = None
 
     def is_sleep(self):
         is_sleep = (
@@ -283,16 +283,16 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         elif self._cl.data["percent"] > 0:
             return self._max_brightness
         else:
-            return (
-                (self._max_brightness - self._min_brightness)
-                * ((100 + self._cl.data["percent"]) / 100)
-            ) + self._min_brightness
+            delta_brightness = self._max_brightness - self._min_brightness
+            procent = (100 + self._cl.data["percent"]) / 100
+            return (delta_brightness * procent) + self._min_brightness
 
-    def update_switch(self, transition=None):
+    def _update_switch(self, transition=None, force=False):
+        if self._once_only and not force:
+            return
         if self._cl.data is not None:
             self._hs_color = self.calc_hs()
-            self._attributes["hs_color"] = self._hs_color
-            self._attributes["brightness"] = self.calc_brightness()
+            self._brightness = self.calc_brightness()
             _LOGGER.debug(f"{self._name} Switch Updated")
 
         self.adjust_lights(self._lights, transition)
@@ -325,7 +325,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 continue
 
             service_data = {ATTR_ENTITY_ID: light}
-            brightness = self._attributes["brightness"]
+            brightness = self._brightness
             if brightness is not None:
                 service_data[ATTR_BRIGHTNESS] = int((brightness / 100) * 254)
             if transition is not None:
@@ -372,10 +372,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 to_state.state == self._sleep_state
                 or from_state.state == self._sleep_state
             ):
-                self.update_switch(self._initial_transition)
+                self._update_switch(self._initial_transition, force=True)
 
     def disable_state_changed(self, entity_id, from_state, to_state):
         with suppress(Exception):
             _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
             if from_state.state == self._disable_state:
-                self.update_switch(self._initial_transition)
+                self._update_switch(self._initial_transition, force=True)
