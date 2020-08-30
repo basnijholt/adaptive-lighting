@@ -163,7 +163,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         self._circadian_lighting = circadian_lighting
         self._name = name
-        self._entity_id = "switch." + slugify(f"circadian_lighting {name}")
+        self._entity_id = f"switch.circadian_lighting_{slugify(name)}"
         self._state = None
         self._icon = ICON
         self._hs_color = None
