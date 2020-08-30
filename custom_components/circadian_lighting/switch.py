@@ -106,11 +106,11 @@ PLATFORM_SCHEMA = vol.Schema(
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting switches."""
-    cl = hass.data.get(DOMAIN)
-    if cl:
+    circadian_lighting = hass.data.get(DOMAIN)
+    if circadian_lighting is not None:
         switch = CircadianSwitch(
             hass,
-            cl,
+            circadian_lighting,
             name=config.get(CONF_NAME),
             lights_ct=config.get(CONF_LIGHTS_CT, []),
             lights_rgb=config.get(CONF_LIGHTS_RGB, []),
@@ -141,7 +141,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def __init__(
         self,
         hass,
-        cl,
+        circadian_lighting,
         name,
         lights_ct,
         lights_rgb,
@@ -161,7 +161,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     ):
         """Initialize the Circadian Lighting switch."""
         self.hass = hass
-        self._cl = cl
+        self._circadian_lighting = circadian_lighting
         self._name = name
         self._entity_id = "switch." + slugify(f"circadian_lighting {name}")
         self._state = None
@@ -260,7 +260,11 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     @property
     def _color_temperature(self):
-        return self._sleep_colortemp if self.is_sleep() else self._cl.data["colortemp"]
+        return (
+            self._sleep_colortemp
+            if self.is_sleep()
+            else self._circadian_lighting._colortemp
+        )
 
     def calc_ct(self):
         return color_temperature_kelvin_to_mired(self._color_temperature)
@@ -279,29 +283,24 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return None
         elif self.is_sleep():
             return self._sleep_brightness
-        elif self._cl.data["percent"] > 0:
+        elif self._circadian_lighting._percent > 0:
             return self._max_brightness
         else:
             delta_brightness = self._max_brightness - self._min_brightness
-            procent = (100 + self._cl.data["percent"]) / 100
+            procent = (100 + self._circadian_lighting._percent) / 100
             return (delta_brightness * procent) + self._min_brightness
 
     def _update_switch(self, transition=None, force=False):
         if self._once_only and not force:
             return
-        if self._cl.data is not None:
-            self._hs_color = self.calc_hs()
-            self._brightness = self.calc_brightness()
-            _LOGGER.debug(f"{self._name} Switch Updated")
-
+        self._hs_color = self.calc_hs()
+        self._brightness = self.calc_brightness()
+        _LOGGER.debug(f"{self._name} Switch Updated")
         self.adjust_lights(self._lights, transition)
 
     def should_adjust(self):
         if self._state is not True:
             _LOGGER.debug(f"{self._name} off - not adjusting")
-            return False
-        elif self._cl.data is None:
-            _LOGGER.debug(f"{self._name} could not retrieve Circadian Lighting data")
             return False
         elif (
             self._disable_entity is not None
@@ -317,7 +316,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return
 
         if transition is None:
-            transition = self._cl.data["transition"]
+            transition = self._circadian_lighting._transition
 
         for light in lights:
             if not is_on(self.hass, light):

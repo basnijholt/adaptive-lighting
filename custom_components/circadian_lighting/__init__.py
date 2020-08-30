@@ -122,7 +122,7 @@ def setup(hass, config):
     return True
 
 
-class CircadianLighting(object):
+class CircadianLighting:
     """Calculate universal Circadian values."""
 
     def __init__(
@@ -196,10 +196,7 @@ class CircadianLighting(object):
         )
 
     def get_sunrise_sunset(self, date=None):
-        if (
-            self._time["sunrise"] is not None
-            and self._time["sunset"] is not None
-        ):
+        if self._time["sunrise"] is not None and self._time["sunset"] is not None:
             if date is None:
                 date = dt_now(self._timezone)
             sunrise = date.replace(**self._time_dict("sunrise"))
@@ -334,9 +331,9 @@ class CircadianLighting(object):
 
     def calc_colortemp(self):
         if self._percent > 0:
-            return (
-                (self._max_colortemp - self._min_colortemp) * (self._percent / 100)
-            ) + self._min_colortemp
+            delta = self._max_colortemp - self._min_colortemp
+            percent = self._percent / 100
+            return (delta * percent) + self._min_colortemp
         else:
             return self._min_colortemp
 
@@ -344,19 +341,10 @@ class CircadianLighting(object):
         return color_temperature_to_rgb(self._colortemp)
 
     def calc_xy(self):
-        rgb = self.calc_rgb()
-        iR = rgb[0]
-        iG = rgb[1]
-        iB = rgb[2]
-
-        return color_RGB_to_xy(iR, iG, iB)
+        return color_RGB_to_xy(*self.calc_rgb())
 
     def calc_hs(self):
-        xy = self.calc_xy()
-        vX = xy[0]
-        vY = xy[1]
-
-        return color_xy_to_hs(vX, vY)
+        return color_xy_to_hs(*self.calc_xy())
 
     def _update(self, *args, **kwargs):
         """Update Circadian Values."""
