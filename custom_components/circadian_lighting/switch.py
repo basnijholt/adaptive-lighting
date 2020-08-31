@@ -37,6 +37,7 @@ from homeassistant.util.color import (
 from custom_components.circadian_lighting import (
     CIRCADIAN_LIGHTING_UPDATE_TOPIC,
     DOMAIN,
+    log,
 )
 
 try:
@@ -240,17 +241,13 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._hs_color = None
         self._brightness = None
 
+    @log(with_return=True, logger=_LOGGER)
     def is_sleep(self):
-        is_sleep = (
+        return (
             self._sleep_entity is not None
             and self.hass.states.get(self._sleep_entity).state in self._sleep_state
         )
-        if is_sleep:
-            _LOGGER.debug(f"{self._name} in Sleep mode")
 
-        return is_sleep
-
-    @property
     def _color_temperature(self):
         return (
             self._sleep_colortemp
@@ -259,10 +256,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         )
 
     def calc_ct(self):
-        return color_temperature_kelvin_to_mired(self._color_temperature)
+        return color_temperature_kelvin_to_mired(self._color_temperature())
 
     def calc_rgb(self):
-        return color_temperature_to_rgb(self._color_temperature)
+        return color_temperature_to_rgb(self._color_temperature())
 
     def calc_xy(self):
         return color_RGB_to_xy(*self.calc_rgb())
@@ -282,27 +279,26 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             procent = (100 + self._circadian_lighting._percent) / 100
             return (delta_brightness * procent) + self._min_brightness
 
+    @log(logger=_LOGGER)
     def _update_switch(self, lights=None, transition=None, force=False):
         if self._once_only and not force:
             return
         self._hs_color = self.calc_hs()
         self._brightness = self.calc_brightness()
-        _LOGGER.debug(f"{self._name} Switch Updated")
         self._adjust_lights(lights or self._lights, transition)
 
-    @property
+    @log(with_return=True, logger=_LOGGER)
     def _is_disabled(self):
         return (
             self._disable_entity is not None
             and self.hass.states.get(self._disable_entity).state in self._disable_state
         )
 
+    @log(with_return=True, logger=_LOGGER)
     def _should_adjust(self):
         if self._state is not True:
-            _LOGGER.debug(f"{self._name} off - not adjusting")
             return False
-        elif self._is_disabled:
-            _LOGGER.debug(f"{self._name} disabled by {self._disable_entity}")
+        elif self._is_disabled():
             return False
         else:
             return True
@@ -353,26 +349,17 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             msg = ", ".join(key_value_strings)
             _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
+    @log(with_return=True, logger=_LOGGER)
     def light_state_changed(self, entity_id, from_state, to_state):
         if to_state.state == "on" and from_state.state != "on":
-            _LOGGER.debug(
-                f"light_state_changed for {self._name}: {entity_id} "
-                f"change from {from_state} to {to_state}"
-            )
             self._update_switch([entity_id], self._initial_transition, force=True)
 
+    @log(with_return=True, logger=_LOGGER)
     def sleep_state_changed(self, entity_id, from_state, to_state):
         if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
-            _LOGGER.debug(
-                f"sleep_state_changed for {self._name}: {entity_id} "
-                f"change from {from_state} to {to_state}"
-            )
             self._update_switch(transition=self._initial_transition, force=True)
 
+    @log(with_return=True, logger=_LOGGER)
     def disable_state_changed(self, entity_id, from_state, to_state):
         if from_state.state in self._disable_state:
-            _LOGGER.debug(
-                f"disable_state_changed for {self._name}: {entity_id} "
-                f"change from {from_state} to {to_state}"
-            )
             self._update_switch(transition=self._initial_transition, force=True)

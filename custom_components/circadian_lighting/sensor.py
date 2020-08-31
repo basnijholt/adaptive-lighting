@@ -10,6 +10,7 @@ from homeassistant.helpers.entity import Entity
 from custom_components.circadian_lighting import (
     CIRCADIAN_LIGHTING_UPDATE_TOPIC,
     DOMAIN,
+    log,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,10 +100,10 @@ class CircadianSensor(Entity):
         """
         self._circadian_lighting.update()
 
+    @log(logger=_LOGGER)
     def update_sensor(self):
         self._state = self._circadian_lighting._percent
         self._hs_color = self._circadian_lighting._hs_color
         self._colortemp = self._circadian_lighting._colortemp
         self._rgb_color = self._circadian_lighting._rgb_color
         self._xy_color = self._circadian_lighting._xy_color
-        _LOGGER.debug("Circadian Lighting Sensor Updated")

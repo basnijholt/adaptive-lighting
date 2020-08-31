@@ -29,6 +29,7 @@ Technical notes: I had to make a lot of assumptions when writing this app
 
 import logging
 from datetime import timedelta
+import inspect
 
 import voluptuous as vol
 
@@ -97,6 +98,26 @@ CONFIG_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
+
+
+def log(with_return=False, logger=_LOGGER):
+    def _log(func):
+        def wrapper(*args, **kwargs):
+            func_args = inspect.signature(func).bind(*args, **kwargs).arguments
+            key_value_pairs = (
+                f"{k}={v!r}" for k, v in func_args.items() if k != "self"
+            )
+            func_args_str = ", ".join(key_value_pairs)
+            out = f"{func.__qualname__}({func_args_str})"
+            result = func(*args, **kwargs)
+            if with_return:
+                out += f" -> {result}"
+            logger.debug(out)
+            return result
+
+        return wrapper
+
+    return _log
 
 
 def setup(hass, config):
@@ -177,11 +198,11 @@ class CircadianLighting:
             elif which == "sunset":
                 track_sunset(self.hass, self._update, self._sunset_offset)
 
+    @log(with_return=True)
     def get_timezone(self):
         tf = TimezoneFinder()
         timezone_string = tf.timezone_at(lng=self._longitude, lat=self._latitude)
         timezone = get_time_zone(timezone_string)
-        _LOGGER.debug("Timezone: " + str(timezone))
         return timezone
 
     def _time_dict(self, key):
