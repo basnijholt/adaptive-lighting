@@ -328,7 +328,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if light_type == "ct":
                 service_data[ATTR_COLOR_TEMP] = int(self.calc_ct())
             elif light_type == "rgb":
-                service_data[ATTR_RGB_COLOR] = tuple(map(int, self.calc_rgb()))
+                r, g, b = self.calc_rgb()
+                service_data[ATTR_RGB_COLOR] = (int(r), int(g), int(b))
             elif light_type == "xy":
                 service_data[ATTR_XY_COLOR] = self.calc_xy()
                 if service_data.get(ATTR_BRIGHTNESS, False):
