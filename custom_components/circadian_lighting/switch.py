@@ -230,10 +230,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
-
-        # Make initial update
         self._update_switch(transition=self._initial_transition, force=True)
-
         self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs):
@@ -293,14 +290,18 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug(f"{self._name} Switch Updated")
         self._adjust_lights(lights or self._lights, transition)
 
+    @property
+    def _is_disabled(self):
+        return (
+            self._disable_entity is not None
+            and self.hass.states.get(self._disable_entity).state in self._disable_state
+        )
+
     def _should_adjust(self):
         if self._state is not True:
             _LOGGER.debug(f"{self._name} off - not adjusting")
             return False
-        elif (
-            self._disable_entity is not None
-            and self.hass.states.get(self._disable_entity).state in self._disable_state
-        ):
+        elif self._is_disabled:
             _LOGGER.debug(f"{self._name} disabled by {self._disable_entity}")
             return False
         else:
@@ -353,16 +354,25 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
     def light_state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
         if to_state.state == "on" and from_state.state != "on":
+            _LOGGER.debug(
+                f"light_state_changed for {self._name}: {entity_id} "
+                f"change from {from_state} to {to_state}"
+            )
             self._update_switch([entity_id], self._initial_transition, force=True)
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
         if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
+            _LOGGER.debug(
+                f"sleep_state_changed for {self._name}: {entity_id} "
+                f"change from {from_state} to {to_state}"
+            )
             self._update_switch(transition=self._initial_transition, force=True)
 
     def disable_state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
         if from_state.state in self._disable_state:
+            _LOGGER.debug(
+                f"disable_state_changed for {self._name}: {entity_id} "
+                f"change from {from_state} to {to_state}"
+            )
             self._update_switch(transition=self._initial_transition, force=True)
