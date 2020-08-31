@@ -335,7 +335,7 @@ class CircadianLighting:
     def calc_hs(self):
         return color_xy_to_hs(*self.calc_xy())
 
-    def _update(self, *args, **kwargs):
+    def _update(self):
         """Update Circadian Values."""
         self._percent = self.calc_percent()
         self._colortemp = self.calc_colortemp()

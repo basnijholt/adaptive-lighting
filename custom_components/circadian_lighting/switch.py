@@ -232,7 +232,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._state = True
 
         # Make initial update
-        self._update_switch(self._initial_transition, force=True)
+        self._update_switch(transition=self._initial_transition, force=True)
 
         self.schedule_update_ha_state()
 
@@ -285,15 +285,15 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             procent = (100 + self._circadian_lighting._percent) / 100
             return (delta_brightness * procent) + self._min_brightness
 
-    def _update_switch(self, transition=None, force=False):
+    def _update_switch(self, lights=None, transition=None, force=False):
         if self._once_only and not force:
             return
         self._hs_color = self.calc_hs()
         self._brightness = self.calc_brightness()
         _LOGGER.debug(f"{self._name} Switch Updated")
-        self.adjust_lights(self._lights, transition)
+        self._adjust_lights(lights or self._lights, transition)
 
-    def should_adjust(self):
+    def _should_adjust(self):
         if self._state is not True:
             _LOGGER.debug(f"{self._name} off - not adjusting")
             return False
@@ -306,8 +306,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         else:
             return True
 
-    def adjust_lights(self, lights, transition=None):
-        if not self.should_adjust():
+    def _adjust_lights(self, lights, transition=None):
+        if not self._should_adjust():
             return
 
         if transition is None:
@@ -355,7 +355,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def light_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
         if to_state.state == "on" and from_state.state != "on":
-            self.adjust_lights([entity_id], self._initial_transition)
+            self._update_switch([entity_id], self._initial_transition, force=True)
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
