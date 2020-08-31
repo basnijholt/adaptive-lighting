@@ -167,6 +167,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._state = None
         self._icon = ICON
         self._hs_color = None
+        self._brightness = None
         self._lights_ct = lights_ct
         self._lights_rgb = lights_rgb
         self._lights_xy = lights_xy
