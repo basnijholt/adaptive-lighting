@@ -165,7 +165,7 @@ class CircadianLighting:
         self._max_colortemp = max_colortemp
         self._sunrise_offset = sunrise_offset
         self._sunset_offset = sunset_offset
-        self._time = {
+        self._manual_time = {
             "sunrise": sunrise_time,
             "sunset": sunset_time,
         }
@@ -184,29 +184,27 @@ class CircadianLighting:
         self.update = Throttle(timedelta(seconds=interval))(self._update)
 
         for which in ["sunrise", "sunrise"]:
-            time = self._time[which]
+            time = self._manual_time[which]
             if time is not None:
                 track_time_change(
                     self.hass,
                     self._update,
-                    hour=int(time.strftime("%H")),
-                    minute=int(time.strftime("%M")),
-                    second=int(time.strftime("%S")),
+                    hour=time.hour,
+                    minute=time.minute,
+                    second=time.second,
                 )
-            elif which == "sunrise":
-                track_sunrise(self.hass, self._update, self._sunrise_offset)
-            elif which == "sunset":
-                track_sunset(self.hass, self._update, self._sunset_offset)
+
+        track_sunrise(self.hass, self._update, self._sunrise_offset)
+        track_sunset(self.hass, self._update, self._sunset_offset)
 
     @log(with_return=True)
     def get_timezone(self):
         tf = TimezoneFinder()
         timezone_string = tf.timezone_at(lng=self._longitude, lat=self._latitude)
-        timezone = get_time_zone(timezone_string)
-        return timezone
+        return get_time_zone(timezone_string)
 
     def _replace_time(self, date, key):
-        other_date = self._time[key]
+        other_date = self._manual_time[key]
         return date.replace(
             hour=other_date.hour,
             minute=other_date.minute,
@@ -214,10 +212,11 @@ class CircadianLighting:
             microsecond=other_date.microsecond,
         )
 
-    def get_sunrise_sunset(self, date=None, as_timestamps=False):
-        if self._time["sunrise"] is not None and self._time["sunset"] is not None:
-            if date is None:
-                date = dt_now(self._timezone)
+    def get_sunrise_sunset(self, date, as_timestamps=True):
+        if (
+            self._manual_time["sunrise"] is not None
+            and self._manual_time["sunset"] is not None
+        ):
             sunrise = self._replace_time(date, "sunrise")
             sunset = self._replace_time(date, "sunset")
             solar_noon = sunrise + (sunset - sunrise) / 2
@@ -229,18 +228,13 @@ class CircadianLighting:
             location.latitude = self._latitude
             location.longitude = self._longitude
             location.elevation = self._elevation
-            _LOGGER.debug("Astral location: " + str(location))
 
-            if self._time["sunrise"] is not None:
-                if date is None:
-                    date = dt_now(self._timezone)
+            if self._manual_time["sunrise"] is not None:
                 sunrise = self._replace_time(date, "sunrise")
             else:
                 sunrise = location.sunrise(date)
 
-            if self._time["sunset"] is not None:
-                if date is None:
-                    date = dt_now(self._timezone)
+            if self._manual_time["sunset"] is not None:
                 sunset = self._replace_time(date, "sunset")
             else:
                 sunset = location.sunset(date)
@@ -266,21 +260,13 @@ class CircadianLighting:
 
     def calc_percent(self):
         now = dt_now(self._timezone)
-        _LOGGER.debug("now: " + str(now))
-
-        today = self.get_sunrise_sunset(now, as_timestamps=True)
-        _LOGGER.debug("today: " + str(today))
-
-        # Convert everything to epoch timestamps for easy calculation
         now_ts = now.timestamp()
 
+        today = self.get_sunrise_sunset(now)
         if now_ts < today[SUN_EVENT_SUNRISE]:
             # It's before sunrise (after midnight)
             # Because it's before sunrise (and after midnight) sunset must have happend yesterday
-            yesterday = self.get_sunrise_sunset(
-                now - timedelta(days=1), as_timestamps=True
-            )
-            _LOGGER.debug("yesterday: " + str(yesterday))
+            yesterday = self.get_sunrise_sunset(now - timedelta(days=1))
             today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
             if (
                 today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
@@ -291,10 +277,7 @@ class CircadianLighting:
         elif now_ts > today[SUN_EVENT_SUNSET]:
             # It's after sunset (before midnight)
             # Because it's after sunset (and before midnight) sunrise should happen tomorrow
-            tomorrow = self.get_sunrise_sunset(
-                now + timedelta(days=1), as_timestamps=True
-            )
-            _LOGGER.debug("tomorrow: " + str(tomorrow))
+            tomorrow = self.get_sunrise_sunset(now + timedelta(days=1))
             today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
             if (
                 today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
@@ -303,14 +286,13 @@ class CircadianLighting:
                 # Solar midnight is before sunrise so use tomorrow's time
                 today[SUN_EVENT_MIDNIGHT] = tomorrow[SUN_EVENT_MIDNIGHT]
 
-        _LOGGER.debug(f"now_ts: {now_ts}, {today}")
+        # Figure out where we are in time so we know which half of the
+        # parabola to calculate. We're generating a different
+        # sunset-sunrise parabola for before and after solar midnight.
+        # because it might not be half way between sunrise and sunset.
+        # We're also generating a different parabola for sunrise-sunset.
 
-        # Figure out where we are in time so we know which half of the parabola to calculate
-        # We're generating a different sunset-sunrise parabola for before and after solar midnight
-        # because it might not be half way between sunrise and sunset
-        # We're also (obviously) generating a different parabola for sunrise-sunset
-
-        # sunrise-sunset parabola
+        # sunrise -> sunset parabola
         if today[SUN_EVENT_SUNRISE] < now_ts < today[SUN_EVENT_SUNSET]:
             h = today[SUN_EVENT_NOON]
             k = 100
@@ -320,9 +302,8 @@ class CircadianLighting:
                 if now_ts < today[SUN_EVENT_NOON]
                 else today[SUN_EVENT_SUNSET]
             )
-            y = 0
 
-        # sunset_sunrise parabola
+        # sunset -> sunrise parabola
         elif today[SUN_EVENT_SUNSET] < now_ts < today[SUN_EVENT_SUNRISE]:
             h = today[SUN_EVENT_MIDNIGHT]
             k = -100
@@ -332,15 +313,10 @@ class CircadianLighting:
                 if now_ts < today[SUN_EVENT_MIDNIGHT]
                 else today[SUN_EVENT_SUNRISE]
             )
-            y = 0
 
+        y = 0
         a = (y - k) / (h - x) ** 2
         percentage = a * (now_ts - h) ** 2 + k
-
-        _LOGGER.debug(
-            f"h: {h}, k: {k}, x: {x}, y: {y}, a: {a}, percentage: {percentage}"
-        )
-
         return percentage
 
     def calc_colortemp(self):
@@ -360,6 +336,7 @@ class CircadianLighting:
     def calc_hs(self):
         return color_xy_to_hs(*self.calc_xy())
 
+    @log()
     def _update(self):
         """Update Circadian Values."""
         self._percent = self.calc_percent()
@@ -368,4 +345,3 @@ class CircadianLighting:
         self._xy_color = self.calc_xy()
         self._hs_color = self.calc_hs()
         dispatcher_send(self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC)
-        _LOGGER.debug("Circadian Lighting Component Updated")
