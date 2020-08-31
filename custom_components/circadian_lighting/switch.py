@@ -99,7 +99,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
-        vol.Optional(CONF_ONCE_ONLY): cv.boolean,
+        vol.Optional(CONF_ONCE_ONLY, default=False): cv.boolean,
     }
 )
 
@@ -359,22 +359,19 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
 
     def light_state_changed(self, entity_id, from_state, to_state):
-        with suppress(Exception):
-            _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
-            if to_state.state == "on" and from_state.state != "on":
-                self.adjust_lights([entity_id], self._initial_transition)
+        _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
+        if to_state.state == "on" and from_state.state != "on":
+            self.adjust_lights([entity_id], self._initial_transition)
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
-        with suppress(Exception):
-            _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
-            if (
-                to_state.state == self._sleep_state
+        _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
+        if (
+            to_state.state == self._sleep_state
                 or from_state.state == self._sleep_state
             ):
                 self._update_switch(self._initial_transition, force=True)
 
     def disable_state_changed(self, entity_id, from_state, to_state):
-        with suppress(Exception):
-            _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
-            if from_state.state == self._disable_state:
-                self._update_switch(self._initial_transition, force=True)
+        _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
+        if from_state.state == self._disable_state:
+            self._update_switch(self._initial_transition, force=True)

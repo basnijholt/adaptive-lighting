@@ -58,6 +58,8 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "circadian_lighting"
 CIRCADIAN_LIGHTING_UPDATE_TOPIC = f"{DOMAIN}_update"
+SUN_EVENT_NOON = "solar_noon"
+SUN_EVENT_MIDNIGHT = "solar_midnight"
 
 CONF_MIN_CT = "min_colortemp"
 DEFAULT_MIN_CT = 2500
@@ -195,7 +197,7 @@ class CircadianLighting:
             microsecond=int(self._time[key].strftime("%f")),
         )
 
-    def get_sunrise_sunset(self, date=None):
+    def get_sunrise_sunset(self, date=None, as_timestamps=False):
         if self._time["sunrise"] is not None and self._time["sunset"] is not None:
             if date is None:
                 date = dt_now(self._timezone)
@@ -231,65 +233,57 @@ class CircadianLighting:
             sunrise = sunrise + self._sunrise_offset
         if self._sunset_offset is not None:
             sunset = sunset + self._sunset_offset
-        return {
+        datetimes = {
             SUN_EVENT_SUNRISE: sunrise.astimezone(self._timezone),
             SUN_EVENT_SUNSET: sunset.astimezone(self._timezone),
-            "solar_noon": solar_noon.astimezone(self._timezone),
-            "solar_midnight": solar_midnight.astimezone(self._timezone),
+            SUN_EVENT_NOON: solar_noon.astimezone(self._timezone),
+            SUN_EVENT_MIDNIGHT: solar_midnight.astimezone(self._timezone),
         }
+        if as_timestamps:
+            return {k: dt.timestamp() for k, dt in datetimes.items()}
+        else:
+            return datetimes
 
     def calc_percent(self):
         now = dt_now(self._timezone)
         _LOGGER.debug("now: " + str(now))
 
-        today_sun_times = self.get_sunrise_sunset(now)
-        _LOGGER.debug("today_sun_times: " + str(today_sun_times))
+        today = self.get_sunrise_sunset(now, as_timestamps=True)
+        _LOGGER.debug("today: " + str(today))
 
         # Convert everything to epoch timestamps for easy calculation
-        now_seconds = now.timestamp()
-        sunrise_seconds = today_sun_times[SUN_EVENT_SUNRISE].timestamp()
-        sunset_seconds = today_sun_times[SUN_EVENT_SUNSET].timestamp()
-        solar_noon_seconds = today_sun_times["solar_noon"].timestamp()
-        solar_midnight_seconds = today_sun_times["solar_midnight"].timestamp()
+        now_ts = now.timestamp()
 
-        if now < today_sun_times[SUN_EVENT_SUNRISE]:
+        if now_ts < today[SUN_EVENT_SUNRISE]:
             # It's before sunrise (after midnight)
             # Because it's before sunrise (and after midnight) sunset must have happend yesterday
-            yesterday_sun_times = self.get_sunrise_sunset(now - timedelta(days=1))
-            _LOGGER.debug("yesterday_sun_times: " + str(yesterday_sun_times))
-            sunset_seconds = yesterday_sun_times[SUN_EVENT_SUNSET].timestamp()
+            yesterday = self.get_sunrise_sunset(
+                now - timedelta(days=1), as_timestamps=True
+            )
+            _LOGGER.debug("yesterday: " + str(yesterday))
+            today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
             if (
-                today_sun_times["solar_midnight"] > today_sun_times[SUN_EVENT_SUNSET]
-                and yesterday_sun_times["solar_midnight"]
-                > yesterday_sun_times[SUN_EVENT_SUNSET]
+                today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
+                and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
             ):
                 # Solar midnight is after sunset so use yesterdays's time
-                solar_midnight_seconds = yesterday_sun_times[
-                    "solar_midnight"
-                ].timestamp()
-        elif now > today_sun_times[SUN_EVENT_SUNSET]:
+                today[SUN_EVENT_MIDNIGHT] = yesterday[SUN_EVENT_MIDNIGHT]
+        elif now_ts > today[SUN_EVENT_SUNSET]:
             # It's after sunset (before midnight)
             # Because it's after sunset (and before midnight) sunrise should happen tomorrow
-            tomorrow_sun_times = self.get_sunrise_sunset(now + timedelta(days=1))
-            _LOGGER.debug("tomorrow_sun_times: " + str(tomorrow_sun_times))
-            sunrise_seconds = tomorrow_sun_times[SUN_EVENT_SUNRISE].timestamp()
+            tomorrow = self.get_sunrise_sunset(
+                now + timedelta(days=1), as_timestamps=True
+            )
+            _LOGGER.debug("tomorrow: " + str(tomorrow))
+            today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
             if (
-                today_sun_times["solar_midnight"] < today_sun_times[SUN_EVENT_SUNRISE]
-                and tomorrow_sun_times["solar_midnight"]
-                < tomorrow_sun_times[SUN_EVENT_SUNRISE]
+                today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
+                and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
             ):
                 # Solar midnight is before sunrise so use tomorrow's time
-                solar_midnight_seconds = tomorrow_sun_times[
-                    "solar_midnight"
-                ].timestamp()
+                today[SUN_EVENT_MIDNIGHT] = tomorrow[SUN_EVENT_MIDNIGHT]
 
-        _LOGGER.debug(
-            f"now_seconds: {now_seconds}, "
-            f"sunrise_seconds: {sunrise_seconds}, "
-            f"sunset_seconds: {sunset_seconds}, "
-            f"solar_midnight_seconds: {solar_midnight_seconds}, "
-            f"solar_noon_seconds: {solar_noon_seconds}"
-        )
+        _LOGGER.debug(f"now_ts: {now_ts}, {today}")
 
         # Figure out where we are in time so we know which half of the parabola to calculate
         # We're generating a different sunset-sunrise parabola for before and after solar midnight
@@ -297,31 +291,31 @@ class CircadianLighting:
         # We're also (obviously) generating a different parabola for sunrise-sunset
 
         # sunrise-sunset parabola
-        if now_seconds > sunrise_seconds and now_seconds < sunset_seconds:
-            h = solar_noon_seconds
+        if now_ts > today[SUN_EVENT_SUNRISE] and now_ts < today[SUN_EVENT_SUNSET]:
+            h = today[SUN_EVENT_NOON]
             k = 100
-            # parabola before solar_noon
-            if now_seconds < solar_noon_seconds:
-                x = sunrise_seconds
-            # parabola after solar_noon
-            else:
-                x = sunset_seconds
+            # parabola before solar_noon else after solar_noon
+            x = (
+                today[SUN_EVENT_SUNRISE]
+                if now_ts < today[SUN_EVENT_NOON]
+                else today[SUN_EVENT_SUNSET]
+            )
             y = 0
 
         # sunset_sunrise parabola
-        elif now_seconds > sunset_seconds and now_seconds < sunrise_seconds:
-            h = solar_midnight_seconds
+        elif now_ts > today[SUN_EVENT_SUNSET] and now_ts < today[SUN_EVENT_SUNRISE]:
+            h = today[SUN_EVENT_MIDNIGHT]
             k = -100
-            # parabola before solar_midnight
-            if now_seconds < solar_midnight_seconds:
-                x = sunset_seconds
-            # parabola after solar_midnight
-            else:
-                x = sunrise_seconds
+            # parabola before solar_midnight else after solar_midnight
+            x = (
+                today[SUN_EVENT_SUNSET]
+                if now_ts < today[SUN_EVENT_MIDNIGHT]
+                else today[SUN_EVENT_SUNRISE]
+            )
             y = 0
 
         a = (y - k) / (h - x) ** 2
-        percentage = a * (now_seconds - h) ** 2 + k
+        percentage = a * (now_ts - h) ** 2 + k
 
         _LOGGER.debug(
             f"h: {h}, k: {k}, x: {x}, y: {y}, a: {a}, percentage: {percentage}"
