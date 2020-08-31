@@ -250,9 +250,9 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def _color_temperature(self):
         return (
-            self._sleep_colortemp
-            if self.is_sleep()
-            else self._circadian_lighting._colortemp
+            self._circadian_lighting._colortemp
+            if not self.is_sleep()
+            else self._sleep_colortemp
         )
 
     def calc_ct(self):
@@ -270,14 +270,13 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def calc_brightness(self):
         if self._disable_brightness_adjust is True:
             return None
-        elif self.is_sleep():
+        if self.is_sleep():
             return self._sleep_brightness
-        elif self._circadian_lighting._percent > 0:
+        if self._circadian_lighting._percent > 0:
             return self._max_brightness
-        else:
-            delta_brightness = self._max_brightness - self._min_brightness
-            procent = (100 + self._circadian_lighting._percent) / 100
-            return (delta_brightness * procent) + self._min_brightness
+        delta_brightness = self._max_brightness - self._min_brightness
+        procent = (100 + self._circadian_lighting._percent) / 100
+        return (delta_brightness * procent) + self._min_brightness
 
     @log(logger=_LOGGER)
     def _update_switch(self, lights=None, transition=None, force=False):
@@ -298,10 +297,9 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def _should_adjust(self):
         if self._state is not True:
             return False
-        elif self._is_disabled():
+        if self._is_disabled():
             return False
-        else:
-            return True
+        return True
 
     def _adjust_lights(self, lights, transition=None):
         if not self._should_adjust():
