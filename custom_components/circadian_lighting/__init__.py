@@ -205,22 +205,21 @@ class CircadianLighting:
         timezone = get_time_zone(timezone_string)
         return timezone
 
-    def _time_dict(self, key):
-        return dict(
-            hour=int(self._time[key].strftime("%H")),
-            minute=int(self._time[key].strftime("%M")),
-            second=int(self._time[key].strftime("%S")),
-            microsecond=int(self._time[key].strftime("%f")),
+    def _replace_time(self, date, key):
+        other_date = self._time[key]
+        return date.replace(
+            hour=other_date.hour,
+            minute=other_date.minute,
+            second=other_date.second,
+            microsecond=other_date.microsecond,
         )
 
     def get_sunrise_sunset(self, date=None, as_timestamps=False):
         if self._time["sunrise"] is not None and self._time["sunset"] is not None:
             if date is None:
                 date = dt_now(self._timezone)
-            sunrise = date.replace(
-                **self._time_dict("sunrise")
-            )  # XXX: redefine _time_dict to do the replace!
-            sunset = date.replace(**self._time_dict("sunset"))
+            sunrise = self._replace_time(date, "sunrise")
+            sunset = self._replace_time(date, "sunset")
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
         else:
@@ -231,24 +230,29 @@ class CircadianLighting:
             location.longitude = self._longitude
             location.elevation = self._elevation
             _LOGGER.debug("Astral location: " + str(location))
+
             if self._time["sunrise"] is not None:
                 if date is None:
                     date = dt_now(self._timezone)
-                sunrise = date.replace(**self._time_dict("sunrise"))
+                sunrise = self._replace_time(date, "sunrise")
             else:
                 sunrise = location.sunrise(date)
+
             if self._time["sunset"] is not None:
                 if date is None:
                     date = dt_now(self._timezone)
-                sunset = date.replace(**self._time_dict("sunset"))
+                sunset = self._replace_time(date, "sunset")
             else:
                 sunset = location.sunset(date)
+
             solar_noon = location.solar_noon(date)
             solar_midnight = location.solar_midnight(date)
+
         if self._sunrise_offset is not None:
             sunrise = sunrise + self._sunrise_offset
         if self._sunset_offset is not None:
             sunset = sunset + self._sunset_offset
+
         datetimes = {
             SUN_EVENT_SUNRISE: sunrise.astimezone(self._timezone),
             SUN_EVENT_SUNSET: sunset.astimezone(self._timezone),
