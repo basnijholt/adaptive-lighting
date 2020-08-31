@@ -179,7 +179,16 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._initial_transition = initial_transition
         self._once_only = once_only
 
-        self._lights = lights_ct + lights_rgb + lights_xy + lights_brightness
+        self._lights_types = {}
+        for light in lights_ct:
+            self._lights_types[light] = "ct"
+        for light in lights_rgb:
+            self._lights_types[light] = "rgb"
+        for light in lights_xy:
+            self._lights_types[light] = "xy"
+        for light in lights_brightness:
+            self._lights_types[light] = "brightness"
+        self._lights = list(self._lights_types.keys())
 
         # Register callbacks
         dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self._update_switch)
@@ -319,33 +328,18 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if transition is not None:
                 service_data[ATTR_TRANSITION] = transition
 
-            # Set color of array of ct.
-            if light in self._lights_ct:
-                which = "CT"
+            light_type = self._lights_types[light]
+            if light_type == "ct":
                 service_data[ATTR_COLOR_TEMP] = int(self.calc_ct())
-
-            # Set color of array of rgb.
-            elif light in self._lights_rgb:
-                which = "RGB"
+            elif light_type == "rgb":
                 service_data[ATTR_RGB_COLOR] = tuple(map(int, self.calc_rgb()))
-
-            # Set color of array of xy.
-            elif light in self._lights_xy:
-                which = "XY"
+            elif light_type == "xy":
                 service_data[ATTR_XY_COLOR] = self.calc_xy()
                 if service_data.get(ATTR_BRIGHTNESS, False):
                     service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
 
-            # Set color of array of brightness.
-            elif light in self._lights_brightness:
-                which = "Brightness"
-
             self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-            key_value_strings = [
-                f"{k}: {v}" for k, v in service_data.items() if k != ATTR_ENTITY_ID
-            ]
-            msg = ", ".join(key_value_strings)
-            _LOGGER.debug(f"{light} {which} Adjusted - {msg}")
+            _LOGGER.debug(f"{light} {light_type} Adjusted - {service_data}")
 
     @log(with_return=True, logger=_LOGGER)
     def light_state_changed(self, entity_id, from_state, to_state):
