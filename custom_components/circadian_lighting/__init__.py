@@ -102,8 +102,6 @@ CONFIG_SCHEMA = vol.Schema(
 def setup(hass, config):
     """Set up the Circadian Lighting component."""
     conf = config[DOMAIN]
-    load_platform(hass, "sensor", DOMAIN, {}, config)
-
     hass.data[DOMAIN] = CircadianLighting(
         hass,
         min_colortemp=conf.get(CONF_MIN_CT),
@@ -118,6 +116,7 @@ def setup(hass, config):
         interval=conf.get(CONF_INTERVAL),
         transition=conf.get(ATTR_TRANSITION),
     )
+    load_platform(hass, "sensor", DOMAIN, {}, config)
 
     return True
 

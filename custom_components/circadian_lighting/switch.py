@@ -54,18 +54,15 @@ CONF_LIGHTS_RGB = "lights_rgb"
 CONF_LIGHTS_XY = "lights_xy"
 CONF_LIGHTS_BRIGHT = "lights_brightness"
 CONF_DISABLE_BRIGHTNESS_ADJUST = "disable_brightness_adjust"
-CONF_MIN_BRIGHT = "min_brightness"
-DEFAULT_MIN_BRIGHT = 1
-CONF_MAX_BRIGHT = "max_brightness"
-DEFAULT_MAX_BRIGHT = 100
+CONF_MIN_BRIGHT, DEFAULT_MIN_BRIGHT = ("min_brightness", 1)
+CONF_MAX_BRIGHT, DEFAULT_MAX_BRIGHT = ("max_brightness", 100)
 CONF_SLEEP_ENTITY = "sleep_entity"
 CONF_SLEEP_STATE = "sleep_state"
-CONF_SLEEP_CT = "sleep_colortemp"
-CONF_SLEEP_BRIGHT = "sleep_brightness"
+CONF_SLEEP_CT, DEFAULT_SLEEP_CT = ("sleep_colortemp", 1000)
+CONF_SLEEP_BRIGHT, DEFAULT_SLEEP_BRIGHT = ("sleep_brightness", 1)
 CONF_DISABLE_ENTITY = "disable_entity"
 CONF_DISABLE_STATE = "disable_state"
-CONF_INITIAL_TRANSITION = "initial_transition"
-DEFAULT_INITIAL_TRANSITION = 1
+CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = ("initial_transition", 1)
 CONF_ONCE_ONLY = "once_only"
 
 PLATFORM_SCHEMA = vol.Schema(
@@ -84,15 +81,15 @@ PLATFORM_SCHEMA = vol.Schema(
             vol.Coerce(int), vol.Range(min=1, max=100)
         ),
         vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
-        vol.Optional(CONF_SLEEP_STATE): cv.string,
-        vol.Optional(CONF_SLEEP_CT): vol.All(
+        vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(CONF_SLEEP_CT, default=DEFAULT_SLEEP_CT): vol.All(
             vol.Coerce(int), vol.Range(min=1000, max=10000)
         ),
-        vol.Optional(CONF_SLEEP_BRIGHT): vol.All(
+        vol.Optional(CONF_SLEEP_BRIGHT, default=DEFAULT_SLEEP_BRIGHT): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=100)
         ),
         vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
-        vol.Optional(CONF_DISABLE_STATE): cv.string,
+        vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
@@ -249,7 +246,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def is_sleep(self):
         is_sleep = (
             self._sleep_entity is not None
-            and self.hass.states.get(self._sleep_entity).state == self._sleep_state
+            and self.hass.states.get(self._sleep_entity).state in self._sleep_state
         )
         if is_sleep:
             _LOGGER.debug(f"{self._name} in Sleep mode")
@@ -302,7 +299,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return False
         elif (
             self._disable_entity is not None
-            and self.hass.states.get(self._disable_entity).state == self._disable_state
+            and self.hass.states.get(self._disable_entity).state in self._disable_state
         ):
             _LOGGER.debug(f"{self._name} disabled by {self._disable_entity}")
             return False
@@ -362,10 +359,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(f"{entity_id} change from {from_state} to {to_state}")
-        if to_state.state == self._sleep_state or from_state.state == self._sleep_state:
-            self._update_switch(self._initial_transition, force=True)
+        if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
+            self._update_switch(transition=self._initial_transition, force=True)
 
     def disable_state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug("{entity_id} change from {from_state} to {to_state}")
-        if from_state.state == self._disable_state:
-            self._update_switch(self._initial_transition, force=True)
+        if from_state.state in self._disable_state:
+            self._update_switch(transition=self._initial_transition, force=True)
