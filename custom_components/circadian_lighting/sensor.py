@@ -2,9 +2,6 @@
 Circadian Lighting Sensor for Home-Assistant.
 """
 
-DEPENDENCIES = ["circadian_lighting"]
-
-import datetime
 import logging
 
 from homeassistant.helpers.dispatcher import dispatcher_connect

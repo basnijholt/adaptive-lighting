@@ -30,8 +30,10 @@ Technical notes: I had to make a lot of assumptions when writing this app
 import logging
 from datetime import timedelta
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+import astral
+import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
 from homeassistant.const import (
     CONF_ELEVATION,
@@ -51,8 +53,7 @@ from homeassistant.util.color import (
 )
 from homeassistant.util.dt import get_time_zone
 from homeassistant.util.dt import now as dt_now
-
-VERSION = "1.0.13"
+from timezonefinder import TimezoneFinder
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,16 +62,13 @@ CIRCADIAN_LIGHTING_UPDATE_TOPIC = f"{DOMAIN}_update"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-CONF_MIN_CT = "min_colortemp"
-DEFAULT_MIN_CT = 2500
-CONF_MAX_CT = "max_colortemp"
-DEFAULT_MAX_CT = 5500
+CONF_MIN_CT, DEFAULT_MIN_CT = "min_colortemp", 2500
+CONF_MAX_CT, DEFAULT_MAX_CT = "max_colortemp", 5500
+CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 300
 CONF_SUNRISE_OFFSET = "sunrise_offset"
 CONF_SUNSET_OFFSET = "sunset_offset"
 CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_TIME = "sunset_time"
-CONF_INTERVAL = "interval"
-DEFAULT_INTERVAL = 300
 DEFAULT_TRANSITION = 60
 
 CONFIG_SCHEMA = vol.Schema(
@@ -181,8 +179,6 @@ class CircadianLighting:
                 track_sunset(self.hass, self._update, self._sunset_offset)
 
     def get_timezone(self):
-        from timezonefinder import TimezoneFinder
-
         tf = TimezoneFinder()
         timezone_string = tf.timezone_at(lng=self._longitude, lat=self._latitude)
         timezone = get_time_zone(timezone_string)
@@ -201,13 +197,13 @@ class CircadianLighting:
         if self._time["sunrise"] is not None and self._time["sunset"] is not None:
             if date is None:
                 date = dt_now(self._timezone)
-            sunrise = date.replace(**self._time_dict("sunrise"))
+            sunrise = date.replace(
+                **self._time_dict("sunrise")
+            )  # XXX: redefine _time_dict to do the replace!
             sunset = date.replace(**self._time_dict("sunset"))
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
         else:
-            import astral
-
             location = astral.Location()
             location.name = "name"
             location.region = "region"
@@ -291,7 +287,7 @@ class CircadianLighting:
         # We're also (obviously) generating a different parabola for sunrise-sunset
 
         # sunrise-sunset parabola
-        if now_ts > today[SUN_EVENT_SUNRISE] and now_ts < today[SUN_EVENT_SUNSET]:
+        if today[SUN_EVENT_SUNRISE] < now_ts < today[SUN_EVENT_SUNSET]:
             h = today[SUN_EVENT_NOON]
             k = 100
             # parabola before solar_noon else after solar_noon
@@ -303,7 +299,7 @@ class CircadianLighting:
             y = 0
 
         # sunset_sunrise parabola
-        elif now_ts > today[SUN_EVENT_SUNSET] and now_ts < today[SUN_EVENT_SUNRISE]:
+        elif today[SUN_EVENT_SUNSET] < now_ts < today[SUN_EVENT_SUNRISE]:
             h = today[SUN_EVENT_MIDNIGHT]
             k = -100
             # parabola before solar_midnight else after solar_midnight
