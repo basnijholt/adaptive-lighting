@@ -172,7 +172,6 @@ class CircadianLighting:
         self._latitude = latitude
         self._longitude = longitude
         self._elevation = elevation
-        self._interval = interval
         self._transition = transition
         self._timezone = self.get_timezone()
         self._percent = self.calc_percent()

@@ -7,11 +7,7 @@ import logging
 from homeassistant.helpers.dispatcher import dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from custom_components.circadian_lighting import (
-    CIRCADIAN_LIGHTING_UPDATE_TOPIC,
-    DOMAIN,
-    log,
-)
+from custom_components.circadian_lighting import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,16 +40,8 @@ class CircadianSensor(Entity):
         self._circadian_lighting = circadian_lighting
         self._name = "Circadian Values"
         self._entity_id = "sensor.circadian_values"
-        self._state = self._circadian_lighting._percent
         self._unit_of_measurement = "%"
         self._icon = ICON
-        self._hs_color = self._circadian_lighting._hs_color
-        self._colortemp = self._circadian_lighting._colortemp
-        self._rgb_color = self._circadian_lighting._rgb_color
-        self._xy_color = self._circadian_lighting._xy_color
-
-        # Register callbacks
-        dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self.update_sensor)
 
     @property
     def entity_id(self):
@@ -68,7 +56,7 @@ class CircadianSensor(Entity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self._state
+        return self._circadian_lighting._percent
 
     @property
     def unit_of_measurement(self):
@@ -82,7 +70,7 @@ class CircadianSensor(Entity):
 
     @property
     def hs_color(self):
-        return self._hs_color
+        return self._circadian_lighting._hs_color
 
     @property
     def device_state_attributes(self):
@@ -99,11 +87,3 @@ class CircadianSensor(Entity):
         This is the only method that should fetch new data for Home Assistant.
         """
         self._circadian_lighting.update()
-
-    @log(logger=_LOGGER)
-    def update_sensor(self):
-        self._state = self._circadian_lighting._percent
-        self._hs_color = self._circadian_lighting._hs_color
-        self._colortemp = self._circadian_lighting._colortemp
-        self._rgb_color = self._circadian_lighting._rgb_color
-        self._xy_color = self._circadian_lighting._xy_color
