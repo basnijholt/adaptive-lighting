@@ -104,7 +104,7 @@ CONFIG_SCHEMA = vol.Schema(
 
 
 def setup(hass, config):
-    """Set up the Circadian Lighting component."""
+    """Set up the Circadian Lighting platform."""
     conf = config[DOMAIN]
     hass.data[DOMAIN] = CircadianLighting(
         hass,
