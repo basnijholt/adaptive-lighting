@@ -64,7 +64,7 @@ CONF_SLEEP_BRIGHT, DEFAULT_SLEEP_BRIGHT = "sleep_brightness", 1
 CONF_DISABLE_ENTITY = "disable_entity"
 CONF_DISABLE_STATE = "disable_state"
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
-CONF_ONCE_ONLY = "once_only"
+CONF_ONLY_ONCE = "only_once"
 
 PLATFORM_SCHEMA = vol.Schema(
     {
@@ -94,7 +94,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
-        vol.Optional(CONF_ONCE_ONLY, default=False): cv.boolean,
+        vol.Optional(CONF_ONLY_ONCE, default=False): cv.boolean,
     }
 )
 
@@ -121,7 +121,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             disable_entity=config.get(CONF_DISABLE_ENTITY),
             disable_state=config.get(CONF_DISABLE_STATE),
             initial_transition=config.get(CONF_INITIAL_TRANSITION),
-            once_only=config.get(CONF_ONCE_ONLY),
+            only_once=config.get(CONF_ONLY_ONCE),
         )
         add_devices([switch])
 
@@ -152,7 +152,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         disable_entity,
         disable_state,
         initial_transition,
-        once_only,
+        only_once,
     ):
         """Initialize the Circadian Lighting switch."""
         self.hass = hass
@@ -173,7 +173,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._disable_entity = disable_entity
         self._disable_state = disable_state
         self._initial_transition = initial_transition
-        self._once_only = once_only
+        self._only_once = only_once
 
         self._lights_types = {}
         for light in lights_ct:
@@ -285,7 +285,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     @log(logger=_LOGGER)
     def _update_switch(self, lights=None, transition=None, force=False):
-        if self._once_only and not force:
+        if self._only_once and not force:
             return
         self._hs_color = self.calc_hs()
         self._brightness = self.calc_brightness()
