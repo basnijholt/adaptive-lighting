@@ -206,17 +206,16 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         async_track_state_change(
             self.hass, self._lights, self._light_state_changed, to_state="on"
         )
-
+        track_kwargs = dict(hass=self.hass, action=self._state_changed)
         if self._sleep_entity is not None:
-            async_track_state_change(
-                self.hass, self._sleep_entity, self._sleep_state_changed
-            )
+            sleep_kwargs = dict(track_kwargs, entity_ids=self._sleep_entity)
+            async_track_state_change(**sleep_kwargs, to_state=self._sleep_state)
+            async_track_state_change(**sleep_kwargs, from_state=self._sleep_state)
 
         if self._disable_entity is not None:
             async_track_state_change(
-                self.hass,
-                self._disable_entity,
-                self._disable_state_changed,
+                **track_kwargs,
+                entity_ids=self._disable_entity,
                 from_state=self._disable_state,
             )
 
@@ -347,10 +346,5 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         if to_state.state == "on" and from_state.state != "on":
             self._force_update_switch(lights=[entity_id])
 
-    def _sleep_state_changed(self, entity_id, from_state, to_state):
-        if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
-            self._force_update_switch()
-
-    def _disable_state_changed(self, entity_id, from_state, to_state):
-        if from_state.state in self._disable_state:
-            self._force_update_switch()
+    def _state_changed(self, entity_id, from_state, to_state):
+        self._force_update_switch()
