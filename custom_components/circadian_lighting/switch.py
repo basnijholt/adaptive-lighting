@@ -204,19 +204,19 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
         # Add listeners
         async_track_state_change(
-            self.hass, self._lights, self.light_state_changed, to_state="on"
+            self.hass, self._lights, self._light_state_changed, to_state="on"
         )
 
         if self._sleep_entity is not None:
             async_track_state_change(
-                self.hass, self._sleep_entity, self.sleep_state_changed
+                self.hass, self._sleep_entity, self._sleep_state_changed
             )
 
         if self._disable_entity is not None:
             async_track_state_change(
                 self.hass,
                 self._disable_entity,
-                self.disable_state_changed,
+                self._disable_state_changed,
                 from_state=self._disable_state,
             )
 
@@ -264,19 +264,19 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             else self._sleep_colortemp
         )
 
-    def calc_ct(self):
+    def _calc_ct(self):
         return color_temperature_kelvin_to_mired(self._color_temperature())
 
-    def calc_rgb(self):
+    def _calc_rgb(self):
         return color_temperature_to_rgb(self._color_temperature())
 
-    def calc_xy(self):
-        return color_RGB_to_xy(*self.calc_rgb())
+    def _calc_xy(self):
+        return color_RGB_to_xy(*self._calc_rgb())
 
-    def calc_hs(self):
-        return color_xy_to_hs(*self.calc_xy())
+    def _calc_hs(self):
+        return color_xy_to_hs(*self._calc_xy())
 
-    def calc_brightness(self) -> float:
+    def _calc_brightness(self) -> float:
         if self._disable_brightness_adjust:
             return None
         if self.is_sleep():
@@ -290,8 +290,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def _update_switch(self, lights=None, transition=None, force=False):
         if self._only_once and not force:
             return
-        self._hs_color = self.calc_hs()
-        self._brightness = self.calc_brightness()
+        self._hs_color = self._calc_hs()
+        self._brightness = self._calc_brightness()
         self._adjust_lights(lights or self._lights, transition)
 
     def _force_update_switch(self, lights=None):
@@ -331,26 +331,26 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
             light_type = self._lights_types[light]
             if light_type == "ct":
-                service_data[ATTR_COLOR_TEMP] = int(self.calc_ct())
+                service_data[ATTR_COLOR_TEMP] = int(self._calc_ct())
             elif light_type == "rgb":
-                r, g, b = self.calc_rgb()
+                r, g, b = self._calc_rgb()
                 service_data[ATTR_RGB_COLOR] = (int(r), int(g), int(b))
             elif light_type == "xy":
-                service_data[ATTR_XY_COLOR] = self.calc_xy()
+                service_data[ATTR_XY_COLOR] = self._calc_xy()
                 if service_data.get(ATTR_BRIGHTNESS, False):
                     service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
 
             self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
             _LOGGER.debug(f"{light} {light_type} Adjusted - {service_data}")
 
-    def light_state_changed(self, entity_id, from_state, to_state):
+    def _light_state_changed(self, entity_id, from_state, to_state):
         if to_state.state == "on" and from_state.state != "on":
             self._force_update_switch(lights=[entity_id])
 
-    def sleep_state_changed(self, entity_id, from_state, to_state):
+    def _sleep_state_changed(self, entity_id, from_state, to_state):
         if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
             self._force_update_switch()
 
-    def disable_state_changed(self, entity_id, from_state, to_state):
+    def _disable_state_changed(self, entity_id, from_state, to_state):
         if from_state.state in self._disable_state:
             self._force_update_switch()
