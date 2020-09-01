@@ -148,10 +148,8 @@ class CircadianLighting:
         self._max_colortemp = max_colortemp
         self._sunrise_offset = sunrise_offset
         self._sunset_offset = sunset_offset
-        self._manual_time = {
-            "sunrise": sunrise_time,
-            "sunset": sunset_time,
-        }
+        self._manual_sunset = sunset_time
+        self._manual_sunrise = sunrise_time
         self._latitude = latitude
         self._longitude = longitude
         self._elevation = elevation
@@ -164,24 +162,24 @@ class CircadianLighting:
         self._xy_color = self.calc_xy()
         self._hs_color = self.calc_hs()
 
-        if self._manual_time["sunrise"] is not None:
+        if self._manual_sunrise is not None:
             async_track_time_change(
                 self.hass,
                 self.update,
-                hour=self._manual_time["sunrise"].hour,
-                minute=self._manual_time["sunrise"].minute,
-                second=self._manual_time["sunrise"].second,
+                hour=self._manual_sunrise.hour,
+                minute=self._manual_sunrise.minute,
+                second=self._manual_sunrise.second,
             )
         else:
             async_track_sunrise(self.hass, self.update, self._sunrise_offset)
 
-        if self._manual_time["sunset"] is not None:
+        if self._manual_sunset is not None:
             async_track_time_change(
                 self.hass,
                 self.update,
-                hour=self._manual_time["sunset"].hour,
-                minute=self._manual_time["sunset"].minute,
-                second=self._manual_time["sunset"].second,
+                hour=self._manual_sunset.hour,
+                minute=self._manual_sunset.minute,
+                second=self._manual_sunset.second,
             )
         else:
             async_track_sunset(self.hass, self.update, self._sunset_offset)
@@ -194,7 +192,7 @@ class CircadianLighting:
         return get_time_zone(timezone_string)
 
     def _replace_time(self, date, key):
-        other_date = self._manual_time[key]
+        other_date = self._manual_sunrise if key == "sunrise" else self._manual_sunset
         return date.replace(
             hour=other_date.hour,
             minute=other_date.minute,
@@ -203,10 +201,7 @@ class CircadianLighting:
         )
 
     def get_sunrise_sunset(self, date):
-        if (
-            self._manual_time["sunrise"] is not None
-            and self._manual_time["sunset"] is not None
-        ):
+        if self._manual_sunrise is not None and self._manual_sunset is not None:
             sunrise = self._replace_time(date, "sunrise")
             sunset = self._replace_time(date, "sunset")
             solar_noon = sunrise + (sunset - sunrise) / 2
@@ -219,12 +214,12 @@ class CircadianLighting:
             location.longitude = self._longitude
             location.elevation = self._elevation
 
-            if self._manual_time["sunrise"] is not None:
+            if self._manual_sunrise is not None:
                 sunrise = self._replace_time(date, "sunrise")
             else:
                 sunrise = location.sunrise(date)
 
-            if self._manual_time["sunset"] is not None:
+            if self._manual_sunset is not None:
                 sunset = self._replace_time(date, "sunset")
             else:
                 sunset = location.sunset(date)
