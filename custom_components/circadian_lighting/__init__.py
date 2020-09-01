@@ -158,12 +158,11 @@ class CircadianLighting:
         self._transition = transition
         self._timezone = self.get_timezone()
 
-        self._percent = None
-        self._colortemp = None
-        self._rgb_color = None
-        self._xy_color = None
-        self._hs_color = None
-        self.update()
+        self._percent = self.calc_percent()
+        self._colortemp = self.calc_colortemp()
+        self._rgb_color = self.calc_rgb()
+        self._xy_color = self.calc_xy()
+        self._hs_color = self.calc_hs()
 
         if self._manual_time["sunrise"] is not None:
             async_track_time_change(

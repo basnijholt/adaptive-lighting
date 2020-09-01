@@ -2,7 +2,6 @@
 Circadian Lighting Switch for Home-Assistant.
 """
 
-import functools
 import logging
 
 import voluptuous as vol
@@ -204,7 +203,9 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         )
 
         # Add listeners
-        async_track_state_change(self.hass, self._lights, self.light_state_changed)
+        async_track_state_change(
+            self.hass, self._lights, self.light_state_changed, to_state="on"
+        )
 
         if self._sleep_entity is not None:
             async_track_state_change(
@@ -212,13 +213,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             )
 
         if self._disable_entity is not None:
-            disable_state_changed = functools.partial(
-                self._update_switch, transition=self._initial_transition, force=True
-            )
             async_track_state_change(
                 self.hass,
                 self._disable_entity,
-                disable_state_changed,
+                self.disable_state_changed,
                 from_state=self._disable_state,
             )
 
@@ -245,7 +243,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
-        self._update_switch(transition=self._initial_transition, force=True)
+        self._force_update_switch()
 
     def turn_off(self, **kwargs):
         """Turn off circadian lighting."""
@@ -296,6 +294,11 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._brightness = self.calc_brightness()
         self._adjust_lights(lights or self._lights, transition)
 
+    def _force_update_switch(self, lights=None):
+        return self._update_switch(
+            lights, transition=self._initial_transition, force=True
+        )
+
     def _is_disabled(self):
         return (
             self._disable_entity is not None
@@ -342,8 +345,12 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def light_state_changed(self, entity_id, from_state, to_state):
         if to_state.state == "on" and from_state.state != "on":
-            self._update_switch([entity_id], self._initial_transition, force=True)
+            self._force_update_switch(lights=[entity_id])
 
     def sleep_state_changed(self, entity_id, from_state, to_state):
         if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
-            self._update_switch(transition=self._initial_transition, force=True)
+            self._force_update_switch()
+
+    def disable_state_changed(self, entity_id, from_state, to_state):
+        if from_state.state in self._disable_state:
+            self._force_update_switch()
