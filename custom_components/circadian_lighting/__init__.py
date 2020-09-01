@@ -157,11 +157,13 @@ class CircadianLighting:
         self._elevation = elevation
         self._transition = transition
         self._timezone = self.get_timezone()
-        self._percent = self.calc_percent()
-        self._colortemp = self.calc_colortemp()
-        self._rgb_color = self.calc_rgb()
-        self._xy_color = self.calc_xy()
-        self._hs_color = self.calc_hs()
+
+        self._percent = None
+        self._colortemp = None
+        self._rgb_color = None
+        self._xy_color = None
+        self._hs_color = None
+        self.update()
 
         if self._manual_time["sunrise"] is not None:
             async_track_time_change(
@@ -201,7 +203,7 @@ class CircadianLighting:
             microsecond=other_date.microsecond,
         )
 
-    def get_sunrise_sunset(self, date, as_timestamps=True):
+    def get_sunrise_sunset(self, date):
         if (
             self._manual_time["sunrise"] is not None
             and self._manual_time["sunset"] is not None
@@ -237,15 +239,15 @@ class CircadianLighting:
             sunset = sunset + self._sunset_offset
 
         datetimes = {
-            SUN_EVENT_SUNRISE: sunrise.astimezone(self._timezone),
-            SUN_EVENT_SUNSET: sunset.astimezone(self._timezone),
-            SUN_EVENT_NOON: solar_noon.astimezone(self._timezone),
-            SUN_EVENT_MIDNIGHT: solar_midnight.astimezone(self._timezone),
+            SUN_EVENT_SUNRISE: sunrise,
+            SUN_EVENT_SUNSET: sunset,
+            SUN_EVENT_NOON: solar_noon,
+            SUN_EVENT_MIDNIGHT: solar_midnight,
         }
-        if as_timestamps:
-            return {k: dt.timestamp() for k, dt in datetimes.items()}
-        else:
-            return datetimes
+
+        return {
+            k: dt.astimezone(self._timezone).timestamp() for k, dt in datetimes.items()
+        }
 
     def calc_percent(self):
         now = dt_now(self._timezone)

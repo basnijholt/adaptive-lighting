@@ -93,5 +93,5 @@ class CircadianSensor(Entity):
 
     @callback
     def _update_callback(self) -> None:
-        """Triggers update of properties after receiving signal from CircadianLighting."""
+        """Triggers update of properties."""
         self.async_schedule_update_ha_state(force_refresh=False)
