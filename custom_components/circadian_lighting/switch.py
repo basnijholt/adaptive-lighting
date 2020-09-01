@@ -2,10 +2,12 @@
 Circadian Lighting Switch for Home-Assistant.
 """
 
+import functools
 import logging
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
@@ -16,6 +18,7 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import VALID_TRANSITION, is_on
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_NAME,
@@ -23,8 +26,8 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_ON,
 )
-from homeassistant.helpers.dispatcher import dispatcher_connect
-from homeassistant.helpers.event import track_state_change
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import slugify
 from homeassistant.util.color import (
@@ -34,17 +37,7 @@ from homeassistant.util.color import (
     color_xy_to_hs,
 )
 
-from custom_components.circadian_lighting import (
-    CIRCADIAN_LIGHTING_UPDATE_TOPIC,
-    DOMAIN,
-    log,
-)
-
-try:
-    from homeassistant.components.switch import SwitchEntity
-except ImportError:
-    from homeassistant.components.switch import SwitchDevice as SwitchEntity
-
+from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -186,14 +179,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             self._lights_types[light] = "brightness"
         self._lights = list(self._lights_types.keys())
 
-        # Register callbacks
-        dispatcher_connect(hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self._update_switch)
-        track_state_change(hass, self._lights, self.light_state_changed)
-        if self._sleep_entity is not None:
-            track_state_change(hass, self._sleep_entity, self.sleep_state_changed)
-        if self._disable_entity is not None:
-            track_state_change(hass, self._disable_entity, self.disable_state_changed)
-
     @property
     def entity_id(self):
         """Return the entity ID of the switch."""
@@ -211,9 +196,33 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     async def async_added_to_hass(self):
         """Call when entity about to be added to hass."""
-        # If not None, we got an initial value.
-        await super().async_added_to_hass()
-        if self._state is not None:
+        # Add callback
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self._update_switch
+            )
+        )
+
+        # Add listeners
+        async_track_state_change(self.hass, self._lights, self.light_state_changed)
+
+        if self._sleep_entity is not None:
+            async_track_state_change(
+                self.hass, self._sleep_entity, self.sleep_state_changed
+            )
+
+        if self._disable_entity is not None:
+            disable_state_changed = functools.partial(
+                self._update_switch, transition=self._initial_transition, force=True
+            )
+            async_track_state_change(
+                self.hass,
+                self._disable_entity,
+                disable_state_changed,
+                from_state=self._disable_state,
+            )
+
+        if self._state is not None:  # If not None, we got an initial value
             return
 
         state = await self.async_get_last_state()
@@ -237,16 +246,13 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         """Turn on circadian lighting."""
         self._state = True
         self._update_switch(transition=self._initial_transition, force=True)
-        self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs):
         """Turn off circadian lighting."""
         self._state = False
-        self.schedule_update_ha_state()
         self._hs_color = None
         self._brightness = None
 
-    @log(with_return=True, logger=_LOGGER)
     def is_sleep(self):
         return (
             self._sleep_entity is not None
@@ -283,7 +289,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         percent = (100 + self._circadian_lighting._percent) / 100
         return (delta_brightness * percent) + self._min_brightness
 
-    @log(logger=_LOGGER)
     def _update_switch(self, lights=None, transition=None, force=False):
         if self._only_once and not force:
             return
@@ -291,14 +296,12 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._brightness = self.calc_brightness()
         self._adjust_lights(lights or self._lights, transition)
 
-    @log(with_return=True, logger=_LOGGER)
     def _is_disabled(self):
         return (
             self._disable_entity is not None
             and self.hass.states.get(self._disable_entity).state in self._disable_state
         )
 
-    @log(with_return=True, logger=_LOGGER)
     def _should_adjust(self):
         if self._state is not True:
             return False
@@ -306,7 +309,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return False
         return True
 
-    def _adjust_lights(self, lights, transition=None):
+    def _adjust_lights(self, lights, transition):
         if not self._should_adjust():
             return
 
@@ -337,17 +340,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
             _LOGGER.debug(f"{light} {light_type} Adjusted - {service_data}")
 
-    @log(with_return=True, logger=_LOGGER)
     def light_state_changed(self, entity_id, from_state, to_state):
         if to_state.state == "on" and from_state.state != "on":
             self._update_switch([entity_id], self._initial_transition, force=True)
 
-    @log(with_return=True, logger=_LOGGER)
     def sleep_state_changed(self, entity_id, from_state, to_state):
         if to_state.state in self._sleep_state or from_state.state in self._sleep_state:
-            self._update_switch(transition=self._initial_transition, force=True)
-
-    @log(with_return=True, logger=_LOGGER)
-    def disable_state_changed(self, entity_id, from_state, to_state):
-        if from_state.state in self._disable_state:
             self._update_switch(transition=self._initial_transition, force=True)

@@ -29,11 +29,10 @@ Technical notes: I had to make a lot of assumptions when writing this app
 
 import logging
 from datetime import timedelta
-import inspect
-
-import voluptuous as vol
 
 import astral
+import voluptuous as vol
+
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
 from homeassistant.const import (
@@ -44,9 +43,13 @@ from homeassistant.const import (
     SUN_EVENT_SUNSET,
 )
 from homeassistant.helpers.discovery import load_platform
-from homeassistant.helpers.dispatcher import dispatcher_send
-from homeassistant.helpers.event import track_sunrise, track_sunset, track_time_change
-from homeassistant.util import Throttle
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import (
+    async_track_sunrise,
+    async_track_sunset,
+    async_track_time_change,
+    async_track_time_interval,
+)
 from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
@@ -89,7 +92,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_LATITUDE): cv.latitude,
                 vol.Optional(CONF_LONGITUDE): cv.longitude,
                 vol.Optional(CONF_ELEVATION): float,
-                vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.positive_int,
+                vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
                 vol.Optional(
                     ATTR_TRANSITION, default=DEFAULT_TRANSITION
                 ): VALID_TRANSITION,
@@ -98,26 +101,6 @@ CONFIG_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
-
-
-def log(with_return=False, logger=_LOGGER):
-    def _log(func):
-        def wrapper(*args, **kwargs):
-            func_args = inspect.signature(func).bind(*args, **kwargs).arguments
-            key_value_pairs = (
-                f"{k}={v!r}" for k, v in func_args.items() if k != "self"
-            )
-            func_args_str = ", ".join(key_value_pairs)
-            out = f"{func.__qualname__}({func_args_str})"
-            result = func(*args, **kwargs)
-            if with_return:
-                out += f" -> {result}"
-            logger.debug(out)
-            return result
-
-        return wrapper
-
-    return _log
 
 
 def setup(hass, config):
@@ -180,23 +163,30 @@ class CircadianLighting:
         self._xy_color = self.calc_xy()
         self._hs_color = self.calc_hs()
 
-        self.update = Throttle(timedelta(seconds=interval))(self._update)
+        if self._manual_time["sunrise"] is not None:
+            async_track_time_change(
+                self.hass,
+                self.update,
+                hour=self._manual_time["sunrise"].hour,
+                minute=self._manual_time["sunrise"].minute,
+                second=self._manual_time["sunrise"].second,
+            )
+        else:
+            async_track_sunrise(self.hass, self.update, self._sunrise_offset)
 
-        for which in ["sunrise", "sunrise"]:
-            time = self._manual_time[which]
-            if time is not None:
-                track_time_change(
-                    self.hass,
-                    self._update,
-                    hour=time.hour,
-                    minute=time.minute,
-                    second=time.second,
-                )
+        if self._manual_time["sunset"] is not None:
+            async_track_time_change(
+                self.hass,
+                self.update,
+                hour=self._manual_time["sunset"].hour,
+                minute=self._manual_time["sunset"].minute,
+                second=self._manual_time["sunset"].second,
+            )
+        else:
+            async_track_sunset(self.hass, self.update, self._sunset_offset)
 
-        track_sunrise(self.hass, self._update, self._sunrise_offset)
-        track_sunset(self.hass, self._update, self._sunset_offset)
+        async_track_time_interval(self.hass, self.update, interval)
 
-    @log(with_return=True)
     def get_timezone(self):
         tf = TimezoneFinder()
         timezone_string = tf.timezone_at(lng=self._longitude, lat=self._latitude)
@@ -263,8 +253,8 @@ class CircadianLighting:
 
         today = self.get_sunrise_sunset(now)
         if now_ts < today[SUN_EVENT_SUNRISE]:
-            # It's before sunrise (after midnight)
-            # Because it's before sunrise (and after midnight) sunset must have happend yesterday
+            # It's before sunrise (after midnight), because it's before
+            # sunrise (and after midnight) sunset must have happend yesterday.
             yesterday = self.get_sunrise_sunset(now - timedelta(days=1))
             today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
             if (
@@ -274,8 +264,8 @@ class CircadianLighting:
                 # Solar midnight is after sunset so use yesterdays's time
                 today[SUN_EVENT_MIDNIGHT] = yesterday[SUN_EVENT_MIDNIGHT]
         elif now_ts > today[SUN_EVENT_SUNSET]:
-            # It's after sunset (before midnight)
-            # Because it's after sunset (and before midnight) sunrise should happen tomorrow
+            # It's after sunset (before midnight), because it's after sunset
+            # (and before midnight) sunrise should happen tomorrow.
             tomorrow = self.get_sunrise_sunset(now + timedelta(days=1))
             today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
             if (
@@ -335,12 +325,11 @@ class CircadianLighting:
     def calc_hs(self):
         return color_xy_to_hs(*self.calc_xy())
 
-    @log()
-    def _update(self):
+    async def update(self, _=None):
         """Update Circadian Values."""
         self._percent = self.calc_percent()
         self._colortemp = self.calc_colortemp()
         self._rgb_color = self.calc_rgb()
         self._xy_color = self.calc_xy()
         self._hs_color = self.calc_hs()
-        dispatcher_send(self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC)
+        async_dispatcher_send(self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC)
