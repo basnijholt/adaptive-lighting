@@ -4,12 +4,9 @@ Circadian Lighting Sensor for Home-Assistant.
 
 import logging
 
-from homeassistant.helpers.dispatcher import dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
 from custom_components.circadian_lighting import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
 
 ICON = "mdi:theme-light-dark"
 
