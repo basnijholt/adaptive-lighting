@@ -3,6 +3,7 @@ Circadian Lighting Switch for Home-Assistant.
 """
 
 import logging
+from itertools import repeat
 
 import voluptuous as vol
 
@@ -166,16 +167,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._disable_state = disable_state
         self._initial_transition = initial_transition
         self._only_once = only_once
-
-        self._lights_types = {}
-        for light in lights_ct:
-            self._lights_types[light] = "ct"
-        for light in lights_rgb:
-            self._lights_types[light] = "rgb"
-        for light in lights_xy:
-            self._lights_types[light] = "xy"
-        for light in lights_brightness:
-            self._lights_types[light] = "brightness"
+        self._lights_types = dict(zip(lights_ct, repeat("ct")))
+        self._lights_types.update(zip(lights_rgb, repeat("rgb")))
+        self._lights_types.update(zip(lights_xy, repeat("xy")))
+        self._lights_types.update(zip(lights_brightness, repeat("brightness")))
         self._lights = list(self._lights_types.keys())
 
     @property
