@@ -272,16 +272,16 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def calc_hs(self):
         return color_xy_to_hs(*self.calc_xy())
 
-    def calc_brightness(self):
-        if self._disable_brightness_adjust is True:
+    def calc_brightness(self) -> float:
+        if self._disable_brightness_adjust:
             return None
         if self.is_sleep():
             return self._sleep_brightness
         if self._circadian_lighting._percent > 0:
             return self._max_brightness
         delta_brightness = self._max_brightness - self._min_brightness
-        procent = (100 + self._circadian_lighting._percent) / 100
-        return (delta_brightness * procent) + self._min_brightness
+        percent = (100 + self._circadian_lighting._percent) / 100
+        return (delta_brightness * percent) + self._min_brightness
 
     @log(logger=_LOGGER)
     def _update_switch(self, lights=None, transition=None, force=False):
@@ -318,9 +318,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 continue
 
             service_data = {ATTR_ENTITY_ID: light}
-            brightness = self._brightness
-            if brightness is not None:
-                service_data[ATTR_BRIGHTNESS] = int((brightness / 100) * 254)
+            if self._brightness is not None:
+                service_data[ATTR_BRIGHTNESS] = int((self._brightness / 100) * 254)
             if transition is not None:
                 service_data[ATTR_TRANSITION] = transition
 
