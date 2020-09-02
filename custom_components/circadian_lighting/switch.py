@@ -2,6 +2,7 @@
 Circadian Lighting Switch for Home-Assistant.
 """
 
+import asyncio
 import logging
 from itertools import repeat
 
@@ -234,10 +235,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         """Return the attributes of the switch."""
         return {"hs_color": self._hs_color, "brightness": self._brightness}
 
-    def turn_on(self, **kwargs):
+    async def turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
-        self._force_update_switch()
+        await self._force_update_switch()
 
     def turn_off(self, **kwargs):
         """Turn off circadian lighting."""
@@ -281,15 +282,15 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         percent = (100 + self._circadian_lighting._percent) / 100
         return (delta_brightness * percent) + self._min_brightness
 
-    def _update_switch(self, lights=None, transition=None, force=False):
+    async def _update_switch(self, lights=None, transition=None, force=False):
         if self._only_once and not force:
             return
         self._hs_color = self._calc_hs()
         self._brightness = self._calc_brightness()
-        self._adjust_lights(lights or self._lights, transition)
+        await self._adjust_lights(lights or self._lights, transition)
 
-    def _force_update_switch(self, lights=None):
-        return self._update_switch(
+    async def _force_update_switch(self, lights=None):
+        return await self._update_switch(
             lights, transition=self._initial_transition, force=True
         )
 
@@ -306,13 +307,14 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return False
         return True
 
-    def _adjust_lights(self, lights, transition):
+    async def _adjust_lights(self, lights, transition):
         if not self._should_adjust():
             return
 
         if transition is None:
             transition = self._circadian_lighting._transition
 
+        tasks = []
         for light in lights:
             if not is_on(self.hass, light):
                 continue
@@ -334,12 +336,15 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 if service_data.get(ATTR_BRIGHTNESS, False):
                     service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
 
-            self.hass.services.call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
-            _LOGGER.debug(f"{light} {light_type} Adjusted - {service_data}")
+            tasks.append(self.hass.services.async_call(
+                LIGHT_DOMAIN, SERVICE_TURN_ON, service_data
+            ))
+        if tasks:
+            await asyncio.wait(tasks)
 
-    def _light_state_changed(self, entity_id, from_state, to_state):
+    async def _light_state_changed(self, entity_id, from_state, to_state):
         if to_state.state == "on" and from_state.state != "on":
-            self._force_update_switch(lights=[entity_id])
+            await self._force_update_switch(lights=[entity_id])
 
-    def _state_changed(self, entity_id, from_state, to_state):
-        self._force_update_switch()
+    async def _state_changed(self, entity_id, from_state, to_state):
+        await self._force_update_switch()
