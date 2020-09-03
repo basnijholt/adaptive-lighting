@@ -336,9 +336,11 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 if service_data.get(ATTR_BRIGHTNESS, False):
                     service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
 
-            tasks.append(self.hass.services.async_call(
-                LIGHT_DOMAIN, SERVICE_TURN_ON, service_data
-            ))
+            tasks.append(
+                self.hass.services.async_call(
+                    LIGHT_DOMAIN, SERVICE_TURN_ON, service_data
+                )
+            )
         if tasks:
             await asyncio.wait(tasks)
 
