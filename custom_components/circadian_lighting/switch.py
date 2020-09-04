@@ -124,6 +124,39 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         return False
 
 
+def _difference_between_states(from_state, to_state):
+    start = "Lights adjusting because "
+    if from_state is None and to_state is None:
+        return start + "Both states None"
+    if from_state is None:
+        return start + f"from_state: None, to_state: {to_state}"
+    if to_state is None:
+        return start + f"from_state: {from_state}, to_state: None"
+
+    changed_attrs = ", ".join(
+        [
+            f"{key}: {val}"
+            for key, val in to_state.attributes.items()
+            if from_state.attributes.get(key) != val
+        ]
+    )
+    if from_state.state == to_state.state:
+        return start + (
+            f"{from_state.entity_id} is still {to_state.state} but"
+            f" these attributes changes: {changed_attrs}."
+        )
+    elif changed_attrs != "":
+        return start + (
+            f"{from_state.entity_id} changed from {from_state.state} to"
+            f" {to_state.state} and these attributes changes: {changed_attrs}."
+        )
+    else:
+        return start + (
+            f"{from_state.entity_id} changed from {from_state.state} to"
+            f" {to_state.state} and no attributes changed."
+        )
+
+
 class CircadianSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Circadian Lighting switch."""
 
@@ -346,7 +379,9 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     async def _light_state_changed(self, entity_id, from_state, to_state):
         if to_state.state == "on" and from_state.state != "on":
+            _LOGGER.debug(_difference_between_states(from_state, to_state))
             await self._force_update_switch(lights=[entity_id])
 
     async def _state_changed(self, entity_id, from_state, to_state):
+        _LOGGER.debug(_difference_between_states(from_state, to_state))
         await self._force_update_switch()
