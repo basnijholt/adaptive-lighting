@@ -34,6 +34,7 @@ import astral
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
+import homeassistant.util.dt as dt_util
 from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
 from homeassistant.const import (
     CONF_ELEVATION,
@@ -55,9 +56,6 @@ from homeassistant.util.color import (
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
-from homeassistant.util.dt import get_time_zone
-from homeassistant.util.dt import now as dt_now
-from timezonefinder import TimezoneFinder
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,7 +152,6 @@ class CircadianLighting:
         self._longitude = longitude
         self._elevation = elevation
         self._transition = transition
-        self._timezone = self.get_timezone()
 
         self._percent = self.calc_percent()
         self._colortemp = self.calc_colortemp()
@@ -185,11 +182,6 @@ class CircadianLighting:
             async_track_sunset(self.hass, self.update, self._sunset_offset)
 
         async_track_time_interval(self.hass, self.update, interval)
-
-    def get_timezone(self):
-        tf = TimezoneFinder()
-        timezone_string = tf.timezone_at(lng=self._longitude, lat=self._latitude)
-        return get_time_zone(timezone_string)
 
     def _replace_time(self, date, key):
         other_date = self._manual_sunrise if key == "sunrise" else self._manual_sunset
@@ -240,11 +232,11 @@ class CircadianLighting:
         }
 
         return {
-            k: dt.astimezone(self._timezone).timestamp() for k, dt in datetimes.items()
+            k: dt.astimezone(dt_util.UTC).timestamp() for k, dt in datetimes.items()
         }
 
     def calc_percent(self):
-        now = dt_now(self._timezone)
+        now = dt_util.utcnow()
         now_ts = now.timestamp()
 
         today = self.get_sunrise_sunset(now)
