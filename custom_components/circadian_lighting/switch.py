@@ -279,7 +279,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._hs_color = None
         self._brightness = None
 
-    def is_sleep(self):
+    def _is_sleep(self):
         return (
             self._sleep_entity is not None
             and self.hass.states.get(self._sleep_entity).state in self._sleep_state
@@ -288,7 +288,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def _color_temperature(self):
         return (
             self._circadian_lighting._colortemp
-            if not self.is_sleep()
+            if not self._is_sleep()
             else self._sleep_colortemp
         )
 
@@ -307,7 +307,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def _calc_brightness(self) -> float:
         if self._disable_brightness_adjust:
             return
-        if self.is_sleep():
+        if self._is_sleep():
             return self._sleep_brightness
         if self._circadian_lighting._percent > 0:
             return self._max_brightness
