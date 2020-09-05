@@ -268,12 +268,12 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         """Return the attributes of the switch."""
         return {"hs_color": self._hs_color, "brightness": self._brightness}
 
-    async def turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
         await self._force_update_switch()
 
-    def turn_off(self, **kwargs):
+    def async_turn_off(self, **kwargs):
         """Turn off circadian lighting."""
         self._state = False
         self._hs_color = None
@@ -306,7 +306,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def _calc_brightness(self) -> float:
         if self._disable_brightness_adjust:
-            return None
+            return
         if self.is_sleep():
             return self._sleep_brightness
         if self._circadian_lighting._percent > 0:
