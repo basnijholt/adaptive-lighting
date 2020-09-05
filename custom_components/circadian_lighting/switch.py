@@ -127,7 +127,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 def _difference_between_states(from_state, to_state):
     start = "Lights adjusting because "
     if from_state is None and to_state is None:
-        return start + "Both states None"
+        return start + "both states None"
     if from_state is None:
         return start + f"from_state: None, to_state: {to_state}"
     if to_state is None:
