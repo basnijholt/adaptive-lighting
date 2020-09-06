@@ -57,6 +57,8 @@ from homeassistant.util.color import (
     color_xy_to_hs,
 )
 
+from .const import _PROFILE_SCHEMA, CONF_PROFILE
+
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "circadian_lighting"
@@ -94,6 +96,9 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(
                     ATTR_TRANSITION, default=DEFAULT_TRANSITION
                 ): VALID_TRANSITION,
+                vol.Optional(CONF_PROFILE): vol.Schema(
+                    {cv.string: vol.Schema(_PROFILE_SCHEMA)}
+                ),
             }
         ),
     },

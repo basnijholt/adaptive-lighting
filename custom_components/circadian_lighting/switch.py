@@ -18,7 +18,7 @@ from homeassistant.components.light import (
     ATTR_XY_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import VALID_TRANSITION, is_on
+from homeassistant.components.light import is_on
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import (
     ATTR_ENTITY_ID,
@@ -39,6 +39,21 @@ from homeassistant.util.color import (
 )
 
 from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DOMAIN
+from .const import (
+    _PROFILE_SCHEMA,
+    CONF_DISABLE_BRIGHTNESS_ADJUST,
+    CONF_DISABLE_ENTITY,
+    CONF_DISABLE_STATE,
+    CONF_INITIAL_TRANSITION,
+    CONF_MAX_BRIGHT,
+    CONF_MIN_BRIGHT,
+    CONF_ONLY_ONCE,
+    CONF_PROFILE,
+    CONF_SLEEP_BRIGHT,
+    CONF_SLEEP_CT,
+    CONF_SLEEP_ENTITY,
+    CONF_SLEEP_STATE,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,17 +63,6 @@ CONF_LIGHTS_CT = "lights_ct"
 CONF_LIGHTS_RGB = "lights_rgb"
 CONF_LIGHTS_XY = "lights_xy"
 CONF_LIGHTS_BRIGHT = "lights_brightness"
-CONF_DISABLE_BRIGHTNESS_ADJUST = "disable_brightness_adjust"
-CONF_MIN_BRIGHT, DEFAULT_MIN_BRIGHT = "min_brightness", 1
-CONF_MAX_BRIGHT, DEFAULT_MAX_BRIGHT = "max_brightness", 100
-CONF_SLEEP_ENTITY = "sleep_entity"
-CONF_SLEEP_STATE = "sleep_state"
-CONF_SLEEP_CT, DEFAULT_SLEEP_CT = "sleep_colortemp", 1000
-CONF_SLEEP_BRIGHT, DEFAULT_SLEEP_BRIGHT = "sleep_brightness", 1
-CONF_DISABLE_ENTITY = "disable_entity"
-CONF_DISABLE_STATE = "disable_state"
-CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
-CONF_ONLY_ONCE = "only_once"
 
 PLATFORM_SCHEMA = vol.Schema(
     {
@@ -68,27 +72,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(CONF_LIGHTS_RGB): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_XY): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_BRIGHT): cv.entity_ids,
-        vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=False): cv.boolean,
-        vol.Optional(CONF_MIN_BRIGHT, default=DEFAULT_MIN_BRIGHT): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=100)
-        ),
-        vol.Optional(CONF_MAX_BRIGHT, default=DEFAULT_MAX_BRIGHT): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=100)
-        ),
-        vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
-        vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(CONF_SLEEP_CT, default=DEFAULT_SLEEP_CT): vol.All(
-            vol.Coerce(int), vol.Range(min=1000, max=10000)
-        ),
-        vol.Optional(CONF_SLEEP_BRIGHT, default=DEFAULT_SLEEP_BRIGHT): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=100)
-        ),
-        vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
-        vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(
-            CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
-        ): VALID_TRANSITION,
-        vol.Optional(CONF_ONLY_ONCE, default=False): cv.boolean,
+        **_PROFILE_SCHEMA,
     }
 )
 
@@ -97,14 +81,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting switches."""
     circadian_lighting = hass.data.get(DOMAIN)
     if circadian_lighting is not None:
-        switch = CircadianSwitch(
-            hass,
-            circadian_lighting,
-            name=config.get(CONF_NAME),
-            lights_ct=config.get(CONF_LIGHTS_CT, []),
-            lights_rgb=config.get(CONF_LIGHTS_RGB, []),
-            lights_xy=config.get(CONF_LIGHTS_XY, []),
-            lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
+        switch_settings = dict(
             disable_brightness_adjust=config.get(CONF_DISABLE_BRIGHTNESS_ADJUST),
             min_brightness=config.get(CONF_MIN_BRIGHT),
             max_brightness=config.get(CONF_MAX_BRIGHT),
@@ -116,6 +93,19 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             disable_state=config.get(CONF_DISABLE_STATE),
             initial_transition=config.get(CONF_INITIAL_TRANSITION),
             only_once=config.get(CONF_ONLY_ONCE),
+        )
+        profile = config.get(CONF_PROFILE)
+        profile_settings = circadian_lighting._profiles.get(profile, {})
+        settings = dict(switch_settings, **profile_settings)
+        switch = CircadianSwitch(
+            hass,
+            circadian_lighting,
+            name=config.get(CONF_NAME),
+            lights_ct=config.get(CONF_LIGHTS_CT, []),
+            lights_rgb=config.get(CONF_LIGHTS_RGB, []),
+            lights_xy=config.get(CONF_LIGHTS_XY, []),
+            lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
+            **settings,
         )
         add_devices([switch])
 
