@@ -127,7 +127,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 def _difference_between_states(from_state, to_state):
     start = "Lights adjusting because "
     if from_state is None and to_state is None:
-        return start + "Both states None"
+        return start + "both states None"
     if from_state is None:
         return start + f"from_state: None, to_state: {to_state}"
     if to_state is None:
@@ -268,18 +268,18 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         """Return the attributes of the switch."""
         return {"hs_color": self._hs_color, "brightness": self._brightness}
 
-    async def turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
         await self._force_update_switch()
 
-    def turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs):
         """Turn off circadian lighting."""
         self._state = False
         self._hs_color = None
         self._brightness = None
 
-    def is_sleep(self):
+    def _is_sleep(self):
         return (
             self._sleep_entity is not None
             and self.hass.states.get(self._sleep_entity).state in self._sleep_state
@@ -288,7 +288,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     def _color_temperature(self):
         return (
             self._circadian_lighting._colortemp
-            if not self.is_sleep()
+            if not self._is_sleep()
             else self._sleep_colortemp
         )
 
@@ -306,8 +306,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def _calc_brightness(self) -> float:
         if self._disable_brightness_adjust:
-            return None
-        if self.is_sleep():
+            return
+        if self._is_sleep():
             return self._sleep_brightness
         if self._circadian_lighting._percent > 0:
             return self._max_brightness
@@ -352,11 +352,9 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             if not is_on(self.hass, light):
                 continue
 
-            service_data = {ATTR_ENTITY_ID: light}
+            service_data = {ATTR_ENTITY_ID: light, ATTR_TRANSITION: transition}
             if self._brightness is not None:
                 service_data[ATTR_BRIGHTNESS] = int((self._brightness / 100) * 254)
-            if transition is not None:
-                service_data[ATTR_TRANSITION] = transition
 
             light_type = self._lights_types[light]
             if light_type == "ct":
@@ -382,7 +380,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             await asyncio.wait(tasks)
 
     async def _light_state_changed(self, entity_id, from_state, to_state):
-        if to_state.state == "on" and from_state.state != "on":
+        assert to_state.state == "on"
+        if from_state is None or from_state.state != "on":
             _LOGGER.debug(_difference_between_states(from_state, to_state))
             await self._force_update_switch(lights=[entity_id])
 
