@@ -72,6 +72,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(CONF_LIGHTS_RGB): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_XY): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_BRIGHT): cv.entity_ids,
+        vol.Optional(CONF_PROFILE): cv.string,
         **_PROFILE_SCHEMA,
     }
 )
