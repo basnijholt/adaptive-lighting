@@ -57,7 +57,7 @@ from homeassistant.util.color import (
     color_xy_to_hs,
 )
 
-from .const import _PROFILE_SCHEMA, CONF_PROFILE
+from .const import _PROFILE_SCHEMA, CONF_PROFILES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(
                     ATTR_TRANSITION, default=DEFAULT_TRANSITION
                 ): VALID_TRANSITION,
-                vol.Optional(CONF_PROFILE): vol.Schema(
+                vol.Optional(CONF_PROFILES): vol.Schema(
                     {cv.string: vol.Schema(_PROFILE_SCHEMA)}
                 ),
             }
@@ -122,6 +122,7 @@ def setup(hass, config):
         elevation=conf.get(CONF_ELEVATION, hass.config.elevation),
         interval=conf.get(CONF_INTERVAL),
         transition=conf.get(ATTR_TRANSITION),
+        profiles=conf.get(CONF_PROFILES, {}),
     )
     load_platform(hass, "sensor", DOMAIN, {}, config)
 
@@ -145,6 +146,7 @@ class CircadianLighting:
         elevation,
         interval,
         transition,
+        profiles,
     ):
         self.hass = hass
         self._min_colortemp = min_colortemp
@@ -157,6 +159,8 @@ class CircadianLighting:
         self._longitude = longitude
         self._elevation = elevation
         self._transition = transition
+        self._profiles = profiles
+        _LOGGER.debug("profiles: %s", self._profiles)
 
         self._percent = self.calc_percent()
         self._colortemp = self.calc_colortemp()

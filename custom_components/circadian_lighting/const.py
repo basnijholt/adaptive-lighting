@@ -5,6 +5,7 @@ from homeassistant.components.light import VALID_TRANSITION
 
 # Switch and profile settings
 CONF_PROFILE = "profile"
+CONF_PROFILES = "profiles"
 CONF_DISABLE_BRIGHTNESS_ADJUST = "disable_brightness_adjust"
 CONF_MIN_BRIGHT, DEFAULT_MIN_BRIGHT = "min_brightness", 1
 CONF_MAX_BRIGHT, DEFAULT_MAX_BRIGHT = "max_brightness", 100
