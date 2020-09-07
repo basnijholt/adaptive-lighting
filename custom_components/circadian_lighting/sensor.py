@@ -6,14 +6,14 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DOMAIN
+from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DEFAULT_PROFILE, DOMAIN
 
 ICON = "mdi:theme-light-dark"
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting sensor."""
-    circadian_lighting = hass.data.get(DOMAIN)
+    circadian_lighting = hass.data.get(DOMAIN, {}).get(DEFAULT_PROFILE)
     if circadian_lighting is not None:
         sensor = CircadianSensor(hass, circadian_lighting)
         add_devices([sensor], True)
