@@ -117,7 +117,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         disable_state=config.get(CONF_DISABLE_STATE),
         initial_transition=config[CONF_INITIAL_TRANSITION],
         only_once=config[CONF_ONLY_ONCE],
-        profile=profile,
     )
     add_devices([switch])
 
@@ -178,7 +177,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         disable_state,
         initial_transition,
         only_once,
-        profile,
     ):
         """Initialize the Circadian Lighting switch."""
         self.hass = hass
@@ -200,7 +198,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._disable_state = disable_state
         self._initial_transition = initial_transition
         self._only_once = only_once
-        self._profile = profile
         self._lights_types = dict(zip(lights_ct, repeat("ct")))
         self._lights_types.update(zip(lights_rgb, repeat("rgb")))
         self._lights_types.update(zip(lights_xy, repeat("xy")))
