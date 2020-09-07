@@ -27,6 +27,7 @@ Technical notes: I had to make a lot of assumptions when writing this app
         lights to 2700K (warm white) until your hub goes into Night mode
 """
 
+from custom_components.circadian_lighting.switch import CONF_PROFILE
 import logging
 from datetime import timedelta
 
@@ -72,61 +73,68 @@ CONF_SUNSET_OFFSET = "sunset_offset"
 CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_TIME = "sunset_time"
 DEFAULT_TRANSITION = 60
-CONF_PROFILES = "profiles"
+CONF_PROFILE, DEFAULT_PROFILE = "profile", "default"
 
-_DOMAIN_SCHEMA = {
-    vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
-        vol.Coerce(int), vol.Range(min=1000, max=10000)
-    ),
-    vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
-        vol.Coerce(int), vol.Range(min=1000, max=10000)
-    ),
-    vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
-    vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
-    vol.Optional(CONF_SUNRISE_TIME): cv.time,
-    vol.Optional(CONF_SUNSET_TIME): cv.time,
-    vol.Optional(CONF_LATITUDE): cv.latitude,
-    vol.Optional(CONF_LONGITUDE): cv.longitude,
-    vol.Optional(CONF_ELEVATION): float,
-    vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-    vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
-}
+_DOMAIN_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
+            vol.Coerce(int), vol.Range(min=1000, max=10000)
+        ),
+        vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
+            vol.Coerce(int), vol.Range(min=1000, max=10000)
+        ),
+        vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
+        vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
+        vol.Optional(CONF_SUNRISE_TIME): cv.time,
+        vol.Optional(CONF_SUNSET_TIME): cv.time,
+        vol.Optional(CONF_LATITUDE): cv.latitude,
+        vol.Optional(CONF_LONGITUDE): cv.longitude,
+        vol.Optional(CONF_ELEVATION): float,
+        vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
+        vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
+        vol.Optional(CONF_PROFILE, default=DEFAULT_PROFILE): cv.string,
+    }
+)
 
-_DOMAIN_SCHEMA_NO_DEFAULTS = {type(k)(k): v for k, v in _DOMAIN_SCHEMA.items()}
+
+def _all_unique_profiles(value):
+    """Validate that each hub configured has a unique profiles."""
+    hosts = [device[CONF_PROFILE] for device in value]
+    schema = vol.Schema(vol.Unique())
+    schema(hosts)
+    return value
+
+
+# _DOMAIN_SCHEMA_NO_DEFAULTS = {type(k)(k): v for k, v in _DOMAIN_SCHEMA.items()}
 
 CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                **_DOMAIN_SCHEMA,
-                vol.Optional(CONF_PROFILES): vol.Schema(
-                    {cv.string: vol.Schema(_DOMAIN_SCHEMA_NO_DEFAULTS)}
-                ),
-            }
-        ),
-    },
+    {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_profiles)},
     extra=vol.ALLOW_EXTRA,
 )
 
 
 def setup(hass, config):
     """Set up the Circadian Lighting platform."""
-    conf = config[DOMAIN]
-    hass.data[DOMAIN] = CircadianLighting(
-        hass,
-        min_colortemp=conf.get(CONF_MIN_CT),
-        max_colortemp=conf.get(CONF_MAX_CT),
-        sunrise_offset=conf.get(CONF_SUNRISE_OFFSET),
-        sunset_offset=conf.get(CONF_SUNSET_OFFSET),
-        sunrise_time=conf.get(CONF_SUNRISE_TIME),
-        sunset_time=conf.get(CONF_SUNSET_TIME),
-        latitude=conf.get(CONF_LATITUDE, hass.config.latitude),
-        longitude=conf.get(CONF_LONGITUDE, hass.config.longitude),
-        elevation=conf.get(CONF_ELEVATION, hass.config.elevation),
-        interval=conf.get(CONF_INTERVAL),
-        transition=conf.get(ATTR_TRANSITION),
-        profiles=conf.get(CONF_PROFILES, {}),
-    )
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    configs = config[DOMAIN]
+    for conf in configs:
+        profile = conf[CONF_PROFILE]
+        hass.data[DOMAIN][profile] = CircadianLighting(
+            hass,
+            min_colortemp=conf[CONF_MIN_CT],
+            max_colortemp=conf[CONF_MAX_CT],
+            sunrise_offset=conf.get(CONF_SUNRISE_OFFSET),
+            sunset_offset=conf.get(CONF_SUNSET_OFFSET),
+            sunrise_time=conf.get(CONF_SUNRISE_TIME),
+            sunset_time=conf.get(CONF_SUNSET_TIME),
+            latitude=conf.get(CONF_LATITUDE, hass.config.latitude),
+            longitude=conf.get(CONF_LONGITUDE, hass.config.longitude),
+            elevation=conf.get(CONF_ELEVATION, hass.config.elevation),
+            interval=conf[CONF_INTERVAL],
+            transition=conf[ATTR_TRANSITION],
+            profile=profile,
+        )
     load_platform(hass, "sensor", DOMAIN, {}, config)
 
     return True
