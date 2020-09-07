@@ -35,7 +35,6 @@ import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
-from custom_components.circadian_lighting.switch import CONF_PROFILE
 from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
 from homeassistant.const import (
     CONF_ELEVATION,
