@@ -38,7 +38,7 @@ from homeassistant.util.color import (
     color_xy_to_hs,
 )
 
-from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DOMAIN
+from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DOMAIN, CONF_PROFILE, DEFAULT_PROFILE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +59,6 @@ CONF_DISABLE_ENTITY = "disable_entity"
 CONF_DISABLE_STATE = "disable_state"
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 CONF_ONLY_ONCE = "only_once"
-CONF_PROFILE = "profile"
 
 PLATFORM_SCHEMA = vol.Schema(
     {
@@ -90,41 +89,37 @@ PLATFORM_SCHEMA = vol.Schema(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
         vol.Optional(CONF_ONLY_ONCE, default=False): cv.boolean,
-        vol.Optional(CONF_PROFILE): cv.string,
+        vol.Optional(CONF_PROFILE, default=DEFAULT_PROFILE): cv.string,
     }
 )
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting switches."""
-    circadian_lighting = hass.data.get(DOMAIN)
-    if circadian_lighting is not None:
-        switch = CircadianSwitch(
-            hass,
-            circadian_lighting,
-            name=config.get(CONF_NAME),
-            lights_ct=config.get(CONF_LIGHTS_CT, []),
-            lights_rgb=config.get(CONF_LIGHTS_RGB, []),
-            lights_xy=config.get(CONF_LIGHTS_XY, []),
-            lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
-            disable_brightness_adjust=config.get(CONF_DISABLE_BRIGHTNESS_ADJUST),
-            min_brightness=config.get(CONF_MIN_BRIGHT),
-            max_brightness=config.get(CONF_MAX_BRIGHT),
-            sleep_entity=config.get(CONF_SLEEP_ENTITY),
-            sleep_state=config.get(CONF_SLEEP_STATE),
-            sleep_colortemp=config.get(CONF_SLEEP_CT),
-            sleep_brightness=config.get(CONF_SLEEP_BRIGHT),
-            disable_entity=config.get(CONF_DISABLE_ENTITY),
-            disable_state=config.get(CONF_DISABLE_STATE),
-            initial_transition=config.get(CONF_INITIAL_TRANSITION),
-            only_once=config.get(CONF_ONLY_ONCE),
-            profile=config.get(CONF_PROFILE),
-        )
-        add_devices([switch])
-
-        return True
-    else:
-        return False
+    profile = config[CONF_PROFILE]
+    circadian_lighting = hass.data[DOMAIN][profile]
+    switch = CircadianSwitch(
+        hass,
+        circadian_lighting,
+        name=config[CONF_NAME],
+        lights_ct=config.get(CONF_LIGHTS_CT, []),
+        lights_rgb=config.get(CONF_LIGHTS_RGB, []),
+        lights_xy=config.get(CONF_LIGHTS_XY, []),
+        lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
+        disable_brightness_adjust=config[CONF_DISABLE_BRIGHTNESS_ADJUST],
+        min_brightness=config[CONF_MIN_BRIGHT],
+        max_brightness=config[CONF_MAX_BRIGHT],
+        sleep_entity=config.get(CONF_SLEEP_ENTITY),
+        sleep_state=config.get(CONF_SLEEP_STATE),
+        sleep_colortemp=config[CONF_SLEEP_CT],
+        sleep_brightness=config[CONF_SLEEP_BRIGHT],
+        disable_entity=config.get(CONF_DISABLE_ENTITY),
+        disable_state=config.get(CONF_DISABLE_STATE),
+        initial_transition=config[CONF_INITIAL_TRANSITION],
+        only_once=config[CONF_ONLY_ONCE],
+        profile=profile,
+    )
+    add_devices([switch])
 
 
 def _difference_between_states(from_state, to_state):
@@ -212,15 +207,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._lights_types.update(zip(lights_brightness, repeat("brightness")))
         self._lights = list(self._lights_types.keys())
 
-    def from_profile(key):
-        default = getattr(self._circadian_lighting, key)
-        if self._profile is None:
-            return default
-        value = self._circadian_lighting._profiles.get(self._profile, {}).get(key)
-        if value is not None:
-            return value
-        return default
-
     @property
     def entity_id(self):
         """Return the entity ID of the switch."""
@@ -301,7 +287,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def _color_temperature(self):
         return (
-            self.from_profile("_colortemp")
+            self._circadian_lighting._colortemp
             if not self._is_sleep()
             else self._sleep_colortemp
         )
@@ -359,7 +345,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
             return
 
         if transition is None:
-            transition = self.from_profile("_transition")
+            transition = self._circadian_lighting._transition
 
         tasks = []
         for light in lights:
