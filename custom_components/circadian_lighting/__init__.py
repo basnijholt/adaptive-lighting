@@ -97,7 +97,7 @@ _DOMAIN_SCHEMA = vol.Schema(
 
 
 def _all_unique_profiles(value):
-    """Validate that each hub configured has a unique profiles."""
+    """Validate that all enties have a unique profile name."""
     hosts = [device[CONF_PROFILE] for device in value]
     schema = vol.Schema(vol.Unique())
     schema(hosts)
