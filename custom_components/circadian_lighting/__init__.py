@@ -27,7 +27,6 @@ Technical notes: I had to make a lot of assumptions when writing this app
         lights to 2700K (warm white) until your hub goes into Night mode
 """
 
-from custom_components.circadian_lighting.switch import CONF_PROFILE
 import logging
 from datetime import timedelta
 
@@ -36,6 +35,7 @@ import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
+from custom_components.circadian_lighting.switch import CONF_PROFILE
 from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
 from homeassistant.const import (
     CONF_ELEVATION,
@@ -105,8 +105,6 @@ def _all_unique_profiles(value):
     return value
 
 
-# _DOMAIN_SCHEMA_NO_DEFAULTS = {type(k)(k): v for k, v in _DOMAIN_SCHEMA.items()}
-
 CONFIG_SCHEMA = vol.Schema(
     {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_profiles)},
     extra=vol.ALLOW_EXTRA,
@@ -157,7 +155,7 @@ class CircadianLighting:
         elevation,
         interval,
         transition,
-        profiles,
+        profile,
     ):
         self.hass = hass
         self._min_colortemp = min_colortemp
@@ -170,8 +168,8 @@ class CircadianLighting:
         self._longitude = longitude
         self._elevation = elevation
         self._transition = transition
-        self._profiles = profiles
-        _LOGGER.debug("profiles: %s", self._profiles)
+        self._profile = profile
+        _LOGGER.debug("profile: %s", self._profile)
 
         self._percent = self.calc_percent()
         self._colortemp = self.calc_colortemp()
