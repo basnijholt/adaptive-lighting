@@ -57,8 +57,6 @@ from homeassistant.util.color import (
     color_xy_to_hs,
 )
 
-from .const import _PROFILE_SCHEMA, CONF_PROFILES
-
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "circadian_lighting"
@@ -74,30 +72,35 @@ CONF_SUNSET_OFFSET = "sunset_offset"
 CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_TIME = "sunset_time"
 DEFAULT_TRANSITION = 60
+CONF_PROFILES = "profiles"
+
+_DOMAIN_SCHEMA = {
+    vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
+        vol.Coerce(int), vol.Range(min=1000, max=10000)
+    ),
+    vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
+        vol.Coerce(int), vol.Range(min=1000, max=10000)
+    ),
+    vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
+    vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
+    vol.Optional(CONF_SUNRISE_TIME): cv.time,
+    vol.Optional(CONF_SUNSET_TIME): cv.time,
+    vol.Optional(CONF_LATITUDE): cv.latitude,
+    vol.Optional(CONF_LONGITUDE): cv.longitude,
+    vol.Optional(CONF_ELEVATION): float,
+    vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
+    vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
+}
+
+_DOMAIN_SCHEMA_NO_DEFAULTS = {type(k)(k): v for k, v in _DOMAIN_SCHEMA.items()}
 
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
-                vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
-                vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
-                vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
-                vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
-                vol.Optional(CONF_SUNRISE_TIME): cv.time,
-                vol.Optional(CONF_SUNSET_TIME): cv.time,
-                vol.Optional(CONF_LATITUDE): cv.latitude,
-                vol.Optional(CONF_LONGITUDE): cv.longitude,
-                vol.Optional(CONF_ELEVATION): float,
-                vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-                vol.Optional(
-                    ATTR_TRANSITION, default=DEFAULT_TRANSITION
-                ): VALID_TRANSITION,
+                **_DOMAIN_SCHEMA,
                 vol.Optional(CONF_PROFILES): vol.Schema(
-                    {cv.string: vol.Schema(_PROFILE_SCHEMA)}
+                    {cv.string: vol.Schema(_DOMAIN_SCHEMA_NO_DEFAULTS)}
                 ),
             }
         ),
