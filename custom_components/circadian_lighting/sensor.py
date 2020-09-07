@@ -13,20 +13,12 @@ ICON = "mdi:theme-light-dark"
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting sensor."""
-    circadian_lighting = hass.data.get(DOMAIN, {}).get(DEFAULT_PROFILE)
-    if circadian_lighting is not None:
-        sensor = CircadianSensor(hass, circadian_lighting)
-        add_devices([sensor], True)
-
-        def update(call=None):
-            """Update component."""
-            circadian_lighting.update()
-
-        service_name = "values_update"
-        hass.services.register(DOMAIN, service_name, update)
-        return True
-    else:
-        return False
+    sensors = [
+        CircadianSensor(hass, circadian_lighting)
+        for circadian_lighting in hass.data[DOMAIN].values()
+    ]
+    add_devices(sensors, True)
+    return True
 
 
 class CircadianSensor(Entity):
@@ -37,6 +29,10 @@ class CircadianSensor(Entity):
         self._circadian_lighting = circadian_lighting
         self._name = "Circadian Values"
         self._entity_id = "sensor.circadian_values"
+        profile = circadian_lighting._profile
+        if profile != DEFAULT_PROFILE:
+            self._name += f" {profile}"
+            self._entity_id += f"_{profile.lower()}"
         self._unit_of_measurement = "%"
         self._icon = ICON
 
