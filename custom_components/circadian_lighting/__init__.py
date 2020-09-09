@@ -244,24 +244,24 @@ class CircadianLighting:
             # It's before sunrise (after midnight), because it's before
             # sunrise (and after midnight) sunset must have happend yesterday.
             yesterday = self.get_sunrise_sunset(now - timedelta(days=1))
-            today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
             if (
                 today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
                 and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
             ):
                 # Solar midnight is after sunset so use yesterdays's time
                 today[SUN_EVENT_MIDNIGHT] = yesterday[SUN_EVENT_MIDNIGHT]
+            today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
         elif now_ts > today[SUN_EVENT_SUNSET]:
             # It's after sunset (before midnight), because it's after sunset
             # (and before midnight) sunrise should happen tomorrow.
             tomorrow = self.get_sunrise_sunset(now + timedelta(days=1))
-            today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
             if (
                 today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
                 and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
             ):
                 # Solar midnight is before sunrise so use tomorrow's time
                 today[SUN_EVENT_MIDNIGHT] = tomorrow[SUN_EVENT_MIDNIGHT]
+            today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
 
         # Figure out where we are in time so we know which half of the
         # parabola to calculate. We're generating a different
