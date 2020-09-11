@@ -32,7 +32,6 @@ import logging
 from datetime import timedelta
 from itertools import repeat
 
-import astral
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
@@ -51,8 +50,6 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_ELEVATION,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
     CONF_NAME,
     CONF_PLATFORM,
     SERVICE_TURN_ON,
@@ -62,11 +59,9 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.event import (
     async_track_state_change,
-    async_track_sunrise,
-    async_track_sunset,
-    async_track_time_change,
     async_track_time_interval,
 )
+from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import slugify
 from homeassistant.util.color import (
@@ -125,8 +120,6 @@ PLATFORM_SCHEMA = vol.Schema(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
         vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-        vol.Optional(CONF_LATITUDE): cv.latitude,
-        vol.Optional(CONF_LONGITUDE): cv.longitude,
         vol.Optional(CONF_MAX_BRIGHT, default=DEFAULT_MAX_BRIGHT): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=100)
         ),
@@ -148,9 +141,9 @@ PLATFORM_SCHEMA = vol.Schema(
         ),
         vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
         vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
+        vol.Optional(CONF_SUNRISE_OFFSET, default=0): cv.time_period_str,
         vol.Optional(CONF_SUNRISE_TIME): cv.time,
-        vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
+        vol.Optional(CONF_SUNSET_OFFSET, default=0): cv.time_period_str,
         vol.Optional(CONF_SUNSET_TIME): cv.time,
         vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
     }
@@ -172,8 +165,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         elevation=config.get(CONF_ELEVATION, hass.config.elevation),
         initial_transition=config[CONF_INITIAL_TRANSITION],
         interval=config[CONF_INTERVAL],
-        latitude=config.get(CONF_LATITUDE, hass.config.latitude),
-        longitude=config.get(CONF_LONGITUDE, hass.config.longitude),
         max_brightness=config[CONF_MAX_BRIGHT],
         max_colortemp=config[CONF_MAX_CT],
         min_brightness=config[CONF_MIN_BRIGHT],
@@ -183,9 +174,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         sleep_colortemp=config[CONF_SLEEP_CT],
         sleep_entity=config.get(CONF_SLEEP_ENTITY),
         sleep_state=config.get(CONF_SLEEP_STATE),
-        sunrise_offset=config.get(CONF_SUNRISE_OFFSET),
+        sunrise_offset=config[CONF_SUNRISE_OFFSET],
         sunrise_time=config.get(CONF_SUNRISE_TIME),
-        sunset_offset=config.get(CONF_SUNSET_OFFSET),
+        sunset_offset=config[CONF_SUNSET_OFFSET],
         sunset_time=config.get(CONF_SUNSET_TIME),
         transition=config[ATTR_TRANSITION],
     )
@@ -242,8 +233,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         elevation,
         initial_transition,
         interval,
-        latitude,
-        longitude,
         max_brightness,
         max_colortemp,
         min_brightness,
@@ -277,8 +266,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         self._elevation = elevation
         self._initial_transition = initial_transition
         self._interval = interval
-        self._latitude = latitude
-        self._longitude = longitude
         self._max_brightness = max_brightness
         self._max_colortemp = max_colortemp
         self._min_brightness = min_brightness
@@ -336,31 +323,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
                 from_state=self._disable_state,
             )
 
-        # XXX FROM __INIT__ \/
-        if self._manual_sunrise is not None:
-            async_track_time_change(
-                self.hass,
-                self.update,
-                hour=self._manual_sunrise.hour,
-                minute=self._manual_sunrise.minute,
-                second=self._manual_sunrise.second,
-            )
-        else:
-            async_track_sunrise(self.hass, self.update, self._sunrise_offset)
-
-        if self._manual_sunset is not None:
-            async_track_time_change(
-                self.hass,
-                self.update,
-                hour=self._manual_sunset.hour,
-                minute=self._manual_sunset.minute,
-                second=self._manual_sunset.second,
-            )
-        else:
-            async_track_sunset(self.hass, self.update, self._sunset_offset)
-
         async_track_time_interval(self.hass, self.update, self._interval)
-        # XXX FROM __INIT__ ^
 
         if self._state is not None:  # If not None, we got an initial value
             return
@@ -374,65 +337,69 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         return self._icon
 
     @property
-    def hs_color(self):
-        return self._hs_color
-
-    @property
     def device_state_attributes(self):
         """Return the attributes of the switch."""
+        if not self._state:
+            return {"hs_color": None, "brightness": None}
         return {"hs_color": self._hs_color, "brightness": self._brightness}
 
     async def async_turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
-        await self._force_update_switch()
+        await self._update_lights()
 
     async def async_turn_off(self, **kwargs):
         """Turn off circadian lighting."""
         self._state = False
-        self._hs_color = None
-        self._brightness = None
 
-    def _replace_time(self, date, key):
-        other_date = self._manual_sunrise if key == "sunrise" else self._manual_sunset
-        return date.replace(
-            hour=other_date.hour,
-            minute=other_date.minute,
-            second=other_date.second,
-            microsecond=other_date.microsecond,
+    def _update_attrs(self, _=None):
+        """Update Circadian Values."""
+        self._percent = self._calc_percent()
+        self._brightness = self._calc_brightness()
+        self._colortemp_kelvin = self._calc_colortemp_kelvin()
+        self._colortemp_mired = color_temperature_kelvin_to_mired(
+            self._colortemp_kelvin
         )
+        self._rgb_color = color_temperature_to_rgb(self._colortemp_kelvin)
+        self._xy_color = color_RGB_to_xy(*self._rgb_color)
+        self._hs_color = color_xy_to_hs(*self._xy_color)
+
+    async def update(self, now=None):
+        self._update_lights(force=False)
+
+    async def _update_lights(self, lights=None, transition=None, force=True):
+        if self._only_once and not force:
+            return
+        self._update_attrs()
+        await self._adjust_lights(lights or self._lights, transition)
 
     def get_sunrise_sunset(self, date):
-        if self._manual_sunrise is not None and self._manual_sunset is not None:
-            sunrise = self._replace_time(date, "sunrise")
-            sunset = self._replace_time(date, "sunset")
-            solar_noon = sunrise + (sunset - sunrise) / 2
-            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
-        else:
-            location = astral.Location()
-            location.name = "name"
-            location.region = "region"
-            location.latitude = self._latitude
-            location.longitude = self._longitude
-            location.elevation = self._elevation
+        def _replace_time(date, key):
+            other_date = getattr(self, f"_manual_{key}")
+            return date.replace(
+                hour=other_date.hour,
+                minute=other_date.minute,
+                second=other_date.second,
+                microsecond=other_date.microsecond,
+            )
 
-            if self._manual_sunrise is not None:
-                sunrise = self._replace_time(date, "sunrise")
-            else:
-                sunrise = location.sunrise(date)
-
-            if self._manual_sunset is not None:
-                sunset = self._replace_time(date, "sunset")
-            else:
-                sunset = location.sunset(date)
-
+        location = get_astral_location(self.hass)
+        sunrise = (
+            location.sunrise(date)
+            if self._manual_sunrise is None
+            else _replace_time(date, "sunrise")
+        ) + self._sunrise_offset
+        sunset = (
+            location.sunset(date)
+            if self._manual_sunset is None
+            else _replace_time(date, "sunset")
+        ) + self._sunset_offset
+        if self._manual_sunrise is None and self._manual_sunset is None:
             solar_noon = location.solar_noon(date)
             solar_midnight = location.solar_midnight(date)
-
-        if self._sunrise_offset is not None:
-            sunrise = sunrise + self._sunrise_offset
-        if self._sunset_offset is not None:
-            sunset = sunset + self._sunset_offset
+        else:
+            solar_noon = sunrise + (sunset - sunrise) / 2
+            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
 
         datetimes = {
             SUN_EVENT_SUNRISE: sunrise,
@@ -506,18 +473,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         percentage = a * (now_ts - h) ** 2 + k
         return percentage
 
-    async def update(self, _=None):  # from __init__
-        """Update Circadian Values."""
-        self._percent = self._calc_percent()
-        self._brightness = self._calc_brightness()
-        self._colortemp_kelvin = self._calc_colortemp_kelvin()
-        self._colortemp_mired = color_temperature_kelvin_to_mired(
-            self._colortemp_kelvin
-        )
-        self._rgb_color = color_temperature_to_rgb(self._colortemp_kelvin)
-        self._xy_color = color_RGB_to_xy(*self._rgb_color)
-        self._hs_color = color_xy_to_hs(*self._xy_color)
-
     def _is_sleep(self):
         return (
             self._sleep_entity is not None
@@ -543,17 +498,6 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         delta_brightness = self._max_brightness - self._min_brightness
         percent = (100 + self._percent) / 100
         return (delta_brightness * percent) + self._min_brightness
-
-    async def _update_switch(self, lights=None, transition=None, force=False):
-        if self._only_once and not force:
-            return
-        await self.update()
-        await self._adjust_lights(lights or self._lights, transition)
-
-    async def _force_update_switch(self, lights=None):
-        return await self._update_switch(
-            lights, transition=self._initial_transition, force=True
-        )
 
     def _is_disabled(self):
         return (
@@ -611,8 +555,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         assert to_state.state == "on"
         if from_state is None or from_state.state != "on":
             _LOGGER.debug(_difference_between_states(from_state, to_state))
-            await self._force_update_switch(lights=[entity_id])
+            await self._update_lights(lights=[entity_id])
 
     async def _state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(_difference_between_states(from_state, to_state))
-        await self._force_update_switch()
+        await self._update_lights()
