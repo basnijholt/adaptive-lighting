@@ -346,7 +346,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
     async def async_turn_on(self, **kwargs):
         """Turn on circadian lighting."""
         self._state = True
-        await self._update_lights()
+        await self._update_lights(transition=self._initial_transition)
 
     async def async_turn_off(self, **kwargs):
         """Turn off circadian lighting."""
@@ -555,8 +555,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         assert to_state.state == "on"
         if from_state is None or from_state.state != "on":
             _LOGGER.debug(_difference_between_states(from_state, to_state))
-            await self._update_lights(lights=[entity_id])
+            await self._update_lights(lights=[entity_id], transition=self._initial_transition)
 
     async def _state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(_difference_between_states(from_state, to_state))
-        await self._update_lights()
+        await self._update_lights(transition=self._initial_transition)
