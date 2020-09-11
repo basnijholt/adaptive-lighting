@@ -13,10 +13,7 @@ ICON = "mdi:theme-light-dark"
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Circadian Lighting sensor."""
-    sensors = [
-        CircadianSensor(hass, circadian_lighting)
-        for circadian_lighting in hass.data[DOMAIN].values()
-    ]
+    sensors = [CircadianSensor(hass, circadian_lighting) for circadian_lighting in hass.data[DOMAIN].values()]
     add_devices(sensors, True)
     return True
 
@@ -81,11 +78,7 @@ class CircadianSensor(Entity):
 
     async def async_added_to_hass(self) -> None:
         """Connect dispatcher to signal from CircadianLighting object."""
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self._update_callback
-            )
-        )
+        self.async_on_remove(async_dispatcher_connect(self.hass, CIRCADIAN_LIGHTING_UPDATE_TOPIC, self._update_callback))
 
     @callback
     def _update_callback(self) -> None:

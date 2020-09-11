@@ -76,12 +76,8 @@ CONF_PROFILE, DEFAULT_PROFILE = "profile", "default"
 
 _DOMAIN_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
-            vol.Coerce(int), vol.Range(min=1000, max=10000)
-        ),
-        vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
-            vol.Coerce(int), vol.Range(min=1000, max=10000)
-        ),
+        vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+        vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
         vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
         vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
         vol.Optional(CONF_SUNRISE_TIME): cv.time,
@@ -104,10 +100,7 @@ def _all_unique_profiles(value):
     return value
 
 
-CONFIG_SCHEMA = vol.Schema(
-    {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_profiles)},
-    extra=vol.ALLOW_EXTRA,
-)
+CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_profiles)}, extra=vol.ALLOW_EXTRA,)
 
 
 def setup(hass, config):
@@ -141,20 +134,7 @@ class CircadianLighting:
     """Calculate universal Circadian values."""
 
     def __init__(
-        self,
-        hass,
-        min_colortemp,
-        max_colortemp,
-        sunrise_offset,
-        sunset_offset,
-        sunrise_time,
-        sunset_time,
-        latitude,
-        longitude,
-        elevation,
-        interval,
-        transition,
-        profile,
+        self, hass, min_colortemp, max_colortemp, sunrise_offset, sunset_offset, sunrise_time, sunset_time, latitude, longitude, elevation, interval, transition, profile,
     ):
         self.hass = hass
         self._min_colortemp = min_colortemp
@@ -178,22 +158,14 @@ class CircadianLighting:
 
         if self._manual_sunrise is not None:
             async_track_time_change(
-                self.hass,
-                self.update,
-                hour=self._manual_sunrise.hour,
-                minute=self._manual_sunrise.minute,
-                second=self._manual_sunrise.second,
+                self.hass, self.update, hour=self._manual_sunrise.hour, minute=self._manual_sunrise.minute, second=self._manual_sunrise.second,
             )
         else:
             async_track_sunrise(self.hass, self.update, self._sunrise_offset)
 
         if self._manual_sunset is not None:
             async_track_time_change(
-                self.hass,
-                self.update,
-                hour=self._manual_sunset.hour,
-                minute=self._manual_sunset.minute,
-                second=self._manual_sunset.second,
+                self.hass, self.update, hour=self._manual_sunset.hour, minute=self._manual_sunset.minute, second=self._manual_sunset.second,
             )
         else:
             async_track_sunset(self.hass, self.update, self._sunset_offset)
@@ -202,12 +174,7 @@ class CircadianLighting:
 
     def _replace_time(self, date, key):
         other_date = self._manual_sunrise if key == "sunrise" else self._manual_sunset
-        return date.replace(
-            hour=other_date.hour,
-            minute=other_date.minute,
-            second=other_date.second,
-            microsecond=other_date.microsecond,
-        )
+        return date.replace(hour=other_date.hour, minute=other_date.minute, second=other_date.second, microsecond=other_date.microsecond,)
 
     def get_sunrise_sunset(self, date):
         if self._manual_sunrise is not None and self._manual_sunset is not None:
@@ -248,9 +215,7 @@ class CircadianLighting:
             SUN_EVENT_MIDNIGHT: solar_midnight,
         }
 
-        return {
-            k: dt.astimezone(dt_util.UTC).timestamp() for k, dt in datetimes.items()
-        }
+        return {k: dt.astimezone(dt_util.UTC).timestamp() for k, dt in datetimes.items()}
 
     def calc_percent(self):
         now = dt_util.utcnow()
@@ -261,10 +226,7 @@ class CircadianLighting:
             # It's before sunrise (after midnight), because it's before
             # sunrise (and after midnight) sunset must have happend yesterday.
             yesterday = self.get_sunrise_sunset(now - timedelta(days=1))
-            if (
-                today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
-                and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
-            ):
+            if today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET] and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]:
                 # Solar midnight is after sunset so use yesterdays's time
                 today[SUN_EVENT_MIDNIGHT] = yesterday[SUN_EVENT_MIDNIGHT]
             today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
@@ -272,10 +234,7 @@ class CircadianLighting:
             # It's after sunset (before midnight), because it's after sunset
             # (and before midnight) sunrise should happen tomorrow.
             tomorrow = self.get_sunrise_sunset(now + timedelta(days=1))
-            if (
-                today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
-                and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
-            ):
+            if today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE] and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]:
                 # Solar midnight is before sunrise so use tomorrow's time
                 today[SUN_EVENT_MIDNIGHT] = tomorrow[SUN_EVENT_MIDNIGHT]
             today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
@@ -291,22 +250,14 @@ class CircadianLighting:
             h = today[SUN_EVENT_NOON]
             k = 100
             # parabola before solar_noon else after solar_noon
-            x = (
-                today[SUN_EVENT_SUNRISE]
-                if now_ts < today[SUN_EVENT_NOON]
-                else today[SUN_EVENT_SUNSET]
-            )
+            x = today[SUN_EVENT_SUNRISE] if now_ts < today[SUN_EVENT_NOON] else today[SUN_EVENT_SUNSET]
 
         # sunset -> sunrise parabola
         elif today[SUN_EVENT_SUNSET] < now_ts < today[SUN_EVENT_SUNRISE]:
             h = today[SUN_EVENT_MIDNIGHT]
             k = -100
             # parabola before solar_midnight else after solar_midnight
-            x = (
-                today[SUN_EVENT_SUNSET]
-                if now_ts < today[SUN_EVENT_MIDNIGHT]
-                else today[SUN_EVENT_SUNRISE]
-            )
+            x = today[SUN_EVENT_SUNSET] if now_ts < today[SUN_EVENT_MIDNIGHT] else today[SUN_EVENT_SUNRISE]
 
         y = 0
         a = (y - k) / (h - x) ** 2
