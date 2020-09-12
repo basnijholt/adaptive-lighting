@@ -249,7 +249,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         self._name = name
         self._entity_id = f"switch.adaptive_lighting_{slugify(name)}"
-        self._state = None
         self._icon = ICON
 
         # Create lights dict
@@ -289,6 +288,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._xy_color = None
         self._hs_color = None
 
+        # Set and unset tracker in async_turn_on and async_turn_off
+        self.unsub_tracker = None
+
     @property
     def entity_id(self):
         """Return the entity ID of the switch."""
@@ -302,7 +304,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     @property
     def is_on(self):
         """Return true if adaptive lighting is on."""
-        return self._state
+        return self.unsub_tracker is not None
 
     async def async_added_to_hass(self):
         """Call when entity about to be added to hass."""
@@ -323,13 +325,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 from_state=self._disable_state,
             )
 
-        async_track_time_interval(self.hass, self._async_update_at_interval, self._interval)
-
-        if self._state is not None:  # If not None, we got an initial value
-            return
-
-        state = await self.async_get_last_state()
-        self._state = state and state.state == STATE_ON
+        last_state = await self.async_get_last_state()
+        if last_state and last_state.state == STATE_ON:
+            await self.async_turn_on()
 
     @property
     def icon(self):
@@ -348,20 +346,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             "xy_color": self._xy_color,
             "hs_color": self._hs_color,
         }
-        if not self._state:
+        if not self.is_on:
             return {key: None for key in attrs.keys()}
         return attrs
 
     async def async_turn_on(self, **kwargs):
         """Turn on adaptive lighting."""
-        self._state = True
         await self._update_lights(transition=self._initial_transition, force=True)
+        self.unsub_tracker = async_track_time_interval(
+            self.hass, self._async_update_at_interval, self._interval
+        )
 
     async def async_turn_off(self, **kwargs):
         """Turn off adaptive lighting."""
-        self._state = False
+        if self.is_on:
+            self.unsub_tracker()
+            self.unsub_tracker = None
 
-    async def _update_attrs(self, _=None):
+    async def _update_attrs(self):
         """Update Adaptive Values."""
         # Setting all values because this method takes <0.5ms to execute.
         self._percent = self._calc_percent()
@@ -514,7 +516,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     def _should_adjust(self):
-        if self._state is not True:
+        if not self.is_on:
             return False
         if self._is_disabled():
             return False
