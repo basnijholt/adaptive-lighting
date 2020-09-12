@@ -88,7 +88,7 @@ CONF_DISABLE_BRIGHTNESS_ADJUST = "disable_brightness_adjust"
 CONF_DISABLE_ENTITY = "disable_entity"
 CONF_DISABLE_STATE = "disable_state"
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
-CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 300
+CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
 CONF_MAX_BRIGHT, DEFAULT_MAX_BRIGHT = "max_brightness", 100
 CONF_MAX_CT, DEFAULT_MAX_CT = "max_colortemp", 5500
 CONF_MIN_BRIGHT, DEFAULT_MIN_BRIGHT = "min_brightness", 1
@@ -279,7 +279,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sunset_time = sunset_time
         self._transition = transition
 
-        # Initialize attributes that will be set in self.update
+        # Initialize attributes that will be set in self._update_attrs
         self._percent = None
         self._brightness = None
         self._colortemp_kelvin = None
