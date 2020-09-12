@@ -80,7 +80,7 @@ SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
 CONF_LIGHTS_BRIGHT = "lights_brightness"
-CONF_LIGHTS_CT = "lights_ct"
+CONF_LIGHTS_MIRED = "lights_mired"
 CONF_LIGHTS_RGB = "lights_rgb"
 CONF_LIGHTS_XY = "lights_xy"
 
@@ -109,7 +109,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Required(CONF_PLATFORM): "adaptive_lighting",
         vol.Optional(CONF_NAME, default="Adaptive Lighting"): cv.string,
         vol.Optional(CONF_LIGHTS_BRIGHT): cv.entity_ids,
-        vol.Optional(CONF_LIGHTS_CT): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS_MIRED): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_RGB): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_XY): cv.entity_ids,
         vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=False): cv.boolean,
@@ -156,7 +156,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         hass,
         name=config[CONF_NAME],
         lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
-        lights_ct=config.get(CONF_LIGHTS_CT, []),
+        lights_mired=config.get(CONF_LIGHTS_MIRED, []),
         lights_rgb=config.get(CONF_LIGHTS_RGB, []),
         lights_xy=config.get(CONF_LIGHTS_XY, []),
         disable_brightness_adjust=config[CONF_DISABLE_BRIGHTNESS_ADJUST],
@@ -224,7 +224,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         hass,
         name,
         lights_brightness,
-        lights_ct,
+        lights_mired,
         lights_rgb,
         lights_xy,
         disable_brightness_adjust,
@@ -254,7 +254,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.adaptive_lighting_{slugify(name)}"
         self._state = None
         self._icon = ICON
-        self._lights_types = dict(zip(lights_ct, repeat("ct")))
+        self._lights_types = dict(zip(lights_mired, repeat("mired")))
         self._lights_types.update(zip(lights_brightness, repeat("brightness")))
         self._lights_types.update(zip(lights_rgb, repeat("rgb")))
         self._lights_types.update(zip(lights_xy, repeat("xy")))
@@ -339,9 +339,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     @property
     def device_state_attributes(self):
         """Return the attributes of the switch."""
+        attrs = {
+            "percent": self._percent,
+            "brightness": self._brightness,
+            "colortemp_kelvin": self._colortemp_kelvin,
+            "colortemp_mired": self._colortemp_mired,
+            "rgb_color": self._rgb_color,
+            "xy_color": self._xy_color,
+            "hs_color": self._hs_color,
+        }
         if not self._state:
-            return {"hs_color": None, "brightness": None}
-        return {"hs_color": self._hs_color, "brightness": self._brightness}
+            return {key: None for key in attrs.keys()}
+        return attrs
 
     async def async_turn_on(self, **kwargs):
         """Turn on adaptive lighting."""
@@ -529,7 +538,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data[ATTR_BRIGHTNESS] = int((self._brightness / 100) * 254)
 
             light_type = self._lights_types[light]
-            if light_type == "ct":
+            if light_type == "mired":
                 service_data[ATTR_COLOR_TEMP] = int(self._colortemp_mired)
             elif light_type == "rgb":
                 r, g, b = self._rgb_color
