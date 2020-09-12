@@ -1,0 +1,51 @@
+{
+  "title": "Adaptive Lighting",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose a name for the Adaptive Lighting",
+        "description": "Every instance can contain multiple lights!",
+        "data": {
+          "name": "Name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This name is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "lights_brightness": "lights_brightness",
+          "lights_mired": "lights_mired",
+          "lights_rgb": "lights_rgb",
+          "lights_xy": "lights_xy",
+          "disable_brightness_adjust": "disable_brightness_adjust",
+          "disable_entity": "disable_entity",
+          "disable_state": "disable_state",
+          "initial_transition": "initial_transition",
+          "interval": "interval",
+          "max_brightness": "max_brightness",
+          "max_colortemp": "max_colortemp",
+          "min_brightness": "min_brightness",
+          "min_colortemp": "min_colortemp",
+          "only_once": "only_once",
+          "sleep_brightness": "sleep_brightness",
+          "sleep_colortemp": "sleep_colortemp",
+          "sleep_entity": "sleep_entity",
+          "sleep_state": "sleep_state",
+          "sunrise_offset": "sunrise_offset",
+          "sunrise_time": "sunrise_time",
+          "sunset_offset": "sunset_offset",
+          "sunset_time": "sunset_time",
+          "transition": "transition"
+        }
+      }
+    },
+    "error": {
+      "retrive_error": "Error retriving servers list"
+    }
+  }
+}
