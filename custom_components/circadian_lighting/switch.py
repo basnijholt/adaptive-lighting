@@ -393,32 +393,28 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         location = get_astral_location(self.hass)
         sunrise = (
-            location.sunrise(date)
+            location.sunrise(date, local=False)
             if self._sunrise_time is None
             else _replace_time(date, "sunrise")
         ) + self._sunrise_offset
         sunset = (
-            location.sunset(date)
+            location.sunset(date, local=False)
             if self._sunset_time is None
             else _replace_time(date, "sunset")
         ) + self._sunset_offset
 
         if self._sunrise_time is None and self._sunset_time is None:
-            solar_noon = location.solar_noon(date)
-            solar_midnight = location.solar_midnight(date)
+            solar_noon = location.solar_noon(date, local=False)
+            solar_midnight = location.solar_midnight(date, local=False)
         else:
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
 
-        datetimes = {
-            SUN_EVENT_SUNRISE: sunrise,
-            SUN_EVENT_SUNSET: sunset,
-            SUN_EVENT_NOON: solar_noon,
-            SUN_EVENT_MIDNIGHT: solar_midnight,
-        }
-
         return {
-            k: dt.astimezone(dt_util.UTC).timestamp() for k, dt in datetimes.items()
+            SUN_EVENT_SUNRISE: sunrise.timestamp(),
+            SUN_EVENT_SUNSET: sunset.timestamp(),
+            SUN_EVENT_NOON: solar_noon.timestamp(),
+            SUN_EVENT_MIDNIGHT: solar_midnight.timestamp(),
         }
 
     def _calc_percent(self):
