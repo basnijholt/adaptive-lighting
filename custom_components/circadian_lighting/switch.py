@@ -73,6 +73,7 @@ from homeassistant.util.color import (
 _LOGGER = logging.getLogger(__name__)
 
 ICON = "mdi:theme-light-dark"
+SCAN_INTERVAL = timedelta(seconds=10)
 
 DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
@@ -322,7 +323,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 from_state=self._disable_state,
             )
 
-        async_track_time_interval(self.hass, self.update, self._interval)
+        async_track_time_interval(self.hass, self._async_update_at_interval, self._interval)
 
         if self._state is not None:  # If not None, we got an initial value
             return
@@ -360,8 +361,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Turn off adaptive lighting."""
         self._state = False
 
-    def _update_attrs(self, _=None):
+    async def _update_attrs(self, _=None):
         """Update Adaptive Values."""
+        # Setting all values because this method takes <0.5ms to execute.
         self._percent = self._calc_percent()
         self._brightness = self._calc_brightness()
         self._colortemp_kelvin = self._calc_colortemp_kelvin()
@@ -371,17 +373,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._rgb_color = color_temperature_to_rgb(self._colortemp_kelvin)
         self._xy_color = color_RGB_to_xy(*self._rgb_color)
         self._hs_color = color_xy_to_hs(*self._xy_color)
+        self.async_write_ha_state()
+        _LOGGER.debug("'_update_attrs' called for %s", self._name)
 
-    async def update(self, now=None):
-        self._update_lights(force=False)
+    async def _async_update_at_interval(self, now=None):
+        await self._update_lights(force=False)
 
-    async def _update_lights(self, lights=None, transition=None, force=True):
-        self._update_attrs()
+    async def _update_lights(self, lights=None, transition=None, force=False):
+        await self._update_attrs()
         if self._only_once and not force:
             return
         await self._adjust_lights(lights or self._lights, transition)
 
-    def _get_sunrise_sunset(self, date):
+    def _get_sun_events(self, date):
         def _replace_time(date, key):
             other_date = getattr(self, f"_{key}_time")
             return date.replace(
@@ -421,11 +425,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         now = dt_util.utcnow()
         now_ts = now.timestamp()
 
-        today = self._get_sunrise_sunset(now)
+        today = self._get_sun_events(now)
         if now_ts < today[SUN_EVENT_SUNRISE]:
             # It's before sunrise (after midnight), because it's before
             # sunrise (and after midnight) sunset must have happend yesterday.
-            yesterday = self._get_sunrise_sunset(now - timedelta(days=1))
+            yesterday = self._get_sun_events(now - timedelta(days=1))
             if (
                 today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
                 and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
@@ -436,7 +440,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         elif now_ts > today[SUN_EVENT_SUNSET]:
             # It's after sunset (before midnight), because it's after sunset
             # (and before midnight) sunrise should happen tomorrow.
-            tomorrow = self._get_sunrise_sunset(now + timedelta(days=1))
+            tomorrow = self._get_sun_events(now + timedelta(days=1))
             if (
                 today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
                 and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
@@ -454,7 +458,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # sunrise -> sunset parabola
         if today[SUN_EVENT_SUNRISE] < now_ts < today[SUN_EVENT_SUNSET]:
             h = today[SUN_EVENT_NOON]
-            k = 100
+            k = 1
             # parabola before solar_noon else after solar_noon
             x = (
                 today[SUN_EVENT_SUNRISE]
@@ -465,7 +469,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # sunset -> sunrise parabola
         elif today[SUN_EVENT_SUNSET] < now_ts < today[SUN_EVENT_SUNRISE]:
             h = today[SUN_EVENT_MIDNIGHT]
-            k = -100
+            k = -1
             # parabola before solar_midnight else after solar_midnight
             x = (
                 today[SUN_EVENT_SUNSET]
@@ -489,7 +493,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return self._sleep_colortemp
         if self._percent > 0:
             delta = self._max_colortemp - self._min_colortemp
-            return (delta * self._percent / 100) + self._min_colortemp
+            return (delta * self._percent) + self._min_colortemp
         return self._min_colortemp
 
     def _calc_brightness(self) -> float:
@@ -500,7 +504,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self._percent > 0:
             return self._max_brightness
         delta_brightness = self._max_brightness - self._min_brightness
-        percent = 1 + self._percent / 100
+        percent = 1 + self._percent
         return (delta_brightness * percent) + self._min_brightness
 
     def _is_disabled(self):
