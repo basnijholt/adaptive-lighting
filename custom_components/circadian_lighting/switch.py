@@ -101,7 +101,7 @@ CONF_SUNRISE_OFFSET = "sunrise_offset"
 CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_OFFSET = "sunset_offset"
 CONF_SUNSET_TIME = "sunset_time"
-DEFAULT_TRANSITION = 60
+CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 PLATFORM_SCHEMA = vol.Schema(
     {
@@ -143,7 +143,7 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(CONF_SUNRISE_TIME): cv.time,
         vol.Optional(CONF_SUNSET_OFFSET, default=0): cv.time_period,
         vol.Optional(CONF_SUNSET_TIME): cv.time,
-        vol.Optional(ATTR_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
+        vol.Optional(CONF_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
     }
 )
 
@@ -175,7 +175,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         sunrise_time=config.get(CONF_SUNRISE_TIME),
         sunset_offset=config[CONF_SUNSET_OFFSET],
         sunset_time=config.get(CONF_SUNSET_TIME),
-        transition=config[ATTR_TRANSITION],
+        transition=config[CONF_TRANSITION],
     )
     add_devices([switch])
 
