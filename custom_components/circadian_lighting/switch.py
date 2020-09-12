@@ -10,7 +10,7 @@ In addition, the component sets your lights to a nice warm white at 1% in "Sleep
 which is far brighter than starlight but won't reset your adaptive rhythm or break down
 too much rhodopsin in your eyes.
 
-Human adaptive rhythms are heavily influenced by ambient light levels and
+Human circadiam rhythms are heavily influenced by ambient light levels and
 hues. Hormone production, brainwave activity, mood and wakefulness are
 just some of the cognitive functions tied to cyclical natural light.
 http://en.wikipedia.org/wiki/Zeitgeber
@@ -21,10 +21,10 @@ http://www.cambridgeincolour.com/tutorials/sunrise-sunset-calculator.htm
 http://en.wikipedia.org/wiki/Color_temperature
 
 Technical notes: I had to make a lot of assumptions when writing this app
-    *   There are no considerations for weather or altitude, but does use your
-        hub's location to calculate the sun position.
-    *   The component doesn't calculate a true "Blue Hour" -- it just sets the
-        lights to 2700K (warm white) until your hub goes into Night mode
+*   There are no considerations for weather or altitude, but does use your
+    hub's location to calculate the sun position.
+*   The component doesn't calculate a true "Blue Hour" -- it just sets the
+    lights to 2700K (warm white) until your hub goes into Night mode
 """
 
 import asyncio
@@ -250,12 +250,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.adaptive_lighting_{slugify(name)}"
         self._state = None
         self._icon = ICON
-        self._lights_types = dict(zip(lights_mired, repeat("mired")))
-        self._lights_types.update(zip(lights_brightness, repeat("brightness")))
+
+        # Create lights dict
+        self._lights_types = dict(zip(lights_brightness, repeat("brightness")))
+        self._lights_types.update(zip(lights_mired, repeat("mired")))
         self._lights_types.update(zip(lights_rgb, repeat("rgb")))
         self._lights_types.update(zip(lights_xy, repeat("xy")))
         self._lights = list(self._lights_types.keys())
 
+        # Set attributes from arguments
         self._disable_brightness_adjust = disable_brightness_adjust
         self._disable_entity = disable_entity
         self._disable_state = disable_state
@@ -276,6 +279,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sunset_time = sunset_time
         self._transition = transition
 
+        # Initialize attributes that will be set in self.update
         self._percent = None
         self._brightness = None
         self._colortemp_kelvin = None
@@ -377,7 +381,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         await self._adjust_lights(lights or self._lights, transition)
 
-    def get_sunrise_sunset(self, date):
+    def _get_sunrise_sunset(self, date):
         def _replace_time(date, key):
             other_date = getattr(self, f"_{key}_time")
             return date.replace(
@@ -398,6 +402,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if self._sunset_time is None
             else _replace_time(date, "sunset")
         ) + self._sunset_offset
+
         if self._sunrise_time is None and self._sunset_time is None:
             solar_noon = location.solar_noon(date)
             solar_midnight = location.solar_midnight(date)
@@ -420,11 +425,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         now = dt_util.utcnow()
         now_ts = now.timestamp()
 
-        today = self.get_sunrise_sunset(now)
+        today = self._get_sunrise_sunset(now)
         if now_ts < today[SUN_EVENT_SUNRISE]:
             # It's before sunrise (after midnight), because it's before
             # sunrise (and after midnight) sunset must have happend yesterday.
-            yesterday = self.get_sunrise_sunset(now - timedelta(days=1))
+            yesterday = self._get_sunrise_sunset(now - timedelta(days=1))
             if (
                 today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
                 and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
@@ -435,7 +440,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         elif now_ts > today[SUN_EVENT_SUNSET]:
             # It's after sunset (before midnight), because it's after sunset
             # (and before midnight) sunrise should happen tomorrow.
-            tomorrow = self.get_sunrise_sunset(now + timedelta(days=1))
+            tomorrow = self._get_sunrise_sunset(now + timedelta(days=1))
             if (
                 today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
                 and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
@@ -558,7 +563,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         assert to_state.state == "on"
         if from_state is None or from_state.state != "on":
             _LOGGER.debug(_difference_between_states(from_state, to_state))
-            await self._update_lights(lights=[entity_id], transition=self._initial_transition, force=True)
+            await self._update_lights(
+                lights=[entity_id], transition=self._initial_transition, force=True
+            )
 
     async def _state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(_difference_between_states(from_state, to_state))
