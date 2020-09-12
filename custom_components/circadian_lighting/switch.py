@@ -79,7 +79,7 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-CONF_LIGHTS_BRIGHT = "lights_brightness"
+CONF_LIGHTS_BRIGHTNESS = "lights_brightness"
 CONF_LIGHTS_MIRED = "lights_mired"
 CONF_LIGHTS_RGB = "lights_rgb"
 CONF_LIGHTS_XY = "lights_xy"
@@ -89,12 +89,12 @@ CONF_DISABLE_ENTITY = "disable_entity"
 CONF_DISABLE_STATE = "disable_state"
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
-CONF_MAX_BRIGHT, DEFAULT_MAX_BRIGHT = "max_brightness", 100
+CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS = "max_brightness", 100
 CONF_MAX_CT, DEFAULT_MAX_CT = "max_colortemp", 5500
-CONF_MIN_BRIGHT, DEFAULT_MIN_BRIGHT = "min_brightness", 1
+CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS = "min_brightness", 1
 CONF_MIN_CT, DEFAULT_MIN_CT = "min_colortemp", 2500
 CONF_ONLY_ONCE = "only_once"
-CONF_SLEEP_BRIGHT, DEFAULT_SLEEP_BRIGHT = "sleep_brightness", 1
+CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
 CONF_SLEEP_CT, DEFAULT_SLEEP_CT = "sleep_colortemp", 1000
 CONF_SLEEP_ENTITY = "sleep_entity"
 CONF_SLEEP_STATE = "sleep_state"
@@ -108,7 +108,7 @@ PLATFORM_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_PLATFORM): "adaptive_lighting",
         vol.Optional(CONF_NAME, default="Adaptive Lighting"): cv.string,
-        vol.Optional(CONF_LIGHTS_BRIGHT): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS_BRIGHTNESS): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_MIRED): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_RGB): cv.entity_ids,
         vol.Optional(CONF_LIGHTS_XY): cv.entity_ids,
@@ -119,20 +119,20 @@ PLATFORM_SCHEMA = vol.Schema(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
         vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-        vol.Optional(CONF_MAX_BRIGHT, default=DEFAULT_MAX_BRIGHT): vol.All(
+        vol.Optional(CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=100)
         ),
         vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
             vol.Coerce(int), vol.Range(min=1000, max=10000)
         ),
-        vol.Optional(CONF_MIN_BRIGHT, default=DEFAULT_MIN_BRIGHT): vol.All(
+        vol.Optional(CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=100)
         ),
         vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
             vol.Coerce(int), vol.Range(min=1000, max=10000)
         ),
         vol.Optional(CONF_ONLY_ONCE, default=False): cv.boolean,
-        vol.Optional(CONF_SLEEP_BRIGHT, default=DEFAULT_SLEEP_BRIGHT): vol.All(
+        vol.Optional(CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=100)
         ),
         vol.Optional(CONF_SLEEP_CT, default=DEFAULT_SLEEP_CT): vol.All(
@@ -154,7 +154,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     switch = AdaptiveSwitch(
         hass,
         name=config[CONF_NAME],
-        lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
+        lights_brightness=config.get(CONF_LIGHTS_BRIGHTNESS, []),
         lights_mired=config.get(CONF_LIGHTS_MIRED, []),
         lights_rgb=config.get(CONF_LIGHTS_RGB, []),
         lights_xy=config.get(CONF_LIGHTS_XY, []),
@@ -163,12 +163,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         disable_state=config.get(CONF_DISABLE_STATE),
         initial_transition=config[CONF_INITIAL_TRANSITION],
         interval=config[CONF_INTERVAL],
-        max_brightness=config[CONF_MAX_BRIGHT],
+        max_brightness=config[CONF_MAX_BRIGHTNESS],
         max_colortemp=config[CONF_MAX_CT],
-        min_brightness=config[CONF_MIN_BRIGHT],
+        min_brightness=config[CONF_MIN_BRIGHTNESS],
         min_colortemp=config[CONF_MIN_CT],
         only_once=config[CONF_ONLY_ONCE],
-        sleep_brightness=config[CONF_SLEEP_BRIGHT],
+        sleep_brightness=config[CONF_SLEEP_BRIGHTNESS],
         sleep_colortemp=config[CONF_SLEEP_CT],
         sleep_entity=config.get(CONF_SLEEP_ENTITY),
         sleep_state=config.get(CONF_SLEEP_STATE),
