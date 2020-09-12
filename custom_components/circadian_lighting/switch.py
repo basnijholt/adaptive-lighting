@@ -534,10 +534,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
             light_type = self._lights_types[light]
             if light_type == "mired":
-                service_data[ATTR_COLOR_TEMP] = int(self._colortemp_mired)
+                service_data[ATTR_COLOR_TEMP] = self._colortemp_mired
             elif light_type == "rgb":
-                r, g, b = self._rgb_color
-                service_data[ATTR_RGB_COLOR] = (int(r), int(g), int(b))
+                service_data[ATTR_RGB_COLOR] = self._rgb_color
             elif light_type == "xy":
                 service_data[ATTR_XY_COLOR] = self._xy_color
                 if service_data.get(ATTR_BRIGHTNESS, False):
