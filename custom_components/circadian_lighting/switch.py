@@ -489,8 +489,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return self._sleep_colortemp
         if self._percent > 0:
             delta = self._max_colortemp - self._min_colortemp
-            percent = self._percent / 100
-            return (delta * percent) + self._min_colortemp
+            return (delta * self._percent / 100) + self._min_colortemp
         return self._min_colortemp
 
     def _calc_brightness(self) -> float:
@@ -501,7 +500,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self._percent > 0:
             return self._max_brightness
         delta_brightness = self._max_brightness - self._min_brightness
-        percent = (100 + self._percent) / 100
+        percent = 1 + self._percent / 100
         return (delta_brightness * percent) + self._min_brightness
 
     def _is_disabled(self):
