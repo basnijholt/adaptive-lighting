@@ -49,7 +49,6 @@ from homeassistant.components.light import VALID_TRANSITION, is_on
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import (
     ATTR_ENTITY_ID,
-    CONF_ELEVATION,
     CONF_NAME,
     CONF_PLATFORM,
     SERVICE_TURN_ON,
@@ -115,7 +114,6 @@ PLATFORM_SCHEMA = vol.Schema(
         vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=False): cv.boolean,
         vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
         vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(CONF_ELEVATION): float,
         vol.Optional(
             CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
         ): VALID_TRANSITION,
@@ -162,7 +160,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         disable_brightness_adjust=config[CONF_DISABLE_BRIGHTNESS_ADJUST],
         disable_entity=config.get(CONF_DISABLE_ENTITY),
         disable_state=config.get(CONF_DISABLE_STATE),
-        elevation=config.get(CONF_ELEVATION, hass.config.elevation),
         initial_transition=config[CONF_INITIAL_TRANSITION],
         interval=config[CONF_INTERVAL],
         max_brightness=config[CONF_MAX_BRIGHT],
@@ -230,7 +227,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         disable_brightness_adjust,
         disable_entity,
         disable_state,
-        elevation,
         initial_transition,
         interval,
         max_brightness,
@@ -263,7 +259,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._disable_brightness_adjust = disable_brightness_adjust
         self._disable_entity = disable_entity
         self._disable_state = disable_state
-        self._elevation = elevation
         self._initial_transition = initial_transition
         self._interval = interval
         self._max_brightness = max_brightness
