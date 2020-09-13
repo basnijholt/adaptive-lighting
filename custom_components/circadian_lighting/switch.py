@@ -10,7 +10,7 @@ In addition, the component sets your lights to a nice warm white at 1% in "Sleep
 which is far brighter than starlight but won't reset your adaptive rhythm or break down
 too much rhodopsin in your eyes.
 
-Human circadiam rhythms are heavily influenced by ambient light levels and
+Human circadian rhythms are heavily influenced by ambient light levels and
 hues. Hormone production, brainwave activity, mood and wakefulness are
 just some of the cognitive functions tied to cyclical natural light.
 http://en.wikipedia.org/wiki/Zeitgeber
