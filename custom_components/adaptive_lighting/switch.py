@@ -316,10 +316,29 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             key for key, value in _SUPPORT_OPTS.items() if supported_features & value
         }
 
+    def _unpack_light_groups(self, lights):
+        all_lights = []
+        for light in lights:
+            state = self.hass.states.get(light)
+            if state is None:
+                _LOGGER.debug("State of %s is None", light)
+                # TODO: make sure that the lights are loaded when doing this
+                all_lights.append(light)
+            elif "entity_id" in state.attributes:  # it's a light group
+                group = state.attributes["entity_id"]
+                self.debug("Unpacked %s to %s", group)
+                all_lights.extend(group)
+            else:
+                all_lights.append(light)
+        return all_lights
+
     async def async_added_to_hass(self):
         """Call when entity about to be added to hass."""
         async_track_state_change(
-            self.hass, self._lights, self._light_state_changed, to_state="on"
+            self.hass,
+            self._unpack_light_groups(self._lights),
+            self._light_state_changed,
+            to_state="on",
         )
         track_kwargs = dict(hass=self.hass, action=self._state_changed)
         if self._sleep_entity is not None:
