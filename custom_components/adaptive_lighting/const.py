@@ -1,3 +1,8 @@
+import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
+from homeassistant.components.light import VALID_TRANSITION
+
 ICON = "mdi:theme-light-dark"
 
 DOMAIN = "adaptive_lighting"
@@ -27,3 +32,64 @@ CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
 CONF_SUNSET_TIME = "sunset_time"
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
+
+
+_COMMON_SCHEMA = {
+    vol.Optional(CONF_LIGHTS, default=DEFAULT_LIGHTS): cv.entity_ids,
+    vol.Optional(
+        CONF_DISABLE_BRIGHTNESS_ADJUST, default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST
+    ): cv.boolean,
+    vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
+    vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(
+        CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
+    ): VALID_TRANSITION,
+    vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
+    vol.Optional(CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=100)
+    ),
+    vol.Optional(CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP): vol.All(
+        vol.Coerce(int), vol.Range(min=1000, max=10000)
+    ),
+    vol.Optional(CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=100)
+    ),
+    vol.Optional(CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP): vol.All(
+        vol.Coerce(int), vol.Range(min=1000, max=10000)
+    ),
+    vol.Optional(CONF_ONLY_ONCE, default=DEFAULT_ONLY_ONCE): cv.boolean,
+    vol.Optional(CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=100)
+    ),
+    vol.Optional(CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP): vol.All(
+        vol.Coerce(int), vol.Range(min=1000, max=10000)
+    ),
+    vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
+    vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_SUNRISE_OFFSET, default=DEFAULT_SUNRISE_OFFSET): cv.time_period,
+    vol.Optional(CONF_SUNRISE_TIME): cv.time,
+    vol.Optional(CONF_SUNSET_OFFSET, default=DEFAULT_SUNSET_OFFSET): cv.time_period,
+    vol.Optional(CONF_SUNSET_TIME): cv.time,
+    vol.Optional(CONF_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
+}
+
+
+def _convert_to_options_schema(hass, options):
+    schema = {}
+    for key, value in _COMMON_SCHEMA.items():
+        if key.schema == CONF_LIGHTS:
+            all_lights = hass.states.async_entity_ids("light")
+            value = cv.multi_select(all_lights)
+        elif value == cv.boolean:
+            value = bool
+        elif (
+            isinstance(value, vol.All) and value.validators[0].type == int
+        ) or value == VALID_TRANSITION:
+            pass
+        elif value == cv.time_period:
+            value = cv.time_period_dict
+        else:
+            value = str
+        default = options.get(key.schema, value.default())
+        schema[vol.Optional(key.schema, default=default)] = value
+        return vol.Schema(schema)
