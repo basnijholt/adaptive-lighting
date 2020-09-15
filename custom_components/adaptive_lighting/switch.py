@@ -176,12 +176,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         initial_transition=config[CONF_INITIAL_TRANSITION],
         interval=config[CONF_INTERVAL],
         max_brightness=config[CONF_MAX_BRIGHTNESS],
-        max_colortemp=config[CONF_MAX_CT],
+        max_color_temp=config[CONF_MAX_CT],
         min_brightness=config[CONF_MIN_BRIGHTNESS],
-        min_colortemp=config[CONF_MIN_CT],
+        min_color_temp=config[CONF_MIN_CT],
         only_once=config[CONF_ONLY_ONCE],
         sleep_brightness=config[CONF_SLEEP_BRIGHTNESS],
-        sleep_colortemp=config[CONF_SLEEP_CT],
+        sleep_color_temp=config[CONF_SLEEP_CT],
         sleep_entity=config.get(CONF_SLEEP_ENTITY),
         sleep_state=config.get(CONF_SLEEP_STATE),
         sunrise_offset=config[CONF_SUNRISE_OFFSET],
@@ -240,12 +240,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         initial_transition,
         interval,
         max_brightness,
-        max_colortemp,
+        max_color_temp,
         min_brightness,
-        min_colortemp,
+        min_color_temp,
         only_once,
         sleep_brightness,
-        sleep_colortemp,
+        sleep_color_temp,
         sleep_entity,
         sleep_state,
         sunrise_offset,
@@ -268,12 +268,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._initial_transition = initial_transition
         self._interval = interval
         self._max_brightness = max_brightness
-        self._max_colortemp = max_colortemp
+        self._max_color_temp = max_color_temp
         self._min_brightness = min_brightness
-        self._min_colortemp = min_colortemp
+        self._min_color_temp = min_color_temp
         self._only_once = only_once
         self._sleep_brightness = sleep_brightness
-        self._sleep_colortemp = sleep_colortemp
+        self._sleep_color_temp = sleep_color_temp
         self._sleep_entity = sleep_entity
         self._sleep_state = sleep_state
         self._sunrise_offset = sunrise_offset
@@ -285,8 +285,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None
         self._brightness = None
-        self._colortemp_kelvin = None
-        self._colortemp_mired = None
+        self._color_temp_kelvin = None
+        self._color_temp_mired = None
         self._rgb_color = None
         self._xy_color = None
         self._hs_color = None
@@ -349,8 +349,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         attrs = {
             "percent": self._percent,
             "brightness": self._brightness,
-            "colortemp_kelvin": self._colortemp_kelvin,
-            "colortemp_mired": self._colortemp_mired,
+            "color_temp_kelvin": self._color_temp_kelvin,
+            "color_temp_mired": self._color_temp_mired,
             "rgb_color": self._rgb_color,
             "xy_color": self._xy_color,
             "hs_color": self._hs_color,
@@ -377,11 +377,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Setting all values because this method takes <0.5ms to execute.
         self._percent = self._calc_percent()
         self._brightness = self._calc_brightness()
-        self._colortemp_kelvin = self._calc_colortemp_kelvin()
-        self._colortemp_mired = color_temperature_kelvin_to_mired(
-            self._colortemp_kelvin
+        self._color_temp_kelvin = self._calc_color_temp_kelvin()
+        self._color_temp_mired = color_temperature_kelvin_to_mired(
+            self._color_temp_kelvin
         )
-        self._rgb_color = color_temperature_to_rgb(self._colortemp_kelvin)
+        self._rgb_color = color_temperature_to_rgb(self._color_temp_kelvin)
         self._xy_color = color_RGB_to_xy(*self._rgb_color)
         self._hs_color = color_xy_to_hs(*self._xy_color)
         self.async_write_ha_state()
@@ -499,13 +499,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self.hass.states.get(self._sleep_entity).state in self._sleep_state
         )
 
-    def _calc_colortemp_kelvin(self):
+    def _calc_color_temp_kelvin(self):
         if self._is_sleep():
-            return self._sleep_colortemp
+            return self._sleep_color_temp
         if self._percent > 0:
-            delta = self._max_colortemp - self._min_colortemp
-            return (delta * self._percent) + self._min_colortemp
-        return self._min_colortemp
+            delta = self._max_color_temp - self._min_color_temp
+            return (delta * self._percent) + self._min_color_temp
+        return self._min_color_temp
 
     def _calc_brightness(self) -> float:
         if self._disable_brightness_adjust:
@@ -539,7 +539,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if "color" in features:
             service_data[ATTR_RGB_COLOR] = self._rgb_color
         elif "color_temp" in features:
-            service_data[ATTR_COLOR_TEMP] = self._colortemp_mired
+            service_data[ATTR_COLOR_TEMP] = self._color_temp_mired
 
         _LOGGER.debug(
             "Scheduling 'light.turn_on' with the following 'service_data': %s",
