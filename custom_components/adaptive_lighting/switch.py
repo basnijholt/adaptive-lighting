@@ -579,7 +579,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not self._should_adjust():
             return
         tasks = [
-            self._adjust_light(light, transition)
+            await self._adjust_light(light, transition)
             for light in lights
             if is_on(self.hass, light)
         ]
