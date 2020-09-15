@@ -62,7 +62,6 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.event import (
     async_track_state_change,
-    async_track_state_change_event,
     async_track_time_interval,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -335,10 +334,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def async_added_to_hass(self):
         """Call when entity about to be added to hass."""
-        async_track_state_change_event(
+        async_track_state_change(
             self.hass,
             self._unpack_light_groups(self._lights),
             self._light_state_changed,
+            to_state="on",
         )
         track_kwargs = dict(hass=self.hass, action=self._state_changed)
         if self._sleep_entity is not None:
@@ -586,18 +586,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if tasks:
             await asyncio.wait(tasks)
 
-    async def _light_state_changed(self, event):
-        _LOGGER.debug("Got event %s", event)
-        old_state = event.data.get("old_state")
-        if old_state is not None:
-            old_state = old_state.state
-
-        new_state = event.data.get("new_state")
-        if new_state is not None:
-            new_state = new_state.state
-
-        if new_state == "on" and old_state != "on" and old_state != "unavailable":
-            entity_id = event.data["entity_id"]
+    async def _light_state_changed(self, entity_id, from_state, to_state):
+        assert to_state.state == "on"
+        if from_state is None or from_state.state != "on":
+            _LOGGER.debug(_difference_between_states(from_state, to_state))
             await self._update_lights(
                 lights=[entity_id], transition=self._initial_transition, force=True
             )
