@@ -82,12 +82,12 @@ from .const import (
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
-    CONF_MAX_CT,
+    CONF_MAX_COLOR_TEMP,
     CONF_MIN_BRIGHTNESS,
-    CONF_MIN_CT,
+    CONF_MIN_COLOR_TEMP,
     CONF_ONLY_ONCE,
     CONF_SLEEP_BRIGHTNESS,
-    CONF_SLEEP_CT,
+    CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_ENTITY,
     CONF_SLEEP_STATE,
     CONF_SUNRISE_OFFSET,
@@ -95,14 +95,19 @@ from .const import (
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
+    DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
     DEFAULT_INITIAL_TRANSITION,
     DEFAULT_INTERVAL,
+    DEFAULT_LIGHTS,
     DEFAULT_MAX_BRIGHTNESS,
-    DEFAULT_MAX_CT,
+    DEFAULT_MAX_COLOR_TEMP,
     DEFAULT_MIN_BRIGHTNESS,
-    DEFAULT_MIN_CT,
+    DEFAULT_MIN_COLOR_TEMP,
+    DEFAULT_ONLY_ONCE,
     DEFAULT_SLEEP_BRIGHTNESS,
-    DEFAULT_SLEEP_CT,
+    DEFAULT_SLEEP_COLOR_TEMP,
+    DEFAULT_SUNRISE_OFFSET,
+    DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
     ICON,
@@ -126,38 +131,24 @@ PLATFORM_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_PLATFORM): DOMAIN,
         vol.Optional(CONF_NAME, default="Adaptive Lighting"): cv.string,
-        vol.Optional(CONF_LIGHTS): cv.entity_ids,
-        vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=False): cv.boolean,
+        vol.Optional(CONF_LIGHTS, default=DEFAULT_LIGHTS): cv.entity_ids,
+        vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST): cv.boolean,
         vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
         vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(
-            CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
-        ): VALID_TRANSITION,
+        vol.Optional(CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION): VALID_TRANSITION,
         vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-        vol.Optional(CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=100)
-        ),
-        vol.Optional(CONF_MAX_CT, default=DEFAULT_MAX_CT): vol.All(
-            vol.Coerce(int), vol.Range(min=1000, max=10000)
-        ),
-        vol.Optional(CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=100)
-        ),
-        vol.Optional(CONF_MIN_CT, default=DEFAULT_MIN_CT): vol.All(
-            vol.Coerce(int), vol.Range(min=1000, max=10000)
-        ),
-        vol.Optional(CONF_ONLY_ONCE, default=False): cv.boolean,
-        vol.Optional(CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=100)
-        ),
-        vol.Optional(CONF_SLEEP_CT, default=DEFAULT_SLEEP_CT): vol.All(
-            vol.Coerce(int), vol.Range(min=1000, max=10000)
-        ),
+        vol.Optional(CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+        vol.Optional(CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+        vol.Optional(CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+        vol.Optional(CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+        vol.Optional(CONF_ONLY_ONCE, default=DEFAULT_ONLY_ONCE): cv.boolean,
+        vol.Optional(CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+        vol.Optional(CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
         vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
         vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(CONF_SUNRISE_OFFSET, default=0): cv.time_period,
+        vol.Optional(CONF_SUNRISE_OFFSET, default=DEFAULT_SUNRISE_OFFSET): cv.time_period,
         vol.Optional(CONF_SUNRISE_TIME): cv.time,
-        vol.Optional(CONF_SUNSET_OFFSET, default=0): cv.time_period,
+        vol.Optional(CONF_SUNSET_OFFSET, default=DEFAULT_SUNSET_OFFSET): cv.time_period,
         vol.Optional(CONF_SUNSET_TIME): cv.time,
         vol.Optional(CONF_TRANSITION, default=DEFAULT_TRANSITION): VALID_TRANSITION,
     }
@@ -169,19 +160,19 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     switch = AdaptiveSwitch(
         hass,
         name=config[CONF_NAME],
-        lights=config.get(CONF_LIGHTS, []),
+        lights=config[CONF_LIGHTS],
         disable_brightness_adjust=config[CONF_DISABLE_BRIGHTNESS_ADJUST],
         disable_entity=config.get(CONF_DISABLE_ENTITY),
         disable_state=config.get(CONF_DISABLE_STATE),
         initial_transition=config[CONF_INITIAL_TRANSITION],
         interval=config[CONF_INTERVAL],
         max_brightness=config[CONF_MAX_BRIGHTNESS],
-        max_color_temp=config[CONF_MAX_CT],
+        max_color_temp=config[CONF_MAX_COLOR_TEMP],
         min_brightness=config[CONF_MIN_BRIGHTNESS],
-        min_color_temp=config[CONF_MIN_CT],
+        min_color_temp=config[CONF_MIN_COLOR_TEMP],
         only_once=config[CONF_ONLY_ONCE],
         sleep_brightness=config[CONF_SLEEP_BRIGHTNESS],
-        sleep_color_temp=config[CONF_SLEEP_CT],
+        sleep_color_temp=config[CONF_SLEEP_COLOR_TEMP],
         sleep_entity=config.get(CONF_SLEEP_ENTITY),
         sleep_state=config.get(CONF_SLEEP_STATE),
         sunrise_offset=config[CONF_SUNRISE_OFFSET],
@@ -202,28 +193,13 @@ def _difference_between_states(from_state, to_state):
     if to_state is None:
         return start + f"from_state: {from_state}, to_state: None"
 
-    changed_attrs = ", ".join(
-        [
-            f"{key}: {val}"
-            for key, val in to_state.attributes.items()
-            if from_state.attributes.get(key) != val
-        ]
-    )
+    changed_attrs = ", ".join([f"{key}: {val}" for key, val in to_state.attributes.items() if from_state.attributes.get(key) != val])
     if from_state.state == to_state.state:
-        return start + (
-            f"{from_state.entity_id} is still {to_state.state} but"
-            f" these attributes changes: {changed_attrs}."
-        )
+        return start + (f"{from_state.entity_id} is still {to_state.state} but" f" these attributes changes: {changed_attrs}.")
     elif changed_attrs != "":
-        return start + (
-            f"{from_state.entity_id} changed from {from_state.state} to"
-            f" {to_state.state} and these attributes changes: {changed_attrs}."
-        )
+        return start + (f"{from_state.entity_id} changed from {from_state.state} to" f" {to_state.state} and these attributes changes: {changed_attrs}.")
     else:
-        return start + (
-            f"{from_state.entity_id} changed from {from_state.state} to"
-            f" {to_state.state} and no attributes changed."
-        )
+        return start + (f"{from_state.entity_id} changed from {from_state.state} to" f" {to_state.state} and no attributes changed.")
 
 
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
@@ -312,9 +288,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def _supported_features(self, light):
         state = self.hass.states.get(light)
         supported_features = state.attributes["supported_features"]
-        return {
-            key for key, value in _SUPPORT_OPTS.items() if supported_features & value
-        }
+        return {key for key, value in _SUPPORT_OPTS.items() if supported_features & value}
 
     def _unpack_light_groups(self, lights):
         all_lights = []
@@ -336,11 +310,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Call when entity about to be added to hass."""
         if self._lights:
             async_track_state_change(
-                self.hass,
-                self._unpack_light_groups(self._lights),
-                self._light_state_changed,
-                to_state="on",
-                from_state="off",
+                self.hass, self._unpack_light_groups(self._lights), self._light_state_changed, to_state="on", from_state="off",
             )
             track_kwargs = dict(hass=self.hass, action=self._state_changed)
             if self._sleep_entity is not None:
@@ -350,9 +320,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
             if self._disable_entity is not None:
                 disable_kwargs = dict(track_kwargs, entity_ids=self._disable_entity)
-                async_track_state_change(
-                    **disable_kwargs, from_state=self._disable_state
-                )
+                async_track_state_change(**disable_kwargs, from_state=self._disable_state)
                 async_track_state_change(**disable_kwargs, to_state=self._disable_state)
 
         last_state = await self.async_get_last_state()
@@ -383,9 +351,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def async_turn_on(self, **kwargs):
         """Turn on adaptive lighting."""
         await self._update_lights(transition=self._initial_transition, force=True)
-        self.unsub_tracker = async_track_time_interval(
-            self.hass, self._async_update_at_interval, self._interval
-        )
+        self.unsub_tracker = async_track_time_interval(self.hass, self._async_update_at_interval, self._interval)
 
     async def async_turn_off(self, **kwargs):
         """Turn off adaptive lighting."""
@@ -399,9 +365,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._percent = self._calc_percent()
         self._brightness = self._calc_brightness()
         self._color_temp_kelvin = self._calc_color_temp_kelvin()
-        self._color_temp_mired = color_temperature_kelvin_to_mired(
-            self._color_temp_kelvin
-        )
+        self._color_temp_mired = color_temperature_kelvin_to_mired(self._color_temp_kelvin)
         self._rgb_color = color_temperature_to_rgb(self._color_temp_kelvin)
         self._xy_color = color_RGB_to_xy(*self._rgb_color)
         self._hs_color = color_xy_to_hs(*self._xy_color)
@@ -420,24 +384,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def _get_sun_events(self, date):
         def _replace_time(date, key):
             other_date = getattr(self, f"_{key}_time")
-            return date.replace(
-                hour=other_date.hour,
-                minute=other_date.minute,
-                second=other_date.second,
-                microsecond=other_date.microsecond,
-            )
+            return date.replace(hour=other_date.hour, minute=other_date.minute, second=other_date.second, microsecond=other_date.microsecond,)
 
         location = get_astral_location(self.hass)
-        sunrise = (
-            location.sunrise(date, local=False)
-            if self._sunrise_time is None
-            else _replace_time(date, "sunrise")
-        ) + self._sunrise_offset
-        sunset = (
-            location.sunset(date, local=False)
-            if self._sunset_time is None
-            else _replace_time(date, "sunset")
-        ) + self._sunset_offset
+        sunrise = (location.sunrise(date, local=False) if self._sunrise_time is None else _replace_time(date, "sunrise")) + self._sunrise_offset
+        sunset = (location.sunset(date, local=False) if self._sunset_time is None else _replace_time(date, "sunset")) + self._sunset_offset
 
         if self._sunrise_time is None and self._sunset_time is None:
             solar_noon = location.solar_noon(date, local=False)
@@ -462,10 +413,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             # It's before sunrise (after midnight), because it's before
             # sunrise (and after midnight) sunset must have happend yesterday.
             yesterday = self._get_sun_events(now - timedelta(days=1))
-            if (
-                today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
-                and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
-            ):
+            if today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET] and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]:
                 # Solar midnight is after sunset so use yesterdays's time
                 today[SUN_EVENT_MIDNIGHT] = yesterday[SUN_EVENT_MIDNIGHT]
             today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
@@ -473,10 +421,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             # It's after sunset (before midnight), because it's after sunset
             # (and before midnight) sunrise should happen tomorrow.
             tomorrow = self._get_sun_events(now + timedelta(days=1))
-            if (
-                today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
-                and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
-            ):
+            if today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE] and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]:
                 # Solar midnight is before sunrise so use tomorrow's time
                 today[SUN_EVENT_MIDNIGHT] = tomorrow[SUN_EVENT_MIDNIGHT]
             today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
@@ -492,22 +437,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             h = today[SUN_EVENT_NOON]
             k = 1
             # parabola before solar_noon else after solar_noon
-            x = (
-                today[SUN_EVENT_SUNRISE]
-                if now_ts < today[SUN_EVENT_NOON]
-                else today[SUN_EVENT_SUNSET]
-            )
+            x = today[SUN_EVENT_SUNRISE] if now_ts < today[SUN_EVENT_NOON] else today[SUN_EVENT_SUNSET]
 
         # sunset -> sunrise parabola
         elif today[SUN_EVENT_SUNSET] < now_ts < today[SUN_EVENT_SUNRISE]:
             h = today[SUN_EVENT_MIDNIGHT]
             k = -1
             # parabola before solar_midnight else after solar_midnight
-            x = (
-                today[SUN_EVENT_SUNSET]
-                if now_ts < today[SUN_EVENT_MIDNIGHT]
-                else today[SUN_EVENT_SUNRISE]
-            )
+            x = today[SUN_EVENT_SUNSET] if now_ts < today[SUN_EVENT_MIDNIGHT] else today[SUN_EVENT_SUNRISE]
 
         y = 0
         a = (y - k) / (h - x) ** 2
@@ -515,10 +452,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         return percentage
 
     def _is_sleep(self):
-        return (
-            self._sleep_entity is not None
-            and self.hass.states.get(self._sleep_entity).state in self._sleep_state
-        )
+        return self._sleep_entity is not None and self.hass.states.get(self._sleep_entity).state in self._sleep_state
 
     def _calc_color_temp_kelvin(self):
         if self._is_sleep():
@@ -540,10 +474,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         return (delta_brightness * percent) + self._min_brightness
 
     def _is_disabled(self):
-        return (
-            self._disable_entity is not None
-            and self.hass.states.get(self._disable_entity).state in self._disable_state
-        )
+        return self._disable_entity is not None and self.hass.states.get(self._disable_entity).state in self._disable_state
 
     async def _adjust_light(self, light, transition):
         service_data = {ATTR_ENTITY_ID: light}
@@ -563,12 +494,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_COLOR_TEMP] = self._color_temp_mired
 
         _LOGGER.debug(
-            "Scheduling 'light.turn_on' with the following 'service_data': %s",
-            service_data,
+            "Scheduling 'light.turn_on' with the following 'service_data': %s", service_data,
         )
-        return self.hass.services.async_call(
-            LIGHT_DOMAIN, SERVICE_TURN_ON, service_data
-        )
+        return self.hass.services.async_call(LIGHT_DOMAIN, SERVICE_TURN_ON, service_data)
 
     def _should_adjust(self):
         if not self._lights or not self.is_on or self._is_disabled():
@@ -578,20 +506,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _adjust_lights(self, lights, transition):
         if not self._should_adjust():
             return
-        tasks = [
-            await self._adjust_light(light, transition)
-            for light in lights
-            if is_on(self.hass, light)
-        ]
+        tasks = [await self._adjust_light(light, transition) for light in lights if is_on(self.hass, light)]
         if tasks:
             await asyncio.wait(tasks)
 
     async def _light_state_changed(self, entity_id, from_state, to_state):
         assert to_state.state == "on" and from_state.state == "off"
         _LOGGER.debug(_difference_between_states(from_state, to_state))
-        await self._update_lights(
-            lights=[entity_id], transition=self._initial_transition, force=True
-        )
+        await self._update_lights(lights=[entity_id], transition=self._initial_transition, force=True)
 
     async def _state_changed(self, entity_id, from_state, to_state):
         _LOGGER.debug(_difference_between_states(from_state, to_state))

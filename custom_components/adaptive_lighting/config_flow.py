@@ -15,12 +15,12 @@ from .const import (
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
-    CONF_MAX_CT,
+    CONF_MAX_COLOR_TEMP,
     CONF_MIN_BRIGHTNESS,
-    CONF_MIN_CT,
+    CONF_MIN_COLOR_TEMP,
     CONF_ONLY_ONCE,
     CONF_SLEEP_BRIGHTNESS,
-    CONF_SLEEP_CT,
+    CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_ENTITY,
     CONF_SLEEP_STATE,
     CONF_SUNRISE_OFFSET,
@@ -28,14 +28,19 @@ from .const import (
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
+    DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
     DEFAULT_INITIAL_TRANSITION,
     DEFAULT_INTERVAL,
+    DEFAULT_LIGHTS,
     DEFAULT_MAX_BRIGHTNESS,
-    DEFAULT_MAX_CT,
+    DEFAULT_MAX_COLOR_TEMP,
     DEFAULT_MIN_BRIGHTNESS,
-    DEFAULT_MIN_CT,
+    DEFAULT_MIN_COLOR_TEMP,
+    DEFAULT_ONLY_ONCE,
     DEFAULT_SLEEP_BRIGHTNESS,
-    DEFAULT_SLEEP_CT,
+    DEFAULT_SLEEP_COLOR_TEMP,
+    DEFAULT_SUNRISE_OFFSET,
+    DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
 )
@@ -57,11 +62,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title=user_input["name"], data=user_input)
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({vol.Required("name"): str}),
-            errors=errors,
-        )
+        return self.async_show_form(step_id="user", data_schema=vol.Schema({vol.Required("name"): str}), errors=errors,)
 
     @staticmethod
     @callback
@@ -84,26 +85,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         options = self.config_entry.options
 
-        lights = options.get(CONF_LIGHTS, [])
-        disable_brightness_adjust = options.get(CONF_DISABLE_BRIGHTNESS_ADJUST, False)
+        lights = options.get(CONF_LIGHTS, DEFAULT_LIGHTS)
+        disable_brightness_adjust = options.get(CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST)
         disable_entity = options.get(CONF_DISABLE_ENTITY)
         disable_state = options.get(CONF_DISABLE_STATE)
-        initial_transition = options.get(
-            CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
-        )
+        initial_transition = options.get(CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION)
         interval = options.get(CONF_INTERVAL, DEFAULT_INTERVAL)
         max_brightness = options.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)
-        max_colortemp = options.get(CONF_MAX_CT, DEFAULT_MAX_CT)
+        max_color_temp = options.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP)
         min_brightness = options.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)
-        min_colortemp = options.get(CONF_MIN_CT, DEFAULT_MIN_CT)
-        only_once = options.get(CONF_ONLY_ONCE, False)
+        min_color_temp = options.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP)
+        only_once = options.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
         sleep_brightness = options.get(CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS)
-        sleep_colortemp = options.get(CONF_SLEEP_CT, DEFAULT_SLEEP_CT)
+        sleep_color_temp = options.get(CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP)
         sleep_entity = options.get(CONF_SLEEP_ENTITY)
         sleep_state = options.get(CONF_SLEEP_STATE)
-        sunrise_offset = options.get(CONF_SUNRISE_OFFSET, 0)
+        sunrise_offset = options.get(CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET)
         sunrise_time = options.get(CONF_SUNRISE_TIME)
-        sunset_offset = options.get(CONF_SUNSET_OFFSET, 0)
+        sunset_offset = options.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
         sunset_time = options.get(CONF_SUNSET_TIME)
         transition = options.get(CONF_TRANSITION, DEFAULT_TRANSITION)
 
@@ -113,34 +112,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         options_schema = vol.Schema(
             {
                 vol.Optional(CONF_LIGHTS, default=lights): all_lights,
-                vol.Optional(
-                    CONF_DISABLE_BRIGHTNESS_ADJUST, default=disable_brightness_adjust
-                ): bool,
+                vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=disable_brightness_adjust): bool,
                 vol.Optional(CONF_DISABLE_ENTITY, default=disable_entity): str,
                 vol.Optional(CONF_DISABLE_STATE, default=disable_state): str,
-                vol.Optional(
-                    CONF_INITIAL_TRANSITION, default=initial_transition
-                ): cv.positive_int,
+                vol.Optional(CONF_INITIAL_TRANSITION, default=initial_transition): cv.positive_int,
                 vol.Optional(CONF_INTERVAL, default=interval): cv.positive_int,
-                vol.Optional(CONF_MAX_BRIGHTNESS, default=max_brightness): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=100)
-                ),
-                vol.Optional(CONF_MAX_CT, default=max_colortemp): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
-                vol.Optional(CONF_MIN_BRIGHTNESS, default=min_brightness): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=100)
-                ),
-                vol.Optional(CONF_MIN_CT, default=min_colortemp): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
+                vol.Optional(CONF_MAX_BRIGHTNESS, default=max_brightness): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+                vol.Optional(CONF_MAX_COLOR_TEMP, default=max_color_temp): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+                vol.Optional(CONF_MIN_BRIGHTNESS, default=min_brightness): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+                vol.Optional(CONF_MIN_COLOR_TEMP, default=min_color_temp): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
                 vol.Optional(CONF_ONLY_ONCE, default=only_once): bool,
-                vol.Optional(CONF_SLEEP_BRIGHTNESS, default=sleep_brightness): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=100)
-                ),
-                vol.Optional(CONF_SLEEP_CT, default=sleep_colortemp): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
+                vol.Optional(CONF_SLEEP_BRIGHTNESS, default=sleep_brightness): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+                vol.Optional(CONF_SLEEP_COLOR_TEMP, default=sleep_color_temp): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
                 vol.Optional(CONF_SLEEP_ENTITY, default=sleep_entity): str,
                 vol.Optional(CONF_SLEEP_STATE, default=sleep_state): str,
                 vol.Optional(CONF_SUNRISE_OFFSET, default=sunrise_offset): int,
