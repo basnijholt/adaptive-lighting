@@ -30,22 +30,26 @@ Technical notes: I had to make a lot of assumptions when writing this app
 import asyncio
 import logging
 from datetime import timedelta
-from itertools import repeat
 
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP,
     ATTR_RGB_COLOR,
     ATTR_TRANSITION,
-    ATTR_WHITE_VALUE,
-    ATTR_XY_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import VALID_TRANSITION, is_on
+from homeassistant.components.light import (
+    SUPPORT_BRIGHTNESS,
+    SUPPORT_COLOR,
+    SUPPORT_COLOR_TEMP,
+    SUPPORT_TRANSITION,
+    VALID_TRANSITION,
+    is_on,
+)
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import (
     ATTR_ENTITY_ID,
@@ -60,8 +64,8 @@ from homeassistant.helpers.event import (
     async_track_state_change,
     async_track_time_interval,
 )
-from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_RGB_to_xy,
@@ -69,35 +73,21 @@ from homeassistant.util.color import (
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
+
 from .const import (
-    ICON,
-    DOMAIN,
-    SUN_EVENT_NOON,
-    SUN_EVENT_MIDNIGHT,
-    CONF_LIGHTS_BRIGHTNESS,
-    CONF_LIGHTS_MIRED,
-    CONF_LIGHTS_RGB,
-    CONF_LIGHTS_XY,
     CONF_DISABLE_BRIGHTNESS_ADJUST,
     CONF_DISABLE_ENTITY,
     CONF_DISABLE_STATE,
     CONF_INITIAL_TRANSITION,
-    DEFAULT_INITIAL_TRANSITION,
     CONF_INTERVAL,
-    DEFAULT_INTERVAL,
+    CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
-    DEFAULT_MAX_BRIGHTNESS,
     CONF_MAX_CT,
-    DEFAULT_MAX_CT,
     CONF_MIN_BRIGHTNESS,
-    DEFAULT_MIN_BRIGHTNESS,
     CONF_MIN_CT,
-    DEFAULT_MIN_CT,
     CONF_ONLY_ONCE,
     CONF_SLEEP_BRIGHTNESS,
-    DEFAULT_SLEEP_BRIGHTNESS,
     CONF_SLEEP_CT,
-    DEFAULT_SLEEP_CT,
     CONF_SLEEP_ENTITY,
     CONF_SLEEP_STATE,
     CONF_SUNRISE_OFFSET,
@@ -105,8 +95,28 @@ from .const import (
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
+    DEFAULT_INITIAL_TRANSITION,
+    DEFAULT_INTERVAL,
+    DEFAULT_MAX_BRIGHTNESS,
+    DEFAULT_MAX_CT,
+    DEFAULT_MIN_BRIGHTNESS,
+    DEFAULT_MIN_CT,
+    DEFAULT_SLEEP_BRIGHTNESS,
+    DEFAULT_SLEEP_CT,
     DEFAULT_TRANSITION,
+    DOMAIN,
+    ICON,
+    SUN_EVENT_MIDNIGHT,
+    SUN_EVENT_NOON,
 )
+
+_SUPPORT_OPTS = {
+    "brightness": SUPPORT_BRIGHTNESS,
+    "color_temp": SUPPORT_COLOR_TEMP,
+    "color": SUPPORT_COLOR,
+    "transition": SUPPORT_TRANSITION,
+}
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,10 +126,7 @@ PLATFORM_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_PLATFORM): DOMAIN,
         vol.Optional(CONF_NAME, default="Adaptive Lighting"): cv.string,
-        vol.Optional(CONF_LIGHTS_BRIGHTNESS): cv.entity_ids,
-        vol.Optional(CONF_LIGHTS_MIRED): cv.entity_ids,
-        vol.Optional(CONF_LIGHTS_RGB): cv.entity_ids,
-        vol.Optional(CONF_LIGHTS_XY): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS): cv.entity_ids,
         vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=False): cv.boolean,
         vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
         vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
@@ -162,10 +169,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     switch = AdaptiveSwitch(
         hass,
         name=config[CONF_NAME],
-        lights_brightness=config.get(CONF_LIGHTS_BRIGHTNESS, []),
-        lights_mired=config.get(CONF_LIGHTS_MIRED, []),
-        lights_rgb=config.get(CONF_LIGHTS_RGB, []),
-        lights_xy=config.get(CONF_LIGHTS_XY, []),
+        lights=config.get(CONF_LIGHTS, []),
         disable_brightness_adjust=config[CONF_DISABLE_BRIGHTNESS_ADJUST],
         disable_entity=config.get(CONF_DISABLE_ENTITY),
         disable_state=config.get(CONF_DISABLE_STATE),
@@ -229,10 +233,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self,
         hass,
         name,
-        lights_brightness,
-        lights_mired,
-        lights_rgb,
-        lights_xy,
+        lights,
         disable_brightness_adjust,
         disable_entity,
         disable_state,
@@ -259,14 +260,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.adaptive_lighting_{slugify(name)}"
         self._icon = ICON
 
-        # Create lights dict
-        self._lights_types = dict(zip(lights_brightness, repeat("brightness")))
-        self._lights_types.update(zip(lights_mired, repeat("mired")))
-        self._lights_types.update(zip(lights_rgb, repeat("rgb")))
-        self._lights_types.update(zip(lights_xy, repeat("xy")))
-        self._lights = list(self._lights_types.keys())
-
         # Set attributes from arguments
+        self._lights = lights
         self._disable_brightness_adjust = disable_brightness_adjust
         self._disable_entity = disable_entity
         self._disable_state = disable_state
@@ -314,9 +309,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Return true if adaptive lighting is on."""
         return self.unsub_tracker is not None
 
+    def _supported_features(self, light):
+        state = self.hass.states.get(light)
+        supported_features = state.attributes["supported_features"]
+        return {
+            key for key, value in _SUPPORT_OPTS.items() if supported_features & value
+        }
+
     async def async_added_to_hass(self):
         """Call when entity about to be added to hass."""
-        # Add listeners
         async_track_state_change(
             self.hass, self._lights, self._light_state_changed, to_state="on"
         )
@@ -542,19 +543,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if not is_on(self.hass, light):
                 continue
 
-            service_data = {ATTR_ENTITY_ID: light, ATTR_TRANSITION: transition}
-            if self._brightness is not None:
-                service_data[ATTR_BRIGHTNESS] = int((self._brightness / 100) * 254)
+            service_data = {ATTR_ENTITY_ID: light}
 
-            light_type = self._lights_types[light]
-            if light_type == "mired":
-                service_data[ATTR_COLOR_TEMP] = self._colortemp_mired
-            elif light_type == "rgb":
+            features = self._supported_features(light)
+            if "transition" in features:
+                service_data[ATTR_TRANSITION:transition]
+
+            if self._brightness is not None and "brightness" in features:
+                service_data[ATTR_BRIGHTNESS_PCT] = round(self._brightness)
+
+            if "color" in features:
                 service_data[ATTR_RGB_COLOR] = self._rgb_color
-            elif light_type == "xy":
-                service_data[ATTR_XY_COLOR] = self._xy_color
-                if service_data.get(ATTR_BRIGHTNESS, False):
-                    service_data[ATTR_WHITE_VALUE] = service_data[ATTR_BRIGHTNESS]
+            elif "color_temp" in features:
+                service_data[ATTR_COLOR_TEMP] = self._colortemp_mired
 
             _LOGGER.debug(
                 "Scheduling 'light.turn_on' with the following 'service_data': %s",

@@ -4,10 +4,7 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-CONF_LIGHTS_BRIGHTNESS = "lights_brightness"
-CONF_LIGHTS_MIRED = "lights_mired"
-CONF_LIGHTS_RGB = "lights_rgb"
-CONF_LIGHTS_XY = "lights_xy"
+CONF_LIGHTS = "lights"
 
 CONF_DISABLE_BRIGHTNESS_ADJUST = "disable_brightness_adjust"
 CONF_DISABLE_ENTITY = "disable_entity"
