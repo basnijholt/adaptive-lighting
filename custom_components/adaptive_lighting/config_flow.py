@@ -13,10 +13,7 @@ from .const import (
     CONF_DISABLE_STATE,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
-    CONF_LIGHTS_BRIGHTNESS,
-    CONF_LIGHTS_MIRED,
-    CONF_LIGHTS_RGB,
-    CONF_LIGHTS_XY,
+    CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_CT,
     CONF_MIN_BRIGHTNESS,
@@ -87,10 +84,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         options = self.config_entry.options
 
-        lights_brightness = options.get(CONF_LIGHTS_BRIGHTNESS, [])
-        lights_mired = options.get(CONF_LIGHTS_MIRED, [])
-        lights_rgb = options.get(CONF_LIGHTS_RGB, [])
-        lights_xy = options.get(CONF_LIGHTS_XY, [])
+        lights = options.get(CONF_LIGHTS, [])
         disable_brightness_adjust = options.get(CONF_DISABLE_BRIGHTNESS_ADJUST, False)
         disable_entity = options.get(CONF_DISABLE_ENTITY)
         disable_state = options.get(CONF_DISABLE_STATE)
@@ -118,12 +112,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         options_schema = vol.Schema(
             {
-                vol.Optional(
-                    CONF_LIGHTS_BRIGHTNESS, default=lights_brightness
-                ): all_lights,
-                vol.Optional(CONF_LIGHTS_MIRED, default=lights_mired): all_lights,
-                vol.Optional(CONF_LIGHTS_RGB, default=lights_rgb): all_lights,
-                vol.Optional(CONF_LIGHTS_XY, default=lights_xy): all_lights,
+                vol.Optional(CONF_LIGHTS, default=lights): all_lights,
                 vol.Optional(
                     CONF_DISABLE_BRIGHTNESS_ADJUST, default=disable_brightness_adjust
                 ): bool,
