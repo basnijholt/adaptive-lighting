@@ -524,6 +524,31 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self.hass.states.get(self._disable_entity).state in self._disable_state
         )
 
+    async def _adjust_light(self, light, transition):
+        service_data = {ATTR_ENTITY_ID: light}
+        features = self._supported_features(light)
+
+        if "transition" in features:
+            if transition is None:
+                transition = self._transition
+            service_data[ATTR_TRANSITION] = transition
+
+        if self._brightness is not None and "brightness" in features:
+            service_data[ATTR_BRIGHTNESS_PCT] = self._brightness
+
+        if "color" in features:
+            service_data[ATTR_RGB_COLOR] = self._rgb_color
+        elif "color_temp" in features:
+            service_data[ATTR_COLOR_TEMP] = self._colortemp_mired
+
+        _LOGGER.debug(
+            "Scheduling 'light.turn_on' with the following 'service_data': %s",
+            service_data,
+        )
+        return self.hass.services.async_call(
+            LIGHT_DOMAIN, SERVICE_TURN_ON, service_data
+        )
+
     def _should_adjust(self):
         if not self.is_on:
             return False
@@ -534,38 +559,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _adjust_lights(self, lights, transition):
         if not self._should_adjust():
             return
-
-        if transition is None:
-            transition = self._transition
-
-        tasks = []
-        for light in lights:
-            if not is_on(self.hass, light):
-                continue
-
-            service_data = {ATTR_ENTITY_ID: light}
-
-            features = self._supported_features(light)
-            if "transition" in features:
-                service_data[ATTR_TRANSITION:transition]
-
-            if self._brightness is not None and "brightness" in features:
-                service_data[ATTR_BRIGHTNESS_PCT] = round(self._brightness)
-
-            if "color" in features:
-                service_data[ATTR_RGB_COLOR] = self._rgb_color
-            elif "color_temp" in features:
-                service_data[ATTR_COLOR_TEMP] = self._colortemp_mired
-
-            _LOGGER.debug(
-                "Scheduling 'light.turn_on' with the following 'service_data': %s",
-                service_data,
-            )
-            tasks.append(
-                self.hass.services.async_call(
-                    LIGHT_DOMAIN, SERVICE_TURN_ON, service_data
-                )
-            )
+        tasks = [
+            self._adjust_light(light, transition)
+            for light in lights
+            if is_on(self.hass, light)
+        ]
         if tasks:
             await asyncio.wait(tasks)
 
