@@ -51,8 +51,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        options_schema = vol.Schema(
-            _convert_to_options_schema(self.hass, self.config_entry.options)
+        options_schema = _convert_to_options_schema(
+            self.hass, self.config_entry.options
         )
 
         return self.async_show_form(step_id="init", data_schema=options_schema)

@@ -79,17 +79,25 @@ def _convert_to_options_schema(hass, options):
     for key, value in _COMMON_SCHEMA.items():
         if key.schema == CONF_LIGHTS:
             all_lights = hass.states.async_entity_ids("light")
-            value = cv.multi_select(all_lights)
+            to_type = cv.multi_select(all_lights)
         elif value == cv.boolean:
-            value = bool
+            to_type = bool
         elif (
-            isinstance(value, vol.All) and value.validators[0].type == int
+            isinstance(value, vol.All)
+            and hasattr(value.validators, "type")
+            and value.validators[0].type == int
         ) or value == VALID_TRANSITION:
-            pass
+            to_type = value
         elif value == cv.time_period:
-            value = cv.time_period_dict
+            to_type = cv.time_period_dict
         else:
-            value = str
-        default = options.get(key.schema, value.default())
-        schema[vol.Optional(key.schema, default=default)] = value
-        return vol.Schema(schema)
+            to_type = str
+
+        default = (
+            key.default()
+            if not isinstance(key.default, vol.Undefined)
+            else vol.UNDEFINED
+        )
+        default = options.get(key.schema, default)
+        schema[vol.Optional(key.schema, default=default)] = to_type
+    return vol.Schema(schema)
