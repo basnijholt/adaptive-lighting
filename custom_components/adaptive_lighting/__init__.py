@@ -26,53 +26,14 @@ Technical notes: I had to make a lot of assumptions when writing this app
 *   The component doesn't calculate a true "Blue Hour" -- it just sets the
     lights to 2700K (warm white) until your hub goes into Night mode
 """
-import asyncio
-import logging
-from datetime import timedelta
 
-import voluptuous as vol
+import logging
 
 import homeassistant.helpers.config_validation as cv
-import homeassistant.util.dt as dt_util
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS_PCT,
-    ATTR_COLOR_TEMP,
-    ATTR_RGB_COLOR,
-    ATTR_TRANSITION,
-)
-from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import (
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_COLOR,
-    SUPPORT_COLOR_TEMP,
-    SUPPORT_TRANSITION,
-    VALID_TRANSITION,
-    is_on,
-)
-from homeassistant.components.switch import SwitchEntity
+import voluptuous as vol
+from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    CONF_NAME,
-    SERVICE_TURN_ON,
-    STATE_ON,
-    SUN_EVENT_SUNRISE,
-    SUN_EVENT_SUNSET,
-)
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.event import (
-    async_track_state_change,
-    async_track_time_interval,
-)
-from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.sun import get_astral_location
-from homeassistant.util import slugify
-from homeassistant.util.color import (
-    color_RGB_to_xy,
-    color_temperature_kelvin_to_mired,
-    color_temperature_to_rgb,
-    color_xy_to_hs,
-)
+from homeassistant.const import CONF_NAME
 
 from .const import (
     CONF_DISABLE_BRIGHTNESS_ADJUST,
@@ -94,8 +55,6 @@ from .const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
-    CONF_NAME,
-    DEFAULT_NAME,
     CONF_TRANSITION,
     DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
     DEFAULT_INITIAL_TRANSITION,
@@ -105,6 +64,7 @@ from .const import (
     DEFAULT_MAX_COLOR_TEMP,
     DEFAULT_MIN_BRIGHTNESS,
     DEFAULT_MIN_COLOR_TEMP,
+    DEFAULT_NAME,
     DEFAULT_ONLY_ONCE,
     DEFAULT_SLEEP_BRIGHTNESS,
     DEFAULT_SLEEP_COLOR_TEMP,
@@ -112,19 +72,7 @@ from .const import (
     DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
-    ICON,
-    SUN_EVENT_MIDNIGHT,
-    SUN_EVENT_NOON,
 )
-
-
-_SUPPORT_OPTS = {
-    "brightness": SUPPORT_BRIGHTNESS,
-    "color_temp": SUPPORT_COLOR_TEMP,
-    "color": SUPPORT_COLOR,
-    "transition": SUPPORT_TRANSITION,
-}
-
 
 _LOGGER = logging.getLogger(__name__)
 
