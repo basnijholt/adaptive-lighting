@@ -91,6 +91,13 @@ _SUPPORT_OPTS = {
     "transition": SUPPORT_TRANSITION,
 }
 
+_ALLOWED_ORDERS = {
+    ("solar_sunrise", "solar_noon", "solar_sunset", "solar_midnight"),
+    ("solar_sunset", "solar_midnight", "solar_sunrise", "solar_noon"),
+    ("solar_midnight", "solar_sunrise", "solar_noon", "solar_sunset"),
+    ("solar_noon", "solar_sunset", "solar_midnight", "solar_sunrise"),
+}
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -415,12 +422,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
 
-        return [
+        events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
             (SUN_EVENT_SUNSET, sunset.timestamp()),
             (SUN_EVENT_NOON, solar_noon.timestamp()),
             (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
         ]
+        # Check whether order is correct
+        events = sorted(events, key=lambda x: x[1])
+        events_names, _ = zip(*events)
+        assert events_names in _ALLOWED_ORDERS
+
+        return events
 
     def _relevant_events(self, now):
         events = [
