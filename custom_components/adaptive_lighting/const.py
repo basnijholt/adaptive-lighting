@@ -9,6 +9,7 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
+CONF_NAME, DEFAULT_NAME = "name", "default"
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST = (
     "disable_brightness_adjust",
@@ -36,34 +37,18 @@ CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 _COMMON_SCHEMA = {
     vol.Optional(CONF_LIGHTS, default=DEFAULT_LIGHTS): cv.entity_ids,
-    vol.Optional(
-        CONF_DISABLE_BRIGHTNESS_ADJUST, default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST
-    ): cv.boolean,
+    vol.Optional(CONF_DISABLE_BRIGHTNESS_ADJUST, default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST): cv.boolean,
     vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
     vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(
-        CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
-    ): VALID_TRANSITION,
+    vol.Optional(CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION): VALID_TRANSITION,
     vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-    vol.Optional(CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS): vol.All(
-        vol.Coerce(int), vol.Range(min=1, max=100)
-    ),
-    vol.Optional(CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP): vol.All(
-        vol.Coerce(int), vol.Range(min=1000, max=10000)
-    ),
-    vol.Optional(CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS): vol.All(
-        vol.Coerce(int), vol.Range(min=1, max=100)
-    ),
-    vol.Optional(CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP): vol.All(
-        vol.Coerce(int), vol.Range(min=1000, max=10000)
-    ),
+    vol.Optional(CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+    vol.Optional(CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+    vol.Optional(CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+    vol.Optional(CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
     vol.Optional(CONF_ONLY_ONCE, default=DEFAULT_ONLY_ONCE): cv.boolean,
-    vol.Optional(CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS): vol.All(
-        vol.Coerce(int), vol.Range(min=1, max=100)
-    ),
-    vol.Optional(CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP): vol.All(
-        vol.Coerce(int), vol.Range(min=1000, max=10000)
-    ),
+    vol.Optional(CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+    vol.Optional(CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
     vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
     vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_SUNRISE_OFFSET, default=DEFAULT_SUNRISE_OFFSET): cv.time_period,
@@ -82,22 +67,14 @@ def _convert_to_options_schema(hass, options):
             to_type = cv.multi_select(all_lights)
         elif value == cv.boolean:
             to_type = bool
-        elif (
-            isinstance(value, vol.All)
-            and hasattr(value.validators, "type")
-            and value.validators[0].type == int
-        ) or value == VALID_TRANSITION:
+        elif (isinstance(value, vol.All) and hasattr(value.validators, "type") and value.validators[0].type == int) or value == VALID_TRANSITION:
             to_type = value
         elif value == cv.time_period:
             to_type = cv.time_period_dict
         else:
             to_type = str
 
-        default = (
-            key.default()
-            if not isinstance(key.default, vol.Undefined)
-            else vol.UNDEFINED
-        )
+        default = key.default() if not isinstance(key.default, vol.Undefined) else vol.UNDEFINED
         default = options.get(key.schema, default)
         schema[vol.Optional(key.schema, default=default)] = to_type
     return vol.Schema(schema)
