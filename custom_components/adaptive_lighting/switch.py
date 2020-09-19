@@ -144,10 +144,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
     def __init__(
-        self,
-        hass,
-        name,
-        config_entry,
+        self, hass, name, config_entry,
     ):
         """Initialize the Adaptive Lighting switch."""
         self.hass = hass
@@ -418,57 +415,34 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
 
-        return {
-            SUN_EVENT_SUNRISE: sunrise.timestamp(),
-            SUN_EVENT_SUNSET: sunset.timestamp(),
-            SUN_EVENT_NOON: solar_noon.timestamp(),
-            SUN_EVENT_MIDNIGHT: solar_midnight.timestamp(),
-        }
+        return [
+            (SUN_EVENT_SUNRISE, sunrise.timestamp()),
+            (SUN_EVENT_SUNSET, sunset.timestamp()),
+            (SUN_EVENT_NOON, solar_noon.timestamp()),
+            (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
+        ]
 
     def _relevant_events(self, now):
-        events = []
-        for days in [-1, 0, 1]:
-            sun_events = self._get_sun_events(now + timedelta(days=days))
-            events.extend(list(sun_events.items()))
+        events = [
+            self._get_sun_events(now + timedelta(days=days)) for days in [-1, 0, 1]
+        ]
+        events = sum(events, [])  # flatten lists
         events = sorted(events, key=lambda x: x[1])
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
-        return dict(events[i_now - 2: i_now + 2])
+        return events[i_now - 1 : i_now + 1]
 
     def _calc_percent(self):
         now = dt_util.utcnow()
         now_ts = now.timestamp()
         today = self._relevant_events(now)
-        # Figure out where we are in time so we know which half of the
-        # parabola to calculate. We're generating a different
-        # sunset-sunrise parabola for before and after solar midnight.
-        # because it might not be half way between sunrise and sunset.
-        # We're also generating a different parabola for sunrise-sunset.
-
-        # sunrise -> sunset parabola
-        if today[SUN_EVENT_SUNRISE] < now_ts < today[SUN_EVENT_SUNSET]:
-            h = today[SUN_EVENT_NOON]
-            k = 1
-            # parabola before solar_noon else after solar_noon
-            x = (
-                today[SUN_EVENT_SUNRISE]
-                if now_ts < today[SUN_EVENT_NOON]
-                else today[SUN_EVENT_SUNSET]
-            )
-
-        # sunset -> sunrise parabola
-        elif today[SUN_EVENT_SUNSET] < now_ts < today[SUN_EVENT_SUNRISE]:
-            h = today[SUN_EVENT_MIDNIGHT]
-            k = -1
-            # parabola before solar_midnight else after solar_midnight
-            x = (
-                today[SUN_EVENT_SUNSET]
-                if now_ts < today[SUN_EVENT_MIDNIGHT]
-                else today[SUN_EVENT_SUNRISE]
-            )
-
-        y = 0
-        a = (y - k) / (h - x) ** 2
-        percentage = a * (now_ts - h) ** 2 + k
+        (prev_event, prev_ts), (next_event, next_ts) = today
+        h, x = (
+            (prev_ts, next_ts)
+            if next_event in ("solar_sunset", "solar_sunrise")
+            else (next_ts, prev_ts)
+        )
+        k = 1 if next_event in ("solar_sunset", "solar_noon") else -1
+        percentage = (0 - k) * ((now_ts - h) / (h - x)) ** 2 + k
         return percentage
 
     def _is_sleep(self):
