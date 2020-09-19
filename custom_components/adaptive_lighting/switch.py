@@ -438,10 +438,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         (prev_event, prev_ts), (next_event, next_ts) = today
         h, x = (
             (prev_ts, next_ts)
-            if next_event in ("solar_sunset", "solar_sunrise")
+            if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_SUNRISE)
             else (next_ts, prev_ts)
         )
-        k = 1 if next_event in ("solar_sunset", "solar_noon") else -1
+        k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
         percentage = (0 - k) * ((now_ts - h) / (h - x)) ** 2 + k
         return percentage
 
