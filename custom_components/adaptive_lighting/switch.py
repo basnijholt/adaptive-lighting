@@ -173,6 +173,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if attr is not None and attr != "none":
                 setattr(self, name, validate(attr))
             elif attr == "none":
+                # FIX: Can't use `None` in OptionsFlow. For reasons I do
+                # not understand, I cannot save an option that is empty.
                 setattr(self, name, None)
 
         # Initialize attributes that will be set in self._update_attrs
