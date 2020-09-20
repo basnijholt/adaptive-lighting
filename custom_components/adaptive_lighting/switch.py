@@ -86,7 +86,6 @@ from .const import (
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
-    UNDO_UPDATE_LISTENER,
 )
 
 _SUPPORT_OPTS = {
@@ -117,39 +116,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hass.data[DOMAIN] = {}
     hass.data[DOMAIN][name] = switch
     async_add_entities([switch], update_before_add=True)
-
-
-def _difference_between_states(from_state, to_state):
-    start = "Lights adjusting because "
-    if from_state is None and to_state is None:
-        return start + "both states None"
-    if from_state is None:
-        return start + f"from_state: None, to_state: {to_state}"
-    if to_state is None:
-        return start + f"from_state: {from_state}, to_state: None"
-
-    changed_attrs = ", ".join(
-        [
-            f"{key}: {val}"
-            for key, val in to_state.attributes.items()
-            if from_state.attributes.get(key) != val
-        ]
-    )
-    if from_state.state == to_state.state:
-        return start + (
-            f"{from_state.entity_id} is still {to_state.state} but"
-            f" these attributes changes: {changed_attrs}."
-        )
-    elif changed_attrs != "":
-        return start + (
-            f"{from_state.entity_id} changed from {from_state.state} to"
-            f" {to_state.state} and these attributes changes: {changed_attrs}."
-        )
-    else:
-        return start + (
-            f"{from_state.entity_id} changed from {from_state.state} to"
-            f" {to_state.state} and no attributes changed."
-        )
 
 
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
@@ -208,7 +174,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 setattr(self, name, validate(attr))
             elif attr == "none":
                 setattr(self, name, None)
-
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None
@@ -487,11 +452,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _light_state_changed(self, entity_id, from_state, to_state):
         assert to_state.state == "on" and from_state.state == "off"
-        _LOGGER.debug(_difference_between_states(from_state, to_state))
+        _LOGGER.debug(
+            "_light_state_changed, from_state: '%s', to_state: '%s'",
+            from_state,
+            to_state,
+        )
         await self._update_lights(
             lights=[entity_id], transition=self._initial_transition, force=True
         )
 
     async def _state_changed(self, entity_id, from_state, to_state):
-        _LOGGER.debug(_difference_between_states(from_state, to_state))
+        _LOGGER.debug(
+            "_state_changed, from_state: '%s', to_state: '%s'", from_state, to_state
+        )
         await self._update_lights(transition=self._initial_transition, force=True)

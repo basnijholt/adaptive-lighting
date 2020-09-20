@@ -1,8 +1,3 @@
-import voluptuous as vol
-
-import homeassistant.helpers.config_validation as cv
-from homeassistant.components.light import VALID_TRANSITION
-
 ICON = "mdi:theme-light-dark"
 
 DOMAIN = "adaptive_lighting"
@@ -35,10 +30,3 @@ CONF_SUNSET_TIME = "sunset_time"
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
-
-# _COMMON_SCHEMA = {
-#     vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
-#     vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-#     vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
-#     vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
-# }
