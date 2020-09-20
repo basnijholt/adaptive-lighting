@@ -1,9 +1,12 @@
+# CHECK OUT THE VIZIO COMPONENT!
 """Adaptive Lighting Component for Home-Assistant."""
 
 import asyncio
 import bisect
 import logging
 from datetime import timedelta
+
+import voluptuous as vol
 
 import homeassistant.util.dt as dt_util
 from homeassistant.components.light import (
@@ -46,6 +49,7 @@ from homeassistant.util.color import (
 from .const import (
     CONF_DISABLE_BRIGHTNESS_ADJUST,
     CONF_DISABLE_ENTITY,
+    UNDO_UPDATE_LISTENER,
     CONF_DISABLE_STATE,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -92,10 +96,10 @@ _SUPPORT_OPTS = {
 }
 
 _ALLOWED_ORDERS = {
-    ("solar_sunrise", "solar_noon", "solar_sunset", "solar_midnight"),
-    ("solar_sunset", "solar_midnight", "solar_sunrise", "solar_noon"),
-    ("solar_midnight", "solar_sunrise", "solar_noon", "solar_sunset"),
-    ("solar_noon", "solar_sunset", "solar_midnight", "solar_sunrise"),
+    (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT),
+    (SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT, SUN_EVENT_SUNRISE, SUN_EVENT_NOON),
+    (SUN_EVENT_MIDNIGHT, SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET),
+    (SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT, SUN_EVENT_SUNRISE),
 }
 
 
@@ -111,7 +115,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
     hass.data[DOMAIN][name] = switch
-    async_add_entities([switch])
+    async_add_entities([switch], update_before_add=True)
 
 
 def _difference_between_states(from_state, to_state):
@@ -150,9 +154,7 @@ def _difference_between_states(from_state, to_state):
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    def __init__(
-        self, hass, name, config_entry,
-    ):
+    def __init__(self, hass, name, config_entry):
         """Initialize the Adaptive Lighting switch."""
         self.hass = hass
         self._name = name
@@ -171,6 +173,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.unsub_tracker = None
+        _LOGGER.error(f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}")
 
     @property
     def _lights(self):
@@ -431,7 +434,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Check whether order is correct
         events = sorted(events, key=lambda x: x[1])
         events_names, _ = zip(*events)
-        assert events_names in _ALLOWED_ORDERS
+        assert events_names in _ALLOWED_ORDERS, events_names
 
         return events
 

@@ -26,17 +26,18 @@ Technical notes: I had to make a lot of assumptions when writing this app
 *   The component doesn't calculate a true "Blue Hour" -- it just sets the
     lights to 2700K (warm white) until your hub goes into Night mode
 """
-
+import asyncio
 import logging
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.light import VALID_TRANSITION
-from homeassistant.config_entries import SOURCE_IMPORT
+from homeassistant.config_entries import ENTRY_STATE_LOADED, SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_NAME
 
 from .const import (
     CONF_DISABLE_BRIGHTNESS_ADJUST,
+    UNDO_UPDATE_LISTENER,
     CONF_DISABLE_ENTITY,
     CONF_DISABLE_STATE,
     CONF_INITIAL_TRANSITION,
@@ -77,78 +78,118 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_NAME, default=DEFAULT_NAME): cv.string,
-                vol.Optional(CONF_LIGHTS, default=DEFAULT_LIGHTS): cv.entity_ids,
-                vol.Optional(
-                    CONF_DISABLE_BRIGHTNESS_ADJUST,
-                    default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
-                ): cv.boolean,
-                vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
-                vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-                vol.Optional(
-                    CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
-                ): VALID_TRANSITION,
-                vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-                vol.Optional(
-                    CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
-                vol.Optional(
-                    CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP
-                ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-                vol.Optional(
-                    CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
-                vol.Optional(
-                    CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP
-                ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-                vol.Optional(CONF_ONLY_ONCE, default=DEFAULT_ONLY_ONCE): cv.boolean,
-                vol.Optional(
-                    CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
-                vol.Optional(
-                    CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP
-                ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-                vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
-                vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
-                vol.Optional(
-                    CONF_SUNRISE_OFFSET, default=DEFAULT_SUNRISE_OFFSET
-                ): cv.time_period,
-                vol.Optional(CONF_SUNRISE_TIME): cv.time,
-                vol.Optional(
-                    CONF_SUNSET_OFFSET, default=DEFAULT_SUNSET_OFFSET
-                ): cv.time_period,
-                vol.Optional(CONF_SUNSET_TIME): cv.time,
-                vol.Optional(
-                    CONF_TRANSITION, default=DEFAULT_TRANSITION
-                ): VALID_TRANSITION,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
+# CONFIG_SCHEMA = vol.Schema(
+#     {
+#         DOMAIN: vol.Schema(
+#             {
+#                 vol.Required(CONF_NAME, default=DEFAULT_NAME): cv.string,
+#                 vol.Optional(CONF_LIGHTS, default=DEFAULT_LIGHTS): cv.entity_ids,
+#                 vol.Optional(
+#                     CONF_DISABLE_BRIGHTNESS_ADJUST,
+#                     default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
+#                 ): cv.boolean,
+#                 vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
+#                 vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
+#                 vol.Optional(
+#                     CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
+#                 ): VALID_TRANSITION,
+#                 vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
+#                 vol.Optional(
+#                     CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS
+#                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+#                 vol.Optional(
+#                     CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP
+#                 ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+#                 vol.Optional(
+#                     CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS
+#                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+#                 vol.Optional(
+#                     CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP
+#                 ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+#                 vol.Optional(CONF_ONLY_ONCE, default=DEFAULT_ONLY_ONCE): cv.boolean,
+#                 vol.Optional(
+#                     CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS
+#                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+#                 vol.Optional(
+#                     CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP
+#                 ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
+#                 vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
+#                 vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
+#                 vol.Optional(
+#                     CONF_SUNRISE_OFFSET, default=DEFAULT_SUNRISE_OFFSET
+#                 ): cv.time_period,
+#                 vol.Optional(CONF_SUNRISE_TIME): cv.time,
+#                 vol.Optional(
+#                     CONF_SUNSET_OFFSET, default=DEFAULT_SUNSET_OFFSET
+#                 ): cv.time_period,
+#                 vol.Optional(CONF_SUNSET_TIME): cv.time,
+#                 vol.Optional(
+#                     CONF_TRANSITION, default=DEFAULT_TRANSITION
+#                 ): VALID_TRANSITION,
+#             }
+#         )
+#     },
+#     extra=vol.ALLOW_EXTRA,
+# )
+
+PLATFORMS = ["switch"]
 
 
 async def async_setup(hass, config):
     """Import integration from config."""
 
     if DOMAIN in config:
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN, context={"source": SOURCE_IMPORT}, data=config[DOMAIN]
+        for entry in config[DOMAIN]:
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN, context={"source": SOURCE_IMPORT}, data=entry
+                )
             )
-        )
     return True
 
 
-async def async_setup_entry(hass, config_entry):
+async def async_setup_entry(hass, config_entry: ConfigEntry):
     """Set up the component."""
+    hass.data.setdefault(DOMAIN, {})
 
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(config_entry, "switch")
-    )
+    undo_listener = config_entry.add_update_listener(async_update_options)
+    hass.data[DOMAIN][config_entry.entry_id] = {
+        UNDO_UPDATE_LISTENER: undo_listener
+    }
+
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(config_entry, platform)
+        )
 
     return True
+
+
+async def async_update_options(hass, config_entry: ConfigEntry):
+    """Update options."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+async def async_unload_entry(hass, config_entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = all(
+        await asyncio.gather(
+            *[
+                hass.config_entries.async_forward_entry_unload(config_entry, platform)
+                for platform in PLATFORMS
+            ]
+        )
+    )
+    hass.data[DOMAIN][config_entry.entry_id][UNDO_UPDATE_LISTENER]()
+
+    # Exclude this config entry because its not unloaded yet
+    if not any(
+        entry.state == ENTRY_STATE_LOADED and entry.entry_id != config_entry.entry_id
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    ):
+        hass.data[DOMAIN].pop(config_entry.entry_id)
+
+    if not hass.data[DOMAIN]:
+        hass.data.pop(DOMAIN)
+
+    return unload_ok
