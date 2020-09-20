@@ -192,21 +192,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sunset_time = opts.get(CONF_SUNSET_TIME)
         self._transition = opts.get(CONF_TRANSITION, DEFAULT_TRANSITION)
 
-        for which in ["_sunrise_time", "_sunset_time"]:
-            # I use a hack to be able to use cv.positive_time_period_dict in
-            # the options flow, which is the only serializable time setter,
-            # however, I need a time, so I convert the timedelta to a datetime.
-            sun_time = getattr(self, which)
-            if sun_time is not None:
-                dt = cv.time(
-                    {
-                        "hours": sun_time.hours,
-                        "minutes": sun_time.minutes,
-                        "seconds": sun_time.seconds,
-                        "milliseconds": sun_time.milliseconds,
-                    }
-                )
-                setattr(self, which, dt)
+        for name, validate in [
+            ("_sunrise_time", cv.time),
+            ("_sunset_time", cv.time),
+            ("_sunrise_offset", cv.time_period),
+            ("_sunset_offset", cv.time_period),
+            ("_interval", cv.time_period),
+        ]:
+            attr = getattr(self, name)
+            if attr is not None:
+                dt = validate(attr)
+                setattr(self, name, dt)
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None

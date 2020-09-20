@@ -128,8 +128,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 # vol.Optional(CONF_DISABLE_STATE, default=disable_state): str,
                 vol.Optional(
                     CONF_INITIAL_TRANSITION, default=initial_transition
-                ): cv.positive_int,
-                # vol.Optional(CONF_INTERVAL, default=interval): cv.positive_int,
+                ): VALID_TRANSITION,
+                vol.Optional(CONF_INTERVAL, default=interval): cv.positive_int,
                 vol.Optional(CONF_MAX_BRIGHTNESS, default=max_brightness): vol.All(
                     vol.Coerce(int), vol.Range(min=1, max=100)
                 ),
@@ -151,16 +151,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 # vol.Optional(CONF_SLEEP_ENTITY, default=sleep_entity): str,
                 # vol.Optional(CONF_SLEEP_STATE, default=sleep_state): str,
-                # vol.Optional(CONF_SUNRISE_OFFSET, default=sunrise_offset): int,
-                vol.Optional(
-                    CONF_SUNRISE_TIME
-                    # , default=sunrise_time
-                ): cv.positive_time_period_dict,
-                # vol.Optional(CONF_SUNSET_OFFSET, default=sunset_offset): int,
-                vol.Optional(
-                    CONF_SUNSET_TIME
-                    # , default=sunset_time
-                ): cv.positive_time_period_dict,
+                vol.Optional(CONF_SUNRISE_OFFSET, default=sunrise_offset): int,
+                vol.Optional(CONF_SUNRISE_TIME, default=sunrise_time): str,
+                vol.Optional(CONF_SUNSET_OFFSET, default=sunset_offset): int,
+                vol.Optional(CONF_SUNSET_TIME, default=sunset_time): str,
                 vol.Optional(CONF_TRANSITION, default=transition): VALID_TRANSITION,
             }
         )
