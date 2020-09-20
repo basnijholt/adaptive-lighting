@@ -44,6 +44,7 @@ from .const import (
     DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
+    FAKE_NONE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,8 +95,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         disable_brightness_adjust = options.get(
             CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
         )
-        disable_entity = options.get(CONF_DISABLE_ENTITY, "none")
-        disable_state = options.get(CONF_DISABLE_STATE, "none")
+        disable_entity = options.get(CONF_DISABLE_ENTITY, FAKE_NONE)
+        disable_state = options.get(CONF_DISABLE_STATE, FAKE_NONE)
         initial_transition = options.get(
             CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
         )
@@ -107,12 +108,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         only_once = options.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
         sleep_brightness = options.get(CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS)
         sleep_color_temp = options.get(CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP)
-        sleep_entity = options.get(CONF_SLEEP_ENTITY, "none")
-        sleep_state = options.get(CONF_SLEEP_STATE, "none")
+        sleep_entity = options.get(CONF_SLEEP_ENTITY, FAKE_NONE)
+        sleep_state = options.get(CONF_SLEEP_STATE, FAKE_NONE)
         sunrise_offset = options.get(CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET)
-        sunrise_time = options.get(CONF_SUNRISE_TIME, "none")
+        sunrise_time = options.get(CONF_SUNRISE_TIME, FAKE_NONE)
         sunset_offset = options.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
-        sunset_time = options.get(CONF_SUNSET_TIME, "none")
+        sunset_time = options.get(CONF_SUNSET_TIME, FAKE_NONE)
         transition = options.get(CONF_TRANSITION, DEFAULT_TRANSITION)
 
         all_lights = self.hass.states.async_entity_ids("light")

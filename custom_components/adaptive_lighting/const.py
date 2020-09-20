@@ -30,3 +30,4 @@ CONF_SUNSET_TIME = "sunset_time"
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
+FAKE_NONE = "none"

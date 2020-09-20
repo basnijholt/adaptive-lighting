@@ -83,6 +83,7 @@ from .const import (
     DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
+    FAKE_NONE,
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
@@ -170,9 +171,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             ("_sleep_state", vol.All(cv.ensure_list_csv, [cv.string])),
         ]:
             attr = getattr(self, name)
-            if attr is not None and attr != "none":
+            if attr is not None and attr != FAKE_NONE:
                 setattr(self, name, validate(attr))
-            elif attr == "none":
+            elif attr == FAKE_NONE:
                 # FIX: Can't use `None` in OptionsFlow. For reasons I do
                 # not understand, I cannot save an option that is empty.
                 setattr(self, name, None)
