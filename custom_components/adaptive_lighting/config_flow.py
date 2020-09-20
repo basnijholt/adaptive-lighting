@@ -5,7 +5,6 @@ import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
-from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.core import callback
 
 from .const import (  # _convert_to_options_schema,
@@ -37,7 +36,6 @@ from .const import (  # _convert_to_options_schema,
     DEFAULT_MAX_COLOR_TEMP,
     DEFAULT_MIN_BRIGHTNESS,
     DEFAULT_MIN_COLOR_TEMP,
-    UNDO_UPDATE_LISTENER,
     DEFAULT_ONLY_ONCE,
     DEFAULT_SLEEP_BRIGHTNESS,
     DEFAULT_SLEEP_COLOR_TEMP,

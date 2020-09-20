@@ -29,108 +29,11 @@ Technical notes: I had to make a lot of assumptions when writing this app
 import asyncio
 import logging
 
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
-from homeassistant.components.light import VALID_TRANSITION
-from homeassistant.config_entries import ENTRY_STATE_LOADED, SOURCE_IMPORT, ConfigEntry
-from homeassistant.const import CONF_NAME
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 
-from .const import (
-    CONF_DISABLE_BRIGHTNESS_ADJUST,
-    UNDO_UPDATE_LISTENER,
-    CONF_DISABLE_ENTITY,
-    CONF_DISABLE_STATE,
-    CONF_INITIAL_TRANSITION,
-    CONF_INTERVAL,
-    CONF_LIGHTS,
-    CONF_MAX_BRIGHTNESS,
-    CONF_MAX_COLOR_TEMP,
-    CONF_MIN_BRIGHTNESS,
-    CONF_MIN_COLOR_TEMP,
-    CONF_ONLY_ONCE,
-    CONF_SLEEP_BRIGHTNESS,
-    CONF_SLEEP_COLOR_TEMP,
-    CONF_SLEEP_ENTITY,
-    CONF_SLEEP_STATE,
-    CONF_SUNRISE_OFFSET,
-    CONF_SUNRISE_TIME,
-    CONF_SUNSET_OFFSET,
-    CONF_SUNSET_TIME,
-    CONF_TRANSITION,
-    DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
-    DEFAULT_INITIAL_TRANSITION,
-    DEFAULT_INTERVAL,
-    DEFAULT_LIGHTS,
-    DEFAULT_MAX_BRIGHTNESS,
-    DEFAULT_MAX_COLOR_TEMP,
-    DEFAULT_MIN_BRIGHTNESS,
-    DEFAULT_MIN_COLOR_TEMP,
-    DEFAULT_NAME,
-    DEFAULT_ONLY_ONCE,
-    DEFAULT_SLEEP_BRIGHTNESS,
-    DEFAULT_SLEEP_COLOR_TEMP,
-    DEFAULT_SUNRISE_OFFSET,
-    DEFAULT_SUNSET_OFFSET,
-    DEFAULT_TRANSITION,
-    DOMAIN,
-)
+from .const import DOMAIN, UNDO_UPDATE_LISTENER
 
 _LOGGER = logging.getLogger(__name__)
-
-
-# CONFIG_SCHEMA = vol.Schema(
-#     {
-#         DOMAIN: vol.Schema(
-#             {
-#                 vol.Required(CONF_NAME, default=DEFAULT_NAME): cv.string,
-#                 vol.Optional(CONF_LIGHTS, default=DEFAULT_LIGHTS): cv.entity_ids,
-#                 vol.Optional(
-#                     CONF_DISABLE_BRIGHTNESS_ADJUST,
-#                     default=DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
-#                 ): cv.boolean,
-#                 vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
-#                 vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-#                 vol.Optional(
-#                     CONF_INITIAL_TRANSITION, default=DEFAULT_INITIAL_TRANSITION
-#                 ): VALID_TRANSITION,
-#                 vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
-#                 vol.Optional(
-#                     CONF_MAX_BRIGHTNESS, default=DEFAULT_MAX_BRIGHTNESS
-#                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
-#                 vol.Optional(
-#                     CONF_MAX_COLOR_TEMP, default=DEFAULT_MAX_COLOR_TEMP
-#                 ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-#                 vol.Optional(
-#                     CONF_MIN_BRIGHTNESS, default=DEFAULT_MIN_BRIGHTNESS
-#                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
-#                 vol.Optional(
-#                     CONF_MIN_COLOR_TEMP, default=DEFAULT_MIN_COLOR_TEMP
-#                 ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-#                 vol.Optional(CONF_ONLY_ONCE, default=DEFAULT_ONLY_ONCE): cv.boolean,
-#                 vol.Optional(
-#                     CONF_SLEEP_BRIGHTNESS, default=DEFAULT_SLEEP_BRIGHTNESS
-#                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
-#                 vol.Optional(
-#                     CONF_SLEEP_COLOR_TEMP, default=DEFAULT_SLEEP_COLOR_TEMP
-#                 ): vol.All(vol.Coerce(int), vol.Range(min=1000, max=10000)),
-#                 vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
-#                 vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
-#                 vol.Optional(
-#                     CONF_SUNRISE_OFFSET, default=DEFAULT_SUNRISE_OFFSET
-#                 ): cv.time_period,
-#                 vol.Optional(CONF_SUNRISE_TIME): cv.time,
-#                 vol.Optional(
-#                     CONF_SUNSET_OFFSET, default=DEFAULT_SUNSET_OFFSET
-#                 ): cv.time_period,
-#                 vol.Optional(CONF_SUNSET_TIME): cv.time,
-#                 vol.Optional(
-#                     CONF_TRANSITION, default=DEFAULT_TRANSITION
-#                 ): VALID_TRANSITION,
-#             }
-#         )
-#     },
-#     extra=vol.ALLOW_EXTRA,
-# )
 
 PLATFORMS = ["switch"]
 
@@ -153,9 +56,7 @@ async def async_setup_entry(hass, config_entry: ConfigEntry):
     hass.data.setdefault(DOMAIN, {})
 
     undo_listener = config_entry.add_update_listener(async_update_options)
-    hass.data[DOMAIN][config_entry.entry_id] = {
-        UNDO_UPDATE_LISTENER: undo_listener
-    }
+    hass.data[DOMAIN][config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
 
     for platform in PLATFORMS:
         hass.async_create_task(
@@ -182,14 +83,7 @@ async def async_unload_entry(hass, config_entry: ConfigEntry) -> bool:
     )
     hass.data[DOMAIN][config_entry.entry_id][UNDO_UPDATE_LISTENER]()
 
-    # Exclude this config entry because its not unloaded yet
-    if not any(
-        entry.state == ENTRY_STATE_LOADED and entry.entry_id != config_entry.entry_id
-        for entry in hass.config_entries.async_entries(DOMAIN)
-    ):
+    if unload_ok:
         hass.data[DOMAIN].pop(config_entry.entry_id)
-
-    if not hass.data[DOMAIN]:
-        hass.data.pop(DOMAIN)
 
     return unload_ok
