@@ -8,6 +8,7 @@ from datetime import timedelta
 
 import voluptuous as vol
 
+import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS_PCT,
@@ -49,7 +50,6 @@ from homeassistant.util.color import (
 from .const import (
     CONF_DISABLE_BRIGHTNESS_ADJUST,
     CONF_DISABLE_ENTITY,
-    UNDO_UPDATE_LISTENER,
     CONF_DISABLE_STATE,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -86,6 +86,7 @@ from .const import (
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
+    UNDO_UPDATE_LISTENER,
 )
 
 _SUPPORT_OPTS = {
@@ -160,7 +161,52 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = name
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
-        self.config_entry = config_entry
+
+        opts = config_entry.options
+        self._lights = opts.get(CONF_LIGHTS, DEFAULT_LIGHTS)
+        self._disable_brightness_adjust = opts.get(
+            CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
+        )
+        self._disable_entity = opts.get(CONF_DISABLE_ENTITY)
+        self._disable_state = opts.get(CONF_DISABLE_STATE)
+        self._initial_transition = opts.get(
+            CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
+        )
+        self._interval = opts.get(CONF_INTERVAL, DEFAULT_INTERVAL)
+        self._max_brightness = opts.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)
+        self._max_color_temp = opts.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP)
+        self._min_brightness = opts.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)
+        self._min_color_temp = opts.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP)
+        self._only_once = opts.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
+        self._sleep_brightness = opts.get(
+            CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS
+        )
+        self._sleep_color_temp = opts.get(
+            CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP
+        )
+        self._sleep_entity = opts.get(CONF_SLEEP_ENTITY)
+        self._sleep_state = opts.get(CONF_SLEEP_STATE)
+        self._sunrise_offset = opts.get(CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET)
+        self._sunrise_time = opts.get(CONF_SUNRISE_TIME)
+        self._sunset_offset = opts.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
+        self._sunset_time = opts.get(CONF_SUNSET_TIME)
+        self._transition = opts.get(CONF_TRANSITION, DEFAULT_TRANSITION)
+
+        for which in ["_sunrise_time", "_sunset_time"]:
+            # I use a hack to be able to use cv.positive_time_period_dict in
+            # the options flow, which is the only serializable time setter,
+            # however, I need a time, so I convert the timedelta to a datetime.
+            sun_time = getattr(self, which)
+            if sun_time is not None:
+                dt = cv.time(
+                    {
+                        "hours": sun_time.hours,
+                        "minutes": sun_time.minutes,
+                        "seconds": sun_time.seconds,
+                        "milliseconds": sun_time.milliseconds,
+                    }
+                )
+                setattr(self, which, dt)
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None
@@ -173,105 +219,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.unsub_tracker = None
-        _LOGGER.error(f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}")
-
-    @property
-    def _lights(self):
-        return self.config_entry.options.get(CONF_LIGHTS, DEFAULT_LIGHTS)
-
-    @property
-    def _disable_brightness_adjust(self):
-        return self.config_entry.options.get(
-            CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
+        _LOGGER.error(
+            f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}"
         )
-
-    @property
-    def _disable_entity(self):
-        return self.config_entry.options.get(CONF_DISABLE_ENTITY)
-
-    @property
-    def _disable_state(self):
-        return self.config_entry.options.get(CONF_DISABLE_STATE)
-
-    @property
-    def _initial_transition(self):
-        return self.config_entry.options.get(
-            CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
-        )
-
-    @property
-    def _interval(self):
-        return self.config_entry.options.get(CONF_INTERVAL, DEFAULT_INTERVAL)
-
-    @property
-    def _max_brightness(self):
-        return self.config_entry.options.get(
-            CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS
-        )
-
-    @property
-    def _max_color_temp(self):
-        return self.config_entry.options.get(
-            CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP
-        )
-
-    @property
-    def _min_brightness(self):
-        return self.config_entry.options.get(
-            CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS
-        )
-
-    @property
-    def _min_color_temp(self):
-        return self.config_entry.options.get(
-            CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP
-        )
-
-    @property
-    def _only_once(self):
-        return self.config_entry.options.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
-
-    @property
-    def _sleep_brightness(self):
-        return self.config_entry.options.get(
-            CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS
-        )
-
-    @property
-    def _sleep_color_temp(self):
-        return self.config_entry.options.get(
-            CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP
-        )
-
-    @property
-    def _sleep_entity(self):
-        return self.config_entry.options.get(CONF_SLEEP_ENTITY)
-
-    @property
-    def _sleep_state(self):
-        return self.config_entry.options.get(CONF_SLEEP_STATE)
-
-    @property
-    def _sunrise_offset(self):
-        return self.config_entry.options.get(
-            CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET
-        )
-
-    @property
-    def _sunrise_time(self):
-        return self.config_entry.options.get(CONF_SUNRISE_TIME)
-
-    @property
-    def _sunset_offset(self):
-        return self.config_entry.options.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
-
-    @property
-    def _sunset_time(self):
-        return self.config_entry.options.get(CONF_SUNSET_TIME)
-
-    @property
-    def _transition(self):
-        return self.config_entry.options.get(CONF_TRANSITION, DEFAULT_TRANSITION)
 
     @property
     def entity_id(self):

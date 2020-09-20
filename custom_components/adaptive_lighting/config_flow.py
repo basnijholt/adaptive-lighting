@@ -5,9 +5,10 @@ import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
+from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.core import callback
 
-from .const import (  # _convert_to_options_schema,
+from .const import (
     CONF_DISABLE_BRIGHTNESS_ADJUST,
     CONF_DISABLE_ENTITY,
     CONF_DISABLE_STATE,
@@ -151,15 +152,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 # vol.Optional(CONF_SLEEP_ENTITY, default=sleep_entity): str,
                 # vol.Optional(CONF_SLEEP_STATE, default=sleep_state): str,
                 # vol.Optional(CONF_SUNRISE_OFFSET, default=sunrise_offset): int,
-                # vol.Optional(CONF_SUNRISE_TIME, default=sunrise_time): str,
+                vol.Optional(
+                    CONF_SUNRISE_TIME
+                    # , default=sunrise_time
+                ): cv.positive_time_period_dict,
                 # vol.Optional(CONF_SUNSET_OFFSET, default=sunset_offset): int,
-                # vol.Optional(CONF_SUNSET_TIME, default=sunset_time): str,
-                # vol.Optional(CONF_TRANSITION, default=transition): VALID_TRANSITION,
+                vol.Optional(
+                    CONF_SUNSET_TIME
+                    # , default=sunset_time
+                ): cv.positive_time_period_dict,
+                vol.Optional(CONF_TRANSITION, default=transition): VALID_TRANSITION,
             }
         )
-
-        # options_schema = _convert_to_options_schema(
-        #     self.hass, self.config_entry.options
-        # )
 
         return self.async_show_form(step_id="init", data_schema=options_schema)
