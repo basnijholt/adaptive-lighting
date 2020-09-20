@@ -39,7 +39,6 @@ UNDO_UPDATE_LISTENER = "undo_update_listener"
 # _COMMON_SCHEMA = {
 #     vol.Optional(CONF_DISABLE_ENTITY): cv.entity_id,
 #     vol.Optional(CONF_DISABLE_STATE): vol.All(cv.ensure_list, [cv.string]),
-#     vol.Optional(CONF_INTERVAL, default=DEFAULT_INTERVAL): cv.time_period,
 #     vol.Optional(CONF_SLEEP_ENTITY): cv.entity_id,
 #     vol.Optional(CONF_SLEEP_STATE): vol.All(cv.ensure_list, [cv.string]),
 # }

@@ -198,11 +198,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             ("_sunrise_offset", cv.time_period),
             ("_sunset_offset", cv.time_period),
             ("_interval", cv.time_period),
+            ("_disable_entity", cv.entity_id),
+            ("_sleep_entity", cv.entity_id),
+            ("_disable_state", vol.All(cv.ensure_list_csv, [cv.string])),
+            ("_sleep_state", vol.All(cv.ensure_list_csv, [cv.string])),
         ]:
             attr = getattr(self, name)
-            if attr is not None:
-                dt = validate(attr)
-                setattr(self, name, dt)
+            if attr is not None and attr != "none":
+                setattr(self, name, validate(attr))
+            elif attr == "none":
+                setattr(self, name, None)
+
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None

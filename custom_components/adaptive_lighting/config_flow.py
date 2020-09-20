@@ -94,8 +94,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         disable_brightness_adjust = options.get(
             CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
         )
-        disable_entity = options.get(CONF_DISABLE_ENTITY)
-        disable_state = options.get(CONF_DISABLE_STATE)
+        disable_entity = options.get(CONF_DISABLE_ENTITY, "none")
+        disable_state = options.get(CONF_DISABLE_STATE, "none")
         initial_transition = options.get(
             CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
         )
@@ -107,12 +107,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         only_once = options.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
         sleep_brightness = options.get(CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS)
         sleep_color_temp = options.get(CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP)
-        sleep_entity = options.get(CONF_SLEEP_ENTITY)
-        sleep_state = options.get(CONF_SLEEP_STATE)
+        sleep_entity = options.get(CONF_SLEEP_ENTITY, "none")
+        sleep_state = options.get(CONF_SLEEP_STATE, "none")
         sunrise_offset = options.get(CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET)
-        sunrise_time = options.get(CONF_SUNRISE_TIME)
+        sunrise_time = options.get(CONF_SUNRISE_TIME, "none")
         sunset_offset = options.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
-        sunset_time = options.get(CONF_SUNSET_TIME)
+        sunset_time = options.get(CONF_SUNSET_TIME, "none")
         transition = options.get(CONF_TRANSITION, DEFAULT_TRANSITION)
 
         all_lights = self.hass.states.async_entity_ids("light")
@@ -124,8 +124,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_DISABLE_BRIGHTNESS_ADJUST, default=disable_brightness_adjust
                 ): bool,
-                # vol.Optional(CONF_DISABLE_ENTITY, default=disable_entity): str,
-                # vol.Optional(CONF_DISABLE_STATE, default=disable_state): str,
+                vol.Optional(CONF_DISABLE_ENTITY, default=disable_entity): str,
+                vol.Optional(CONF_DISABLE_STATE, default=disable_state): str,
                 vol.Optional(
                     CONF_INITIAL_TRANSITION, default=initial_transition
                 ): VALID_TRANSITION,
@@ -149,8 +149,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(CONF_SLEEP_COLOR_TEMP, default=sleep_color_temp): vol.All(
                     vol.Coerce(int), vol.Range(min=1000, max=10000)
                 ),
-                # vol.Optional(CONF_SLEEP_ENTITY, default=sleep_entity): str,
-                # vol.Optional(CONF_SLEEP_STATE, default=sleep_state): str,
+                vol.Optional(CONF_SLEEP_ENTITY, default=sleep_entity): str,
+                vol.Optional(CONF_SLEEP_STATE, default=sleep_state): str,
                 vol.Optional(CONF_SUNRISE_OFFSET, default=sunrise_offset): int,
                 vol.Optional(CONF_SUNRISE_TIME, default=sunrise_time): str,
                 vol.Optional(CONF_SUNSET_OFFSET, default=sunset_offset): int,
