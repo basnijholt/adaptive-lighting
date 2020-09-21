@@ -171,7 +171,7 @@ class CircadianLighting:
         self._profile = profile
         _LOGGER.debug("profile: %s", self._profile)
 
-        self._percent = self.calc_percent()
+        self._percent = self._calc_percent()
         self._colortemp = self.calc_colortemp()
         self._rgb_color = self.calc_rgb()
         self._xy_color = self.calc_xy()
@@ -318,7 +318,7 @@ class CircadianLighting:
 
     async def update(self, _=None):
         """Update Circadian Values."""
-        self._percent = self.calc_percent()
+        self._percent = self._calc_percent()
         self._colortemp = self.calc_colortemp()
         self._rgb_color = self.calc_rgb()
         self._xy_color = self.calc_xy()
