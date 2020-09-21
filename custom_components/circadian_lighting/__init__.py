@@ -27,6 +27,7 @@ Technical notes: I had to make a lot of assumptions when writing this app
         lights to 2700K (warm white) until your hub goes into Night mode
 """
 
+import bisect
 import logging
 from datetime import timedelta
 
@@ -209,7 +210,7 @@ class CircadianLighting:
             microsecond=other_date.microsecond,
         )
 
-    def get_sunrise_sunset(self, date):
+    def _get_sun_events(self, date):
         if self._manual_sunrise is not None and self._manual_sunset is not None:
             sunrise = self._replace_time(date, "sunrise")
             sunset = self._replace_time(date, "sunset")
@@ -252,34 +253,19 @@ class CircadianLighting:
             k: dt.astimezone(dt_util.UTC).timestamp() for k, dt in datetimes.items()
         }
 
-    def calc_percent(self):
+    def _relevant_events(self, now):
+        events = []
+        for days in [-1, 0, 1]:
+            sun_events = self._get_sun_events(now + timedelta(days=days))
+            events.extend(list(sun_events.items()))
+        events = sorted(events, key=lambda x: x[1])
+        index_now = bisect.bisect([ts for _, ts in events], now.timestamp())
+        return dict(events[index_now - 2 : index_now + 2])
+
+    def _calc_percent(self):
         now = dt_util.utcnow()
         now_ts = now.timestamp()
-
-        today = self.get_sunrise_sunset(now)
-        if now_ts < today[SUN_EVENT_SUNRISE]:
-            # It's before sunrise (after midnight), because it's before
-            # sunrise (and after midnight) sunset must have happend yesterday.
-            yesterday = self.get_sunrise_sunset(now - timedelta(days=1))
-            if (
-                today[SUN_EVENT_MIDNIGHT] > today[SUN_EVENT_SUNSET]
-                and yesterday[SUN_EVENT_MIDNIGHT] > yesterday[SUN_EVENT_SUNSET]
-            ):
-                # Solar midnight is after sunset so use yesterdays's time
-                today[SUN_EVENT_MIDNIGHT] = yesterday[SUN_EVENT_MIDNIGHT]
-            today[SUN_EVENT_SUNSET] = yesterday[SUN_EVENT_SUNSET]
-        elif now_ts > today[SUN_EVENT_SUNSET]:
-            # It's after sunset (before midnight), because it's after sunset
-            # (and before midnight) sunrise should happen tomorrow.
-            tomorrow = self.get_sunrise_sunset(now + timedelta(days=1))
-            if (
-                today[SUN_EVENT_MIDNIGHT] < today[SUN_EVENT_SUNRISE]
-                and tomorrow[SUN_EVENT_MIDNIGHT] < tomorrow[SUN_EVENT_SUNRISE]
-            ):
-                # Solar midnight is before sunrise so use tomorrow's time
-                today[SUN_EVENT_MIDNIGHT] = tomorrow[SUN_EVENT_MIDNIGHT]
-            today[SUN_EVENT_SUNRISE] = tomorrow[SUN_EVENT_SUNRISE]
-
+        today = self._relevant_events(now)
         # Figure out where we are in time so we know which half of the
         # parabola to calculate. We're generating a different
         # sunset-sunrise parabola for before and after solar midnight.
