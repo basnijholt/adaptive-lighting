@@ -48,15 +48,15 @@ def _all_unique_profiles(value):
     return value
 
 
-_DOMAIN_SCHEMA = get_domain_schema(with_fake_none=False)
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.All(
-            cv.ensure_list, [vol.Schema(_DOMAIN_SCHEMA)], _all_unique_profiles
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
+# _DOMAIN_SCHEMA = get_domain_schema(with_fake_none=False)
+# CONFIG_SCHEMA = vol.Schema(
+#     {
+#         DOMAIN: vol.All(
+#             cv.ensure_list, [vol.Schema(_DOMAIN_SCHEMA)], _all_unique_profiles
+#         )
+#     },
+#     extra=vol.ALLOW_EXTRA,
+# )
 
 
 async def async_setup(hass, config):

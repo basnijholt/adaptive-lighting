@@ -84,6 +84,7 @@ from .const import (
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
+    VALIDATION_TUPLES,
 )
 
 _SUPPORT_OPTS = {
@@ -116,53 +117,51 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities([switch], update_before_add=True)
 
 
+def replace_none(value):
+    """Replaces "None" -> None."""
+    return value if value != FAKE_NONE else None
+
+
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
     def __init__(self, hass, name, config_entry):
         """Initialize the Adaptive Lighting switch."""
+        _LOGGER.error(f"title={config_entry.title}")
         self.hass = hass
         self._name = name
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
-        data = {**config_entry.options, **config_entry.data}
-        opts = {  # replace "None" -> None
-            key: value if value != FAKE_NONE else None for key, value in data.items()
-        }
-        for key, validate in EXTRA_VALIDATION.items():  # Fix the types of the inputs
-            value = opts.get(key)
+        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+        data = dict(defaults, **config_entry.options, **config_entry.data)
+        data = {key: replace_none(value) for key, value in data.items()}
+        for key, validate in EXTRA_VALIDATION.items():
+            # Fix the types of the inputs
+            value = data.get(key)
             if value is not None:
-                opts[key] = validate(value)
+                data[key] = validate(value)
 
-        self._lights = opts.get(CONF_LIGHTS, DEFAULT_LIGHTS)
-        self._disable_brightness_adjust = opts.get(
-            CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
-        )
-        self._disable_entity = opts.get(CONF_DISABLE_ENTITY)
-        self._disable_state = opts.get(CONF_DISABLE_STATE)
-        self._initial_transition = opts.get(
-            CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
-        )
-        self._interval = opts.get(CONF_INTERVAL, DEFAULT_INTERVAL)
-        self._max_brightness = opts.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)
-        self._max_color_temp = opts.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP)
-        self._min_brightness = opts.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)
-        self._min_color_temp = opts.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP)
-        self._only_once = opts.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
-        self._sleep_brightness = opts.get(
-            CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS
-        )
-        self._sleep_color_temp = opts.get(
-            CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP
-        )
-        self._sleep_entity = opts.get(CONF_SLEEP_ENTITY)
-        self._sleep_state = opts.get(CONF_SLEEP_STATE)
-        self._sunrise_offset = opts.get(CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET)
-        self._sunrise_time = opts.get(CONF_SUNRISE_TIME)
-        self._sunset_offset = opts.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
-        self._sunset_time = opts.get(CONF_SUNSET_TIME)
-        self._transition = opts.get(CONF_TRANSITION, DEFAULT_TRANSITION)
+        self._lights = data[CONF_LIGHTS]
+        self._disable_brightness_adjust = data[CONF_DISABLE_BRIGHTNESS_ADJUST]
+        self._disable_entity = data[CONF_DISABLE_ENTITY]
+        self._disable_state = data[CONF_DISABLE_STATE]
+        self._initial_transition = data[CONF_INITIAL_TRANSITION]
+        self._interval = data[CONF_INTERVAL]
+        self._max_brightness = data[CONF_MAX_BRIGHTNESS]
+        self._max_color_temp = data[CONF_MAX_COLOR_TEMP]
+        self._min_brightness = data[CONF_MIN_BRIGHTNESS]
+        self._min_color_temp = data[CONF_MIN_COLOR_TEMP]
+        self._only_once = data[CONF_ONLY_ONCE]
+        self._sleep_brightness = data[CONF_SLEEP_BRIGHTNESS]
+        self._sleep_color_temp = data[CONF_SLEEP_COLOR_TEMP]
+        self._sleep_entity = data[CONF_SLEEP_ENTITY]
+        self._sleep_state = data[CONF_SLEEP_STATE]
+        self._sunrise_offset = data[CONF_SUNRISE_OFFSET]
+        self._sunrise_time = data[CONF_SUNRISE_TIME]
+        self._sunset_offset = data[CONF_SUNSET_OFFSET]
+        self._sunset_time = data[CONF_SUNSET_TIME]
+        self._transition = data[CONF_TRANSITION]
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None
@@ -176,7 +175,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set and unset tracker in async_turn_on and async_turn_off
         self.unsub_tracker = None
         _LOGGER.error(
-            f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}, converted to {opts}"
+            f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}, converted to {data}"
         )
 
     @property

@@ -40,11 +40,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_import(self, user_input=None):
         """Handle configuration by yaml file."""
-        _DOMAIN_SCHEMA = get_domain_schema(with_fake_none=True)
+        _DOMAIN_SCHEMA = get_domain_schema(with_fake_none=False)
         schema = {k: v for k, v in _DOMAIN_SCHEMA.items() if k in user_input}
         vol.Schema(schema)(user_input)
         _LOGGER.error(str(user_input) + str(schema))
-        return self.async_create_entry(title="", data=user_input)
+        return self.async_create_entry(title=user_input["name"], data=user_input)
 
     @staticmethod
     @callback
@@ -59,7 +59,7 @@ def validate_options(user_input, errors):
         try:
             value = user_input.get(key)
             if value is not None and value != FAKE_NONE:
-                validate(user_input[key])
+                validate(value)
         except vol.Invalid:
             _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
             errors["base"] = "option_error"
@@ -78,7 +78,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             validate_options(user_input, errors)
             if not errors:
-                return self.async_create_entry(title="", data=user_input)
+                return self.async_create_entry(
+                    title=user_input["name"], data=user_input
+                )
 
         all_lights = cv.multi_select(self.hass.states.async_entity_ids("light"))
         validation_tuples = copy(VALIDATION_TUPLES)
