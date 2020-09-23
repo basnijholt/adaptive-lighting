@@ -1,10 +1,8 @@
-# CHECK OUT THE VIZIO COMPONENT!
 """Adaptive Lighting Component for Home-Assistant."""
 
 import asyncio
 import bisect
 import logging
-from copy import deepcopy
 from datetime import timedelta
 
 import homeassistant.util.dt as dt_util
@@ -128,11 +126,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
+        data = {**config_entry.options, **config_entry.data}
         opts = {  # replace "None" -> None
-            key: value if value != FAKE_NONE else None
-            for key, value in config_entry.options.items()
+            key: value if value != FAKE_NONE else None for key, value in data.items()
         }
-        for key, validate in EXTRA_VALIDATION:  # Fix the types of the inputs
+        for key, validate in EXTRA_VALIDATION.items():  # Fix the types of the inputs
             value = opts.get(key)
             if value is not None:
                 opts[key] = validate(value)

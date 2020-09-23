@@ -29,13 +29,34 @@ Technical notes: I had to make a lot of assumptions when writing this app
 import asyncio
 import logging
 
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 
-from .const import DOMAIN, UNDO_UPDATE_LISTENER
+from .const import CONF_NAME, DOMAIN, UNDO_UPDATE_LISTENER, get_domain_schema
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["switch"]
+
+
+def _all_unique_profiles(value):
+    """Validate that all enties have a unique profile name."""
+    hosts = [device[CONF_NAME] for device in value]
+    schema = vol.Schema(vol.Unique())
+    schema(hosts)
+    return value
+
+
+_DOMAIN_SCHEMA = get_domain_schema(with_fake_none=False)
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.All(
+            cv.ensure_list, [vol.Schema(_DOMAIN_SCHEMA)], _all_unique_profiles
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 
 async def async_setup(hass, config):
