@@ -28,6 +28,7 @@ Technical notes: I had to make a lot of assumptions when writing this app
 """
 import asyncio
 import logging
+
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 
 from .const import DOMAIN, UNDO_UPDATE_LISTENER
@@ -35,6 +36,7 @@ from .const import DOMAIN, UNDO_UPDATE_LISTENER
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["switch"]
+
 
 async def async_setup(hass, config):
     """Import integration from config."""

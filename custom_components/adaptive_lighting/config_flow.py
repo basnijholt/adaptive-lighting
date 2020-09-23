@@ -44,8 +44,8 @@ from .const import (
     DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
-    FAKE_NONE,
     EXTRA_VALIDATION,
+    FAKE_NONE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,9 +93,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 # these are unserializable validators
                 try:
                     value = user_input.get(key)
-                    if value == FAKE_NONE:
-                        value = None
-                    if value is not None:
+                    if value is not None and value != FAKE_NONE:
                         validate(user_input[key])
                 except vol.Invalid:
                     _LOGGER.exception(
@@ -106,73 +104,35 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_create_entry(title="", data=user_input)
 
         options = self.config_entry.options
-
-        lights = options.get(CONF_LIGHTS, DEFAULT_LIGHTS)
-        disable_brightness_adjust = options.get(
-            CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
-        )
-        disable_entity = options.get(CONF_DISABLE_ENTITY, FAKE_NONE)
-        disable_state = options.get(CONF_DISABLE_STATE, FAKE_NONE)
-        initial_transition = options.get(
-            CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION
-        )
-        interval = options.get(CONF_INTERVAL, DEFAULT_INTERVAL)
-        max_brightness = options.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)
-        max_color_temp = options.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP)
-        min_brightness = options.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)
-        min_color_temp = options.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP)
-        only_once = options.get(CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE)
-        sleep_brightness = options.get(CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS)
-        sleep_color_temp = options.get(CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP)
-        sleep_entity = options.get(CONF_SLEEP_ENTITY, FAKE_NONE)
-        sleep_state = options.get(CONF_SLEEP_STATE, FAKE_NONE)
-        sunrise_offset = options.get(CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET)
-        sunrise_time = options.get(CONF_SUNRISE_TIME, FAKE_NONE)
-        sunset_offset = options.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
-        sunset_time = options.get(CONF_SUNSET_TIME, FAKE_NONE)
-        transition = options.get(CONF_TRANSITION, DEFAULT_TRANSITION)
-
-        all_lights = self.hass.states.async_entity_ids("light")
-        all_lights = cv.multi_select(all_lights)
+        int_between = lambda a, b: vol.All(vol.Coerce(int), vol.Range(min=a, max=b))
+        all_lights = cv.multi_select(self.hass.states.async_entity_ids("light"))
+        validation_tuples = [
+            (CONF_LIGHTS, DEFAULT_LIGHTS, all_lights),
+            (CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST, bool),
+            (CONF_DISABLE_ENTITY, FAKE_NONE, str),
+            (CONF_DISABLE_STATE, FAKE_NONE, str),
+            (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
+            (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
+            (CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS, int_between(1, 100)),
+            (CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP, int_between(1000, 10000)),
+            (CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS, int_between(1, 100)),
+            (CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP, int_between(1000, 10000)),
+            (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
+            (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
+            (CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP, int_between(1000, 10000)),
+            (CONF_SLEEP_ENTITY, FAKE_NONE, str),
+            (CONF_SLEEP_STATE, FAKE_NONE, str),
+            (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
+            (CONF_SUNRISE_TIME, FAKE_NONE, str),
+            (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
+            (CONF_SUNSET_TIME, FAKE_NONE, str),
+            (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
+        ]
 
         options_schema = vol.Schema(
             {
-                vol.Optional(CONF_LIGHTS, default=lights): all_lights,
-                vol.Optional(
-                    CONF_DISABLE_BRIGHTNESS_ADJUST, default=disable_brightness_adjust
-                ): bool,
-                vol.Optional(CONF_DISABLE_ENTITY, default=disable_entity): str,
-                vol.Optional(CONF_DISABLE_STATE, default=disable_state): str,
-                vol.Optional(
-                    CONF_INITIAL_TRANSITION, default=initial_transition
-                ): VALID_TRANSITION,
-                vol.Optional(CONF_INTERVAL, default=interval): cv.positive_int,
-                vol.Optional(CONF_MAX_BRIGHTNESS, default=max_brightness): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=100)
-                ),
-                vol.Optional(CONF_MAX_COLOR_TEMP, default=max_color_temp): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
-                vol.Optional(CONF_MIN_BRIGHTNESS, default=min_brightness): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=100)
-                ),
-                vol.Optional(CONF_MIN_COLOR_TEMP, default=min_color_temp): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
-                vol.Optional(CONF_ONLY_ONCE, default=only_once): bool,
-                vol.Optional(CONF_SLEEP_BRIGHTNESS, default=sleep_brightness): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=100)
-                ),
-                vol.Optional(CONF_SLEEP_COLOR_TEMP, default=sleep_color_temp): vol.All(
-                    vol.Coerce(int), vol.Range(min=1000, max=10000)
-                ),
-                vol.Optional(CONF_SLEEP_ENTITY, default=sleep_entity): str,
-                vol.Optional(CONF_SLEEP_STATE, default=sleep_state): str,
-                vol.Optional(CONF_SUNRISE_OFFSET, default=sunrise_offset): int,
-                vol.Optional(CONF_SUNRISE_TIME, default=sunrise_time): str,
-                vol.Optional(CONF_SUNSET_OFFSET, default=sunset_offset): int,
-                vol.Optional(CONF_SUNSET_TIME, default=sunset_time): str,
-                vol.Optional(CONF_TRANSITION, default=transition): VALID_TRANSITION,
+                vol.Optional(key, default=options.get(key, default)): validation
+                for key, default, validation in validation_tuples
             }
         )
 

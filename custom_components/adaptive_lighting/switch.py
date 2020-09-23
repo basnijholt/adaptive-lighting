@@ -3,8 +3,8 @@
 
 import asyncio
 import bisect
-from copy import deepcopy
 import logging
+from copy import deepcopy
 from datetime import timedelta
 
 import homeassistant.util.dt as dt_util
@@ -81,11 +81,11 @@ from .const import (
     DEFAULT_SUNSET_OFFSET,
     DEFAULT_TRANSITION,
     DOMAIN,
+    EXTRA_VALIDATION,
     FAKE_NONE,
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
-    EXTRA_VALIDATION,
 )
 
 _SUPPORT_OPTS = {
