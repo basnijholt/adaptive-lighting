@@ -34,16 +34,16 @@ CONF_SUNSET_TIME = "sunset_time"
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
-FAKE_NONE = "None"
+FAKE_NONE = "None"  # TODO: use `from homeassistant.const import ENTITY_MATCH_NONE`?
 
-VALIDATION = [  # these validators cannot be serialized
-    (CONF_SUNRISE_TIME, cv.time),
-    (CONF_SUNSET_TIME, cv.time),
-    (CONF_SUNRISE_OFFSET, cv.time_period),
-    (CONF_SUNSET_OFFSET, cv.time_period),
-    (CONF_INTERVAL, cv.time_period),
+EXTRA_VALIDATION = [  # these validators cannot be serialized
     (CONF_DISABLE_ENTITY, cv.entity_id),
-    (CONF_SLEEP_ENTITY, cv.entity_id),
     (CONF_DISABLE_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
+    (CONF_INTERVAL, cv.time_period),
+    (CONF_SLEEP_ENTITY, cv.entity_id),
     (CONF_SLEEP_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
+    (CONF_SUNRISE_OFFSET, cv.time_period),
+    (CONF_SUNRISE_TIME, cv.time),
+    (CONF_SUNSET_OFFSET, cv.time_period),
+    (CONF_SUNSET_TIME, cv.time),
 ]

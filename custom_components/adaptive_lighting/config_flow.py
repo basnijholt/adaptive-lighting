@@ -45,7 +45,7 @@ from .const import (
     DEFAULT_TRANSITION,
     DOMAIN,
     FAKE_NONE,
-    VALIDATION,
+    EXTRA_VALIDATION,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -89,7 +89,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Handle options flow."""
         errors = {}
         if user_input is not None:
-            for key, validate in VALIDATION:
+            for key, validate in EXTRA_VALIDATION:
+                # these are unserializable validators
                 try:
                     value = user_input.get(key)
                     if value == FAKE_NONE:

@@ -3,12 +3,10 @@
 
 import asyncio
 import bisect
+from copy import deepcopy
 import logging
 from datetime import timedelta
 
-import voluptuous as vol
-
-import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS_PCT,
@@ -87,7 +85,7 @@ from .const import (
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
-    VALIDATION,
+    EXTRA_VALIDATION,
 )
 
 _SUPPORT_OPTS = {
@@ -130,7 +128,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
-        opts = config_entry.options
+        opts = {
+            key: value if value != FAKE_NONE else None
+            for key, value in config_entry.options.items()
+        }
+        for key, validate in EXTRA_VALIDATION:  # Fix the types of the inputs
+            value = opts.get(key)
+            if value is not None:
+                opts[key] = validate(value)
+
         self._lights = opts.get(CONF_LIGHTS, DEFAULT_LIGHTS)
         self._disable_brightness_adjust = opts.get(
             CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST
@@ -159,16 +165,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sunset_offset = opts.get(CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET)
         self._sunset_time = opts.get(CONF_SUNSET_TIME)
         self._transition = opts.get(CONF_TRANSITION, DEFAULT_TRANSITION)
-
-        for name, validate in VALIDATION:
-            name = f"_{name}"
-            attr = getattr(self, name)
-            if attr is not None and attr != FAKE_NONE:
-                setattr(self, name, validate(attr))
-            elif attr == FAKE_NONE:
-                # FIX: Can't use `None` in OptionsFlow. For reasons I do
-                # not understand, I cannot save an option that is empty.
-                setattr(self, name, None)
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None
