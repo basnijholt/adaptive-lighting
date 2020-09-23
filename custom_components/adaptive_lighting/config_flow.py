@@ -86,8 +86,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Handle options flow."""
+        errors = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            for key, validate in [
+                (CONF_SUNRISE_TIME, cv.time),
+                (CONF_SUNSET_TIME, cv.time),
+                (CONF_SUNRISE_OFFSET, cv.time_period),
+                (CONF_SUNSET_OFFSET, cv.time_period),
+                (CONF_INTERVAL, cv.time_period),
+                (CONF_DISABLE_ENTITY, cv.entity_id),
+                (CONF_SLEEP_ENTITY, cv.entity_id),
+                (CONF_DISABLE_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
+                (CONF_SLEEP_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
+            ]:
+                try:
+                    value = user_input.get(key)
+                    if value == FAKE_NONE:
+                        value = None
+                    if value is not None:
+                        validate(user_input[key])
+                except vol.Invalid:
+                    _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
+                    errors["base"] = "option_error"
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
 
         options = self.config_entry.options
 
@@ -160,4 +182,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=options_schema)
+        return self.async_show_form(
+            step_id="init", data_schema=options_schema, errors=errors
+        )
