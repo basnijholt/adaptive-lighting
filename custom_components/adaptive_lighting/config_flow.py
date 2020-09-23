@@ -45,6 +45,7 @@ from .const import (
     DEFAULT_TRANSITION,
     DOMAIN,
     FAKE_NONE,
+    VALIDATION,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -88,17 +89,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Handle options flow."""
         errors = {}
         if user_input is not None:
-            for key, validate in [
-                (CONF_SUNRISE_TIME, cv.time),
-                (CONF_SUNSET_TIME, cv.time),
-                (CONF_SUNRISE_OFFSET, cv.time_period),
-                (CONF_SUNSET_OFFSET, cv.time_period),
-                (CONF_INTERVAL, cv.time_period),
-                (CONF_DISABLE_ENTITY, cv.entity_id),
-                (CONF_SLEEP_ENTITY, cv.entity_id),
-                (CONF_DISABLE_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
-                (CONF_SLEEP_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
-            ]:
+            for key, validate in VALIDATION:
                 try:
                     value = user_input.get(key)
                     if value == FAKE_NONE:
@@ -106,7 +97,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     if value is not None:
                         validate(user_input[key])
                 except vol.Invalid:
-                    _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
+                    _LOGGER.exception(
+                        "Configuration option %s=%s is incorrect", key, value
+                    )
                     errors["base"] = "option_error"
             if not errors:
                 return self.async_create_entry(title="", data=user_input)

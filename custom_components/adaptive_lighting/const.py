@@ -1,3 +1,7 @@
+import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
+
 ICON = "mdi:theme-light-dark"
 
 DOMAIN = "adaptive_lighting"
@@ -31,3 +35,15 @@ CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 FAKE_NONE = "None"
+
+VALIDATION = [  # these validators cannot be serialized
+    (CONF_SUNRISE_TIME, cv.time),
+    (CONF_SUNSET_TIME, cv.time),
+    (CONF_SUNRISE_OFFSET, cv.time_period),
+    (CONF_SUNSET_OFFSET, cv.time_period),
+    (CONF_INTERVAL, cv.time_period),
+    (CONF_DISABLE_ENTITY, cv.entity_id),
+    (CONF_SLEEP_ENTITY, cv.entity_id),
+    (CONF_DISABLE_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
+    (CONF_SLEEP_STATE, vol.All(cv.ensure_list_csv, [cv.string])),
+]

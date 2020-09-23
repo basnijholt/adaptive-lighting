@@ -87,6 +87,7 @@ from .const import (
     ICON,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
+    VALIDATION,
 )
 
 _SUPPORT_OPTS = {
@@ -159,17 +160,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sunset_time = opts.get(CONF_SUNSET_TIME)
         self._transition = opts.get(CONF_TRANSITION, DEFAULT_TRANSITION)
 
-        for name, validate in [
-            ("_sunrise_time", cv.time),
-            ("_sunset_time", cv.time),
-            ("_sunrise_offset", cv.time_period),
-            ("_sunset_offset", cv.time_period),
-            ("_interval", cv.time_period),
-            ("_disable_entity", cv.entity_id),
-            ("_sleep_entity", cv.entity_id),
-            ("_disable_state", vol.All(cv.ensure_list_csv, [cv.string])),
-            ("_sleep_state", vol.All(cv.ensure_list_csv, [cv.string])),
-        ]:
+        for name, validate in VALIDATION:
+            name = f"_{name}"
             attr = getattr(self, name)
             if attr is not None and attr != FAKE_NONE:
                 setattr(self, name, validate(attr))
