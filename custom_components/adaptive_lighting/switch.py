@@ -128,7 +128,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
-        opts = {
+        opts = {  # replace "None" -> None
             key: value if value != FAKE_NONE else None
             for key, value in config_entry.options.items()
         }
@@ -178,7 +178,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set and unset tracker in async_turn_on and async_turn_off
         self.unsub_tracker = None
         _LOGGER.error(
-            f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}"
+            f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}, converted to {opts}"
         )
 
     @property
