@@ -44,6 +44,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _DOMAIN_SCHEMA = get_domain_schema(yaml=False)
         schema = {k: v for k, v in _DOMAIN_SCHEMA.items() if k in user_input}
         vol.Schema(schema)(user_input)
+        await self.async_set_unique_id(user_input["name"])
+        self._abort_if_unique_id_configured()
         return self.async_create_entry(title=user_input["name"], data=user_input)
 
     @staticmethod
