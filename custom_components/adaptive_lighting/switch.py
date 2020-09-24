@@ -3,6 +3,7 @@
 import asyncio
 import bisect
 import logging
+from copy import deepcopy
 from datetime import timedelta
 
 import homeassistant.util.dt as dt_util
@@ -113,14 +114,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def __init__(self, hass, name, config_entry):
         """Initialize the Adaptive Lighting switch."""
-        _LOGGER.error(f"title={config_entry.title}")
         self.hass = hass
         self._name = name
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-        data = dict(defaults, **config_entry.options, **config_entry.data)
+        data = deepcopy(defaults)
+        data.update(config_entry.options)  # come from options flow
+        data.update(config_entry.data)  # all yaml settings come from data
         data = {key: replace_none(value) for key, value in data.items()}
         for key, (validate, coerce) in EXTRA_VALIDATION.items():
             # Fix the types of the inputs
@@ -161,7 +163,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set and unset tracker in async_turn_on and async_turn_off
         self.unsub_tracker = None
         _LOGGER.error(
-            f"Setting up with {self._lights}: config_entry.data: {config_entry.data}, config_entry.options: {config_entry.options}, converted to {data}"
+            f"Setting up with '{self._lights}',"
+            f" config_entry.data: '{config_entry.data}',"
+            f" config_entry.options: '{config_entry.options}', converted to '{data}'."
         )
 
     @property

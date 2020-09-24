@@ -44,7 +44,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _DOMAIN_SCHEMA = get_domain_schema(yaml=False)
         schema = {k: v for k, v in _DOMAIN_SCHEMA.items() if k in user_input}
         vol.Schema(schema)(user_input)
-        _LOGGER.error(str(user_input) + str(schema))
         return self.async_create_entry(title=user_input["name"], data=user_input)
 
     @staticmethod

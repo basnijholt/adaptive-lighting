@@ -50,7 +50,6 @@ def _all_unique_profiles(value):
 
 
 _DOMAIN_SCHEMA = get_domain_schema(yaml=True)
-_LOGGER.error(_DOMAIN_SCHEMA)
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.All(
