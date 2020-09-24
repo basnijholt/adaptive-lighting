@@ -67,8 +67,8 @@ from .const import (
     CONF_TRANSITION,
     DOMAIN,
     EXTRA_VALIDATION,
-    FAKE_NONE,
     ICON,
+    NONE_STR,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
     VALIDATION_TUPLES,
@@ -106,7 +106,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 def replace_none(value):
     """Replaces "None" -> None."""
-    return value if value != FAKE_NONE else None
+    return value if value != NONE_STR else None
 
 
 def validate(config_entry):

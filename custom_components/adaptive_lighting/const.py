@@ -35,7 +35,7 @@ CONF_SUNSET_TIME = "sunset_time"
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
-FAKE_NONE = "None"  # TODO: use `from homeassistant.const import ENTITY_MATCH_NONE`?
+NONE_STR = "None"  # TODO: use `from homeassistant.const import ENTITY_MATCH_NONE`?
 
 
 def int_between(a, b):
@@ -45,8 +45,8 @@ def int_between(a, b):
 VALIDATION_TUPLES = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
     (CONF_DISABLE_BRIGHTNESS_ADJUST, DEFAULT_DISABLE_BRIGHTNESS_ADJUST, bool),
-    (CONF_DISABLE_ENTITY, FAKE_NONE, str),
-    (CONF_DISABLE_STATE, FAKE_NONE, str),
+    (CONF_DISABLE_ENTITY, NONE_STR, str),
+    (CONF_DISABLE_STATE, NONE_STR, str),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS, int_between(1, 100)),
@@ -56,12 +56,12 @@ VALIDATION_TUPLES = [
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
     (CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP, int_between(1000, 10000)),
-    (CONF_SLEEP_ENTITY, FAKE_NONE, str),
-    (CONF_SLEEP_STATE, FAKE_NONE, str),
+    (CONF_SLEEP_ENTITY, NONE_STR, str),
+    (CONF_SLEEP_STATE, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
-    (CONF_SUNRISE_TIME, FAKE_NONE, str),
+    (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
-    (CONF_SUNSET_TIME, FAKE_NONE, str),
+    (CONF_SUNSET_TIME, NONE_STR, str),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
 ]
 
@@ -97,7 +97,7 @@ def maybe_coerse(key, validation):
 
 
 def replace_none(x):
-    return x if x != FAKE_NONE else vol.UNDEFINED
+    return x if x != NONE_STR else vol.UNDEFINED
 
 
 validation_tuples = [

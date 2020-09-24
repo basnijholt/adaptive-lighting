@@ -8,7 +8,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
 
-from .const import DOMAIN, EXTRA_VALIDATION, FAKE_NONE, VALIDATION_TUPLES
+from .const import DOMAIN, EXTRA_VALIDATION, NONE_STR, VALIDATION_TUPLES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def validate_options(user_input, errors):
         # these are unserializable validators
         try:
             value = user_input.get(key)
-            if value is not None and value != FAKE_NONE:
+            if value is not None and value != NONE_STR:
                 validate(value)
         except vol.Invalid:
             _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
