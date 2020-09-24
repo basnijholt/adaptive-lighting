@@ -96,10 +96,10 @@ SCAN_INTERVAL = timedelta(seconds=10)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the AdaptiveLighting switch."""
-    name = config_entry.data[CONF_NAME]
-    switch = AdaptiveSwitch(hass, name, config_entry)
+    switch = AdaptiveSwitch(hass, config_entry)
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
+    name = config_entry.data[CONF_NAME]
     hass.data[DOMAIN][name] = switch
     async_add_entities([switch], update_before_add=True)
 
@@ -126,14 +126,14 @@ def validate(config_entry):
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    def __init__(self, hass, name, config_entry):
+    def __init__(self, hass, config_entry):
         """Initialize the Adaptive Lighting switch."""
         self.hass = hass
-        self._name = name
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
         data = validate(config_entry)
+        self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
         self._disable_brightness_adjust = data[CONF_DISABLE_BRIGHTNESS_ADJUST]
         self._disable_entity = data[CONF_DISABLE_ENTITY]
