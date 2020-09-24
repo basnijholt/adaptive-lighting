@@ -8,7 +8,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
 
-from .const import DOMAIN, EXTRA_VALIDATION, NONE_STR, VALIDATION_TUPLES
+from .const import CONF_LIGHTS, DOMAIN, EXTRA_VALIDATION, NONE_STR, VALIDATION_TUPLES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 def validate_options(user_input, errors):
-    for key, (validate, coerce) in EXTRA_VALIDATION.items():
+    for key, (validate, _) in EXTRA_VALIDATION.items():
         # these are unserializable validators
         try:
             value = user_input.get(key)
@@ -77,17 +77,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_create_entry(title="", data=user_input)
 
         all_lights = cv.multi_select(self.hass.states.async_entity_ids("light"))
-        validation_tuples = copy(VALIDATION_TUPLES)
-        lights_tuple = (*validation_tuples[0][:-1], all_lights)
-        validation_tuples[0] = lights_tuple
 
-        options_schema = vol.Schema(
-            {
-                vol.Optional(key, default=conf.options.get(key, default)): validation
-                for key, default, validation in validation_tuples
-            }
-        )
+        options_schema = {}
+        for name, default, validation in VALIDATION_TUPLES:
+            key = vol.Optional(name, default=conf.options.get(name, default))
+            value = validation if name != CONF_LIGHTS else all_lights
+            options_schema[key] = value
 
         return self.async_show_form(
-            step_id="init", data_schema=options_schema, errors=errors
+            step_id="init", data_schema=vol.Schema(options_schema), errors=errors
         )
