@@ -8,13 +8,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
 
-from .const import (
-    DOMAIN,
-    EXTRA_VALIDATION,
-    FAKE_NONE,
-    VALIDATION_TUPLES,
-    get_domain_schema,
-)
+from .const import DOMAIN, EXTRA_VALIDATION, FAKE_NONE, VALIDATION_TUPLES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,9 +35,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_import(self, user_input=None):
         """Handle configuration by yaml file."""
-        _DOMAIN_SCHEMA = get_domain_schema(yaml=False)
-        schema = {k: v for k, v in _DOMAIN_SCHEMA.items() if k in user_input}
-        vol.Schema(schema)(user_input)
         await self.async_set_unique_id(user_input["name"])
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title=user_input["name"], data=user_input)

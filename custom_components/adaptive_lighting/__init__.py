@@ -34,7 +34,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 
-from .const import CONF_NAME, DOMAIN, UNDO_UPDATE_LISTENER, get_domain_schema
+from .const import _DOMAIN_SCHEMA, CONF_NAME, DOMAIN, UNDO_UPDATE_LISTENER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,13 +49,8 @@ def _all_unique_profiles(value):
     return value
 
 
-_DOMAIN_SCHEMA = get_domain_schema(yaml=True)
 CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.All(
-            cv.ensure_list, [vol.Schema(_DOMAIN_SCHEMA)], _all_unique_profiles
-        )
-    },
+    {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_profiles)},
     extra=vol.ALLOW_EXTRA,
 )
 

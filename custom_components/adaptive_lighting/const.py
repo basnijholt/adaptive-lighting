@@ -74,7 +74,8 @@ def join_strings(lst):
     return ",".join(lst)
 
 
-# these validators cannot be serialized
+# conf_option: (validator, coerce) tuples
+# these validators cannot be serialized but can be serialized when coerced by coerce.
 EXTRA_VALIDATION = {
     CONF_DISABLE_ENTITY: (cv.entity_id, str),
     CONF_DISABLE_STATE: (vol.All(cv.ensure_list_csv, [cv.string]), join_strings),
@@ -88,27 +89,25 @@ EXTRA_VALIDATION = {
 }
 
 
-def get_domain_schema(with_fake_none=False, yaml=False):
-    def get_validation(key, validation):
-        validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
-        return (
-            vol.All(validation, vol.Coerce(coerce))
-            if yaml and coerce is not None
-            else validation
-        )
+def maybe_coerse(key, validation):
+    validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
+    if coerce is not None:
+        return vol.All(validation, vol.Coerce(coerce))
+    return validation
 
-    validation_tuples = [
-        (key, default, get_validation(key, validation))
-        for key, default, validation in VALIDATION_TUPLES
-    ]
-    validation_tuples.append((CONF_NAME, DEFAULT_NAME, cv.string))
 
-    def replace_none(x):
-        if not with_fake_none and x == FAKE_NONE:
-            return vol.UNDEFINED
-        return x
+def replace_none(x):
+    return x if x != FAKE_NONE else vol.UNDEFINED
 
-    return {
+
+validation_tuples = [
+    (key, default, maybe_coerse(key, validation))
+    for key, default, validation in VALIDATION_TUPLES
+] + [(CONF_NAME, DEFAULT_NAME, cv.string)]
+
+_DOMAIN_SCHEMA = vol.Schema(
+    {
         vol.Optional(key, default=replace_none(default)): validation
         for key, default, validation in validation_tuples
     }
+)
