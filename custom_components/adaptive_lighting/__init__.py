@@ -29,8 +29,9 @@ Technical notes: I had to make a lot of assumptions when writing this app
 import asyncio
 import logging
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 
 from .const import CONF_NAME, DOMAIN, UNDO_UPDATE_LISTENER, get_domain_schema
@@ -48,15 +49,16 @@ def _all_unique_profiles(value):
     return value
 
 
-# _DOMAIN_SCHEMA = get_domain_schema(with_fake_none=False)
-# CONFIG_SCHEMA = vol.Schema(
-#     {
-#         DOMAIN: vol.All(
-#             cv.ensure_list, [vol.Schema(_DOMAIN_SCHEMA)], _all_unique_profiles
-#         )
-#     },
-#     extra=vol.ALLOW_EXTRA,
-# )
+_DOMAIN_SCHEMA = get_domain_schema(yaml=True)
+_LOGGER.error(_DOMAIN_SCHEMA)
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.All(
+            cv.ensure_list, [vol.Schema(_DOMAIN_SCHEMA)], _all_unique_profiles
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 
 async def async_setup(hass, config):

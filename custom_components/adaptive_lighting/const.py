@@ -1,5 +1,6 @@
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import VALID_TRANSITION
 
 ICON = "mdi:theme-light-dark"
@@ -64,22 +65,40 @@ VALIDATION_TUPLES = [
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
 ]
 
-EXTRA_VALIDATION = {  # these validators cannot be serialized
-    CONF_DISABLE_ENTITY: cv.entity_id,
-    CONF_DISABLE_STATE: vol.All(cv.ensure_list_csv, [cv.string]),
-    CONF_INTERVAL: cv.time_period,
-    CONF_SLEEP_ENTITY: cv.entity_id,
-    CONF_SLEEP_STATE: vol.All(cv.ensure_list_csv, [cv.string]),
-    CONF_SUNRISE_OFFSET: cv.time_period,
-    CONF_SUNRISE_TIME: cv.time,
-    CONF_SUNSET_OFFSET: cv.time_period,
-    CONF_SUNSET_TIME: cv.time,
+
+def timedelta_as_int(value):
+    return value.total_seconds()
+
+
+def join_strings(lst):
+    return ",".join(lst)
+
+
+# these validators cannot be serialized
+EXTRA_VALIDATION = {
+    CONF_DISABLE_ENTITY: (cv.entity_id, str),
+    CONF_DISABLE_STATE: (vol.All(cv.ensure_list_csv, [cv.string]), join_strings),
+    CONF_INTERVAL: (cv.time_period, timedelta_as_int),
+    CONF_SLEEP_ENTITY: (cv.entity_id, str),
+    CONF_SLEEP_STATE: (vol.All(cv.ensure_list_csv, [cv.string]), join_strings),
+    CONF_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
+    CONF_SUNRISE_TIME: (cv.time, str),
+    CONF_SUNSET_OFFSET: (cv.time_period, timedelta_as_int),
+    CONF_SUNSET_TIME: (cv.time, str),
 }
 
 
-def get_domain_schema(with_fake_none=False):
+def get_domain_schema(with_fake_none=False, yaml=False):
+    def get_validation(key, validation):
+        validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
+        return (
+            vol.All(validation, vol.Coerce(coerce))
+            if yaml and coerce is not None
+            else validation
+        )
+
     validation_tuples = [
-        (key, default, EXTRA_VALIDATION.get(key, validation))
+        (key, default, get_validation(key, validation))
         for key, default, validation in VALIDATION_TUPLES
     ]
     validation_tuples.append((CONF_NAME, DEFAULT_NAME, cv.string))

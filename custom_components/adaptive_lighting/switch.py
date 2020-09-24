@@ -64,20 +64,6 @@ from .const import (
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
-    DEFAULT_DISABLE_BRIGHTNESS_ADJUST,
-    DEFAULT_INITIAL_TRANSITION,
-    DEFAULT_INTERVAL,
-    DEFAULT_LIGHTS,
-    DEFAULT_MAX_BRIGHTNESS,
-    DEFAULT_MAX_COLOR_TEMP,
-    DEFAULT_MIN_BRIGHTNESS,
-    DEFAULT_MIN_COLOR_TEMP,
-    DEFAULT_ONLY_ONCE,
-    DEFAULT_SLEEP_BRIGHTNESS,
-    DEFAULT_SLEEP_COLOR_TEMP,
-    DEFAULT_SUNRISE_OFFSET,
-    DEFAULT_SUNSET_OFFSET,
-    DEFAULT_TRANSITION,
     DOMAIN,
     EXTRA_VALIDATION,
     FAKE_NONE,
@@ -136,7 +122,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
         data = dict(defaults, **config_entry.options, **config_entry.data)
         data = {key: replace_none(value) for key, value in data.items()}
-        for key, validate in EXTRA_VALIDATION.items():
+        for key, (validate, coerce) in EXTRA_VALIDATION.items():
             # Fix the types of the inputs
             value = data.get(key)
             if value is not None:

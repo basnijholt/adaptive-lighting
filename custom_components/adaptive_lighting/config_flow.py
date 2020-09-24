@@ -2,8 +2,9 @@
 import logging
 from copy import copy
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
 
@@ -40,7 +41,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_import(self, user_input=None):
         """Handle configuration by yaml file."""
-        _DOMAIN_SCHEMA = get_domain_schema(with_fake_none=False)
+        _DOMAIN_SCHEMA = get_domain_schema(yaml=False)
         schema = {k: v for k, v in _DOMAIN_SCHEMA.items() if k in user_input}
         vol.Schema(schema)(user_input)
         _LOGGER.error(str(user_input) + str(schema))
@@ -54,7 +55,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 def validate_options(user_input, errors):
-    for key, validate in EXTRA_VALIDATION.items():
+    for key, (validate, coerce) in EXTRA_VALIDATION.items():
         # these are unserializable validators
         try:
             value = user_input.get(key)
