@@ -109,6 +109,20 @@ def replace_none(value):
     return value if value != FAKE_NONE else None
 
 
+def validate(config_entry):
+    """Gets the options and data from the config_entry and adds defaults."""
+    defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    data = deepcopy(defaults)
+    data.update(config_entry.options)  # come from options flow
+    data.update(config_entry.data)  # all yaml settings come from data
+    data = {key: replace_none(value) for key, value in data.items()}
+    for key, (validate, _) in EXTRA_VALIDATION.items():
+        value = data.get(key)
+        if value is not None:
+            data[key] = validate(value)  # Fix the types of the inputs
+    return data
+
+
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
@@ -119,17 +133,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
         self._icon = ICON
 
-        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-        data = deepcopy(defaults)
-        data.update(config_entry.options)  # come from options flow
-        data.update(config_entry.data)  # all yaml settings come from data
-        data = {key: replace_none(value) for key, value in data.items()}
-        for key, (validate, coerce) in EXTRA_VALIDATION.items():
-            # Fix the types of the inputs
-            value = data.get(key)
-            if value is not None:
-                data[key] = validate(value)
-
+        data = validate(config_entry)
         self._lights = data[CONF_LIGHTS]
         self._disable_brightness_adjust = data[CONF_DISABLE_BRIGHTNESS_ADJUST]
         self._disable_entity = data[CONF_DISABLE_ENTITY]
