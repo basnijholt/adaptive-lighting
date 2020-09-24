@@ -79,9 +79,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             validate_options(user_input, errors)
             if not errors:
-                return self.async_create_entry(
-                    title=user_input["name"], data=user_input
-                )
+                return self.async_create_entry(title="", data=user_input)
 
         all_lights = cv.multi_select(self.hass.states.async_entity_ids("light"))
         validation_tuples = copy(VALIDATION_TUPLES)
