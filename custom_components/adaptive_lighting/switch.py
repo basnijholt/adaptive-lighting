@@ -129,8 +129,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def __init__(self, hass, config_entry):
         """Initialize the Adaptive Lighting switch."""
         self.hass = hass
-        self._entity_id = f"switch.{DOMAIN}_{slugify(name)}"
-        self._icon = ICON
 
         data = validate(config_entry)
         self._name = data[CONF_NAME]
@@ -154,6 +152,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sunset_offset = data[CONF_SUNSET_OFFSET]
         self._sunset_time = data[CONF_SUNSET_TIME]
         self._transition = data[CONF_TRANSITION]
+
+        # Set other attributes
+        self._icon = ICON
+        self._entity_id = f"switch.{DOMAIN}_{slugify(self._name)}"
 
         # Initialize attributes that will be set in self._update_attrs
         self._percent = None
