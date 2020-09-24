@@ -76,6 +76,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Handle options flow."""
+        conf = self.config_entry
+        if conf.source == config_entries.SOURCE_IMPORT:
+            return self.async_show_form(step_id="init", data_schema={})
         errors = {}
         if user_input is not None:
             validate_options(user_input, errors)
@@ -87,10 +90,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         lights_tuple = (*validation_tuples[0][:-1], all_lights)
         validation_tuples[0] = lights_tuple
 
-        options = self.config_entry.options
         options_schema = vol.Schema(
             {
-                vol.Optional(key, default=options.get(key, default)): validation
+                vol.Optional(key, default=conf.options.get(key, default)): validation
                 for key, default, validation in validation_tuples
             }
         )

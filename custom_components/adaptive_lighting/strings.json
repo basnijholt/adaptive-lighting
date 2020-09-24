@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Adaptive Lighting options",
-        "description": "All settings for a Adaptive Lighting component. The option names correspond with the YAML settings.",
+        "description": "All settings for a Adaptive Lighting component. The option names correspond with the YAML settings. No options are shown if you have this entry defined in YAML.",
         "data": {
           "lights_brightness": "lights_brightness",
           "lights_mired": "lights_mired",
