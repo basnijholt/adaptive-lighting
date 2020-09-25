@@ -105,12 +105,11 @@ async def handle_apply(entity, service_call):
     """Handle the entity service apply."""
     if not isinstance(entity, AdaptiveSwitch):
         raise ValueError("Apply can only be called for a AdaptiveSwitch.")
-    _LOGGER.error(str(entity) + str(service_call))
-    await entity._adjust_lights(
-        service_call.data[CONF_LIGHTS],
-        service_call.data.get(CONF_TRANSITION),
-        force=True,
-    )
+    lights = service_call.data[CONF_LIGHTS]
+    transition = service_call.data.get(CONF_TRANSITION, entity._initial_transition)
+    tasks = [await entity._adjust_light(light, transition) for light in lights]
+    if tasks:
+        await asyncio.wait(tasks)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):

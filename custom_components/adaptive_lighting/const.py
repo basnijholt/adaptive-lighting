@@ -90,7 +90,7 @@ EXTRA_VALIDATION = {
 }
 
 
-def maybe_coerse(key, validation):
+def maybe_coerce(key, validation):
     validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
     if coerce is not None:
         return vol.All(validation, vol.Coerce(coerce))
@@ -102,7 +102,7 @@ def replace_none(x):
 
 
 validation_tuples = [
-    (key, default, maybe_coerse(key, validation))
+    (key, default, maybe_coerce(key, validation))
     for key, default, validation in VALIDATION_TUPLES
 ] + [(CONF_NAME, DEFAULT_NAME, cv.string)]
 
