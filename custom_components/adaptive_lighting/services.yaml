@@ -1,0 +1,12 @@
+apply:
+  description: Applies the current Adaptive Lighting settings to lights.
+  fields:
+    entity_id:
+      description: entity_id of the Adaptive Lighting switch
+      example: switch.adaptive_lighting_default
+    lights:
+      description: entity_id(s) of lights
+      example: light.bedroom_ceiling
+    transition:
+      description: transition of the lights
+      example: 10

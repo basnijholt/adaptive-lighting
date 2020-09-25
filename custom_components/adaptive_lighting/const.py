@@ -34,6 +34,7 @@ CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
 CONF_SUNSET_TIME = "sunset_time"
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
+SERVICE_APPLY = "apply"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 NONE_STR = "None"  # TODO: use `from homeassistant.const import ENTITY_MATCH_NONE`?
 
