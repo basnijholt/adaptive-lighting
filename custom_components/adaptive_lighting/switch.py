@@ -50,6 +50,7 @@ from homeassistant.util.color import (
 )
 
 from .const import (
+    CONF_COLORS_ONLY,
     CONF_DISABLE_BRIGHTNESS_ADJUST,
     CONF_DISABLE_ENTITY,
     CONF_DISABLE_STATE,
@@ -60,6 +61,7 @@ from .const import (
     CONF_MAX_COLOR_TEMP,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
+    CONF_ON_LIGHTS_ONLY,
     CONF_ONLY_ONCE,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
@@ -95,13 +97,20 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=10)
 
 
-async def handle_apply(entity, service_call):
+async def handle_apply(switch, service_call):
     """Handle the entity service apply."""
-    if not isinstance(entity, AdaptiveSwitch):
+    if not isinstance(switch, AdaptiveSwitch):
         raise ValueError("Apply can only be called for a AdaptiveSwitch.")
-    lights = service_call.data[CONF_LIGHTS]
-    transition = service_call.data.get(CONF_TRANSITION, entity._initial_transition)
-    tasks = [await entity._adjust_light(light, transition) for light in lights]
+    data = service_call.data
+    tasks = [
+        await switch._adjust_light(
+            light,
+            data[CONF_TRANSITION],
+            data[CONF_COLORS_ONLY],
+        )
+        for light in data[CONF_LIGHTS]
+        if not data[CONF_ON_LIGHTS_ONLY] or is_on(switch.hass, light)
+    ]
     if tasks:
         await asyncio.wait(tasks)
 
@@ -120,7 +129,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         SERVICE_APPLY,
         {
             vol.Required(CONF_LIGHTS): cv.entity_ids,
-            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
+            vol.Optional(
+                CONF_TRANSITION, default=self._initial_transition
+            ): VALID_TRANSITION,
+            vol.Optional(CONF_COLORS_ONLY, default=False): cv.boolean,
+            vol.Optional(CONF_ON_LIGHTS_ONLY, default=False): cv.boolean,
         },
         handle_apply,
     )
@@ -411,7 +424,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self.hass.states.get(self._disable_entity).state in self._disable_state
         )
 
-    async def _adjust_light(self, light, transition):
+    async def _adjust_light(self, light, transition, colors_only):
         service_data = {ATTR_ENTITY_ID: light}
         features = self._supported_features(light)
 
@@ -420,7 +433,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 transition = self._transition
             service_data[ATTR_TRANSITION] = transition
 
-        if self._brightness is not None and "brightness" in features:
+        if (
+            self._brightness is not None
+            and "brightness" in features
+            and not colors_only
+        ):
             service_data[ATTR_BRIGHTNESS_PCT] = self._brightness
 
         if "color" in features:
@@ -441,8 +458,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return False
         return True
 
-    async def _adjust_lights(self, lights, transition, force=False):
-        if not self._should_adjust() or not force:
+    async def _adjust_lights(self, lights, transition):
+        if not self._should_adjust():
             return
         tasks = [
             await self._adjust_light(light, transition)
