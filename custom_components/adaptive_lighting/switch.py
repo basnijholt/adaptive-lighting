@@ -5,7 +5,6 @@ import bisect
 import logging
 from copy import deepcopy
 from datetime import timedelta
-from functools import partial
 
 import voluptuous as vol
 
@@ -74,11 +73,11 @@ from .const import (
     DOMAIN,
     EXTRA_VALIDATION,
     ICON,
-    NONE_STR,
     SERVICE_APPLY,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
     VALIDATION_TUPLES,
+    replace_none,
 )
 
 _SUPPORT_OPTS = {
@@ -88,13 +87,8 @@ _SUPPORT_OPTS = {
     "transition": SUPPORT_TRANSITION,
 }
 
-_ALLOWED_ORDERS = {
-    (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT),
-    (SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT, SUN_EVENT_SUNRISE, SUN_EVENT_NOON),
-    (SUN_EVENT_MIDNIGHT, SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET),
-    (SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT, SUN_EVENT_SUNRISE),
-}
-
+_ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
+_ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -131,11 +125,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         handle_apply,
     )
     async_add_entities([switch], update_before_add=True)
-
-
-def replace_none(value):
-    """Replaces "None" -> None."""
-    return value if value != NONE_STR else None
 
 
 def validate(config_entry):
