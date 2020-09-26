@@ -3,9 +3,9 @@ import logging
 
 import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
+import homeassistant.helpers.config_validation as cv
 
 from .const import CONF_LIGHTS, DOMAIN, EXTRA_VALIDATION, NONE_STR, VALIDATION_TUPLES
 

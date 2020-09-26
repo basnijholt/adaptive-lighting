@@ -2,22 +2,18 @@
 
 import asyncio
 import bisect
-import logging
 from copy import deepcopy
 from datetime import timedelta
+import logging
 
 import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
-import homeassistant.util.dt as dt_util
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP,
     ATTR_RGB_COLOR,
     ATTR_TRANSITION,
-)
-from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import (
+    DOMAIN as LIGHT_DOMAIN,
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
@@ -35,6 +31,7 @@ from homeassistant.const import (
     SUN_EVENT_SUNSET,
 )
 from homeassistant.helpers import entity_platform
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import (
     async_track_state_change,
     async_track_time_interval,
@@ -48,6 +45,7 @@ from homeassistant.util.color import (
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
+import homeassistant.util.dt as dt_util
 
 from .const import (
     CONF_COLORS_ONLY,
@@ -104,7 +102,9 @@ async def handle_apply(switch, service_call):
     data = service_call.data
     tasks = [
         await switch._adjust_light(
-            light, data[CONF_TRANSITION], data[CONF_COLORS_ONLY],
+            light,
+            data[CONF_TRANSITION],
+            data[CONF_COLORS_ONLY],
         )
         for light in data[CONF_LIGHTS]
         if not data[CONF_ON_LIGHTS_ONLY] or is_on(switch.hass, light)

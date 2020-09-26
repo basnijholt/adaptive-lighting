@@ -29,8 +29,8 @@ import logging
 
 import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+import homeassistant.helpers.config_validation as cv
 
 from .const import _DOMAIN_SCHEMA, CONF_NAME, DOMAIN, UNDO_UPDATE_LISTENER
 
