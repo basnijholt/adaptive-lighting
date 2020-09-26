@@ -102,9 +102,7 @@ async def handle_apply(switch, service_call):
     data = service_call.data
     tasks = [
         await switch._adjust_light(
-            light,
-            data[CONF_TRANSITION],
-            data[CONF_COLORS_ONLY],
+            light, data[CONF_TRANSITION], data[CONF_COLORS_ONLY],
         )
         for light in data[CONF_LIGHTS]
         if not data[CONF_ON_LIGHTS_ONLY] or is_on(switch.hass, light)
@@ -197,10 +195,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.unsub_tracker = None
-        _LOGGER.error(
-            f"Setting up with '{self._lights}',"
-            f" config_entry.data: '{config_entry.data}',"
-            f" config_entry.options: '{config_entry.options}', converted to '{data}'."
+        _LOGGER.debug(
+            "Setting up with '%s',"
+            " config_entry.data: '%s',"
+            " config_entry.options: '%s', converted to '%s'.",
+            self._lights,
+            config_entry.data,
+            config_entry.options,
+            data,
         )
 
     @property
