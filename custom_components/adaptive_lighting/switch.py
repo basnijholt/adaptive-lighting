@@ -422,7 +422,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self.hass.states.get(self._disable_entity).state in self._disable_state
         )
 
-    async def _adjust_light(self, light, transition, colors_only):
+    async def _adjust_light(self, light, transition, colors_only=False):
         service_data = {ATTR_ENTITY_ID: light}
         features = self._supported_features(light)
 

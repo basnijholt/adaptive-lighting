@@ -7,7 +7,15 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
 
-from .const import CONF_LIGHTS, DOMAIN, EXTRA_VALIDATION, NONE_STR, VALIDATION_TUPLES
+from .const import (
+    CONF_DISABLE_ENTITY,
+    CONF_LIGHTS,
+    CONF_SLEEP_ENTITY,
+    DOMAIN,
+    EXTRA_VALIDATION,
+    NONE_STR,
+    VALIDATION_TUPLES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,12 +88,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        all_lights = cv.multi_select(self.hass.states.async_entity_ids("light"))
+        all_lights = sorted(self.hass.states.async_entity_ids("light"))
+        all_entities = sorted(self.hass.states.async_entity_ids())
+        to_replace = {
+            CONF_LIGHTS: cv.multi_select(all_lights),
+            CONF_DISABLE_ENTITY: vol.In([NONE_STR] + all_entities),
+            CONF_SLEEP_ENTITY: vol.In([NONE_STR] + all_entities),
+        }
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:
             key = vol.Optional(name, default=conf.options.get(name, default))
-            value = validation if name != CONF_LIGHTS else all_lights
+            value = to_replace.get(name, validation)
             options_schema[key] = value
 
         return self.async_show_form(
