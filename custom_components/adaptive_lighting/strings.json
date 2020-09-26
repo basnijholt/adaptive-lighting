@@ -20,10 +20,7 @@
         "title": "Adaptive Lighting options",
         "description": "All settings for a Adaptive Lighting component. The option names correspond with the YAML settings. No options are shown if you have this entry defined in YAML.",
         "data": {
-          "lights_brightness": "lights_brightness",
-          "lights_mired": "lights_mired",
-          "lights_rgb": "lights_rgb",
-          "lights_xy": "lights_xy",
+          "lights": "lights",
           "disable_brightness_adjust": "disable_brightness_adjust",
           "disable_entity": "disable_entity",
           "disable_state": "disable_state",
