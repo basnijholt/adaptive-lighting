@@ -128,7 +128,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         {
             vol.Required(CONF_LIGHTS): cv.entity_ids,
             vol.Optional(
-                CONF_TRANSITION, default=self._initial_transition
+                CONF_TRANSITION, default=switch._initial_transition
             ): VALID_TRANSITION,
             vol.Optional(CONF_COLORS_ONLY, default=False): cv.boolean,
             vol.Optional(CONF_ON_LIGHTS_ONLY, default=False): cv.boolean,
@@ -139,7 +139,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 def validate(config_entry):
-    """Gets the options and data from the config_entry and adds defaults."""
+    """Get the options and data from the config_entry and add defaults."""
     defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     data = deepcopy(defaults)
     data.update(config_entry.options)  # come from options flow

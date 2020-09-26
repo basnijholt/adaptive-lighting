@@ -1,3 +1,4 @@
+"""Constants for the Adaptive Lighting Component in Home-Assistant."""
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
@@ -43,6 +44,7 @@ CONF_ON_LIGHTS_ONLY = "on_lights_only"
 
 
 def int_between(a, b):
+    """Return an integer between 'a' and 'b'."""
     return vol.All(vol.Coerce(int), vol.Range(min=a, max=b))
 
 
@@ -71,10 +73,15 @@ VALIDATION_TUPLES = [
 
 
 def timedelta_as_int(value):
+    """Convert a `datetime.timedelta` object to an integer.
+
+    This integer can be serialized to json but a timedelta cannot.
+    """
     return value.total_seconds()
 
 
 def join_strings(lst):
+    """Join a list to comma-separated values string."""
     return ",".join(lst)
 
 
@@ -94,6 +101,7 @@ EXTRA_VALIDATION = {
 
 
 def maybe_coerce(key, validation):
+    """Coerce the validation into a json serializable type."""
     validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
     if coerce is not None:
         return vol.All(validation, vol.Coerce(coerce))
@@ -101,7 +109,7 @@ def maybe_coerce(key, validation):
 
 
 def replace_none_str(value, replace_with=None):
-    """Replaces "None" -> replace_with."""
+    """Replace "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
 
 

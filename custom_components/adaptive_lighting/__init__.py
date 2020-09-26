@@ -1,6 +1,4 @@
-"""
-Adaptive Lighting Component for Home-Assistant.
-
+"""Adaptive Lighting Component in Home-Assistant.
 
 This component calculates color temperature and brightness to synchronize
 your color-changing lights with the perceived color temperature of the sky

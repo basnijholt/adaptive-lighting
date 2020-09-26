@@ -1,6 +1,5 @@
 """Config flow for Coronavirus integration."""
 import logging
-from copy import copy
 
 import voluptuous as vol
 
@@ -47,6 +46,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 def validate_options(user_input, errors):
+    """Validate the options in the OptionsFlow.
+
+    This is an extra validation step because the validators
+    in `EXTRA_VALIDATION` cannot be serialized to json.
+    """
     for key, (validate, _) in EXTRA_VALIDATION.items():
         # these are unserializable validators
         try:
