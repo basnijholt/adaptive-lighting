@@ -15,10 +15,10 @@ hues. Hormone production, brainwave activity, mood and wakefulness are
 just some of the cognitive functions tied to cyclical natural light.
 http://en.wikipedia.org/wiki/Zeitgeber
 
-Here's some further reading:
+Further reading:
 
-http://www.cambridgeincolour.com/tutorials/sunrise-sunset-calculator.htm
-http://en.wikipedia.org/wiki/Color_temperature
+- http://www.cambridgeincolour.com/tutorials/sunrise-sunset-calculator.htm
+- http://en.wikipedia.org/wiki/Color_temperature
 
 Technical notes: I had to make a lot of assumptions when writing this app
 *   There are no considerations for weather or altitude, but does use your

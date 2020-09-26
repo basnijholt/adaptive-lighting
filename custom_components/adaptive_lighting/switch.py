@@ -79,7 +79,7 @@ from .const import (
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
     VALIDATION_TUPLES,
-    replace_none,
+    replace_none_str,
 )
 
 _SUPPORT_OPTS = {
@@ -146,7 +146,7 @@ def validate(config_entry):
     data = deepcopy(defaults)
     data.update(config_entry.options)  # come from options flow
     data.update(config_entry.data)  # all yaml settings come from data
-    data = {key: replace_none(value) for key, value in data.items()}
+    data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate, _) in EXTRA_VALIDATION.items():
         value = data.get(key)
         if value is not None:

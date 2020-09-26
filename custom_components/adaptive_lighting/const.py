@@ -100,7 +100,7 @@ def maybe_coerce(key, validation):
     return validation
 
 
-def replace_none(value, replace_with=None):
+def replace_none_str(value, replace_with=None):
     """Replaces "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
 
@@ -112,7 +112,7 @@ validation_tuples = [
 
 _DOMAIN_SCHEMA = vol.Schema(
     {
-        vol.Optional(key, default=replace_none(default, vol.UNDEFINED)): validation
+        vol.Optional(key, default=replace_none_str(default, vol.UNDEFINED)): validation
         for key, default, validation in validation_tuples
     }
 )
