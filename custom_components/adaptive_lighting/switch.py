@@ -104,9 +104,7 @@ async def handle_apply(switch, service_call):
     data = service_call.data
     tasks = [
         await switch._adjust_light(
-            light,
-            data[CONF_TRANSITION],
-            data[CONF_COLORS_ONLY],
+            light, data[CONF_TRANSITION], data[CONF_COLORS_ONLY],
         )
         for light in data[CONF_LIGHTS]
         if not data[CONF_ON_LIGHTS_ONLY] or is_on(switch.hass, light)

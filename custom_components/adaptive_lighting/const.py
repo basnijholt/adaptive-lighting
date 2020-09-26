@@ -105,7 +105,7 @@ def replace_none_str(value, replace_with=None):
     return value if value != NONE_STR else replace_with
 
 
-validation_tuples = [
+_yaml_validation_tuples = [
     (key, default, maybe_coerce(key, validation))
     for key, default, validation in VALIDATION_TUPLES
 ] + [(CONF_NAME, DEFAULT_NAME, cv.string)]
@@ -113,6 +113,6 @@ validation_tuples = [
 _DOMAIN_SCHEMA = vol.Schema(
     {
         vol.Optional(key, default=replace_none_str(default, vol.UNDEFINED)): validation
-        for key, default, validation in validation_tuples
+        for key, default, validation in _yaml_validation_tuples
     }
 )
