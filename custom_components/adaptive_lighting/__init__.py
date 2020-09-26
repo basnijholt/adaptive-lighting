@@ -41,7 +41,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["switch"]
 
 
-def _all_unique_profiles(value):
+def _all_unique_names(value):
     """Validate that all enties have a unique profile name."""
     hosts = [device[CONF_NAME] for device in value]
     schema = vol.Schema(vol.Unique())
@@ -50,7 +50,7 @@ def _all_unique_profiles(value):
 
 
 CONFIG_SCHEMA = vol.Schema(
-    {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_profiles)},
+    {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_names)},
     extra=vol.ALLOW_EXTRA,
 )
 
