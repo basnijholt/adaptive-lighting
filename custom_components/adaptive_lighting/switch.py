@@ -520,7 +520,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug(
                 "%s: Detected an 'off' → 'on' event for '%s'", self._name, entity_id
             )
-            _LOGGER.error(f"_turn_off_on_event: {event.context}, {entity_id}")
             if await self._maybe_cancel_adjusting(entity_id, now_ts, event):
                 # Stop if a rapid 'off' → 'on' → 'off' happens.
                 _LOGGER.debug(
@@ -656,4 +655,3 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             for eid in entity_id:
                 self._turn_on_event[eid] = event.context.id
-                _LOGGER.error(f"_turn_on_event: {event.context}, {entity_id}")
