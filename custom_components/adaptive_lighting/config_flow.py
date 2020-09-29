@@ -92,6 +92,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_create_entry(title="", data=user_input)
 
         all_lights = sorted(self.hass.states.async_entity_ids("light"))
+        # TODO: only use statefull entities
         all_entities = sorted(self.hass.states.async_entity_ids())
         to_replace = {
             CONF_LIGHTS: cv.multi_select(all_lights),
