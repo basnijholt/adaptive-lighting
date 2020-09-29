@@ -316,6 +316,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             rm_to = async_track_state_change(**kwgs, to_state=self._disable_state)
             self.unsub_trackers.extend([rm_from, rm_to])
 
+    def _unsub_trackers(self):
+        assert self.unsub_trackers
+        while self.unsub_trackers:
+            unsub = self.unsub_trackers.pop()
+            unsub()
+
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
@@ -345,7 +351,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         self._state = True
         if setup_listeners:
-            self._setup_trackers()
+            await self._setup_trackers()
         if adjust_lights:
             await self._update_lights(transition=self._initial_transition, force=True)
 
@@ -355,12 +361,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         self._state = False
         self._unsub_trackers()
-
-    def _unsub_trackers(self):
-        assert self.unsub_trackers
-        while self.unsub_trackers:
-            unsub = self.unsub_trackers.pop()
-            unsub()
 
     async def _update_attrs(self):
         """Update Adaptive Values."""
