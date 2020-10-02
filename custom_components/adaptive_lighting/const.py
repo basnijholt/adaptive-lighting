@@ -15,8 +15,6 @@ CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 CONF_ADAPT_BRIGHTNESS, DEFAULT_ADAPT_BRIGHTNESS = "adapt_brightness", True
 CONF_ADAPT_COLOR_TEMP, DEFAULT_ADAPT_COLOR_TEMP = "adapt_color_temp", True
 CONF_ADAPT_RGB_COLOR, DEFAULT_ADAPT_RGB_COLOR = "adapt_rgb_color", True
-CONF_DISABLE_ENTITY = "disable_entity"
-CONF_DISABLE_STATE = "disable_state"
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
 CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS = "max_brightness", 100
@@ -27,12 +25,11 @@ CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE = "only_once", False
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
-CONF_SLEEP_ENTITY = "sleep_entity"
-CONF_SLEEP_STATE = "sleep_state"
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
 CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
 CONF_SUNSET_TIME = "sunset_time"
+CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 60
 
 ATTR_TURN_ON_OFF_LISTENER = "turn_on_off_listener"
@@ -55,8 +52,6 @@ VALIDATION_TUPLES = [
     (CONF_ADAPT_BRIGHTNESS, DEFAULT_ADAPT_BRIGHTNESS, bool),
     (CONF_ADAPT_COLOR_TEMP, DEFAULT_ADAPT_COLOR_TEMP, bool),
     (CONF_ADAPT_RGB_COLOR, DEFAULT_ADAPT_RGB_COLOR, bool),
-    (CONF_DISABLE_ENTITY, NONE_STR, cv.entity_id),
-    (CONF_DISABLE_STATE, NONE_STR, str),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS, int_between(1, 100)),
@@ -67,12 +62,11 @@ VALIDATION_TUPLES = [
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
     (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
     (CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP, int_between(1000, 10000)),
-    (CONF_SLEEP_ENTITY, NONE_STR, cv.entity_id),
-    (CONF_SLEEP_STATE, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
     (CONF_SUNSET_TIME, NONE_STR, str),
+    (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
 ]
 
@@ -93,11 +87,7 @@ def join_strings(lst):
 # conf_option: (validator, coerce) tuples
 # these validators cannot be serialized but can be serialized when coerced by coerce.
 EXTRA_VALIDATION = {
-    CONF_DISABLE_ENTITY: (cv.entity_id, str),
-    CONF_DISABLE_STATE: (vol.All(cv.ensure_list_csv, [cv.string]), join_strings),
     CONF_INTERVAL: (cv.time_period, timedelta_as_int),
-    CONF_SLEEP_ENTITY: (cv.entity_id, str),
-    CONF_SLEEP_STATE: (vol.All(cv.ensure_list_csv, [cv.string]), join_strings),
     CONF_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_TIME: (cv.time, str),
     CONF_SUNSET_OFFSET: (cv.time_period, timedelta_as_int),
