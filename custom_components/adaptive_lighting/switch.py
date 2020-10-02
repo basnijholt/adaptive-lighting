@@ -127,7 +127,6 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
                 data[CONF_ADAPT_BRIGHTNESS],
                 data[CONF_ADAPT_COLOR_TEMP],
                 data[CONF_ADAPT_RGB_COLOR],
-                service_call.context,
             )
 
 
@@ -269,6 +268,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._off_to_on_event: Dict[str, Event] = {}
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self._locks: Dict[str, asyncio.Lock] = {}
+        # To identify that this integration made a change
+        self._context = Context()
 
         # Set in self._update_attrs_and_maybe_adapt_lights
         self._light_settings = {}
@@ -295,6 +296,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def name(self):
         """Return the name of the device if any."""
         return f"Adaptive Lighting: {self._name}"
+
+    # @property
+    # def unique_id(self):
+    #     """Return the unique ID of entity."""
+    #     return self._name
 
     @property
     def is_on(self) -> Optional[bool]:
@@ -364,9 +370,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return {key: None for key in self._light_settings}
         return self._light_settings
 
-    async def async_turn_on(
+    async def async_turn_on(  # pylint: disable=arguments-differ
         self, adapt_lights: bool = True
-    ) -> None:  # pylint: disable=arguments-differ
+    ) -> None:
         """Turn on adaptive lighting."""
         _LOGGER.debug(
             "%s: Called 'async_turn_on', current state is '%s'", self._name, self._state
@@ -390,9 +396,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _async_update_at_interval(self, now=None) -> None:
         await self._update_attrs_and_maybe_adapt_lights(force=False)
 
-    def _is_sleep(self) -> bool:
-        return self.sleep_mode_switch.is_on
-
     async def _adapt_light(
         self,
         light: str,
@@ -400,7 +403,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: Optional[bool] = None,
         adapt_color_temp: Optional[bool] = None,
         adapt_rgb_color: Optional[bool] = None,
-        context: Optional[Context] = None,
     ) -> None:
         lock = self._locks.get(light)
         if lock is not None and lock.locked():
@@ -448,7 +450,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             LIGHT_DOMAIN,
             SERVICE_TURN_ON,
             service_data,
-            context=context,
+            context=self._context,
         )
 
     async def _update_attrs_and_maybe_adapt_lights(
@@ -456,20 +458,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         lights: Optional[List[str]] = None,
         transition: Optional[int] = None,
         force: bool = False,
-        context: Optional[Context] = None,
     ):
         _LOGGER.debug("%s: '_update_attrs_and_maybe_adapt_lights' called", self._name)
         assert self.is_on
-        self._light_settings = self._sun_light_settings.get_settings(self._is_sleep())
+        self._light_settings = self._sun_light_settings.get_settings(
+            self.sleep_mode_switch.is_on
+        )
         self.async_write_ha_state()
         if lights is None:
             lights = self._lights
         if (self._only_once and not force) or not lights:
             return
-        await self._adapt_lights(lights, transition, context)
+        await self._adapt_lights(lights, transition)
 
     async def _adapt_lights(
-        self, lights: List[str], transition: Optional[int], context=Optional[Context]
+        self, lights: List[str], transition: Optional[int]
     ):
         _LOGGER.debug(
             "%s: '_adapt_lights(%s, %s)' called", self.name, lights, transition
@@ -481,16 +484,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 if await self.turn_on_off_listener.is_manually_adjusted(
                     light,
                     off_to_on_event=self._off_to_on_event.get(light),
+                    adaptive_lighting_context=self._context,
                 ):
                     continue
-            await self._adapt_light(light, transition, context=context)
+            await self._adapt_light(light, transition)
 
     async def _sleep_state_event(self, event: Event):
         if not match_state_event(event, ("on", "off")):
             return
         _LOGGER.debug("%s: _sleep_state_event, event: '%s'", self._name, event)
         await self._update_attrs_and_maybe_adapt_lights(
-            transition=self._initial_transition, force=True, context=event.context
+            transition=self._initial_transition, force=True
         )
 
     async def _light_event(self, event: Event):
@@ -527,7 +531,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lights=[entity_id],
                 transition=self._initial_transition,
                 force=True,
-                context=event.context,
             )
         elif (
             old_state is not None
@@ -561,6 +564,11 @@ class AdaptiveSleepModeSwitch(SwitchEntity, RestoreEntity):
         """Return the name of the device if any."""
         return f"Adaptive Lighting Sleep Mode: {self._name}"
 
+    # @property
+    # def unique_id(self):
+    #     """Return the unique ID of entity."""
+    #     return f"{self._name}_sleep_mode"
+
     @property
     def icon(self) -> str:
         """Icon to use in the frontend, if any."""
@@ -579,11 +587,11 @@ class AdaptiveSleepModeSwitch(SwitchEntity, RestoreEntity):
         else:
             await self.async_turn_on()
 
-    async def async_turn_on(self) -> None:
+    async def async_turn_on(self, **kwargs) -> None:
         """Turn on adaptive lighting sleep mode."""
         self._state = True
 
-    async def async_turn_off(self) -> None:
+    async def async_turn_off(self, **kwargs) -> None:
         """Turn off adaptive lighting sleep mode."""
         self._state = False
 
@@ -783,7 +791,7 @@ class TurnOnOffListener:
                     task.cancel()
                 self.turn_on_event[eid] = event
 
-    async def is_manually_adjusted(self, light: str, off_to_on_event: Optional[Event]):
+    async def is_manually_adjusted(self, light: str, off_to_on_event: Optional[Event], adaptive_lighting_context: Context):
         """Check if the light has been 'on' and is now manually being adjusted."""
         if off_to_on_event is None:
             # No state change has been registered before, so we can't tell.
