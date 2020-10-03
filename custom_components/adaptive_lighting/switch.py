@@ -52,7 +52,6 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
-from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_kelvin_to_mired,
@@ -259,7 +258,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set other attributes
         self._icon = ICON
-        self._entity_id = f"switch.{DOMAIN}_{slugify(self._name)}"
         self._state = None
 
         # Tracks 'off' → 'on' state changes
@@ -288,19 +286,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     @property
-    def entity_id(self):
-        """Return the entity ID of the switch."""
-        return self._entity_id
-
-    @property
     def name(self):
         """Return the name of the device if any."""
         return f"Adaptive Lighting: {self._name}"
 
-    # @property
-    # def unique_id(self):
-    #     """Return the unique ID of entity."""
-    #     return self._name
+    @property
+    def unique_id(self):
+        """Return the unique ID of entity."""
+        return self._name
 
     @property
     def is_on(self) -> Optional[bool]:
@@ -322,6 +315,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         else:
             self._state = False
             assert not self.remove_listeners
+
+    async def async_will_remove_from_hass(self):
+        """Remove the listeners upon removing the component."""
+        self._remove_listeners()
 
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
@@ -568,23 +565,17 @@ class AdaptiveSleepModeSwitch(SwitchEntity, RestoreEntity):
         data = validate(config_entry)
         self._name = data[CONF_NAME]
         self._icon = ICON
-        self._entity_id = f"switch.{DOMAIN}_sleep_mode_{slugify(self._name)}"
         self._state = None
-
-    @property
-    def entity_id(self):
-        """Return the entity ID of the switch."""
-        return self._entity_id
 
     @property
     def name(self):
         """Return the name of the device if any."""
         return f"Adaptive Lighting Sleep Mode: {self._name}"
 
-    # @property
-    # def unique_id(self):
-    #     """Return the unique ID of entity."""
-    #     return f"{self._name}_sleep_mode"
+    @property
+    def unique_id(self):
+        """Return the unique ID of entity."""
+        return f"{self._name}_sleep_mode"
 
     @property
     def icon(self) -> str:
@@ -818,7 +809,7 @@ class TurnOnOffListener:
         adaptive_lighting_context: Context,
     ):
         """Check if the light has been 'on' and is now manually being adjusted."""
-        manually_controlled = self.manually_controlled[light]
+        manually_controlled = self.manually_controlled.setdefault(light, False)
         if manually_controlled:
             # Manually controlled until light is turned on and off
             return True
