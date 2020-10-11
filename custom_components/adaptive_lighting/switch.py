@@ -254,7 +254,9 @@ def _supported_features(hass: HomeAssistant, light: str):
     return {key for key, value in _SUPPORT_OPTS.items() if supported_features & value}
 
 
-def color_difference_redmean(rgb1, rgb2):
+def color_difference_redmean(
+    rgb1: Tuple[float, float, float], rgb2: Tuple[float, float, float]
+) -> float:
     """Distance between colors in RGB space (redmean metric).
 
     The maximal distance between (255, 255, 255) and (0, 0, 0) ≈ 765.
