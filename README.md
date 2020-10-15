@@ -2,9 +2,19 @@
 
 Try out this code by adding https://github.com/basnijholt/adaptive-lighting to your custom repos in HACS and install it!
 
-I have not written any docs yet, so I recommend to use the UI to add this integration.
+See the documentation at https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/
 
-See [this video on Reddit](https://www.reddit.com/r/homeassistant/comments/j09219/any_circadian_lighting_users_good_news_i_just/) to see how to add the integration and set the options.
+See [this video on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/) to see how to add the integration and set the options.
+
+# Having problems?
+Please enable debug logging by putting this in `configuration.yaml`:
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.adaptive_lighting: debug
+```
+and after the problem occurs please create an issue with the log.
 
 
 ### Graphs!
