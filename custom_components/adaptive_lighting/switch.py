@@ -858,8 +858,9 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._icon = ICON
         self._state = None
         self._which = which
-        self._unique_id = f"{self._name}_{slugify(self._which)}"
-        self._name = f"Adaptive Lighting {which}: {data[CONF_NAME]}"
+        name = data[CONF_NAME]
+        self._unique_id = f"{name}_{slugify(self._which)}"
+        self._name = f"Adaptive Lighting {which}: {name}"
         self._initial_state = initial_state
 
     @property
