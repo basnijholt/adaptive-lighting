@@ -153,7 +153,7 @@ COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
 
 BRIGHTNESS_ATTRS = {
     ATTR_BRIGHTNESS,
-    ATTR_WHITE_VALUE,
+    ATTR_WHITE_VALUE, # White value is treated the same as brightness in all respects
     ATTR_BRIGHTNESS_PCT,
     ATTR_BRIGHTNESS_STEP,
     ATTR_BRIGHTNESS_STEP_PCT,
@@ -389,7 +389,6 @@ def _attributes_have_changed(
             )
             return True
 
-    # White value is treated the same as brightness in all respects
     if (
         adapt_brightness
         and ATTR_WHITE_VALUE in old_attributes
