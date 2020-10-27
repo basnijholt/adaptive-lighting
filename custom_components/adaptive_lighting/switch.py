@@ -22,7 +22,6 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS_PCT,
     ATTR_BRIGHTNESS_STEP,
     ATTR_BRIGHTNESS_STEP_PCT,
-    ATTR_WHITE_VALUE,
     ATTR_COLOR_NAME,
     ATTR_COLOR_TEMP,
     ATTR_HS_COLOR,
@@ -47,6 +46,7 @@ from homeassistant.const import (
     ATTR_ENTITY_ID,
     ATTR_SERVICE,
     ATTR_SERVICE_DATA,
+    ATTR_SUPPORTED_FEATURES,
     CONF_NAME,
     EVENT_CALL_SERVICE,
     EVENT_HOMEASSISTANT_STARTED,
@@ -153,7 +153,7 @@ COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
 
 BRIGHTNESS_ATTRS = {
     ATTR_BRIGHTNESS,
-    ATTR_WHITE_VALUE, # White value is treated the same as brightness in all respects
+    ATTR_WHITE_VALUE,
     ATTR_BRIGHTNESS_PCT,
     ATTR_BRIGHTNESS_STEP,
     ATTR_BRIGHTNESS_STEP_PCT,
@@ -204,7 +204,11 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
 
 async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Set or unset lights as 'manually controlled'."""
-    all_lights = _expand_light_groups(switch.hass, service_call.data[CONF_LIGHTS])
+    lights = service_call.data[CONF_LIGHTS]
+    if not lights:
+        all_lights = switch._lights
+    else:
+        all_lights = _expand_light_groups(switch.hass, lights)
     _LOGGER.debug(
         "Called 'adaptive_lighting.set_manual_control' service with '%s'",
         service_call.data,
@@ -287,7 +291,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_MANUAL_CONTROL,
         {
-            vol.Required(CONF_LIGHTS): cv.entity_ids,
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
             vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
         },
         handle_set_manual_control,
@@ -340,7 +344,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: List[str]) -> List[str]:
 
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
-    supported_features = state.attributes["supported_features"]
+    supported_features = state.attributes[ATTR_SUPPORTED_FEATURES]
     return {key for key, value in _SUPPORT_OPTS.items() if supported_features & value}
 
 
