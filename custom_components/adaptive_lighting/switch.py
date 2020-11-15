@@ -248,10 +248,12 @@ async def handle_set_accent_color(switch: AdaptiveSwitch, service_call: ServiceC
         service_call.data,
     )
     data = service_call.data
-    switch._sun_light_settings.accent_color = get_rgb_from_any_form(
-        data[CONF_ACCENT_RGB] if CONF_ACCENT_RGB in data else None,
-        data[CONF_ACCENT_HS] if CONF_ACCENT_HS in data else None,
-        data[CONF_ACCENT_XY] if CONF_ACCENT_XY in data else None
+    switch._sun_light_settings.set_accent_color(
+        get_rgb_from_any_form(
+            data[CONF_ACCENT_RGB] if CONF_ACCENT_RGB in data else None,
+            data[CONF_ACCENT_HS] if CONF_ACCENT_HS in data else None,
+            data[CONF_ACCENT_XY] if CONF_ACCENT_XY in data else None
+        )
     )
     await switch._update_attrs_and_maybe_adapt_lights(
         force=True,
@@ -458,16 +460,13 @@ def interpolate_hue(hue1: float, hue2: float, weight: float) -> float:
     return ((hue1 + diff * weight) % 360)
 
 def interpolate_colors(
-    rgb1: Tuple[float, float, float], rgb2: Tuple[float, float, float], weight: float
+    hsv1: Tuple[float, float, float], hsv2: Tuple[float, float, float], weight: float
 ) -> Tuple[float, float, float]:
-    """Interpolate between two RGB colors using the HSV space."""
-    hsv1 = color_RGB_to_hsv(*rgb1)
-    hsv2 = color_RGB_to_hsv(*rgb2)
+    """Interpolate between two HSV colors."""
     hue = interpolate_hue(hsv1[0], hsv2[0], weight)
     saturation = hsv1[1] + (hsv2[1] - hsv1[1]) * weight
     value = hsv1[2] + (hsv2[2] - hsv1[2]) * weight
-    temp_color = color_hsv_to_RGB(hue, saturation, value)
-    return temp_color
+    return (hue, saturation, value)
 
 def _attributes_have_changed(
     light: str,
@@ -620,6 +619,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             accent_color_lower_bound=float(data[CONF_ACCENT_COLOR_MIX_MIN])/100.0,
             accent_color_upper_bound=float(data[CONF_ACCENT_COLOR_MIX_MAX])/100.0,
         )
+        self._sun_light_settings.set_accent_color(data[CONF_ACCENT_COLOR])
 
         # Set other attributes
         self._icon = ICON
@@ -1107,6 +1107,22 @@ class SunLightSettings:
     accent_color_lower_bound: Optional[float]
     accent_color_upper_bound: Optional[float]
 
+    _accent_color_hsv: Tuple[float, float, float] = None
+    _bezier_point_hsv: Tuple[float, float, float] = None
+
+    def set_accent_color(self, accent_color: Tuple[float, float, float]):
+        self.accent_color = accent_color
+        if accent_color is not None:
+            self._accent_color_hsv = color_RGB_to_hsv(*accent_color)
+            color_upper_temp: float = self.calc_color_temp_kelvin(self.accent_color_upper_bound, False)
+            color_upper_rgb: Tuple[float, float, float] = color_temperature_to_rgb(
+                color_upper_temp
+            )
+            self._bezier_point_hsv = color_RGB_to_hsv(*color_upper_rgb)
+        else:
+            self._accent_color_hsv = None
+            self._bezier_point_hsv = None
+
     def get_sun_events(self, date: datetime.datetime) -> Dict[str, float]:
         """Get the four sun event's timestamps at 'date'."""
 
@@ -1201,6 +1217,26 @@ class SunLightSettings:
             return (delta * percent) + self.min_color_temp
         return self.min_color_temp
 
+    def calc_accented_color_interpolation(
+        self, rgb_color: Tuple[float, float, float], accent_percent: float
+    ) -> Tuple[float, float, float]:
+        if self.accent_color is None:
+            return None
+        if self._bezier_point_hsv is None or self._accent_color_hsv is None:
+            self.set_accent_color(self.accent_color)
+        control_point1 = color_RGB_to_hsv(*rgb_color)
+        control_point2 = interpolate_colors(
+            self._bezier_point_hsv,
+            self._accent_color_hsv,
+            accent_percent
+        )
+        hsv_color = interpolate_colors(
+            control_point1,
+            control_point2,
+            accent_percent
+        )
+        return color_hsv_to_RGB(*hsv_color)
+
     def calc_accented_color(
         self, percent: float, rgb_color: Tuple[float, float, float]
     ) -> Tuple[float, float, float]:
@@ -1209,9 +1245,9 @@ class SunLightSettings:
         if percent <= self.accent_color_lower_bound:
             return rgb_color
         elif percent < self.accent_color_upper_bound:
-            accent_percent = (percent - float(self.accent_color_lower_bound)) \
-                / float(self.accent_color_upper_bound - self.accent_color_lower_bound)
-            return interpolate_colors(rgb_color, self.accent_color, accent_percent)
+            accent_percent = (percent - self.accent_color_lower_bound) \
+                / (self.accent_color_upper_bound - self.accent_color_lower_bound)
+            return self.calc_accented_color_interpolation(rgb_color, accent_percent)
         else:
             return self.accent_color
 
