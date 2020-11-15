@@ -77,11 +77,11 @@ from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_hs_to_RGB,
-    color_hsv_to_RGB,
-    color_RGB_to_hsv,
     color_RGB_to_xy,
+    color_RGB_to_xy_brightness,
     color_temperature_kelvin_to_mired,
     color_temperature_to_rgb,
+    color_xy_brightness_to_RGB,
     color_xy_to_hs,
     color_xy_to_RGB,
 )
@@ -255,10 +255,11 @@ async def handle_set_accent_color(switch: AdaptiveSwitch, service_call: ServiceC
             data[CONF_ACCENT_XY] if CONF_ACCENT_XY in data else None
         )
     )
-    await switch._update_attrs_and_maybe_adapt_lights(
-        force=True,
-        context=switch.create_context("accent"),
-    )
+    if switch.is_on:
+        await switch._update_attrs_and_maybe_adapt_lights(
+            force=True,
+            context=switch.create_context("accent"),
+        )
 
 async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Set or unset lights as 'manually controlled'."""
@@ -452,21 +453,14 @@ def color_difference_redmean(
     blue_term = (2 + (255 - r_hat) / 256) * delta_b ** 2
     return math.sqrt(red_term + green_term + blue_term)
 
-def interpolate_hue(hue1: float, hue2: float, weight: float) -> float:
-    """Interpolate between two angles, used for hue values."""
-    diff = (hue2 - hue1) % 360
-    if diff > 180:
-        diff = diff - 360
-    return ((hue1 + diff * weight) % 360)
-
-def interpolate_colors(
-    hsv1: Tuple[float, float, float], hsv2: Tuple[float, float, float], weight: float
+def interpolate_colors_xyb(
+    xyb1: Tuple[float, float, float], xyb: Tuple[float, float, float], weight: float
 ) -> Tuple[float, float, float]:
     """Interpolate between two HSV colors."""
-    hue = interpolate_hue(hsv1[0], hsv2[0], weight)
-    saturation = hsv1[1] + (hsv2[1] - hsv1[1]) * weight
-    value = hsv1[2] + (hsv2[2] - hsv1[2]) * weight
-    return (hue, saturation, value)
+    x = xyb1[0] + (xyb[0] - xyb1[0]) * weight
+    y = xyb1[1] + (xyb[1] - xyb1[1]) * weight
+    b = xyb1[2] + (xyb[2] - xyb1[2]) * weight
+    return (x, y, b)
 
 def _attributes_have_changed(
     light: str,
@@ -674,7 +668,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 EVENT_HOMEASSISTANT_STARTED, self._setup_listeners
             )
         last_state = await self.async_get_last_state()
-        if (self._sun_light_settings.accent_color is None
+        is_new_entry = last_state is None  # newly added to HA
+        if (not is_new_entry
+            and self._sun_light_settings.accent_color is None
             and ATTR_SWITCH_ACCENT_COLOR in last_state.attributes
             and last_state.attributes[ATTR_SWITCH_ACCENT_COLOR] is not None
             and len(last_state.attributes[ATTR_SWITCH_ACCENT_COLOR]) == 3
@@ -687,7 +683,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 float(last_accent_color[1]),
                 float(last_accent_color[2]),
             )
-        is_new_entry = last_state is None  # newly added to HA
         if is_new_entry or last_state.state == STATE_ON:
             await self.async_turn_on(adapt_lights=not self._only_once)
         else:
@@ -1107,21 +1102,21 @@ class SunLightSettings:
     accent_color_lower_bound: Optional[float]
     accent_color_upper_bound: Optional[float]
 
-    _accent_color_hsv: Tuple[float, float, float] = None
-    _bezier_point_hsv: Tuple[float, float, float] = None
+    _accent_color_xyb: Tuple[float, float, float] = None
+    _bezier_point_xyb: Tuple[float, float, float] = None
 
     def set_accent_color(self, accent_color: Tuple[float, float, float]):
         self.accent_color = accent_color
         if accent_color is not None:
-            self._accent_color_hsv = color_RGB_to_hsv(*accent_color)
+            self._accent_color_xyb = color_RGB_to_xy_brightness(*accent_color)
             color_upper_temp: float = self.calc_color_temp_kelvin(self.accent_color_upper_bound, False)
             color_upper_rgb: Tuple[float, float, float] = color_temperature_to_rgb(
                 color_upper_temp
             )
-            self._bezier_point_hsv = color_RGB_to_hsv(*color_upper_rgb)
+            self._bezier_point_xyb = color_RGB_to_xy_brightness(*color_upper_rgb)
         else:
-            self._accent_color_hsv = None
-            self._bezier_point_hsv = None
+            self._accent_color_xyb = None
+            self._bezier_point_xyb = None
 
     def get_sun_events(self, date: datetime.datetime) -> Dict[str, float]:
         """Get the four sun event's timestamps at 'date'."""
@@ -1222,20 +1217,20 @@ class SunLightSettings:
     ) -> Tuple[float, float, float]:
         if self.accent_color is None:
             return None
-        if self._bezier_point_hsv is None or self._accent_color_hsv is None:
+        if self._bezier_point_xyb is None or self._accent_color_xyb is None:
             self.set_accent_color(self.accent_color)
-        control_point1 = color_RGB_to_hsv(*rgb_color)
-        control_point2 = interpolate_colors(
-            self._bezier_point_hsv,
-            self._accent_color_hsv,
+        control_point1 = color_RGB_to_xy_brightness(*rgb_color)
+        control_point2 = interpolate_colors_xyb(
+            self._bezier_point_xyb,
+            self._accent_color_xyb,
             accent_percent
         )
-        hsv_color = interpolate_colors(
+        xyb_color = interpolate_colors_xyb(
             control_point1,
             control_point2,
             accent_percent
         )
-        return color_hsv_to_RGB(*hsv_color)
+        return color_xy_brightness_to_RGB(*xyb_color)
 
     def calc_accented_color(
         self, percent: float, rgb_color: Tuple[float, float, float]
