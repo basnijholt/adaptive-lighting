@@ -239,7 +239,7 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
     if service_call.data[CONF_MANUAL_CONTROL]:
         for light in all_lights:
             switch.turn_on_off_listener.manual_control[light] = True
-            _fire_manual_control_event(switch.hass, light, service_call.context)
+            _fire_manual_control_event(switch, light, service_call.context)
     else:
         switch.turn_on_off_listener.reset(*all_lights)
         # pylint: disable=protected-access
@@ -253,11 +253,16 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
 
 @callback
 def _fire_manual_control_event(
-    hass: HomeAssistant, light: str, context: Context, is_async=True
+    switch: AdaptiveSwitch, light: str, context: Context, is_async=True
 ):
     """Fire an event that 'light' is marked as manual_control."""
+    hass = switch.hass
     fire = hass.bus.async_fire if is_async else hass.bus.fire
-    fire(f"{DOMAIN}.manual_control", {ATTR_ENTITY_ID: light}, context=context)
+    fire(
+        f"{DOMAIN}.manual_control",
+        {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
+        context=context,
+    )
 
 
 async def async_setup_entry(
@@ -756,6 +761,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self._detect_non_ha_changes
             and not force
             and await self.turn_on_off_listener.significant_change(
+                self,
                 light,
                 adapt_brightness,
                 adapt_color,
@@ -830,6 +836,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if (
                 self._take_over_control
                 and self.turn_on_off_listener.is_manually_controlled(
+                    self,
                     light,
                     force,
                     self.adapt_brightness_switch.is_on,
@@ -1236,6 +1243,7 @@ class TurnOnOffListener:
 
     def is_manually_controlled(
         self,
+        switch: AdaptiveSwitch,
         light: str,
         force: bool,
         adapt_brightness: bool,
@@ -1260,7 +1268,7 @@ class TurnOnOffListener:
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
                 manual_control = self.manual_control[light] = True
-                _fire_manual_control_event(self.hass, light, turn_on_event.context)
+                _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
                     " adaptive_lighting integration (context.id='%s'), the Adaptive"
@@ -1273,6 +1281,7 @@ class TurnOnOffListener:
 
     async def significant_change(
         self,
+        switch: AdaptiveSwitch,
         light: str,
         adapt_brightness: bool,
         adapt_color: bool,
@@ -1331,7 +1340,7 @@ class TurnOnOffListener:
                 # N times in a row. We do this because sometimes a state changes
                 # happens only *after* a new update interval has already started.
                 self.manual_control[light] = True
-                _fire_manual_control_event(self.hass, light, context, is_async=False)
+                _fire_manual_control_event(switch, light, context, is_async=False)
         else:
             if n_changes > 1:
                 _LOGGER.debug(
