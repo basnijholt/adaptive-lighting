@@ -114,7 +114,7 @@ adaptive_lighting:
 |------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------|
 | `entity_id`            |       no | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".                                         |
 | `lights`               |       no | A light (or list of lights) to apply the settings to.                                                                                |
-| `manual_control`       |       no | Whether to mark (true) or unmark (false) the light as "manually controlled", when not specified it selects all lights in the switch. |
+| `manual_control`       |      yes | Whether to mark (true) or unmark (false) the light as "manually controlled", when not specified it selects all lights in the switch. |
 
 
 ## Automation examples
