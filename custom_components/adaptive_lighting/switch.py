@@ -1098,6 +1098,9 @@ class SunLightSettings:
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
             return (delta * percent) + self.min_color_temp
+        if percent < 0:
+            delta = abs(self.min_color_temp - self.sleep_color_temp)
+            return (delta * abs(1+percent)) + self.sleep_color_temp
         return self.min_color_temp
 
     def get_settings(
