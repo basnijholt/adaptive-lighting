@@ -529,10 +529,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = min(
             data[CONF_TRANSITION], self._interval.total_seconds() // 2
         )
+        _loc = get_astral_location(self.hass)
+        if isinstance(_loc, tuple):
+            # Astral v2.2
+            location, _ = _loc
+        else:
+            # Astral v1
+            location = _loc
 
         self._sun_light_settings = SunLightSettings(
             name=self._name,
-            astral_location=get_astral_location(self.hass),
+            astral_location=location,
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
             min_brightness=data[CONF_MIN_BRIGHTNESS],
