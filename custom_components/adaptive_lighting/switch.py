@@ -1036,8 +1036,14 @@ class SunLightSettings:
         ) + self.sunset_offset
 
         if self.sunrise_time is None and self.sunset_time is None:
-            solar_noon = location.solar_noon(date, local=False)
-            solar_midnight = location.solar_midnight(date, local=False)
+            try:
+                # Astral v1
+                solar_noon = location.solar_noon(date, local=False)
+                solar_midnight = location.solar_midnight(date, local=False)
+            except AttributeError:
+                # Astral v2
+                solar_noon = location.noon(date, local=False)
+                solar_midnight = location.midnight(date, local=False)
         else:
             solar_noon = sunrise + (sunset - sunrise) / 2
             solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
