@@ -38,7 +38,13 @@ from homeassistant.components.light import (
     SUPPORT_WHITE_VALUE,
     VALID_TRANSITION,
     is_on,
+    COLOR_MODE_RGB,
+    COLOR_MODE_RGBW,
+    COLOR_MODE_COLOR_TEMP,
+    COLOR_MODE_BRIGHTNESS,
+    ATTR_SUPPORTED_COLOR_MODES,
 )
+
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -377,7 +383,17 @@ def _expand_light_groups(hass: HomeAssistant, lights: List[str]) -> List[str]:
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
     supported_features = state.attributes[ATTR_SUPPORTED_FEATURES]
-    return {key for key, value in _SUPPORT_OPTS.items() if supported_features & value}
+    supported = {key for key, value in _SUPPORT_OPTS.items() if supported_features & value}
+    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())
+    if COLOR_MODE_RGB in supported_color_modes:
+        supported.add("color")
+    if COLOR_MODE_RGBW in supported_color_modes:
+        supported.add("color")
+    if COLOR_MODE_COLOR_TEMP in supported_color_modes:
+        supported.add("color_temp")
+    if COLOR_MODE_BRIGHTNESS in supported_color_modes:
+        supported.add("brightness")
+    return supported
 
 
 def color_difference_redmean(
