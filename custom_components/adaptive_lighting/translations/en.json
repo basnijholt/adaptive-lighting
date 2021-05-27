@@ -3,42 +3,42 @@
   "config": {
     "step": {
       "user": {
-        "title": "Choose a name for the Adaptive Lighting",
-        "description": "Every instance can contain multiple lights!",
+        "title": "Choose a name for the Adaptive Lighting instance",
+        "description": "Pick a name for this instance. You can run several instances of Adaptive lighting, each of these can contain multiple lights!",
         "data": {
           "name": "Name"
         }
       }
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "This device is already configured"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Adaptive Lighting options",
-        "description": "All settings for a Adaptive Lighting component. The option names correspond with the YAML settings. No options are shown if you have this entry defined in YAML.",
+        "description": "All settings for a Adaptive Lighting component. The option names correspond with the YAML settings. No options are shown if you have the adaptive_lighting entry defined in your YAML configuration.",
         "data": {
           "lights": "lights",
-          "initial_transition": "initial_transition, when lights go 'off' to 'on' or when 'sleep_state' changes",
-          "interval": "interval, time between switch updates in seconds",
-          "max_brightness": "max_brightness, in %",
-          "max_color_temp": "max_color_temp, in Kelvin",
-          "min_brightness": "min_brightness, in %",
-          "min_color_temp": "min_color_temp, in Kelvin",
-          "only_once": "only_once, only adapt the lights when turning them on",
-          "prefer_rgb_color": "prefer_rgb_color, use 'rgb_color' over 'color_temp' when possible",
-          "separate_turn_on_commands": "separate_turn_on_commands, for each attribute (color, brightness, etc.) in 'light.turn_on', required for some lights.",
-          "sleep_brightness": "sleep_brightness, in %",
-          "sleep_color_temp": "sleep_color_temp, in Kelvin",
-          "sunrise_offset": "sunrise_offset, in +/- seconds",
-          "sunrise_time": "sunrise_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunrise time at your location)",
-          "sunset_offset": "sunset_offset, in +/- seconds",
-          "sunset_time": "sunset_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunset time at your location)",
-          "take_over_control": "take_over_control, if anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on.",
-          "detect_non_ha_changes": "detect_non_ha_changes, detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)",
-          "transition": "transition, in seconds"
+          "initial_transition": "initial_transition: When lights turn 'off' to 'on' or when 'sleep_state' changes. (seconds)",
+          "interval": "interval: Time between switch updates. (seconds)",
+          "max_brightness": "max_brightness: Highest brightness of lights during a cycle. (%)",
+          "max_color_temp": "max_color_temp: Coldest hue of the color temperature cycle. (Kelvin)",
+          "min_brightness": "min_brightness: Lowest brightness of lights during a cycle. (%)",
+          "min_color_temp": "min_color_temp, Warmest hue of the color temperature cycle. (%)",
+          "only_once": "only_once: Only adapt the lights when turning them on.",
+          "prefer_rgb_color": "prefer_rgb_color: Use 'rgb_color' rather than 'color_temp' when possible.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Separate the commands for each attribute (color, brightness, etc.) in 'light.turn_on' (required for some lights).",
+          "sleep_brightness": "sleep_brightness, Brightness setting for Sleep Mode. (%)",
+          "sleep_color_temp": "sleep_color_temp: Color temperature setting for Sleep Mode. (Kelvin)",
+          "sunrise_offset": "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- seconds)",
+          "sunrise_time": "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: How long before(-) or after(+) to define the sunset point of the cycle (+/- seconds)",
+          "sunset_time": "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)",
+          "take_over_control": "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on.",
+          "detect_non_ha_changes": "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)",
+          "transition": "Transition time when applying a change to the lights (seconds)"
         }
       }
     },
