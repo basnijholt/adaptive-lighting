@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Choose a name for the Adaptive Lighting instance",
-        "description": "Pick a name this instance. You can run several instances of Adaptive lighting, each of these can contain multiple lights!",
+        "description": "Pick a name for this instance. You can run several instances of Adaptive lighting, each of these can contain multiple lights!",
         "data": {
           "name": "Name"
         }
