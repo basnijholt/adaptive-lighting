@@ -40,6 +40,8 @@ from homeassistant.components.light import (
     is_on,
     COLOR_MODE_RGB,
     COLOR_MODE_RGBW,
+    COLOR_MODE_HS,
+    COLOR_MODE_XY,
     COLOR_MODE_COLOR_TEMP,
     COLOR_MODE_BRIGHTNESS,
     ATTR_SUPPORTED_COLOR_MODES,
@@ -393,6 +395,12 @@ def _supported_features(hass: HomeAssistant, light: str):
         # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
         supported.add("brightness")
     if COLOR_MODE_RGBW in supported_color_modes:
+        supported.add("color")
+        supported.add("brightness")  # see above url
+    if COLOR_MODE_XY in supported_color_modes:
+        supported.add("color")
+        supported.add("brightness")  # see above url
+    if COLOR_MODE_HS in supported_color_modes:
         supported.add("color")
         supported.add("brightness")  # see above url
     if COLOR_MODE_COLOR_TEMP in supported_color_modes:
