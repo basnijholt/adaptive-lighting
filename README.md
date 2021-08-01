@@ -3,7 +3,7 @@
 ![](https://github.com/home-assistant/brands/raw/b4a168b9af282ef916e120d31091ecd5e3c35e66/core_integrations/adaptive_lighting/icon.png)
 
 _Try out this code by adding https://github.com/basnijholt/adaptive-lighting to your custom repos in [HACS (Home Assistant Community Store)](https://hacs.xyz/) and install it!_
-*This `custom_component` is also being added to `core`, see [this PR](https://github.com/home-assistant/core/pull/40626), although it might take months before it makes it in.*
+
 
 The `adaptive_lighting` platform changes the settings of your lights throughout the day.
 It uses the position of the sun to calculate the color temperature and brightness that is most fitting for that time of the day.
