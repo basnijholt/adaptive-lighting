@@ -2,11 +2,11 @@
   "domain": "adaptive_lighting",
   "name": "Adaptive Lighting",
   "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
-   "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
+  "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
   "config_flow": true,
   "dependencies": [],
-  "codeowners": ["@basnijholt"],
-  "version": "1.0.13",
+  "codeowners": ["@basnijholt", "@RubenKelevra"],
+  "version": "1.0.14",
   "requirements": [],
   "iot_class": "calculated"
 }
