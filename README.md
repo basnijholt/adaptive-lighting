@@ -186,3 +186,9 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 
 ##### Brightness:
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
+
+# Maintainers
+
+- @basnijholt
+- @RubenKelevra
+
