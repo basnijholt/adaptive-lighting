@@ -1,10 +1,12 @@
 {
   "domain": "adaptive_lighting",
   "name": "Adaptive Lighting",
-  "documentation": "https://www.home-assistant.io/integrations/adaptive_lighting",
+  "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
+   "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
   "config_flow": true,
   "dependencies": [],
   "codeowners": ["@basnijholt"],
-  "version": "1.0.0",
-  "requirements": []
+  "version": "1.0.13",
+  "requirements": [],
+  "iot_class": "calculated"
 }
