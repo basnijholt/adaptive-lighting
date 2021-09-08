@@ -177,12 +177,17 @@ def _short_hash(string: str, length: int = 4) -> str:
     return hashlib.sha1(string.encode("UTF-8")).hexdigest()[:length]
 
 
-def create_context(name: str, which: str, index: int) -> Context:
+def create_context(
+    name: str, which: str, index: int, parent: Optional[Context] = None
+) -> Context:
     """Create a context that can identify this integration."""
     # Use a hash for the name because otherwise the context might become
     # too long (max len == 36) to fit in the database.
     name_hash = _short_hash(name)
-    return Context(id=f"{_DOMAIN_SHORT}_{name_hash}_{which}_{index}")
+    parent_id = parent.id if parent else None
+    return Context(
+        id=f"{_DOMAIN_SHORT}_{name_hash}_{which}_{index}", parent_id=parent_id
+    )
 
 
 def is_our_context(context: Optional[Context]) -> bool:
@@ -228,6 +233,7 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
                 data[ATTR_ADAPT_COLOR],
                 data[CONF_PREFER_RGB_COLOR],
                 force=True,
+                context=switch.create_context("service", parent=service_call.context),
             )
 
 
@@ -254,7 +260,7 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
                 all_lights,
                 transition=switch._initial_transition,
                 force=True,
-                context=switch.create_context("service"),
+                context=switch.create_context("service", parent=service_call.context),
             )
 
 
@@ -701,7 +707,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         ]
         return dict(self._settings, manual_control=manual_control)
 
-    def create_context(self, which: str = "default") -> Context:
+    def create_context(
+        self, which: str = "default", parent: Optional[Context] = None
+    ) -> Context:
         """Create a context that identifies this Adaptive Lighting instance."""
         # Right now the highest number of each context_id it can create is
         # 'adapt_lgt_XXXX_turn_on_9999999999999'
@@ -711,7 +719,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # 'adapt_lgt_XXXX_light_event_999999999'
         # 'adapt_lgt_XXXX_service_9999999999999'
         # So 100 million calls before we run into the 36 chars limit.
-        context = create_context(self._name, which, self._context_cnt)
+        context = create_context(self._name, which, self._context_cnt, parent=parent)
         self._context_cnt += 1
         return context
 
@@ -915,7 +923,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._initial_transition,
             force=True,
-            context=self.create_context("sleep"),
+            context=self.create_context("sleep", parent=event.context),
         )
 
     async def _light_event(self, event: Event) -> None:
@@ -956,7 +964,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lights=[entity_id],
                 transition=self._initial_transition,
                 force=True,
-                context=self.create_context("light_event"),
+                context=self.create_context("light_event", parent=event.context),
             )
         elif (
             old_state is not None
