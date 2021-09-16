@@ -49,7 +49,8 @@ adaptive_lighting:
 | name                  | The name to use when displaying this switch.                                                                                                                                                                                  | False      | default   | string  |
 | lights                | List of light entities for Adaptive Lighting to control (may be empty).                                                                                                                                                       | False      | list      | []      |
 | prefer_rgb_color      | Whether to use RGB color adjustment instead of native light color temperature.                                                                                                                                                | False      | False     | boolean |
-| initial_transition    | How long the first transition is when the lights go from `off` to `on` (or when "sleep mode" is toggled).                                                                                                                     | False      | 1         | time    |
+| initial_transition    | How long the first transition is when the lights go from `off` to `on`.                                                                                                                     | False      | 1         | time    |
+| sleep_transition      | How long the transition is when when "sleep mode" is toggled                                                                       | False      | 1         | time    |
 | transition            | How long the transition is when the lights change, in seconds.                                                                                                                                                                | False      | 45        | integer |
 | interval              | How often to adapt the lights, in seconds.                                                                                                                                                                                    | False      | 90        | integer |
 | min_brightness        | The minimum percent of brightness to set the lights to.                                                                                                                                                                       | False      | 1         | integer |
@@ -191,4 +192,3 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 
 - @basnijholt
 - @RubenKelevra
-
