@@ -565,9 +565,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
-        self._transition = min(
-            data[CONF_TRANSITION], self._interval.total_seconds() // 2
-        )
+        self._transition = data[CONF_TRANSITION]
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -590,6 +588,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
+            transition=data[CONF_TRANSITION],
         )
 
         # Set other attributes
@@ -754,7 +753,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _async_update_at_interval(self, now=None) -> None:
         await self._update_attrs_and_maybe_adapt_lights(
-            force=False, context=self.create_context("interval")
+            transition=self._transition, force=False, context=self.create_context("interval")
         )
 
     async def _adapt_light(
@@ -867,7 +866,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         assert self.is_on
         self._settings = self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on
+            self.sleep_mode_switch.is_on, transition
         )
         self.async_write_ha_state()
         if lights is None:
@@ -1053,6 +1052,7 @@ class SunLightSettings:
     sunset_offset: Optional[datetime.timedelta]
     sunset_time: Optional[datetime.time]
     time_zone: datetime.tzinfo
+    transition: int
 
     def get_sun_events(self, date: datetime.datetime) -> Dict[str, float]:
         """Get the four sun event's timestamps at 'date'."""
@@ -1123,11 +1123,13 @@ class SunLightSettings:
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
         return events[i_now - 1 : i_now + 1]
 
-    def calc_percent(self) -> float:
+    def calc_percent(self, transition: int) -> float:
         """Calculate the position of the sun in %."""
         now = dt_util.utcnow()
-        now_ts = now.timestamp()
-        today = self.relevant_events(now)
+
+        target_time = now + timedelta(seconds=transition)
+        target_ts = target_time.timestamp()
+        today = self.relevant_events(target_time)
         (_, prev_ts), (next_event, next_ts) = today
         h, x = (  # pylint: disable=invalid-name
             (prev_ts, next_ts)
@@ -1135,7 +1137,7 @@ class SunLightSettings:
             else (next_ts, prev_ts)
         )
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
-        percentage = (0 - k) * ((now_ts - h) / (h - x)) ** 2 + k
+        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
         return percentage
 
     def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
@@ -1158,13 +1160,13 @@ class SunLightSettings:
         return self.min_color_temp
 
     def get_settings(
-        self, is_sleep
+        self, is_sleep, transition
     ) -> Dict[str, Union[float, Tuple[float, float], Tuple[float, float, float]]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
         """
-        percent = self.calc_percent()
+        percent = self.calc_percent(transition) if transition is not None else self.calc_percent(0)
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
         color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep)
         color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
