@@ -99,6 +99,7 @@ from .const import (
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
+    CONF_SLEEP_TRANSITION,
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
@@ -558,6 +559,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
+        self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._interval = data[CONF_INTERVAL]
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
@@ -921,7 +923,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Reset the manually controlled status when the "sleep mode" changes
         self.turn_on_off_listener.reset(*self._lights)
         await self._update_attrs_and_maybe_adapt_lights(
-            transition=self._initial_transition,
+            transition=self._sleep_transition,
             force=True,
             context=self.create_context("sleep", parent=event.context),
         )
