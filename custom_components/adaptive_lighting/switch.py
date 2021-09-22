@@ -322,7 +322,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_APPLY,
         {
-            vol.Required(CONF_LIGHTS): cv.entity_ids,
+            vol.Optional(CONF_LIGHTS, default=switch._lights): cv.entity_ids,  # pylint: disable=protected-access
             vol.Optional(
                 CONF_TRANSITION,
                 default=switch._initial_transition,  # pylint: disable=protected-access
