@@ -129,6 +129,8 @@ from .const import (
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
+    SUN_EVENT_SUNRISE_COLOR,
+    SUN_EVENT_SUNSET_COLOR,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     replace_none_str,
@@ -142,7 +144,8 @@ _SUPPORT_OPTS = {
     "transition": SUPPORT_TRANSITION,
 }
 
-_ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
+_ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON,
+          SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
 _LOGGER = logging.getLogger(__name__)
@@ -236,7 +239,8 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
                 data[ATTR_ADAPT_COLOR],
                 data[CONF_PREFER_RGB_COLOR],
                 force=True,
-                context=switch.create_context("service", parent=service_call.context),
+                context=switch.create_context(
+                    "service", parent=service_call.context),
             )
 
 
@@ -263,7 +267,8 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
                 all_lights,
                 transition=switch._initial_transition,
                 force=True,
-                context=switch.create_context("service", parent=service_call.context),
+                context=switch.create_context(
+                    "service", parent=service_call.context),
             )
 
 
@@ -299,7 +304,8 @@ async def async_setup_entry(
 
     sleep_mode_switch = SimpleSwitch("Sleep Mode", False, hass, config_entry)
     adapt_color_switch = SimpleSwitch("Adapt Color", True, hass, config_entry)
-    adapt_brightness_switch = SimpleSwitch("Adapt Brightness", True, hass, config_entry)
+    adapt_brightness_switch = SimpleSwitch(
+        "Adapt Brightness", True, hass, config_entry)
     switch = AdaptiveSwitch(
         hass,
         config_entry,
@@ -397,7 +403,8 @@ def _supported_features(hass: HomeAssistant, light: str):
     supported = {
         key for key, value in _SUPPORT_OPTS.items() if supported_features & value
     }
-    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())
+    supported_color_modes = state.attributes.get(
+        ATTR_SUPPORTED_COLOR_MODES, set())
     if COLOR_MODE_RGB in supported_color_modes:
         supported.add("color")
         # Adding brightness here, see
@@ -432,7 +439,8 @@ def color_difference_redmean(
     - https://www.compuphase.com/cmetric.htm
     """
     r_hat = (rgb1[0] + rgb2[0]) / 2
-    delta_r, delta_g, delta_b = [(col1 - col2) for col1, col2 in zip(rgb1, rgb2)]
+    delta_r, delta_g, delta_b = [(col1 - col2)
+                                 for col1, col2 in zip(rgb1, rgb2)]
     red_term = (2 + r_hat / 256) * delta_r ** 2
     green_term = 4 * delta_g ** 2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b ** 2
@@ -508,7 +516,8 @@ def _attributes_have_changed(
     ):
         last_rgb_color = old_attributes[ATTR_RGB_COLOR]
         current_rgb_color = new_attributes[ATTR_RGB_COLOR]
-        redmean_change = color_difference_redmean(last_rgb_color, current_rgb_color)
+        redmean_change = color_difference_redmean(
+            last_rgb_color, current_rgb_color)
         if redmean_change > RGB_REDMEAN_CHANGE:
             _LOGGER.debug(
                 "color RGB of '%s' significantly changed from %s to %s with"
@@ -724,7 +733,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # 'adapt_lgt_XXXX_light_event_999999999'
         # 'adapt_lgt_XXXX_service_9999999999999'
         # So 100 million calls before we run into the 36 chars limit.
-        context = create_context(self._name, which, self._context_cnt, parent=parent)
+        context = create_context(
+            self._name, which, self._context_cnt, parent=parent)
         self._context_cnt += 1
         return context
 
@@ -805,7 +815,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             attributes = self.hass.states.get(light).attributes
             min_mireds, max_mireds = attributes["min_mireds"], attributes["max_mireds"]
             color_temp_mired = self._settings["color_temp_mired"]
-            color_temp_mired = max(min(color_temp_mired, max_mireds), min_mireds)
+            color_temp_mired = max(
+                min(color_temp_mired, max_mireds), min_mireds)
             service_data[ATTR_COLOR_TEMP] = color_temp_mired
         elif "color" in features and adapt_color:
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
@@ -947,7 +958,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 entity_id,
                 event.context.id,
             )
-            self.turn_on_off_listener.reset(entity_id, reset_manual_control=False)
+            self.turn_on_off_listener.reset(
+                entity_id, reset_manual_control=False)
             # Tracks 'off' → 'on' state changes
             self._off_to_on_event[entity_id] = event
             lock = self._locks.get(entity_id)
@@ -969,7 +981,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lights=[entity_id],
                 transition=self._initial_transition,
                 force=True,
-                context=self.create_context("light_event", parent=event.context),
+                context=self.create_context(
+                    "light_event", parent=event.context),
             )
         elif (
             old_state is not None
@@ -1054,8 +1067,8 @@ class SunLightSettings:
     sunrise_offset: Optional[datetime.timedelta]
     sunrise_offset_color: Optional[datetime.timedelta]
     sunrise_time: Optional[datetime.time]
-    sunrise_time_color: Optional[datetime.time]
     sunset_offset: Optional[datetime.timedelta]
+    sunset_offset_color: Optional[datetime.timedelta]
     sunset_time: Optional[datetime.time]
     time_zone: datetime.tzinfo
     transition: int
@@ -1067,9 +1080,11 @@ class SunLightSettings:
             time = getattr(self, f"{key}_time")
             date_time = datetime.datetime.combine(date, time)
             try:  # HA ≤2021.05, https://github.com/basnijholt/adaptive-lighting/issues/128
-                utc_time = self.time_zone.localize(date_time).astimezone(dt_util.UTC)
-            except AttributeError: # HA ≥2021.06
-                utc_time = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+                utc_time = self.time_zone.localize(
+                    date_time).astimezone(dt_util.UTC)
+            except AttributeError:  # HA ≥2021.06
+                utc_time = date_time.replace(
+                    tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
             return utc_time
 
         location = self.astral_location
@@ -1088,12 +1103,12 @@ class SunLightSettings:
             location.sunrise(date, local=False)
             if self.sunrise_time is None
             else _replace_time(date, "sunrise")
-        ) + self.sunrise_offset_color
+        ) + self.sunrise_offset
         sunset_color = (
             location.sunset(date, local=False)
             if self.sunset_time is None
             else _replace_time(date, "sunset")
-        ) + self.sunset_offset_color
+        ) + self.sunset_offset
         if self.sunrise_time is None and self.sunset_time is None:
             try:
                 # Astral v1
@@ -1105,7 +1120,8 @@ class SunLightSettings:
                 solar_midnight = location.midnight(date, local=False)
         else:
             solar_noon = sunrise + (sunset - sunrise) / 2
-            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
+            solar_midnight = sunset + \
+                ((sunrise + timedelta(days=1)) - sunset) / 2
 
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
@@ -1125,7 +1141,7 @@ class SunLightSettings:
                 " This might happen if your sunrise/sunset offset is too large or"
                 " your manually set sunrise/sunset time is past/before noon/midnight."
             )
-            #_LOGGER.error(msg)
+            # _LOGGER.error(msg)
             #raise ValueError(msg)
 
         return events
@@ -1138,7 +1154,7 @@ class SunLightSettings:
         events = sum(events, [])  # flatten lists
         events = sorted(events, key=lambda x: x[1])
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
-        return events[i_now - 1 : i_now + 1]
+        return events[i_now - 1: i_now + 1]
 
     def calc_percent(self, transition: int) -> float:
         """Calculate the position of the sun in %."""
@@ -1200,11 +1216,15 @@ class SunLightSettings:
 
         Calculating all values takes <0.5ms.
         """
-        percent = self.calc_percent(transition) if transition is not None else self.calc_percent(0)
-        percent_color = self.calc_percent_color(transition) if transition is not None else self.calc_percent_color(0)
+        percent = self.calc_percent(
+            transition) if transition is not None else self.calc_percent(0)
+        percent_color = self.calc_percent_color(
+            transition) if transition is not None else self.calc_percent_color(0)
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
-        color_temp_kelvin = self.calc_color_temp_kelvin(percent_color, is_sleep)
-        color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
+        color_temp_kelvin = self.calc_color_temp_kelvin(
+            percent_color, is_sleep)
+        color_temp_mired: float = color_temperature_kelvin_to_mired(
+            color_temp_kelvin)
         rgb_color: Tuple[float, float, float] = color_temperature_to_rgb(
             color_temp_kelvin
         )
@@ -1332,7 +1352,8 @@ class TurnOnOffListener:
             # called with a color_temp outside of its range (and HA reports the
             # incorrect 'min_mireds' and 'max_mireds', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
-            old_state: Optional[List[State]] = self.last_state_change.get(entity_id)
+            old_state: Optional[List[State]
+                                ] = self.last_state_change.get(entity_id)
             if (
                 old_state is not None
                 and old_state[0].context.id == new_state.context.id
@@ -1376,7 +1397,8 @@ class TurnOnOffListener:
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
                 manual_control = self.manual_control[light] = True
-                _fire_manual_control_event(switch, light, turn_on_event.context)
+                _fire_manual_control_event(
+                    switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
                     " adaptive_lighting integration (context.id='%s'), the Adaptive"
@@ -1448,7 +1470,8 @@ class TurnOnOffListener:
                 # N times in a row. We do this because sometimes a state changes
                 # happens only *after* a new update interval has already started.
                 self.manual_control[light] = True
-                _fire_manual_control_event(switch, light, context, is_async=False)
+                _fire_manual_control_event(
+                    switch, light, context, is_async=False)
         else:
             if n_changes > 1:
                 _LOGGER.debug(
@@ -1484,7 +1507,8 @@ class TurnOnOffListener:
 
         turn_off_event = self.turn_off_event.get(entity_id)
         if turn_off_event is not None:
-            transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+            transition = turn_off_event.data[ATTR_SERVICE_DATA].get(
+                ATTR_TRANSITION)
         else:
             transition = None
 
@@ -1501,7 +1525,8 @@ class TurnOnOffListener:
             turn_off_event is not None
             and id_on_to_off == turn_off_event.context.id
             and id_on_to_off is not None
-            and transition is not None  # 'turn_off' is called with transition=...
+            # 'turn_off' is called with transition=...
+            and transition is not None
         ):
             # State change 'on' → 'off' and 'light.turn_off(..., transition=...)' come
             # from the same event, so wait at least the 'turn_off' transition time.
@@ -1511,7 +1536,8 @@ class TurnOnOffListener:
             # Possibly because of polling.
             delay = TURNING_OFF_DELAY
 
-        delta_time = (dt_util.utcnow() - on_to_off_event.time_fired).total_seconds()
+        delta_time = (dt_util.utcnow() -
+                      on_to_off_event.time_fired).total_seconds()
         if delta_time > delay:
             return False
 
