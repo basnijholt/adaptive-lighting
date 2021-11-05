@@ -1,5 +1,5 @@
 {
-    "name": "adaptive_lighting",
+    "name": "adaptive_lighting_color_offset",
     "render_readme": true,
     "domains": [
         "switch"

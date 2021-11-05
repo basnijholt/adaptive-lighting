@@ -1,0 +1,21 @@
+adaptive_lighting:
+  - name: "Office Lights"
+    lights:
+      - light.office_lights
+    prefer_rgb_color: false
+    transition: 45
+    initial_transition: 1
+    interval: 90
+    min_brightness: 1
+    max_brightness: 100
+    min_color_temp: 1800
+    max_color_temp: 5500
+    sleep_brightness: 1
+    sleep_color_temp: 1000
+    sunrise_offset: 3600
+    sunrise_offset_color: 0 # Go bluish early, but dimmed
+    sunset_offset: -3600
+    sunset_offset_color: 0
+    take_over_control: false
+    detect_non_ha_changes: false
+    only_once: false

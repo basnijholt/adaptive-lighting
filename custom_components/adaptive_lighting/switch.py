@@ -129,8 +129,6 @@ from .const import (
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
-    SUN_EVENT_SUNRISE_COLOR,
-    SUN_EVENT_SUNSET_COLOR,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     replace_none_str,
@@ -1073,7 +1071,7 @@ class SunLightSettings:
     time_zone: datetime.tzinfo
     transition: int
 
-    def get_sun_events(self, date: datetime.datetime) -> Dict[str, float]:
+    def get_sun_events(self, date: datetime.datetime, color: bool) -> Dict[str, float]:
         """Get the four sun event's timestamps at 'date'."""
 
         def _replace_time(date: datetime.datetime, key: str) -> datetime.datetime:
@@ -1099,16 +1097,19 @@ class SunLightSettings:
             if self.sunset_time is None
             else _replace_time(date, "sunset")
         ) + self.sunset_offset
-        sunrise_color = (
-            location.sunrise(date, local=False)
-            if self.sunrise_time is None
-            else _replace_time(date, "sunrise")
-        ) + self.sunrise_offset
-        sunset_color = (
-            location.sunset(date, local=False)
-            if self.sunset_time is None
-            else _replace_time(date, "sunset")
-        ) + self.sunset_offset
+
+        if color:
+            sunrise = (
+                location.sunrise(date, local=False)
+                if self.sunrise_time is None
+                else _replace_time(date, "sunrise")
+            ) + self.sunrise_offset_color
+            sunset = (
+                location.sunset(date, local=False)
+                if self.sunset_time is None
+                else _replace_time(date, "sunset")
+            ) + self.sunset_offset_color
+
         if self.sunrise_time is None and self.sunset_time is None:
             try:
                 # Astral v1
@@ -1126,8 +1127,6 @@ class SunLightSettings:
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
             (SUN_EVENT_SUNSET, sunset.timestamp()),
-            (SUN_EVENT_SUNRISE_COLOR, sunrise_color.timestamp()),
-            (SUN_EVENT_SUNSET_COLOR, sunset_color.timestamp()),
             (SUN_EVENT_NOON, solar_noon.timestamp()),
             (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
         ]
@@ -1146,23 +1145,23 @@ class SunLightSettings:
 
         return events
 
-    def relevant_events(self, now: datetime.datetime) -> List[Tuple[str, float]]:
+    def relevant_events(self, now: datetime.datetime, color: bool) -> List[Tuple[str, float]]:
         """Get the previous and next sun event."""
         events = [
-            self.get_sun_events(now + timedelta(days=days)) for days in [-1, 0, 1]
+            self.get_sun_events(now + timedelta(days=days), color) for days in [-1, 0, 1]
         ]
         events = sum(events, [])  # flatten lists
         events = sorted(events, key=lambda x: x[1])
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
         return events[i_now - 1: i_now + 1]
 
-    def calc_percent(self, transition: int) -> float:
+    def calc_percent(self, transition: int, color: bool) -> float:
         """Calculate the position of the sun in %."""
         now = dt_util.utcnow()
 
         target_time = now + timedelta(seconds=transition)
         target_ts = target_time.timestamp()
-        today = self.relevant_events(target_time)
+        today = self.relevant_events(target_time, color)
         (_, prev_ts), (next_event, next_ts) = today
         h, x = (  # pylint: disable=invalid-name
             (prev_ts, next_ts)
@@ -1170,23 +1169,6 @@ class SunLightSettings:
             else (next_ts, prev_ts)
         )
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
-        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
-        return percentage
-
-    def calc_percent_color(self, transition: int) -> float:
-        """Calculate the position of the sun in %."""
-        now = dt_util.utcnow()
-
-        target_time = now + timedelta(seconds=transition)
-        target_ts = target_time.timestamp()
-        today = self.relevant_events(target_time)
-        (_, prev_ts), (next_event, next_ts) = today
-        h, x = (  # pylint: disable=invalid-name
-            (prev_ts, next_ts)
-            if next_event in (SUN_EVENT_SUNSET_COLOR, SUN_EVENT_SUNRISE_COLOR)
-            else (next_ts, prev_ts)
-        )
-        k = 1 if next_event in (SUN_EVENT_SUNSET_COLOR, SUN_EVENT_NOON) else -1
         percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
         return percentage
 
@@ -1217,9 +1199,17 @@ class SunLightSettings:
         Calculating all values takes <0.5ms.
         """
         percent = self.calc_percent(
-            transition) if transition is not None else self.calc_percent(0)
-        percent_color = self.calc_percent_color(
-            transition) if transition is not None else self.calc_percent_color(0)
+            transition, False) if transition is not None else self.calc_percent(0, False)
+        percent_color = self.calc_percent(
+            transition, True) if transition is not None else self.calc_percent(0, True)
+        # _LOGGER.debug(
+        #     "Percent: %s",
+        #     percent,
+        # )
+        # _LOGGER.debug(
+        #     "Percent Color: %s",
+        #     percent_color,
+        # )
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
         color_temp_kelvin = self.calc_color_temp_kelvin(
             percent_color, is_sleep)

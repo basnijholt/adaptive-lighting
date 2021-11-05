@@ -9,9 +9,6 @@ ICON = "mdi:theme-light-dark"
 DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
-SUN_EVENT_SUNRISE_COLOR = "sun_event_sunrise_color"
-SUN_EVENT_SUNSET_COLOR = "sun_event_sunset_color"
-
 
 CONF_NAME, DEFAULT_NAME = "name", "default"
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
