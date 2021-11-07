@@ -1066,6 +1066,18 @@ class SunLightSettings:
                 utc_time = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
             return utc_time
 
+        def calculate_noon_and_midnight(
+                sunset: datetime.datetime, sunrise: datetime.datetime
+        ) -> (datetime.datetime, datetime.datetime):
+            middle = abs(sunset - sunrise) / 2
+            if sunset > sunrise:
+                noon = sunrise + middle
+                midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
+            else:
+                midnight = sunset + middle
+                noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
+            return noon, midnight
+
         location = self.astral_location
 
         sunrise = (
@@ -1089,8 +1101,7 @@ class SunLightSettings:
                 solar_noon = location.noon(date, local=False)
                 solar_midnight = location.midnight(date, local=False)
         else:
-            solar_noon = sunrise + (sunset - sunrise) / 2
-            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
+            (solar_noon, solar_midnight) = calculate_noon_and_midnight(sunset, sunrise)
 
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
