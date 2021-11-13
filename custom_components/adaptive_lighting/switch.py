@@ -222,9 +222,15 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Handle the entity service apply."""
     hass = switch.hass
     data = service_call.data
-    all_lights = _expand_light_groups(hass, data[CONF_LIGHTS])
+    all_lights = data[CONF_LIGHTS]
+    if not all_lights:
+        all_lights = switch._lights
+    all_lights = _expand_light_groups(hass, all_lights)
     switch.turn_on_off_listener.lights.update(all_lights)
-
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.apply' service with '%s'",
+        data,
+    )
     for light in all_lights:
         if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
             await switch._adapt_light(  # pylint: disable=protected-access
@@ -322,7 +328,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_APPLY,
         {
-            vol.Optional(CONF_LIGHTS, default=switch._lights): cv.entity_ids,  # pylint: disable=protected-access
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # pylint: disable=protected-access
             vol.Optional(
                 CONF_TRANSITION,
                 default=switch._initial_transition,  # pylint: disable=protected-access
