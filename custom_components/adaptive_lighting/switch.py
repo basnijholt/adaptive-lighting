@@ -99,7 +99,6 @@ from .const import (
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
-    CONF_SLEEP_TRANSITION,
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
@@ -178,17 +177,12 @@ def _short_hash(string: str, length: int = 4) -> str:
     return hashlib.sha1(string.encode("UTF-8")).hexdigest()[:length]
 
 
-def create_context(
-    name: str, which: str, index: int, parent: Optional[Context] = None
-) -> Context:
+def create_context(name: str, which: str, index: int) -> Context:
     """Create a context that can identify this integration."""
     # Use a hash for the name because otherwise the context might become
     # too long (max len == 36) to fit in the database.
     name_hash = _short_hash(name)
-    parent_id = parent.id if parent else None
-    return Context(
-        id=f"{_DOMAIN_SHORT}_{name_hash}_{which}_{index}", parent_id=parent_id
-    )
+    return Context(id=f"{_DOMAIN_SHORT}_{name_hash}_{which}_{index}")
 
 
 def is_our_context(context: Optional[Context]) -> bool:
@@ -222,15 +216,9 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Handle the entity service apply."""
     hass = switch.hass
     data = service_call.data
-    all_lights = data[CONF_LIGHTS]
-    if not all_lights:
-        all_lights = switch._lights
-    all_lights = _expand_light_groups(hass, all_lights)
+    all_lights = _expand_light_groups(hass, data[CONF_LIGHTS])
     switch.turn_on_off_listener.lights.update(all_lights)
-    _LOGGER.debug(
-        "Called 'adaptive_lighting.apply' service with '%s'",
-        data,
-    )
+
     for light in all_lights:
         if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
             await switch._adapt_light(  # pylint: disable=protected-access
@@ -240,7 +228,6 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
                 data[ATTR_ADAPT_COLOR],
                 data[CONF_PREFER_RGB_COLOR],
                 force=True,
-                context=switch.create_context("service", parent=service_call.context),
             )
 
 
@@ -267,7 +254,7 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
                 all_lights,
                 transition=switch._initial_transition,
                 force=True,
-                context=switch.create_context("service", parent=service_call.context),
+                context=switch.create_context("service"),
             )
 
 
@@ -328,7 +315,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_APPLY,
         {
-            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # pylint: disable=protected-access
+            vol.Required(CONF_LIGHTS): cv.entity_ids,
             vol.Optional(
                 CONF_TRANSITION,
                 default=switch._initial_transition,  # pylint: disable=protected-access
@@ -565,13 +552,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
-        self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._interval = data[CONF_INTERVAL]
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
-        self._transition = data[CONF_TRANSITION]
+        self._transition = min(
+            data[CONF_TRANSITION], self._interval.total_seconds() // 2
+        )
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -594,7 +582,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
-            transition=data[CONF_TRANSITION],
         )
 
         # Set other attributes
@@ -703,7 +690,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         return self._icon
 
     @property
-    def device_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> Dict[str, Any]:
         """Return the attributes of the switch."""
         if not self.is_on:
             return {key: None for key in self._settings}
@@ -714,9 +701,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         ]
         return dict(self._settings, manual_control=manual_control)
 
-    def create_context(
-        self, which: str = "default", parent: Optional[Context] = None
-    ) -> Context:
+    def create_context(self, which: str = "default") -> Context:
         """Create a context that identifies this Adaptive Lighting instance."""
         # Right now the highest number of each context_id it can create is
         # 'adapt_lgt_XXXX_turn_on_9999999999999'
@@ -726,7 +711,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # 'adapt_lgt_XXXX_light_event_999999999'
         # 'adapt_lgt_XXXX_service_9999999999999'
         # So 100 million calls before we run into the 36 chars limit.
-        context = create_context(self._name, which, self._context_cnt, parent=parent)
+        context = create_context(self._name, which, self._context_cnt)
         self._context_cnt += 1
         return context
 
@@ -759,7 +744,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _async_update_at_interval(self, now=None) -> None:
         await self._update_attrs_and_maybe_adapt_lights(
-            transition=self._transition, force=False, context=self.create_context("interval")
+            force=False, context=self.create_context("interval")
         )
 
     async def _adapt_light(
@@ -872,7 +857,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         assert self.is_on
         self._settings = self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on, transition
+            self.sleep_mode_switch.is_on
         )
         self.async_write_ha_state()
         if lights is None:
@@ -928,9 +913,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Reset the manually controlled status when the "sleep mode" changes
         self.turn_on_off_listener.reset(*self._lights)
         await self._update_attrs_and_maybe_adapt_lights(
-            transition=self._sleep_transition,
+            transition=self._initial_transition,
             force=True,
-            context=self.create_context("sleep", parent=event.context),
+            context=self.create_context("sleep"),
         )
 
     async def _light_event(self, event: Event) -> None:
@@ -971,7 +956,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lights=[entity_id],
                 transition=self._initial_transition,
                 force=True,
-                context=self.create_context("light_event", parent=event.context),
+                context=self.create_context("light_event"),
             )
         elif (
             old_state is not None
@@ -1058,7 +1043,6 @@ class SunLightSettings:
     sunset_offset: Optional[datetime.timedelta]
     sunset_time: Optional[datetime.time]
     time_zone: datetime.tzinfo
-    transition: int
 
     def get_sun_events(self, date: datetime.datetime) -> Dict[str, float]:
         """Get the four sun event's timestamps at 'date'."""
@@ -1071,18 +1055,6 @@ class SunLightSettings:
             except AttributeError: # HA ≥2021.06
                 utc_time = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
             return utc_time
-
-        def calculate_noon_and_midnight(
-                sunset: datetime.datetime, sunrise: datetime.datetime
-        ) -> (datetime.datetime, datetime.datetime):
-            middle = abs(sunset - sunrise) / 2
-            if sunset > sunrise:
-                noon = sunrise + middle
-                midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
-            else:
-                midnight = sunset + middle
-                noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
-            return noon, midnight
 
         location = self.astral_location
 
@@ -1107,7 +1079,8 @@ class SunLightSettings:
                 solar_noon = location.noon(date, local=False)
                 solar_midnight = location.midnight(date, local=False)
         else:
-            (solar_noon, solar_midnight) = calculate_noon_and_midnight(sunset, sunrise)
+            solar_noon = sunrise + (sunset - sunrise) / 2
+            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
 
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
@@ -1140,13 +1113,11 @@ class SunLightSettings:
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
         return events[i_now - 1 : i_now + 1]
 
-    def calc_percent(self, transition: int) -> float:
+    def calc_percent(self) -> float:
         """Calculate the position of the sun in %."""
         now = dt_util.utcnow()
-
-        target_time = now + timedelta(seconds=transition)
-        target_ts = target_time.timestamp()
-        today = self.relevant_events(target_time)
+        now_ts = now.timestamp()
+        today = self.relevant_events(now)
         (_, prev_ts), (next_event, next_ts) = today
         h, x = (  # pylint: disable=invalid-name
             (prev_ts, next_ts)
@@ -1154,7 +1125,7 @@ class SunLightSettings:
             else (next_ts, prev_ts)
         )
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
-        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
+        percentage = (0 - k) * ((now_ts - h) / (h - x)) ** 2 + k
         return percentage
 
     def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
@@ -1177,13 +1148,13 @@ class SunLightSettings:
         return self.min_color_temp
 
     def get_settings(
-        self, is_sleep, transition
+        self, is_sleep
     ) -> Dict[str, Union[float, Tuple[float, float], Tuple[float, float, float]]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
         """
-        percent = self.calc_percent(transition) if transition is not None else self.calc_percent(0)
+        percent = self.calc_percent()
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
         color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep)
         color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
