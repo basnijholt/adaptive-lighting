@@ -1074,7 +1074,7 @@ class SunLightSettings:
 
         def calculate_noon_and_midnight(
                 sunset: datetime.datetime, sunrise: datetime.datetime
-        ) -> (datetime.datetime, datetime.datetime):
+        ) -> Tuple[datetime.datetime, datetime.datetime]:
             middle = abs(sunset - sunrise) / 2
             if sunset > sunrise:
                 noon = sunrise + middle
