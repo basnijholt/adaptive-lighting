@@ -39,6 +39,7 @@ I work very odd hours that require me to wake up at a different time everyday, s
 # Use cases
 This fork is PERFECT if you, like I, have your smart phone's alarm synced up with Home Assistant. Simply have your phone call your home assistant alarm script/automation, then set the sunrise time to Python's now() and, optionally, the sunset time to ~12 hours in the future like so:
 
+```
 iphone_carly_wakeup:
   alias: iPhone Carly Wakeup
   sequence:
@@ -84,7 +85,7 @@ iphone_carly_wakeup:
   mode: queued
   icon: mdi:weather-sunset
   max: 10
-
+```
 This script loops through all of my adaptive lighting switches and applies the new sunrise/sunset times on EACH switch.
 
 
@@ -107,6 +108,7 @@ adaptive_lighting: !include adaptive_lighting.yaml
 
 And then create adaptive-lighting.yaml and fill it in with your preferences. Here's part of mine.
 
+```
 - name: "al_bedroom_ceilingfan_lights"
   lights: light.bedroom_ceilingfan_lights
   prefer_rgb_color: false
@@ -149,9 +151,11 @@ And then create adaptive-lighting.yaml and fill it in with your preferences. Her
   take_over_control: true
   detect_non_ha_changes: false
   only_once: false
+  ```
   
   You can then create several scripts:
   
+  ```
   adaptive_lighting_set_manual_control:
   alias: 'Adaptive Lighting: Set Manual Control'
   sequence:
@@ -210,7 +214,7 @@ adaptive_lighting_disable_sleep_mode:
     data:
       lights: lights
   mode: single
-
+```
 Using templates you can loop through all of your Adaptive Lighting switches since they're following the same naming scheme, thus removing the hard-coding problem and allowing yourself to benefit from all future updates to the integration!
 
 # Maintainers
