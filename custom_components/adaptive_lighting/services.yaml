@@ -34,3 +34,100 @@ set_manual_control:
     lights:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
+change_sunlight_settings:
+  description: Reinitializes sunlight settings with new values for the specific switch
+  fields:
+    entity_id:
+      description: entity_id of the Adaptive Lighting switch.
+      example: switch.adaptive_lighting_default
+      required: true
+      selector:
+        entity:
+          domain: switch
+    use_config_defaults:
+      description: "Any setting in this service call that isn't EXPLICITLY defined will either default back to the config (True) or the previous values (False)"
+      example: false
+      required: false
+      default: false
+      selector:
+        boolean:
+    use_actual_sunrise_time:
+      description: "Erase manual handling of the sunrise time (if any) and calculates the actual sunrise"
+      example: false
+      required: false
+      default: false
+      selector:
+        boolean:
+    use_actual_sunset_time:
+      description: "Erase manual handling of the sunset time (if any) and calculates the actual sunset"
+      example: false
+      required: false
+      default: false
+      selector:
+        boolean:
+    max_brightness:
+      description: "max_brightness, in %"
+      example: 100
+      required: false
+      selector:
+        text:
+    max_color_temp:
+      description: max_color_temp, in Kelvin
+      example: 5500
+      required: false
+      selector:
+        text:
+    min_brightness:
+      description: min_brightness, in %
+      example: 1
+      required: false
+      selector:
+        text:
+    min_color_temp:
+      description: min_color_temp, in Kelvin
+      example: 2000
+      required: false
+      selector:
+        text:
+    sleep_brightness:
+      description: sleep_brightness, in %
+      example: 1
+      required: false
+      selector:
+        text:
+    sleep_color_temp:
+      description: sleep_color_temp, in Kelvin
+      example: 1000
+      required: false
+      selector:
+        text:
+    sunrise_offset:
+      description: sunrise_offset, in +/- seconds (HH:MM:SS)
+      example: 02:00:00
+      required: false
+      selector:
+        text:
+    sunrise_time:
+      description: sunrise_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunrise time at your location)
+      example: 07:00:00
+      required: false
+      selector:
+        time:
+    sunset_offset:
+      description: sunset_offset, in +/- seconds (HH:MM:SS)
+      example: 04:00:00
+      required: false
+      selector:
+        text:
+    sunset_time:
+      description: sunset_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunset time at your location)
+      example: 06:00:00
+      required: false
+      selector:
+        time:
+    transition:
+      description: transition, in seconds
+      example: 1
+      required: false
+      selector:
+        text:
