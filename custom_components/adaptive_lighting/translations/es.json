@@ -1,0 +1,50 @@
+{
+  "title": "Iluminación Adaptativa",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Elige un nombre para la instancia de Iluminación Adaptativa",
+        "description": "Elige un nombre para esta instancia. Puedes ejecutar varias instancias de Iluminación Adaptativa, ¡cada una puede contener múltiples luces!",
+        "data": {
+          "name": "Nombre"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Este dispositivo ya está configurado"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de Iluminación Adaptativa",
+        "description": "Todos los ajustes de configuración para el componente de Iluminación Adaptativa. Los nombres de las opciones se corresponden con la configuración YAML. No se muestras las opciones en caso de tener la entrada adaptive_lighting definida en la configuración YAML.",
+        "data": {
+          "lights": "lights",
+          "initial_transition": "initial_transition: Cuando las luces cambian de apagado a encendido. (segundos)",
+          "sleep_transition": "sleep_transition: Cuando cambia el modo sueño 'sleep_state'. (segundos)",
+          "interval": "interval: Tiempo entre actualizaciones. (segundos)",
+          "max_brightness": "max_brightness: Brillo máximo de las luces durante un ciclo. (%)",
+          "max_color_temp": "max_color_temp: Temperatura de color más fría durante un ciclo. (Kelvin)",
+          "min_brightness": "min_brightness: Brillo mínimo de las luces durante un ciclo. (%)",
+          "min_color_temp": "min_color_temp, Temperatura de color más cálida durante un ciclo. (Kelvin)",
+          "only_once": "only_once: Solo adaptar las luces cuando se encienden.",
+          "prefer_rgb_color": "prefer_rgb_color: Utilizar color RGB 'rgb_color' en lugar de Temperatura de color 'color_temp' cuando sea posible.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Separar los comandos para cada atributo (color, brillo, etc.) al encender las luces 'light.turn_on' (necesario para algunas luces).",
+          "sleep_brightness": "sleep_brightness, Configuración de Brillo para Modo Sueño. (%)",
+          "sleep_color_temp": "sleep_color_temp: Configuración de Temperatura de Color para Modo Sueño. (Kelvin)",
+          "sunrise_offset": "sunrise_offset: Ajuste del amanecer en el ciclo, antes(-) o después(+) (+/- segundos)",
+          "sunrise_time": "sunrise_time: Ajuste manual de la hora del amanecer, con valor 'None' utiliza el valor real del del amanecer en tu localización (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: Ajuste del atardecer en el ciclo, antes(-) o despues(+) (+/- segundos)",
+          "sunset_time": "sunset_time: Ajuste manual del atardecer, con valor 'None' utiliza el valor real del amanecer en tu localización (HH:MM:SS)",
+          "take_over_control": "take_over_control: Detiene el ajuste si se produce una llamada a encender la luz 'light.turn_on' que no provenga de Iluminación Adaptativa cuando la luz está previamente encendida, parando la adaptación de esa luz hasta que se vuelve a apagar.",
+          "detect_non_ha_changes": "detect_non_ha_changes: detecta los cambios hechos a las luces de >10% (también desde fuera de HA), necesita que esté habilitado 'take_over_control' (llama a 'homeassistant.update_entity' cada intervalo 'interval'!)",
+          "transition": "Tiempo de transición cuando se aplica un cambio a las luces (segundos)"
+        }
+      }
+    },
+    "error": {
+      "option_error": "Opción no válida"
+    }
+  }
+}
