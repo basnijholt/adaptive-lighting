@@ -93,6 +93,7 @@ This script loops through all of my adaptive lighting switches and applies the n
 - I'm still having issues with the 'detect changes outside of HA' option in the original integration. If I don't find a fix soon I'm going to code something myself. Sometimes we turn off lights and they turn right back on `interval` seconds later. Wth??
 - Have service calls default to every adaptive-lighting switch. Looping around a naming scheme to me seems very hacky and I'd love a way to leave the switch entity_id blank and the integration be smart enough to just friggin apply the settings to every switch... Maybe internally using group.set and a naming scheme?
 - Have lights follow closer to the actual weather forecast for the day. i.e if it's snowy or cloudy outside, have the bulbs dim to 80% brightness and apply a colder color temperature to give a milky/foggy feel to the room.
+- Mark the time a light has been set to manual control, for easily automating a reset after an allotted amount of time
 
 # More Background Info
 I actually have an AdaptiveLighting switch per every smart bulb group in my home. Home assistant doesn't measure the brightness in lumens (I mean how could they) so it just doesn't make sense to use the same color temperatures/brightnesses for every single bulb of my home. Unfortunately I ran into some hiccups trying to use any of the original service calls due to the integration taking a singular switch entity_id instead of allowing multiple.
