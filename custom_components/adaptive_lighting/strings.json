@@ -21,7 +21,8 @@
         "description": "All settings for a Adaptive Lighting component. The option names correspond with the YAML settings. No options are shown if you have this entry defined in YAML.",
         "data": {
           "lights": "lights",
-          "initial_transition": "initial_transition, when lights go 'off' to 'on' or when 'sleep_state' changes",
+          "initial_transition": "initial_transition, when lights go 'off' to 'on'",
+          "sleep_transition": "sleep_transition, when 'sleep_state' changes",
           "interval": "interval, time between switch updates in seconds",
           "max_brightness": "max_brightness, in %",
           "max_color_temp": "max_color_temp, in Kelvin",

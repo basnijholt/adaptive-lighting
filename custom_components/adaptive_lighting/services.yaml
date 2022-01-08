@@ -5,7 +5,7 @@ apply:
       description: entity_id of the Adaptive Lighting switch.
       example: switch.adaptive_lighting_default
     lights:
-      description: entity_id(s) of lights.
+      description: "entity_id(s) of lights, default: lights of the switch"
       example: light.bedroom_ceiling
     transition:
       description: Transition of the lights.
