@@ -584,9 +584,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             name=self._name,
             astral_location=location,
             max_brightness=data[CONF_MAX_BRIGHTNESS],
-            max_color_temp=data[CONF_MAX_COLOR_TEMP],
+            max_color_temp_100pct=data[CONF_MAX_COLOR_TEMP],
+            max_color_temp_1pct=3000,
             min_brightness=data[CONF_MIN_BRIGHTNESS],
-            min_color_temp=data[CONF_MIN_COLOR_TEMP],
+            min_color_temp_100pct=data[CONF_MIN_COLOR_TEMP],
+            min_color_temp_1pct=2200,
             sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
             sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
@@ -806,11 +808,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         ):
             attributes = self.hass.states.get(light).attributes
             min_mireds, max_mireds = attributes["min_mireds"], attributes["max_mireds"]
-            color_temp_mired = self._settings["color_temp_mired"]
+            color_temp_mired = self._settings["color_temp_mired"][light]
             color_temp_mired = max(min(color_temp_mired, max_mireds), min_mireds)
             service_data[ATTR_COLOR_TEMP] = color_temp_mired
         elif "color" in features and adapt_color:
-            service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
+            service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"][light]
 
         context = context or self.create_context("adapt_lights")
         if (
@@ -871,12 +873,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.id,
         )
         assert self.is_on
-        self._settings = self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on, transition
-        )
-        self.async_write_ha_state()
+
         if lights is None:
             lights = self._lights
+
+        brightness_list = {
+            light: self.hass.states.get(light).attributes[ATTR_BRIGHTNESS] / 254
+            for light in lights
+        }
+
+        self._settings = self._sun_light_settings.get_settings(
+            self.sleep_mode_switch.is_on,
+            transition,
+            brightness_list
+        )
+        self.async_write_ha_state()
+
         if (self._only_once and not force) or not lights:
             return
         await self._adapt_lights(lights, transition, force, context)
@@ -1048,9 +1060,11 @@ class SunLightSettings:
     name: str
     astral_location: astral.Location
     max_brightness: int
-    max_color_temp: int
+    max_color_temp_100pct: int
+    max_color_temp_1pct: int
     min_brightness: int
-    min_color_temp: int
+    min_color_temp_100pct: int
+    min_color_temp_1pct: int
     sleep_brightness: int
     sleep_color_temp: int
     sunrise_offset: Optional[datetime.timedelta]
@@ -1167,17 +1181,38 @@ class SunLightSettings:
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
 
-    def calc_color_temp_kelvin(self, percent: float, is_sleep: bool) -> float:
+    def calc_color_temp_kelvin(
+            self,
+            percent: float,
+            is_sleep: bool,
+            brightness_list: Dict[str, int]) -> float:
         """Calculate the color temperature in Kelvin."""
         if is_sleep:
             return self.sleep_color_temp
-        if percent > 0:
-            delta = self.max_color_temp - self.min_color_temp
-            return (delta * percent) + self.min_color_temp
-        return self.min_color_temp
+        else:
+            if percent < 0:
+                percent = 0
+            # First calculate color range without adapting for brightness:
+            delta_100pct = self.max_color_temp_100pct - self.min_color_temp_100pct
+            color_100pct = (delta_100pct * percent) + self.min_color_temp_100pct
+            delta_1pct = self.max_color_temp_1pct - self.min_color_temp_1pct
+            color_1pct = (delta_1pct * percent) + self.min_color_temp_1pct
+            _LOGGER.debug(
+                f"Max color temp 100: {self.max_color_temp_100pct} \
+                  Min color temp 100: {self.min_color_temp_100pct} \
+                  Max color temp 1: {self.max_color_temp_1pct}\
+                  Min color temp 1: {self.min_color_temp_1pct}\
+                  Percent: {percent} "
+            )
+            # Next, adapt each light for its given brightness
+            colors = {
+                light: brightness_list[light] * (color_100pct - color_1pct) + color_1pct
+                for light in brightness_list
+            }
+            return colors
 
     def get_settings(
-        self, is_sleep, transition
+        self, is_sleep, transition, brightness_list
     ) -> Dict[str, Union[float, Tuple[float, float], Tuple[float, float, float]]]:
         """Get all light settings.
 
@@ -1185,13 +1220,16 @@ class SunLightSettings:
         """
         percent = self.calc_percent(transition) if transition is not None else self.calc_percent(0)
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
-        color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep)
-        color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
-        rgb_color: Tuple[float, float, float] = color_temperature_to_rgb(
-            color_temp_kelvin
-        )
-        xy_color: Tuple[float, float] = color_RGB_to_xy(*rgb_color)
-        hs_color: Tuple[float, float] = color_xy_to_hs(*xy_color)
+        color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep, brightness_list)
+        color_temp_mired = {}
+        rgb_color = {}
+        xy_color = {}
+        hs_color = {}
+        for light in color_temp_kelvin:
+            color_temp_mired[light] = color_temperature_kelvin_to_mired(color_temp_kelvin[light])
+            rgb_color[light] = color_temperature_to_rgb(color_temp_kelvin[light])
+            xy_color[light] = color_RGB_to_xy(*rgb_color[light])
+            hs_color[light] = color_xy_to_hs(*xy_color[light])
         return {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
