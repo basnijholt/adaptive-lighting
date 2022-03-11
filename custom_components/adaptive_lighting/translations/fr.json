@@ -1,0 +1,50 @@
+{
+  "title": "Éclairage adaptatif",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choisissez un nom pour cette instance d'éclairage adaptatif",
+        "description": "Choisissez un nom pour cette instance. Vous pouvez configurer plusieurs instances d'éclairage adaptatif, chacune pouvant contrôler plusieurs lampes !",
+        "data": {
+          "name": "Nom"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Cet appareil est déjà configuré"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options d'éclairage adaptatif",
+        "description": "Tous les paramètres de l'instance d'éclairage adaptatif. Les noms des options correspondent aux paramètres YAML. Aucune option n'est affichée si l'entrée adaptive_lighting est définie dans votre configuration YAML.",
+        "data": {
+          "lights": "lights : Les lampes à contrôler",
+          "initial_transition": "initial_transition : Transition (en secondes) lorsque l'état d'une lampe passe d'« éteinte » à « allumée ».",
+          "sleep_transition": "sleep_transition : Transition (en secondes) lorsque « sleep_state » est commuté.",
+          "interval": "interval : Temps (en secondes) entre deux mises à jour du commutateur.",
+          "max_brightness": "max_brightness : Luminosité maximale des lampes (en pourcentage) au cours d'un cycle.",
+          "max_color_temp": "max_color_temp : Couleur la plus froide (en kelvins) du cycle de température de couleur.",
+          "min_brightness": "min_brightness : Luminosité minimale des lampes (en pourcentage) au cours d'un cycle.",
+          "min_color_temp": "min_color_temp : Couleur la plus chaude (en kelvins) du cycle de température de couleur.",
+          "only_once": "only_once : Adapter les lampes uniquement au moment où elles sont allumées.",
+          "prefer_rgb_color": "prefer_rgb_color : Utiliser « rgb_color » plutôt que « color_temp » lorsque cela est possible.",
+          "separate_turn_on_commands": "separate_turn_on_commands : Séparer les commandes pour chaque attribut (couleur, luminosité, etc.) de « light.turn_on » (nécessaire pour certaines lampes).",
+          "sleep_brightness": "sleep_brightness : Luminosité (en pourcentage) du mode nuit.",
+          "sleep_color_temp": "sleep_color_temp : Température de couleur (en kelvins) du mode nuit.",
+          "sunrise_offset": "sunrise_offset : Décalage (en secondes [- : passé, + : futur]) du cycle par rapport au lever du soleil.",
+          "sunrise_time": "sunrise_time : Heure (HH:MM:SS) du lever du soleil. Si « None », utilise l'heure correspondant à votre emplacement.",
+          "sunset_offset": "sunset_offset : Décalage (en secondes [- : passé, + : futur]) du cycle par rapport au coucher du soleil.",
+          "sunset_time": "sunset_time : Heure (HH:MM:SS) du coucher du soleil. Si « None », utilise l'heure correspondant à votre emplacement.",
+          "take_over_control": "take_over_control : Si quelque chose d'autre que l'éclairage adaptatif appelle « light.turn_on » alors qu'une lampe est déjà allumée, cesser d'adapter cette lampe jusqu'à ce qu'elle (ou le commutateur) soit éteinte puis rallumée.",
+          "detect_non_ha_changes": "detect_non_ha_changes : Détecter tout changement de plus de 10 % appliqué aux lampes (même en dehors de HA). Nécessite que « take_over_control » soit activé. (Appelle « homeassistant.update_entity » tous les « interval » !)",
+          "transition": "transition : Durée de la transition (en secondes) des changements appliqués aux lampes."
+        }
+      }
+    },
+    "error": {
+      "option_error": "Option non valide"
+    }
+  }
+}
