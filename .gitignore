@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 custom_components/.DS_Store
+*.syncfolderspro
