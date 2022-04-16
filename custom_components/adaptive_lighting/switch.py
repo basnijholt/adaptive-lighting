@@ -1,3 +1,4 @@
+# test
 """Switch for the Adaptive Lighting integration."""
 from __future__ import annotations
 
