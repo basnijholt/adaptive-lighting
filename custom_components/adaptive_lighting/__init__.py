@@ -1,6 +1,6 @@
 """Adaptive Lighting integration in Home-Assistant."""
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import voluptuous as vol
 
