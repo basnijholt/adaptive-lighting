@@ -328,7 +328,9 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_APPLY,
         {
-            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # pylint: disable=protected-access
+            vol.Optional(
+                CONF_LIGHTS, default=[]
+            ): cv.entity_ids,  # pylint: disable=protected-access
             vol.Optional(
                 CONF_TRANSITION,
                 default=switch._initial_transition,  # pylint: disable=protected-access
@@ -437,9 +439,9 @@ def color_difference_redmean(
     """
     r_hat = (rgb1[0] + rgb2[0]) / 2
     delta_r, delta_g, delta_b = [(col1 - col2) for col1, col2 in zip(rgb1, rgb2)]
-    red_term = (2 + r_hat / 256) * delta_r ** 2
-    green_term = 4 * delta_g ** 2
-    blue_term = (2 + (255 - r_hat) / 256) * delta_b ** 2
+    red_term = (2 + r_hat / 256) * delta_r**2
+    green_term = 4 * delta_g**2
+    blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
     return math.sqrt(red_term + green_term + blue_term)
 
 
@@ -759,7 +761,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _async_update_at_interval(self, now=None) -> None:
         await self._update_attrs_and_maybe_adapt_lights(
-            transition=self._transition, force=False, context=self.create_context("interval")
+            transition=self._transition,
+            force=False,
+            context=self.create_context("interval"),
         )
 
     async def _adapt_light(
@@ -1068,12 +1072,14 @@ class SunLightSettings:
             date_time = datetime.datetime.combine(date, time)
             try:  # HA ≤2021.05, https://github.com/basnijholt/adaptive-lighting/issues/128
                 utc_time = self.time_zone.localize(date_time).astimezone(dt_util.UTC)
-            except AttributeError: # HA ≥2021.06
-                utc_time = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+            except AttributeError:  # HA ≥2021.06
+                utc_time = date_time.replace(
+                    tzinfo=dt_util.DEFAULT_TIME_ZONE
+                ).astimezone(dt_util.UTC)
             return utc_time
 
         def calculate_noon_and_midnight(
-                sunset: datetime.datetime, sunrise: datetime.datetime
+            sunset: datetime.datetime, sunrise: datetime.datetime
         ) -> Tuple[datetime.datetime, datetime.datetime]:
             middle = abs(sunset - sunrise) / 2
             if sunset > sunrise:
@@ -1081,7 +1087,9 @@ class SunLightSettings:
                 midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
             else:
                 midnight = sunset + middle
-                noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
+                noon = midnight + timedelta(hours=12) * (
+                    1 if midnight.hour < 12 else -1
+                )
             return noon, midnight
 
         location = self.astral_location
@@ -1183,7 +1191,11 @@ class SunLightSettings:
 
         Calculating all values takes <0.5ms.
         """
-        percent = self.calc_percent(transition) if transition is not None else self.calc_percent(0)
+        percent = (
+            self.calc_percent(transition)
+            if transition is not None
+            else self.calc_percent(0)
+        )
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
         color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep)
         color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
