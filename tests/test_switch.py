@@ -140,11 +140,18 @@ async def setup_lights(hass):
             ct=240,
         ),
     ]
+    for light in lights:
+        light.hass = hass
+        slug = light.name.lower().replace(" ", "_")
+        light.entity_id = f"light.{slug}"
+        await light.async_update_ha_state()
+
     platform.ENTITIES.extend(lights)
     assert await async_setup_component(
         hass, LIGHT_DOMAIN, {LIGHT_DOMAIN: {CONF_PLATFORM: "test"}}
     )
     await hass.async_block_till_done()
+    assert all(hass.states.get(light.entity_id) is not None for light in lights)
     return lights
 
 
