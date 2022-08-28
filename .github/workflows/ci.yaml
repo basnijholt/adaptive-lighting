@@ -37,14 +37,22 @@ jobs:
       - name: Run pytest
         timeout-minutes: 60
         run: |
-          cp -r custom_components/adaptive_lighting core/homeassistant/components/adaptive_lighting
-          cp -r tests/ core/tests/components/adaptive_lighting
           cd core
+
+          # Link homeassitant.components.adaptive_lighting
+          cd homeassistant/components
+          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
+          cd -
+
+          # Link adaptive_lighting tests
+          cd tests/components/
+          ln -fs ../../../tests adaptive_lighting
+          cd -
+
           python3 -X dev -m pytest \
             -qq \
             --timeout=9 \
             --durations=10 \
-            --dist=loadfile \
             --cov="homeassistant" \
             --cov-report=xml \
             -o console_output_style=count \
