@@ -49,6 +49,7 @@ from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_LIGHTS,
@@ -109,6 +110,7 @@ async def setup_switch(hass, extra_data):
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
     switch = hass.data[DOMAIN][entry.entry_id][SWITCH_DOMAIN]
     return entry, switch
 
@@ -587,6 +589,7 @@ async def test_apply_service(hass):
             },
             blocking=True,
         )
+        await hass.async_block_till_done()
 
     # Test turn on with defaults
     assert hass.states.get(entity_id).state == STATE_OFF
