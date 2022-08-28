@@ -31,6 +31,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install --upgrade pytest
+          pip install -r homeassistant/requirements.txt
           pip install -r homeassistant/requirements_test.txt
           pip install -e homeassistant/
       - name: Run pytest
