@@ -30,7 +30,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install --upgrade pytest
           pip install -r core/requirements.txt
           pip install -r core/requirements_test.txt
           pip install -e core/
