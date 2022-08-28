@@ -6,7 +6,7 @@ from random import randint
 
 import pytest
 
-from homeassistant.components.adaptive_lighting.const import (
+from adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
@@ -31,7 +31,7 @@ from homeassistant.components.adaptive_lighting.const import (
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
 )
-from homeassistant.components.adaptive_lighting.switch import (
+from adaptive_lighting.switch import (
     _attributes_have_changed,
     _expand_light_groups,
     color_difference_redmean,

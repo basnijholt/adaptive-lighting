@@ -1,6 +1,6 @@
 """Test Adaptive Lighting config flow."""
 from homeassistant import data_entry_flow
-from homeassistant.components.adaptive_lighting.const import (
+from adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     DEFAULT_NAME,

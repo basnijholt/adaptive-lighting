@@ -35,4 +35,4 @@ jobs:
       - name: Run pytest
         timeout-minutes: 60
         run: |
-          pytest tests
+          PYTHONPATH=${PYTHONPATH}:custom_components/:homeassistant/tests pytest tests
