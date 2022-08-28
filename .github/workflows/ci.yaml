@@ -40,4 +40,13 @@ jobs:
           cp -r custom_components/adaptive_lighting core/homeassistant/components/adaptive_lighting
           cp -r tests/ core/tests/components/adaptive_lighting
           cd core
-          pytest tests/components/adaptive_lighting
+          python3 -X dev -m pytest \
+            -qq \
+            --timeout=9 \
+            --durations=10 \
+            --dist=loadfile \
+            --cov="homeassistant" \
+            --cov-report=xml \
+            -o console_output_style=count \
+            -p no:sugar \
+            tests/components/adaptive_lighting
