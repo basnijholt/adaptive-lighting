@@ -29,7 +29,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
           pip install -r core/requirements.txt
           pip install -r core/requirements_test.txt
           pip install -e core/

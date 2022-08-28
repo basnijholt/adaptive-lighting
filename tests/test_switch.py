@@ -3,8 +3,7 @@
 import asyncio
 import datetime
 from random import randint
-
-import pytest
+from unittest.mock import patch
 
 from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
@@ -45,9 +44,9 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP,
     ATTR_RGB_COLOR,
-    DOMAIN as LIGHT_DOMAIN,
-    SERVICE_TURN_OFF,
 )
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.light import SERVICE_TURN_OFF
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.const import (
@@ -62,8 +61,8 @@ from homeassistant.const import (
 from homeassistant.core import Context, State
 from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
+import pytest
 
-from unittest.mock  import patch
 from tests.common import MockConfigEntry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
@@ -247,10 +246,10 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
     context = switch.create_context("test")  # needs to be passed to update method
     min_color_temp = switch._sun_light_settings.min_color_temp
 
-    sunset = hass.config.time_zone.localize(SUNSET).astimezone(dt_util.UTC)
+    sunset = SUNSET.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
     before_sunset = sunset - datetime.timedelta(hours=1)
     after_sunset = sunset + datetime.timedelta(hours=1)
-    sunrise = hass.config.time_zone.localize(SUNRISE).astimezone(dt_util.UTC)
+    sunrise = SUNRISE.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
     before_sunrise = sunrise - datetime.timedelta(hours=1)
     after_sunrise = sunrise + datetime.timedelta(hours=1)
 
@@ -333,10 +332,10 @@ async def test_light_settings(hass):
     await hass.async_block_till_done()
 
     # Test with different times
-    sunset = hass.config.time_zone.localize(SUNSET).astimezone(dt_util.UTC)
+    sunset = SUNSET.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
     before_sunset = sunset - datetime.timedelta(hours=1)
     after_sunset = sunset + datetime.timedelta(hours=1)
-    sunrise = hass.config.time_zone.localize(SUNRISE).astimezone(dt_util.UTC)
+    sunrise = SUNRISE.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
     before_sunrise = sunrise - datetime.timedelta(hours=1)
     after_sunrise = sunrise + datetime.timedelta(hours=1)
 
