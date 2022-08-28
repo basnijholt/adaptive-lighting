@@ -1,28 +1,8 @@
-name: CI
+name: pytest
 
-# yamllint disable-line rule:truthy
 on:
   push:
-    branches:
-      - dev
-      - rc
-      - master
-  pull_request: ~
-
-env:
-  CACHE_VERSION: 1
-  PIP_CACHE_VERSION: 1
-  HA_SHORT_VERSION: 2022.9
-  DEFAULT_PYTHON: 3.9
-  PRE_COMMIT_CACHE: ~/.cache/pre-commit
-  PIP_CACHE: /tmp/pip-cache
-  SQLALCHEMY_WARN_20: 1
-  PYTHONASYNCIODEBUG: 1
-  HASS_CI: 1
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  pull_request:
 
 jobs:
 
