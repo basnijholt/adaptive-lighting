@@ -6,10 +6,9 @@ on:
 
 jobs:
 
-  base:
+  pytest:
     name: Prepare dependencies
     runs-on: ubuntu-20.04
-    needs: info
     timeout-minutes: 60
     strategy:
       matrix:
