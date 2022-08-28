@@ -100,13 +100,6 @@ ENTITY_ADAPT_COLOR_SWITCH = f"{_SWITCH_FMT}_adapt_color_{DEFAULT_NAME}"
 ORIG_TIMEZONE = dt_util.DEFAULT_TIME_ZONE
 
 
-@pytest.fixture(autouse=True)
-async def setup_comp(hass):
-    """Set up demo component."""
-    await async_setup_component(hass, "light", {"light": {"platform": "demo"}})
-    await hass.async_block_till_done()
-
-
 @pytest.fixture
 def reset_time_zone():
     """Reset time zone."""
