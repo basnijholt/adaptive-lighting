@@ -1,10 +1,10 @@
 """Tests for Adaptive Lighting integration."""
-from homeassistant import config_entries
 from homeassistant.components import adaptive_lighting
 from homeassistant.components.adaptive_lighting.const import (
     DEFAULT_NAME,
     UNDO_UPDATE_LISTENER,
 )
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_NAME
 from homeassistant.setup import async_setup_component
 
@@ -33,7 +33,7 @@ async def test_successful_config_entry(hass):
 
     assert await hass.config_entries.async_setup(entry.entry_id)
 
-    assert entry.state == config_entries.ENTRY_STATE_LOADED
+    assert entry.state == ConfigEntryState.LOADED
 
     assert UNDO_UPDATE_LISTENER in hass.data[adaptive_lighting.DOMAIN][entry.entry_id]
 
@@ -51,5 +51,5 @@ async def test_unload_entry(hass):
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert entry.state == config_entries.ENTRY_STATE_NOT_LOADED
+    assert entry.state == ConfigEntryState.NOT_LOADED
     assert adaptive_lighting.DOMAIN not in hass.data
