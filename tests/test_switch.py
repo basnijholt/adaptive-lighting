@@ -2,6 +2,7 @@
 # pylint: disable=protected-access
 import asyncio
 import datetime
+import logging
 from random import randint
 from unittest.mock import patch
 
@@ -67,6 +68,8 @@ import pytest
 from tests.common import MockConfigEntry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
+_LOGGER = logging.getLogger(__name__)
+
 SUNRISE = datetime.datetime(
     year=2020,
     month=10,
@@ -97,6 +100,13 @@ ENTITY_ADAPT_COLOR_SWITCH = f"{_SWITCH_FMT}_adapt_color_{DEFAULT_NAME}"
 ORIG_TIMEZONE = dt_util.DEFAULT_TIME_ZONE
 
 
+@pytest.fixture(autouse=True)
+async def setup_comp(hass):
+    """Set up demo component."""
+    await async_setup_component(hass, "light", {"light": {"platform": "demo"}})
+    await hass.async_block_till_done()
+
+
 @pytest.fixture
 def reset_time_zone():
     """Reset time zone."""
@@ -117,6 +127,9 @@ async def setup_switch(hass, extra_data):
 
 async def setup_lights(hass):
     """Set up 3 light entities using the 'test' platform."""
+    await async_setup_component(hass, "light", {"light": {"platform": "demo"}})
+    await hass.async_block_till_done()
+
     platform = getattr(hass.components, "test.light")
     while platform.ENTITIES:
         # Make sure it is empty
@@ -442,6 +455,7 @@ async def test_manual_control(hass):
         )
         await hass.async_block_till_done()
         await update()
+        _LOGGER.debug("Turn light %s, to %s", state, kwargs)
 
     async def turn_switch(state, entity_id):
         await hass.services.async_call(
@@ -491,7 +505,8 @@ async def test_manual_control(hass):
     assert manual_control[ENTITY_LIGHT]
     await turn_light(False)
     await turn_light(True, brightness=increased_brightness())
-    assert not manual_control[ENTITY_LIGHT]
+    assert hass.states.get(ENTITY_LIGHT).state == STATE_ON
+    assert not manual_control[ENTITY_LIGHT], manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
     for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
