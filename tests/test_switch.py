@@ -149,6 +149,7 @@ async def setup_lights(hass):
         await light.async_update_ha_state()
 
     platform.ENTITIES.extend(lights)
+    platform.init()
     assert await async_setup_component(
         hass, LIGHT_DOMAIN, {LIGHT_DOMAIN: {CONF_PLATFORM: "test"}}
     )
