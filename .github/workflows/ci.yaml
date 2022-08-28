@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v3.0.2
         with:
           repository: home-assistant/core
-          path: homeassistant
+          path: core
       - name: Set up Python ${{ matrix.python-version }}
         id: python
         uses: actions/setup-python@v4.1.0
@@ -31,10 +31,14 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install --upgrade pytest
-          pip install -r homeassistant/requirements.txt
-          pip install -r homeassistant/requirements_test_all.txt
-          pip install -e homeassistant/
+          pip install -r core/requirements.txt
+          pip install -r core/requirements_test.txt
+          pip install -e core/
+          pip install $(python test_dependencies.py)
       - name: Run pytest
         timeout-minutes: 60
         run: |
-          PYTHONPATH=${PYTHONPATH}:custom_components/:homeassistant/tests pytest tests
+          cp -r custom_components/adaptive_lighting core/homeassistant/components/adaptive_lighting
+          cp -r tests/ core/tests/components/adaptive_lighting
+          cd core
+          pytest tests/components/adaptive_lighting

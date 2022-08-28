@@ -6,7 +6,7 @@ from random import randint
 
 import pytest
 
-from adaptive_lighting.const import (
+from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
@@ -31,7 +31,7 @@ from adaptive_lighting.const import (
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
 )
-from adaptive_lighting.switch import (
+from homeassistant.components.adaptive_lighting.switch import (
     _attributes_have_changed,
     _expand_light_groups,
     color_difference_redmean,
@@ -63,7 +63,7 @@ from homeassistant.core import Context, State
 from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 
-from tests.async_mock import patch
+from unittest.mock  import patch
 from tests.common import MockConfigEntry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
