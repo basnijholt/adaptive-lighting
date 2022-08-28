@@ -28,14 +28,12 @@ from homeassistant.components.light import (
     ATTR_KELVIN,
     ATTR_RGB_COLOR,
     ATTR_TRANSITION,
-    ATTR_WHITE_VALUE,
     ATTR_XY_COLOR,
     DOMAIN as LIGHT_DOMAIN,
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
     SUPPORT_TRANSITION,
-    SUPPORT_WHITE_VALUE,
     VALID_TRANSITION,
     is_on,
     COLOR_MODE_RGB,
@@ -134,7 +132,6 @@ from .const import (
 
 _SUPPORT_OPTS = {
     "brightness": SUPPORT_BRIGHTNESS,
-    "white_value": SUPPORT_WHITE_VALUE,
     "color_temp": SUPPORT_COLOR_TEMP,
     "color": SUPPORT_COLOR,
     "transition": SUPPORT_TRANSITION,
@@ -163,7 +160,6 @@ COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
 
 BRIGHTNESS_ATTRS = {
     ATTR_BRIGHTNESS,
-    ATTR_WHITE_VALUE,
     ATTR_BRIGHTNESS_PCT,
     ATTR_BRIGHTNESS_STEP,
     ATTR_BRIGHTNESS_STEP_PCT,
@@ -207,7 +203,6 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     service_datas = []
     if adapt_color:
         service_data_color = service_data.copy()
-        service_data_color.pop(ATTR_WHITE_VALUE, None)
         service_data_color.pop(ATTR_BRIGHTNESS, None)
         service_datas.append(service_data_color)
     if adapt_brightness:
@@ -467,24 +462,6 @@ def _attributes_have_changed(
                 light,
                 last_brightness,
                 current_brightness,
-                context.id,
-            )
-            return True
-
-    if (
-        adapt_brightness
-        and ATTR_WHITE_VALUE in old_attributes
-        and ATTR_WHITE_VALUE in new_attributes
-    ):
-        last_white_value = old_attributes[ATTR_WHITE_VALUE]
-        current_white_value = new_attributes[ATTR_WHITE_VALUE]
-        if abs(current_white_value - last_white_value) > BRIGHTNESS_CHANGE:
-            _LOGGER.debug(
-                "White Value of '%s' significantly changed from %s to %s with"
-                " context.id='%s'",
-                light,
-                last_white_value,
-                current_white_value,
                 context.id,
             )
             return True
@@ -798,10 +775,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
-
-        if "white_value" in features and adapt_brightness:
-            white_value = round(255 * self._settings["brightness_pct"] / 100)
-            service_data[ATTR_WHITE_VALUE] = white_value
 
         if (
             "color_temp" in features
