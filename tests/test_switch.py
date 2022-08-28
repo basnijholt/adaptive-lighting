@@ -755,7 +755,7 @@ def test_attributes_have_changed():
 @pytest.mark.parametrize("wait", [True, False])
 async def test_expand_light_groups(hass, wait):
     """Test expanding light groups."""
-    await setup_switch(hass, {})
+    await setup_lights_and_switch(hass, {})
     lights = ["light.ceiling_lights", "light.kitchen_lights"]
     await async_setup_component(
         hass,

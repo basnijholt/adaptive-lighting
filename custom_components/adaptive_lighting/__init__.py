@@ -2,12 +2,11 @@
 import logging
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
 from .const import (
     _DOMAIN_SCHEMA,

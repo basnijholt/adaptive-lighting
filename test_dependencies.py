@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 with open("core/requirements_test_all.txt") as f:
     lines = f.readlines()
 

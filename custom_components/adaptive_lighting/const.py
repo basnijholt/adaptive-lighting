@@ -1,8 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
-import voluptuous as vol
-
 from homeassistant.components.light import VALID_TRANSITION
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
 ICON = "mdi:theme-light-dark"
 
