@@ -15,8 +15,6 @@ import math
 from typing import Any
 
 import astral
-import voluptuous as vol
-
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
@@ -27,25 +25,27 @@ from homeassistant.components.light import (
     ATTR_HS_COLOR,
     ATTR_KELVIN,
     ATTR_RGB_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
-    DOMAIN as LIGHT_DOMAIN,
+    COLOR_MODE_BRIGHTNESS,
+    COLOR_MODE_COLOR_TEMP,
+    COLOR_MODE_HS,
+    COLOR_MODE_RGB,
+    COLOR_MODE_RGBW,
+    COLOR_MODE_XY,
+)
+from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
     SUPPORT_TRANSITION,
     VALID_TRANSITION,
     is_on,
-    COLOR_MODE_RGB,
-    COLOR_MODE_RGBW,
-    COLOR_MODE_HS,
-    COLOR_MODE_XY,
-    COLOR_MODE_COLOR_TEMP,
-    COLOR_MODE_BRIGHTNESS,
-    ATTR_SUPPORTED_COLOR_MODES,
 )
-
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN, SwitchEntity
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_DOMAIN,
@@ -88,6 +88,7 @@ from homeassistant.util.color import (
     color_xy_to_hs,
 )
 import homeassistant.util.dt as dt_util
+import voluptuous as vol
 
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
@@ -97,7 +98,6 @@ from .const import (
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
-    CONF_SLEEP_TRANSITION,
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
@@ -110,6 +110,7 @@ from .const import (
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
+    CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
@@ -210,6 +211,9 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
         service_data_brightness.pop(ATTR_RGB_COLOR, None)
         service_data_brightness.pop(ATTR_COLOR_TEMP, None)
         service_datas.append(service_data_brightness)
+
+    if not service_datas:  # neither adapt_brightness nor adapt_color
+        return [service_data]
     return service_datas
 
 
@@ -898,6 +902,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
+            _LOGGER.debug("%s: Ignoring sleep event %s", self._name, event)
             return
         _LOGGER.debug(
             "%s: _sleep_mode_switch_state_event, event: '%s'", self._name, event
@@ -1011,10 +1016,12 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn on adaptive lighting sleep mode."""
+        _LOGGER.debug("%s: Turning on", self._name)
         self._state = True
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn off adaptive lighting sleep mode."""
+        _LOGGER.debug("%s: Turning off", self._name)
         self._state = False
 
 
