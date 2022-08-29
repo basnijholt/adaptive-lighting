@@ -169,12 +169,14 @@ BRIGHTNESS_ATTRS = {
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "adapt_lgt"
 
+
 def _int_to_bytes(i: int, signed: bool = False) -> bytes:
     bits = i.bit_length()
     if signed:
         # Make room for the sign bit.
         bits += 1
-    return i.to_bytes((bits + 7) // 8, 'little', signed=signed)
+    return i.to_bytes((bits + 7) // 8, "little", signed=signed)
+
 
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""

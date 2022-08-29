@@ -33,13 +33,11 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.components.adaptive_lighting.switch import (
     _attributes_have_changed,
-    _expand_light_groups,
     color_difference_redmean,
     create_context,
     is_our_context,
 )
 from homeassistant.components.demo.light import DemoLight
-from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
