@@ -18,7 +18,12 @@ for i, line in enumerate(lines):
         components = []
         packages = []
 
-required = ["components.recorder", "components.mqtt", "components.zeroconf"]
+required = [
+    "components.recorder",
+    "components.mqtt",
+    "components.zeroconf",
+    "components.http",
+]
 to_install = []
 for r in required:
     to_install.extend(deps[r])
