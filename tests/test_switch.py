@@ -120,7 +120,9 @@ async def setup_switch(hass, extra_data):
 
 async def setup_lights(hass):
     """Set up 3 light entities using the 'test' platform."""
-    await async_setup_component(hass, "light", {"light": {"platform": "demo"}})
+    await async_setup_component(
+        hass, LIGHT_DOMAIN, {LIGHT_DOMAIN: {"platform": "demo"}}
+    )
     await hass.async_block_till_done()
 
     platform = getattr(hass.components, "test.light")
