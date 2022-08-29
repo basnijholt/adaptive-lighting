@@ -879,14 +879,22 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     await switch.sleep_mode_switch.async_turn_on()
     await switch._update_attrs_and_maybe_adapt_lights(context=context)
     await hass.async_block_till_done()
-    sleep_brightness = light.brightness
-    sleep_color_temp = light.color_temp
+
+    # TODO: figure out why `light.brightness` is not updating
+    attrs = hass.states.get(light.entity_id).attributes
+    sleep_brightness = attrs["brightness"]
+    sleep_color_temp = attrs["color_temp"]
+
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
+
     await switch.sleep_mode_switch.async_turn_off()
     await switch._update_attrs_and_maybe_adapt_lights(context=context)
     await hass.async_block_till_done()
-    brightness = light.brightness
-    color_temp = light.color_temp
+
+    attrs = hass.states.get(light.entity_id).attributes
+    brightness = attrs["brightness"]
+    color_temp = attrs["color_temp"]
+
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp

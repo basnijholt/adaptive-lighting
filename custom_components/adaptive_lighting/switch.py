@@ -902,6 +902,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
+            _LOGGER.debug("%s: Ignoring sleep event %s", self._name, event)
             return
         _LOGGER.debug(
             "%s: _sleep_mode_switch_state_event, event: '%s'", self._name, event
@@ -1015,10 +1016,12 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn on adaptive lighting sleep mode."""
+        _LOGGER.debug("%s: Turning on", self._name)
         self._state = True
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn off adaptive lighting sleep mode."""
+        _LOGGER.debug("%s: Turning off", self._name)
         self._state = False
 
 
