@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+ - name: Getting Help on adaptive-lighting
+   url: https://github.com/basnijholt/adaptive-lighting/discussions/categories/q-a
+   about: Q&A section of the discussion tab
+ - name: Share your idea
+   url: https://github.com/basnijholt/adaptive-lighting/discussions/categories/ideas
+   about: And discuss it with the community
+ - name: General discussions about this component
+   url: https://github.com/basnijholt/adaptive-lighting/discussions/categories/general
+   about: General discussions about this component
+ - name: Share your setup with adaptive-lighting
+   url: https://github.com/basnijholt/adaptive-lighting/discussions/categories/show-and-tell
+   about: Or see what other people do with this component

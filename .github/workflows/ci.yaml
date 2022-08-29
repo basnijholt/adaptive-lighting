@@ -1,0 +1,59 @@
+name: pytest
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+
+  pytest:
+    name: Run pytest
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3.0.2
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3.0.2
+        with:
+          repository: home-assistant/core
+          path: core
+      - name: Set up Python ${{ matrix.python-version }}
+        id: python
+        uses: actions/setup-python@v4.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install -r core/requirements.txt
+          pip install -r core/requirements_test.txt
+          pip install -e core/
+          pip install $(python test_dependencies.py)
+      - name: Run pytest
+        timeout-minutes: 60
+        run: |
+          cd core
+
+          # Link homeassitant.components.adaptive_lighting
+          cd homeassistant/components
+          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
+          cd -
+
+          # Link adaptive_lighting tests
+          cd tests/components/
+          ln -fs ../../../tests adaptive_lighting
+          cd -
+
+          python3 -X dev -m pytest \
+            -qq \
+            --timeout=9 \
+            --durations=10 \
+            --cov="homeassistant" \
+            --cov-report=xml \
+            -o console_output_style=count \
+            -p no:sugar \
+            tests/components/adaptive_lighting
