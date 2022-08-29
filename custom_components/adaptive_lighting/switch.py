@@ -96,6 +96,7 @@ from .const import (
     ATTR_ADAPT_BRIGHTNESS,
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
+    CONF_ADAPT_DELAY,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -127,7 +128,6 @@ from .const import (
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
     TURNING_OFF_DELAY,
-    CONF_ADAPT_DELAY,
     VALIDATION_TUPLES,
     replace_none_str,
 )
@@ -963,7 +963,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         "%s: Cancelling adjusting lights for %s", self._name, entity_id
                     )
                     return
-            
+
             if self._adapt_delay > 0:
                 _LOGGER.debug(
                     "%s: sleep started for '%s' with context.id='%s'",
