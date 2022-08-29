@@ -760,6 +760,28 @@ def test_attributes_have_changed():
     )
 
 
+@pytest.mark.parametrize("wait", [True, False])
+async def test_expand_light_groups(hass, wait):
+    """Test expanding light groups."""
+    await setup_lights_and_switch(hass, {})
+    lights = ["light.ceiling_lights", "light.kitchen_lights"]
+    await async_setup_component(
+        hass,
+        LIGHT_DOMAIN,
+        {LIGHT_DOMAIN: {"platform": GROUP_DOMAIN, "entities": lights, "all": "false"}},
+    )
+    if wait:
+        await hass.async_block_till_done()
+        await hass.async_start()
+        await hass.async_block_till_done()
+    expanded = set(_expand_light_groups(hass, ["light.light_group"]))
+    if wait:
+        assert expanded == set(lights)
+    else:
+        # Cannot expand yet because state is None
+        assert expanded == {"light.light_group"}
+
+
 async def test_unload_switch(hass):
     """Test removing Adaptive Lighting."""
     entry, _ = await setup_switch(hass, {})
