@@ -1,0 +1,49 @@
+{
+  "title": "Kohanduv valgus",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Vali kohanduva valguse üksuse nimi",
+        "description": "Igas üksuses võib olla mitu valgustit!",
+        "data": {
+          "name": "Nimi"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Üksus on juba seadistatud"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kohanduva valguse suvandid",
+        "description": "Kohanduva valguse suvandid. Valikute nimetused ühtuvad YAML kirjes olevatega. Valikuid ei kuvata kui seadistus on tehtud YAML kirjes.",
+        "data": {
+          "lights": "valgustid",
+          "initial_transition": "Algne üleminek kui valgustid lülituvad sisse/välja või unerežiim muutub",
+          "interval": "Intervall, aeg muutuste vahel sekundites",
+          "max_brightness": "Suurim heledus %",
+          "max_color_temp": "Suurim värvustemperatuur Kelvinites",
+          "min_brightness": "Vähim heledus %",
+          "min_color_temp": "Vähim värvustemperatuur Kelvinites",
+          "only_once": "Ainult üks kord, rakendub ainult valgusti sisselülitamisel",
+          "prefer_rgb_color": "Eelista RGB värve, võimalusel kasuta RGB sätteid värvustemperatuuri asemel",
+          "separate_turn_on_commands": "Eraldi lülitused iga valiku (värvus, heledus jne.) sisselülitamiseks, mõned valgustid vajavad seda.",
+          "sleep_brightness": "Unerežiimi heledus %",
+          "sleep_color_temp": "Uneržiimi värvus Kelvinites",
+          "sunrise_offset": "Nihe päikesetõusust, +/- sekundit",
+          "sunrise_time": "Päikesetõusu aeg 'HH:MM:SS' vormingus. (Kui jätta tühjaks kasutatakse asukohajärgset)",
+          "sunset_offset": "Nihe päikeseloojangust, +/- sekundit",
+          "sunset_time": "Päikeseloojangu aeg 'HH:MM:SS' vormingus. (Kui jätta tühjaks kasutatakse asukohajärgset)",
+          "take_over_control": "Käsitsi juhtimine: kui miski peale kohanduva valguse enda lültiab valgusti sisse ja see juba põleb, katkesta kohandamine kuni järgmise välise lülitamiseni.",
+          "detect_non_ha_changes": "Märka väliseid lülitusi: kui mõni säte muutub üle 10% (isegi väljaspoolt HA juhituna) siis peab käsitsi juhtimine olema lubatud (kutsutakse 'homeassistant.update_entity')'interval'!)",
+          "transition": "Üleminekud, sekundites"
+        }
+      }
+    },
+    "error": {
+      "option_error": "Vigane suvand"
+    }
+  }
+}

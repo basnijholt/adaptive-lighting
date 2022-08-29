@@ -1,5 +1,4 @@
 {
-    "name": "adaptive_lighting",
-    "render_readme": true,
-    "domains": ["switch"]
+    "name": "Adaptive Lighting",
+    "render_readme": true
 }

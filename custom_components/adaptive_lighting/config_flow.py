@@ -1,12 +1,11 @@
 """Config flow for Adaptive Lighting integration."""
 import logging
 
-import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
 from .const import (  # pylint: disable=unused-import
     CONF_LIGHTS,

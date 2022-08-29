@@ -1,0 +1,49 @@
+{
+  "title": "Adaptiv Belysning",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Vælg et navn for denne Adaptive Belysning",
+        "description": "Vælg et navn til denne konfiguration. Du kan køre flere konfigurationer af Adaptiv Belysning, og hver af dem kan indeholde flere lys!",
+        "data": {
+          "name": "Navn"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Denne enhed er allerede konfigureret"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adaptiv Belysnings indstillinger",
+        "description": "Alle indstillinger tilhørende en Adaptiv Belysnings komponent. Indstillingernes navne svarer til YAML indstillingernes. Ingen indstillinger vises hvis du allerede har konfigureret den i YAML.",
+        "data": {
+          "lights": "lights: lyskilder",
+          "initial_transition": "initial_transition: Hvor lang overgang når lyset går fra 'off' til 'on' eller når 'sleep_state' skiftes. (i sekunder)",
+          "interval": "interval: Tid imellem opdateringer (i sekunder)",
+          "max_brightness": "max_brightness: Højeste lysstyrke i cyklussen. (%)",
+          "max_color_temp": "max_color_temp: Koldeste lystemperatur i cyklussen. (Kelvin)",
+          "min_brightness": "min_brightness: Laveste lysstyrke i cyklussen. (%)",
+          "min_color_temp": "min_color_temp: Varmeste lystemperatur i cyklussen. (Kelvin)",
+          "only_once": "only_once: Juster udelukkende lysene adaptivt i øjeblikket de tændes.",
+          "prefer_rgb_color": "prefer_rgb_color: Brug 'rgb_color' istedet for 'color_temp' når muligt.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Adskil kommandoerne for hver attribut (color, brightness, etc.) ved 'light.turn_on' (nødvendigt for bestemte lys).",
+          "sleep_brightness": "sleep_brightness, Lysstyrke for Sleep Mode. (%)",
+          "sleep_color_temp": "sleep_color_temp: Farvetemperatur under Sleep Mode. (Kelvin)",
+          "sunrise_offset": "sunrise_offset: Hvor længe før (-) eller efter (+) at definere solopgangen i cyklussen (+/- sekunder)",
+          "sunrise_time": "sunrise_time: Manuel overstyring af solopgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt din lokation. (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: Hvor længe før (-) eller efter (+) at definere solnedgangen i cyklussen (+/- sekunder)",
+          "sunset_time": "sunset_time: Manuel overstyring af solnedgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt for din lokation. (HH:MM:SS)",
+          "take_over_control": "take_over_control: Hvis andet end Adaptiv Belysning kalder 'light.turn_on' på et lys der allerede er tændt, afbryd adaptering af lyset indtil at det tændes igen.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
+          "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)"
+        }
+      }
+    },
+    "error": {
+      "option_error": "Ugyldig indstilling"
+    }
+  }
+}

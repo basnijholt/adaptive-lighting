@@ -1,13 +1,12 @@
 """Adaptive Lighting integration in Home-Assistant."""
 import logging
-from typing import Any, Dict
-
-import voluptuous as vol
+from typing import Any
 
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
 from .const import (
     _DOMAIN_SCHEMA,
@@ -36,7 +35,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass: HomeAssistant, config: Dict[str, Any]):
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     """Import integration from config."""
 
     if DOMAIN in config:
