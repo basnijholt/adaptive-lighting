@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import bisect
 from collections import defaultdict
 from copy import deepcopy
@@ -9,7 +10,6 @@ from dataclasses import dataclass
 import datetime
 from datetime import timedelta
 import functools
-import hashlib
 import logging
 import math
 from typing import Any
@@ -169,10 +169,17 @@ BRIGHTNESS_ATTRS = {
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "adapt_lgt"
 
+def _int_to_bytes(i: int, signed: bool = False) -> bytes:
+    bits = i.bit_length()
+    if signed:
+        # Make room for the sign bit.
+        bits += 1
+    return i.to_bytes((bits + 7) // 8, 'little', signed=signed)
 
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
-    return hashlib.sha1(string.encode("UTF-8")).hexdigest()[:length]
+    str_hash_bytes = _int_to_bytes(hash(string), signed=True)
+    return base64.b85encode(str_hash_bytes)[:length]
 
 
 def create_context(
@@ -182,10 +189,12 @@ def create_context(
     # Use a hash for the name because otherwise the context might become
     # too long (max len == 36) to fit in the database.
     name_hash = _short_hash(name)
+    # Pack index with base85 to maximize the number of contexts we can create
+    # before we exceed the 36-character limit and are forced to wrap.
+    index_packed = base64.b85encode(_int_to_bytes(index, signed=False))
+    context_id = f"{_DOMAIN_SHORT}:{name_hash}:{which}:{index_packed}"[:36]
     parent_id = parent.id if parent else None
-    return Context(
-        id=f"{_DOMAIN_SHORT}_{name_hash}_{which}_{index}", parent_id=parent_id
-    )
+    return Context(id=context_id, parent_id=parent_id)
 
 
 def is_our_context(context: Context | None) -> bool:
@@ -702,13 +711,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     ) -> Context:
         """Create a context that identifies this Adaptive Lighting instance."""
         # Right now the highest number of each context_id it can create is
-        # 'adapt_lgt_XXXX_turn_on_9999999999999'
-        # 'adapt_lgt_XXXX_interval_999999999999'
-        # 'adapt_lgt_XXXX_adapt_lights_99999999'
-        # 'adapt_lgt_XXXX_sleep_999999999999999'
-        # 'adapt_lgt_XXXX_light_event_999999999'
-        # 'adapt_lgt_XXXX_service_9999999999999'
-        # So 100 million calls before we run into the 36 chars limit.
+        # 'adapt_lgt:XXXX:turn_on:*************'
+        # 'adapt_lgt:XXXX:interval:************'
+        # 'adapt_lgt:XXXX:adapt_lights:********'
+        # 'adapt_lgt:XXXX:sleep:***************'
+        # 'adapt_lgt:XXXX:light_event:*********'
+        # 'adapt_lgt:XXXX:service:*************'
+        # The smallest space we have is for adapt_lights, which has
+        # 8 characters. In base85 encoding, that's enough space to hold values
+        # up to 2**48 - 1, which should give us plenty of calls before we wrap.
         context = create_context(self._name, which, self._context_cnt, parent=parent)
         self._context_cnt += 1
         return context
