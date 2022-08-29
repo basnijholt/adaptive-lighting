@@ -127,6 +127,7 @@ from .const import (
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
     TURNING_OFF_DELAY,
+    CONF_ADAPT_DELAY,
     VALIDATION_TUPLES,
     replace_none_str,
 )
@@ -566,6 +567,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._transition = data[CONF_TRANSITION]
+        self._adapt_delay = data[CONF_ADAPT_DELAY]
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -961,6 +963,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         "%s: Cancelling adjusting lights for %s", self._name, entity_id
                     )
                     return
+            
+            if self._adapt_delay > 0:
+                _LOGGER.debug(
+                    "%s: sleep started for '%s' with context.id='%s'",
+                    self._name,
+                    entity_id,
+                    event.context.id,
+                )
+                await asyncio.sleep(self._adapt_delay)
+                _LOGGER.debug(
+                    "%s: sleep ended for '%s' with context.id='%s'",
+                    self._name,
+                    entity_id,
+                    event.context.id,
+                )
 
             await self._update_attrs_and_maybe_adapt_lights(
                 lights=[entity_id],
