@@ -59,11 +59,12 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import Context, State
+from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 import pytest
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, mock_device_registry, mock_registry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
@@ -867,3 +868,32 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
+
+
+async def test_area(hass):
+    _, (light, *_) = await setup_lights_and_switch(hass)
+    device_in_area = device_registry.DeviceEntry(area_id="test-area")
+
+    mock_device_registry(hass, {device_in_area.id: device_in_area})
+    entity_in_area = entity_registry.RegistryEntry(
+        entity_id=light.entity_id,
+        unique_id="in-area-id",
+        platform="test",
+        device_id=device_in_area.id,
+    )
+    mock_registry(hass, {entity_in_area.entity_id: entity_in_area})
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {"area_id": "in-area-id"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
