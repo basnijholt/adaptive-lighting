@@ -6,7 +6,7 @@
   "config_flow": true,
   "dependencies": [],
   "codeowners": ["@basnijholt", "@RubenKelevra"],
-  "version": "1.0.16",
+  "version": "1.0.17",
   "requirements": [],
   "iot_class": "calculated"
 }
