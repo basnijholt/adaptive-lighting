@@ -1291,6 +1291,11 @@ class TurnOnOffListener:
                 _LOGGER.debug(
                     "Found entity_ids '%s' for area_id '%s'", entity_ids, area_id
                 )
+        else:
+            _LOGGER.debug(
+                "No entity_ids or area_ids found in service_data: %s", service_data
+            )
+            return
 
         if not any(eid in self.lights for eid in entity_ids):
             return
