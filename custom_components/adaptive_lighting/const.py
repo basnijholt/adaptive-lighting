@@ -1,8 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
-import voluptuous as vol
-
 from homeassistant.components.light import VALID_TRANSITION
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
 ICON = "mdi:theme-light-dark"
 
@@ -56,6 +55,7 @@ CONF_USE_CONFIG_DEFAULTS = "use_config_defaults"
 CONF_USE_ACTUAL_SUNRISE_TIME = "use_actual_sunrise_time"
 CONF_USE_ACTUAL_SUNSET_TIME = "use_actual_sunset_time"
 
+CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 TURNING_OFF_DELAY = 5
 
 
@@ -85,6 +85,7 @@ VALIDATION_TUPLES = [
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
+    (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, int_between(0, 10000)),
 ]
 
 
