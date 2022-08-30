@@ -50,6 +50,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
+    ATTR_AREA_ID,
     ATTR_ENTITY_ID,
     CONF_LIGHTS,
     CONF_NAME,
@@ -59,12 +60,12 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import Context, State
-from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 import pytest
 
-from tests.common import MockConfigEntry, mock_device_registry, mock_registry
+from tests.common import MockConfigEntry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
@@ -872,16 +873,14 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
 async def test_area(hass):
     switch, (light, *_) = await setup_lights_and_switch(hass)
-    device_in_area = device_registry.DeviceEntry(area_id="test-area")
-
-    mock_device_registry(hass, {device_in_area.id: device_in_area})
-    entity_in_area = entity_registry.RegistryEntry(
-        entity_id=light.entity_id,
-        unique_id="in-area-id",
-        platform="test",
-        device_id=device_in_area.id,
+    # TODO: this doesn't set up the area correctly because I get:
+    # MainThread ... Unable to find referenced areas test_area or it
+    # is/they are currently not available
+    # Therefore the area currently doesn't report to have lights in it.
+    entity = entity_registry.async_get(hass).async_get_or_create(
+        LIGHT_DOMAIN, "demo", light.unique_id, area_id="test_area"
     )
-    mock_registry(hass, {entity_in_area.entity_id: entity_in_area})
+    _LOGGER.debug("test_area entity: %s", entity)
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_ON,
@@ -893,7 +892,7 @@ async def test_area(hass):
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_OFF,
-        {"area_id": "in-area-id"},
+        {ATTR_AREA_ID: entity.area_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -902,3 +901,4 @@ async def test_area(hass):
         "switch.turn_on_off_listener.last_service_data: %s",
         switch.turn_on_off_listener.last_service_data,
     )
+    raise Exception(str(switch.turn_on_off_listener))
