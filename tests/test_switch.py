@@ -50,6 +50,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
+    ATTR_AREA_ID,
     ATTR_ENTITY_ID,
     CONF_LIGHTS,
     CONF_NAME,
@@ -59,11 +60,12 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import Context, State
+from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 import pytest
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, mock_area_registry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
@@ -867,3 +869,36 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
+
+
+async def test_area(hass):
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+
+    area_registry = mock_area_registry(hass)
+    area_registry.async_create("test_area")
+
+    entity = entity_registry.async_get(hass).async_get_or_create(
+        LIGHT_DOMAIN, "demo", light.unique_id, area_id="test_area"
+    )
+    _LOGGER.debug("test_area entity: %s", entity)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_AREA_ID: entity.area_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert light.entity_id in switch.turn_on_off_listener.last_service_data
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_AREA_ID: entity.area_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    _LOGGER.debug(
+        "switch.turn_on_off_listener.last_service_data: %s",
+        switch.turn_on_off_listener.last_service_data,
+    )
+    assert light.entity_id not in switch.turn_on_off_listener.last_service_data
