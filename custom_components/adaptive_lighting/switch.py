@@ -793,6 +793,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if "transition" in features:
             service_data[ATTR_TRANSITION] = transition
 
+        # The switch might be off and not have _settings set.
+        self._settings = self._sun_light_settings.get_settings(
+            self.sleep_mode_switch.is_on, transition
+        )
+
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
@@ -1512,6 +1517,11 @@ class TurnOnOffListener:
             transition = None
 
         turn_on_event = self.turn_on_event.get(entity_id)
+        if turn_on_event is None:
+            # This means that the light never got a 'turn_on' call that we
+            # registered. I am not 100% sure why this happens, but it does.
+            # This is a fix for #170 and #232.
+            return False
         id_turn_on = turn_on_event.context.id
 
         id_off_to_on = off_to_on_event.context.id
