@@ -871,7 +871,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
 
 async def test_area(hass):
-    _, (light, *_) = await setup_lights_and_switch(hass)
+    switch, (light, *_) = await setup_lights_and_switch(hass)
     device_in_area = device_registry.DeviceEntry(area_id="test-area")
 
     mock_device_registry(hass, {device_in_area.id: device_in_area})
@@ -897,3 +897,8 @@ async def test_area(hass):
         blocking=True,
     )
     await hass.async_block_till_done()
+
+    _LOGGER.debug(
+        "switch.turn_on_off_listener.last_service_data: %s",
+        switch.turn_on_off_listener.last_service_data,
+    )
