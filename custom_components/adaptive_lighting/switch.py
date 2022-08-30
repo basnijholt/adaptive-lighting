@@ -1284,9 +1284,12 @@ class TurnOnOffListener:
             area_ids = cv.ensure_list_csv(service_data[ATTR_AREA_ID])
             entity_ids = []
             for area_id in area_ids:
-                entity_ids.extend(area_entities(self.hass, area_id))
+                area_entity_ids = area_entities(self.hass, area_id)
+                for entity_id in area_entity_ids:
+                    if entity_id.startswith(LIGHT_DOMAIN):
+                        entity_ids.append(entity_id)
                 _LOGGER.debug(
-                    "Found entity_ids '%s' in area area_id %s: %s", entity_ids, area_id
+                    "Found entity_ids '%s' for area_id '%s'", entity_ids, area_id
                 )
 
         if not any(eid in self.lights for eid in entity_ids):
