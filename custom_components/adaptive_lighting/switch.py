@@ -48,6 +48,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    ATTR_AREA_ID,
     ATTR_DOMAIN,
     ATTR_ENTITY_ID,
     ATTR_SERVICE,
@@ -80,6 +81,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
+from homeassistant.helpers.template import area_entities
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_RGB_to_xy,
@@ -1279,7 +1281,24 @@ class TurnOnOffListener:
 
         service = event.data[ATTR_SERVICE]
         service_data = event.data[ATTR_SERVICE_DATA]
-        entity_ids = cv.ensure_list_csv(service_data[ATTR_ENTITY_ID])
+        if ATTR_ENTITY_ID in service_data:
+            entity_ids = cv.ensure_list_csv(service_data[ATTR_ENTITY_ID])
+        elif ATTR_AREA_ID in service_data:
+            area_ids = cv.ensure_list_csv(service_data[ATTR_AREA_ID])
+            entity_ids = []
+            for area_id in area_ids:
+                area_entity_ids = area_entities(self.hass, area_id)
+                for entity_id in area_entity_ids:
+                    if entity_id.startswith(LIGHT_DOMAIN):
+                        entity_ids.append(entity_id)
+                _LOGGER.debug(
+                    "Found entity_ids '%s' for area_id '%s'", entity_ids, area_id
+                )
+        else:
+            _LOGGER.debug(
+                "No entity_ids or area_ids found in service_data: %s", service_data
+            )
+            return
 
         if not any(eid in self.lights for eid in entity_ids):
             return
@@ -1496,6 +1515,11 @@ class TurnOnOffListener:
             transition = None
 
         turn_on_event = self.turn_on_event.get(entity_id)
+        if turn_on_event is None:
+            # This means that the light never got a 'turn_on' call that we
+            # registered. I am not 100% sure why this happens, but it does.
+            # This is a fix for #170 and #232.
+            return False
         id_turn_on = turn_on_event.context.id
 
         id_off_to_on = off_to_on_event.context.id
