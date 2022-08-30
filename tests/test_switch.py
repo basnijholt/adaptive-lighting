@@ -65,7 +65,7 @@ from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 import pytest
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, mock_area_registry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
@@ -873,10 +873,10 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
 async def test_area(hass):
     switch, (light, *_) = await setup_lights_and_switch(hass)
-    # TODO: this doesn't set up the area correctly because I get:
-    # MainThread ... Unable to find referenced areas test_area or it
-    # is/they are currently not available
-    # Therefore the area currently doesn't report to have lights in it.
+
+    area_registry = mock_area_registry(hass)
+    area_registry.async_create("test_area")
+
     entity = entity_registry.async_get(hass).async_get_or_create(
         LIGHT_DOMAIN, "demo", light.unique_id, area_id="test_area"
     )
@@ -884,11 +884,11 @@ async def test_area(hass):
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: light.entity_id},
+        {ATTR_AREA_ID: entity.area_id},
         blocking=True,
     )
     await hass.async_block_till_done()
-
+    assert light.entity_id in switch.turn_on_off_listener.last_service_data
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_OFF,
@@ -901,4 +901,4 @@ async def test_area(hass):
         "switch.turn_on_off_listener.last_service_data: %s",
         switch.turn_on_off_listener.last_service_data,
     )
-    raise Exception(str(switch.turn_on_off_listener))
+    assert light.entity_id not in switch.turn_on_off_listener.last_service_data
