@@ -793,6 +793,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if "transition" in features:
             service_data[ATTR_TRANSITION] = transition
 
+        # The switch might be off and not have _settings set.
+        self._settings = self._sun_light_settings.get_settings(
+            self.sleep_mode_switch.is_on, transition
+        )
+
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
