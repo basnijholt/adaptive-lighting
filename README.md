@@ -47,30 +47,32 @@ adaptive_lighting:
 ```
 
 ### Options
-| option                | description                                                                                                                                                                                                                   | required   | default   | type    |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-----------|---------|
-| name                  | The name to use when displaying this switch.                                                                                                                                                                                  | False      | default   | string  |
-| lights                | List of light entities for Adaptive Lighting to control (may be empty).                                                                                                                                                       | False      | list      | []      |
-| prefer_rgb_color      | Whether to use RGB color adjustment instead of native light color temperature.                                                                                                                                                | False      | False     | boolean |
-| initial_transition    | How long the first transition is when the lights go from `off` to `on`.                                                                                                                                                       | False      | 1         | time    |
-| sleep_transition      | How long the transition is when when "sleep mode" is toggled                                                                                                                                                                  | False      | 1         | time    |
-| transition            | How long the transition is when the lights change, in seconds.                                                                                                                                                                | False      | 45        | integer |
-| interval              | How often to adapt the lights, in seconds.                                                                                                                                                                                    | False      | 90        | integer |
-| min_brightness        | The minimum percent of brightness to set the lights to.                                                                                                                                                                       | False      | 1         | integer |
-| max_brightness        | The maximum percent of brightness to set the lights to.                                                                                                                                                                       | False      | 100       | integer |
-| min_color_temp        | The warmest color temperature to set the lights to, in Kelvin.                                                                                                                                                                | False      | 2000      | integer |
-| max_color_temp        | The coldest color temperature to set the lights to, in Kelvin.                                                                                                                                                                | False      | 5500      | integer |
-| sleep_brightness      | Brightness of lights while the sleep mode is enabled.                                                                                                                                                                         | False      | 1         | integer |
-| sleep_color_temp      | Color temperature of lights while the sleep mode is enabled.                                                                                                                                                                  | False      | 1000      | integer |
-| sunrise_time          | Override the sunrise time with a fixed time.                                                                                                                                                                                  | False      | time      |         |
-| sunrise_offset        | Change the sunrise time with a positive or negative offset.                                                                                                                                                                   | False      | 0         | time    |
-| sunset_time           | Override the sunset time with a fixed time.                                                                                                                                                                                   | False      | time      |         |
-| sunset_offset         | Change the sunset time with a positive or negative offset.                                                                                                                                                                    | False      | 0         | time    |
-| only_once             | Whether to keep adapting the lights (false) or to only adapt the lights as soon as they are turned on (true).                                                                                                                 | False      | False     | boolean |
-| take_over_control     | If another source calls `light.turn_on` while the lights are on and being adapted, disable Adaptive Lighting.                                                                                                                 | False      | True      | boolean |
-| detect_non_ha_changes | Whether to detect state changes and stop adapting lights, even not from `light.turn_on`. Needs `take_over_control` to be enabled. Note that by enabling this option, it calls 'homeassistant.update_entity' every 'interval'! | False      | False     | boolean |
-| separate_turn_on_commands | Whether to use separate `light.turn_on` calls for color and brightness, needed for some types of lights                                                                                                                   | False      | False     | boolean |
-| adapt_delay           | Wait time in seconds between light turn on, and Adaptive Lights applying changes to the light state. May avoid flickering.                                                                                                    | False      | 0         | integer |
+| option                    | description                                                                                                                                                                                                                   | required | default        | type    |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------- | ------- |
+| name                      | The name to use when displaying this switch.                                                                                                                                                                                  | False    | default        | string  |
+| lights                    | List of light entities for Adaptive Lighting to control (may be empty).                                                                                                                                                       | False    | list           | []      |
+| prefer_rgb_color          | Whether to use RGB color adjustment instead of native light color temperature.                                                                                                                                                | False    | False          | boolean |
+| initial_transition        | How long the first transition is when the lights go from `off` to `on`.                                                                                                                                                       | False    | 1              | time    |
+| sleep_transition          | How long the transition is when when "sleep mode" is toggled                                                                                                                                                                  | False    | 1              | time    |
+| transition                | How long the transition is when the lights change, in seconds.                                                                                                                                                                | False    | 45             | integer |
+| interval                  | How often to adapt the lights, in seconds.                                                                                                                                                                                    | False    | 90             | integer |
+| min_brightness            | The minimum percent of brightness to set the lights to.                                                                                                                                                                       | False    | 1              | integer |
+| max_brightness            | The maximum percent of brightness to set the lights to.                                                                                                                                                                       | False    | 100            | integer |
+| min_color_temp            | The warmest color temperature to set the lights to, in Kelvin.                                                                                                                                                                | False    | 2000           | integer |
+| max_color_temp            | The coldest color temperature to set the lights to, in Kelvin.                                                                                                                                                                | False    | 5500           | integer |
+| sleep_brightness          | Brightness of lights while the sleep mode is enabled.                                                                                                                                                                         | False    | 1              | integer |
+| sleep_rgb_or_color_temp   | Use either 'rgb_color' or 'color_temp' when in sleep mode.                                                                                                                                                                    | False    | 'color_temp'   | string  |
+| sleep_rgb_color           | List of three numbers between 0-255, indicating the RGB color in sleep mode (only used when sleep_rgb_or_color_temp is 'rgb_color').                                                                                          | False    | `[255, 56, 0]` | list    |
+| sleep_color_temp          | Color temperature of lights while the sleep mode is enabled (only used when sleep_rgb_or_color_temp is 'color_temp').                                                                                                         | False    | 1000           | integer |
+| sunrise_time              | Override the sunrise time with a fixed time.                                                                                                                                                                                  | False    | time           |         |
+| sunrise_offset            | Change the sunrise time with a positive or negative offset.                                                                                                                                                                   | False    | 0              | time    |
+| sunset_time               | Override the sunset time with a fixed time.                                                                                                                                                                                   | False    | time           |         |
+| sunset_offset             | Change the sunset time with a positive or negative offset.                                                                                                                                                                    | False    | 0              | time    |
+| only_once                 | Whether to keep adapting the lights (false) or to only adapt the lights as soon as they are turned on (true).                                                                                                                 | False    | False          | boolean |
+| take_over_control         | If another source calls `light.turn_on` while the lights are on and being adapted, disable Adaptive Lighting.                                                                                                                 | False    | True           | boolean |
+| detect_non_ha_changes     | Whether to detect state changes and stop adapting lights, even not from `light.turn_on`. Needs `take_over_control` to be enabled. Note that by enabling this option, it calls 'homeassistant.update_entity' every 'interval'! | False    | False          | boolean |
+| separate_turn_on_commands | Whether to use separate `light.turn_on` calls for color and brightness, needed for some types of lights                                                                                                                       | False    | False          | boolean |
+| adapt_delay               | Wait time in seconds between light turn on, and Adaptive Lights applying changes to the light state. May avoid flickering.                                                                                                    | False    | 0              | integer |
 
 Full example:
 
@@ -101,25 +103,25 @@ adaptive_lighting:
 
 ### Services
 
-`adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
+`adaptive_lighting.**apply**` applies Adaptive Lighting settings to lights on demand.
 
-| Service data attribute    | Optional | Description                                                             |
-|---------------------------|----------|-------------------------------------------------------------------------|
-| `entity_id`               |       no | The `entity_id` of the switch with the settings to apply.               |
-| `lights`                  |       no | A light (or list of lights) to apply the settings to.                   |
-| `transition`              |      yes | The number of seconds for the transition.                               |
-| `adapt_brightness` | yes | Whether to change the brightness of the light or not.                                        |
-| `adapt_color`      | yes | Whether to adapt the color on supporting lights.                                             |
-| `prefer_rgb_color` | yes | Whether to prefer RGB color adjustment over of native light color temperature when possible. |
-| `turn_on_lights`   | yes | Whether to turn on lights that are currently off.                                            |
+| Service data attribute | Optional | Description                                                                                  |
+| ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `entity_id`            | no       | The `entity_id` of the switch with the settings to apply.                                    |
+| `lights`               | no       | A light (or list of lights) to apply the settings to.                                        |
+| `transition`           | yes      | The number of seconds for the transition.                                                    |
+| `adapt_brightness`     | yes      | Whether to change the brightness of the light or not.                                        |
+| `adapt_color`          | yes      | Whether to adapt the color on supporting lights.                                             |
+| `prefer_rgb_color`     | yes      | Whether to prefer RGB color adjustment over of native light color temperature when possible. |
+| `turn_on_lights`       | yes      | Whether to turn on lights that are currently off.                                            |
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
-| Service data attribute | Optional | Description                                                                                                                          |
-|------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `entity_id`            |       no | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".                                         |
-| `lights`               |      yes | entity_id(s) of lights, if not specified, all lights in the switch are selected.                                                     |
-| `manual_control`       |      yes | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true                                 |
+| Service data attribute | Optional | Description                                                                                         |
+| ---------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `entity_id`            | no       | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".        |
+| `lights`               | yes      | entity_id(s) of lights, if not specified, all lights in the switch are selected.                    |
+| `manual_control`       | yes      | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
 
 
 ## Automation examples
