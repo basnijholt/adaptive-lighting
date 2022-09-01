@@ -806,29 +806,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
 
+        sleep_rgb = (
+            self.sleep_mode_switch.is_on
+            and self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
+        )
         if (
             "color_temp" in features
             and adapt_color
             and not (prefer_rgb_color and "color" in features)
+            and not (sleep_rgb and "color" in features)
         ):
+            _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
             attributes = self.hass.states.get(light).attributes
             min_mireds, max_mireds = attributes["min_mireds"], attributes["max_mireds"]
             color_temp_mired = self._settings["color_temp_mired"]
             color_temp_mired = max(min(color_temp_mired, max_mireds), min_mireds)
             service_data[ATTR_COLOR_TEMP] = color_temp_mired
-            if (
-                self.sleep_mode_switch.is_on
-                and self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
-            ):
-                # Special case: if we're in sleep mode and the user has chosen to use RGB color
-                # in sleep mode, we use this
-                if "color" not in features:
-                    raise ValueError(
-                        "sleep_rgb_or_color_temp is set to 'rgb_color' however it is "
-                        "not supported by the light."
-                    )
-                service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
         elif "color" in features and adapt_color:
+            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
 
         context = context or self.create_context("adapt_lights")
