@@ -31,7 +31,7 @@
           "prefer_rgb_color": "prefer_rgb_color: Use 'rgb_color' rather than 'color_temp' when possible.",
           "separate_turn_on_commands": "separate_turn_on_commands: Separate the commands for each attribute (color, brightness, etc.) in 'light.turn_on' (required for some lights).",
           "sleep_brightness": "sleep_brightness, Brightness setting for Sleep Mode. (%)",
-          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, use 'rgb' or 'color_temp'",
+          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, use 'rgb_color' or 'color_temp'",
           "sleep_rgb_color": "sleep_rgb_color, in RGB",
           "sleep_color_temp": "sleep_color_temp: Color temperature setting for Sleep Mode. (Kelvin)",
           "sunrise_offset": "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- seconds)",
