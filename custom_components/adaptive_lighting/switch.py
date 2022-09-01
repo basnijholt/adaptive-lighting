@@ -1077,7 +1077,7 @@ class SunLightSettings:
     min_brightness: int
     min_color_temp: int
     sleep_brightness: int
-    sleep_rgb_or_color_temp: Literal["color_temp", "rgb"]
+    sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
     sleep_color_temp: int
     sleep_rgb_color: tuple[int, int, int]
     sunrise_offset: datetime.timedelta | None

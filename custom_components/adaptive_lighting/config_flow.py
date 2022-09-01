@@ -99,8 +99,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:
-            if name == "sleep_rgb_or_color_temp":
-                continue
             key = vol.Optional(name, default=conf.options.get(name, default))
             value = to_replace.get(name, validation)
             options_schema[key] = value

@@ -90,13 +90,11 @@ VALIDATION_TUPLES = [
         DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,
         selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=["color_temp", "rgb"],
+                options=["color_temp", "rgb_color"],
                 multiple=False,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             ),
-        )
-        # vol.Any(vol.Literal("color_temp"), vol.Literal("rgb")),
-        # cv.multi_select(["color_temp", "rgb_color"]),
+        ),
     ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
