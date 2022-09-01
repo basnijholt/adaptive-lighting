@@ -12,7 +12,7 @@ from datetime import timedelta
 import functools
 import logging
 import math
-from typing import Any
+from typing import Any, Literal
 
 import astral
 from homeassistant.components.light import (
@@ -114,6 +114,7 @@ from .const import (
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_RGB_COLOR,
+    CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
@@ -589,6 +590,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
             sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
             sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
+            sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
@@ -1075,6 +1077,7 @@ class SunLightSettings:
     min_brightness: int
     min_color_temp: int
     sleep_brightness: int
+    sleep_rgb_or_color_temp: Literal["color_temp", "rgb"]
     sleep_color_temp: int
     sleep_rgb_color: tuple[int, int, int]
     sunrise_offset: datetime.timedelta | None

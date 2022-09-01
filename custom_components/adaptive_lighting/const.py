@@ -1,4 +1,5 @@
 """Constants for the Adaptive Lighting integration."""
+
 from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
@@ -84,7 +85,19 @@ VALIDATION_TUPLES = [
         DEFAULT_SLEEP_RGB_COLOR,
         selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
     ),
-    (CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP, bool),
+    (
+        CONF_SLEEP_RGB_OR_COLOR_TEMP,
+        DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,
+        selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=["color_temp", "rgb"],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        )
+        # vol.Any(vol.Literal("color_temp"), vol.Literal("rgb")),
+        # cv.multi_select(["color_temp", "rgb_color"]),
+    ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
     (CONF_SUNSET_TIME, NONE_STR, str),
