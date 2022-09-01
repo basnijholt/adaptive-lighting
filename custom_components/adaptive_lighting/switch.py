@@ -12,7 +12,7 @@ from datetime import timedelta
 import functools
 import logging
 import math
-from typing import Any
+from typing import Any, Literal
 
 import astral
 from homeassistant.components.light import (
@@ -113,6 +113,8 @@ from .const import (
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
+    CONF_SLEEP_RGB_COLOR,
+    CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
@@ -587,6 +589,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_color_temp=data[CONF_MIN_COLOR_TEMP],
             sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
             sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
+            sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
+            sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
@@ -802,17 +806,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
 
+        sleep_rgb = (
+            self.sleep_mode_switch.is_on
+            and self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
+        )
         if (
             "color_temp" in features
             and adapt_color
             and not (prefer_rgb_color and "color" in features)
+            and not (sleep_rgb and "color" in features)
         ):
+            _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
             attributes = self.hass.states.get(light).attributes
             min_mireds, max_mireds = attributes["min_mireds"], attributes["max_mireds"]
             color_temp_mired = self._settings["color_temp_mired"]
             color_temp_mired = max(min(color_temp_mired, max_mireds), min_mireds)
             service_data[ATTR_COLOR_TEMP] = color_temp_mired
         elif "color" in features and adapt_color:
+            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
 
         context = context or self.create_context("adapt_lights")
@@ -1073,7 +1084,9 @@ class SunLightSettings:
     min_brightness: int
     min_color_temp: int
     sleep_brightness: int
+    sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
     sleep_color_temp: int
+    sleep_rgb_color: tuple[int, int, int]
     sunrise_offset: datetime.timedelta | None
     sunrise_time: datetime.time | None
     sunset_offset: datetime.timedelta | None
@@ -1192,10 +1205,8 @@ class SunLightSettings:
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
 
-    def calc_color_temp_kelvin(self, percent: float, is_sleep: bool) -> float:
+    def calc_color_temp_kelvin(self, percent: float) -> float:
         """Calculate the color temperature in Kelvin."""
-        if is_sleep:
-            return self.sleep_color_temp
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
             return (delta * percent) + self.min_color_temp
@@ -1214,11 +1225,15 @@ class SunLightSettings:
             else self.calc_percent(0)
         )
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
-        color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep)
+        if is_sleep:
+            color_temp_kelvin = self.sleep_color_temp
+            rgb_color: tuple[float, float, float] = self.sleep_rgb_color
+        else:
+            color_temp_kelvin = self.calc_color_temp_kelvin(percent)
+            rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
+                color_temp_kelvin
+            )
         color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
-        rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
-            color_temp_kelvin
-        )
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {
