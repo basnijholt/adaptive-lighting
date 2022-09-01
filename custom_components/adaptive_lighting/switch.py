@@ -113,6 +113,7 @@ from .const import (
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
+    CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
@@ -587,6 +588,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_color_temp=data[CONF_MIN_COLOR_TEMP],
             sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
             sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
+            sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
@@ -1074,6 +1076,7 @@ class SunLightSettings:
     min_color_temp: int
     sleep_brightness: int
     sleep_color_temp: int
+    sleep_rgb_color: tuple[int, int, int]
     sunrise_offset: datetime.timedelta | None
     sunrise_time: datetime.time | None
     sunset_offset: datetime.timedelta | None
@@ -1192,10 +1195,8 @@ class SunLightSettings:
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
 
-    def calc_color_temp_kelvin(self, percent: float, is_sleep: bool) -> float:
+    def calc_color_temp_kelvin(self, percent: float) -> float:
         """Calculate the color temperature in Kelvin."""
-        if is_sleep:
-            return self.sleep_color_temp
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
             return (delta * percent) + self.min_color_temp
@@ -1214,11 +1215,15 @@ class SunLightSettings:
             else self.calc_percent(0)
         )
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
-        color_temp_kelvin = self.calc_color_temp_kelvin(percent, is_sleep)
+        if is_sleep:
+            color_temp_kelvin = self.sleep_color_temp
+            rgb_color: tuple[float, float, float] = self.sleep_rgb_color
+        else:
+            color_temp_kelvin = self.calc_color_temp_kelvin(percent)
+            rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
+                color_temp_kelvin
+            )
         color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
-        rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
-            color_temp_kelvin
-        )
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {

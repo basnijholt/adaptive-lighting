@@ -1,5 +1,6 @@
 """Constants for the Adaptive Lighting integration."""
 from homeassistant.components.light import VALID_TRANSITION
+from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
@@ -30,6 +31,7 @@ CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS = (
 )
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
+CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
 CONF_SUNRISE_TIME = "sunrise_time"
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
@@ -73,6 +75,11 @@ VALIDATION_TUPLES = [
     (CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP, int_between(1000, 10000)),
     (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
     (CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP, int_between(1000, 10000)),
+    (
+        CONF_SLEEP_RGB_COLOR,
+        DEFAULT_SLEEP_RGB_COLOR,
+        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
+    ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
     (CONF_SUNSET_TIME, NONE_STR, str),
