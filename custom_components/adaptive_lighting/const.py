@@ -79,12 +79,6 @@ VALIDATION_TUPLES = [
     (CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP, int_between(1000, 10000)),
     (CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP, int_between(1000, 10000)),
     (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
-    (CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP, int_between(1000, 10000)),
-    (
-        CONF_SLEEP_RGB_COLOR,
-        DEFAULT_SLEEP_RGB_COLOR,
-        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
-    ),
     (
         CONF_SLEEP_RGB_OR_COLOR_TEMP,
         DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,
@@ -95,6 +89,12 @@ VALIDATION_TUPLES = [
                 mode=selector.SelectSelectorMode.DROPDOWN,
             ),
         ),
+    ),
+    (CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP, int_between(1000, 10000)),
+    (
+        CONF_SLEEP_RGB_COLOR,
+        DEFAULT_SLEEP_RGB_COLOR,
+        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
     ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
