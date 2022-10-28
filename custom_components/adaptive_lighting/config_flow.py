@@ -61,12 +61,12 @@ def validate_options(user_input, errors):
     This is an extra validation step because the validators
     in `EXTRA_VALIDATION` cannot be serialized to json.
     """
-    for key, (validate, _) in EXTRA_VALIDATION.items():
+    for key, (_validate, _) in EXTRA_VALIDATION.items():
         # these are unserializable validators
         value = user_input.get(key)
         try:
             if value is not None and value != NONE_STR:
-                validate(value)
+                _validate(value)
         except vol.Invalid:
             _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
             errors["base"] = "option_error"
@@ -97,7 +97,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if _supported_features(self.hass, light)
         ]
         for configured_light in data[CONF_LIGHTS]:
-            if not configured_light in all_lights:
+            if configured_light not in all_lights:
                 all_lights.append(configured_light)
         to_replace = {CONF_LIGHTS: cv.multi_select(sorted(all_lights))}
 
