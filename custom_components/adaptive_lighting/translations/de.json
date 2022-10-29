@@ -43,7 +43,8 @@
       }
     },
     "error": {
-      "option_error": "Fehlerhafte Option"
+      "option_error": "Fehlerhafte Option",
+      "entity_missing": "Ein ausgewähltes Licht wurde nicht gefunden"
     }
   }
 }

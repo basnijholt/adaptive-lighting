@@ -44,7 +44,8 @@
       }
     },
     "error": {
-      "option_error": "Błędne opcje"
+      "option_error": "Błędne opcje",
+      "entity_missing": "Nie znaleziono wybranego światła"
     }
   }
 }

@@ -47,7 +47,8 @@
       }
     },
     "error": {
-      "option_error": "Invalid option"
+      "option_error": "Invalid option",
+      "entity_missing": "One or more selected light entities are missing from Home Assistant"
     }
   }
 }

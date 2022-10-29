@@ -46,7 +46,8 @@
       }
     },
     "error": {
-      "option_error": "Ogiltlig inställning"
+      "option_error": "Ogiltlig inställning",
+      "entity_missing": "Ett valt ljus hittades inte"
     }
   }
 }

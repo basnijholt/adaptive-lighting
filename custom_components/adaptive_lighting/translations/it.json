@@ -45,7 +45,8 @@
         }
       },
       "error": {
-        "option_error": "Opzione non valida"
+        "option_error": "Opzione non valida",
+        "entity_missing": "Non è stata trovata una luce selezionata"
       }
     }
   }
