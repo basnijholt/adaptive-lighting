@@ -98,6 +98,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         ]
         for configured_light in data[CONF_LIGHTS]:
             if configured_light not in all_lights:
+                errors = {CONF_LIGHTS: "entity_missing"}
+                _LOGGER.error(
+                    "%s: light entity %s is configured, but was not found",
+                    data[CONF_NAME],
+                    configured_light,
+                )
                 all_lights.append(configured_light)
         to_replace = {CONF_LIGHTS: cv.multi_select(sorted(all_lights))}
 
