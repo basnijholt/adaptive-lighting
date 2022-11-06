@@ -878,7 +878,10 @@ async def test_area(hass):
     area_registry.async_create("test_area")
 
     entity = entity_registry.async_get(hass).async_get_or_create(
-        LIGHT_DOMAIN, "demo", light.unique_id, area_id="test_area"
+        LIGHT_DOMAIN, "demo", light.unique_id
+    )
+    entity = entity_registry.async_get(hass).async_update_entity(
+        entity.entity_id, area_id="test_area"
     )
     _LOGGER.debug("test_area entity: %s", entity)
     await hass.services.async_call(
