@@ -1,6 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-25-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-26-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 
@@ -238,6 +238,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="http://hypfer.de/"><img src="https://avatars.githubusercontent.com/u/974410?v=4?s=100" width="100px;" alt="Sören Beye"/><br /><sub><b>Sören Beye</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Hypfer" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://medium.com/@hudsonbrendon"><img src="https://avatars.githubusercontent.com/u/5201888?v=4?s=100" width="100px;" alt="Hudson Brendon"/><br /><sub><b>Hudson Brendon</b></sub></a><br /><a href="#translation-hudsonbrendon" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/gvssr"><img src="https://avatars.githubusercontent.com/u/61377476?v=4?s=100" width="100px;" alt="Gabriel Visser"/><br /><sub><b>Gabriel Visser</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=gvssr" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/glebsterx"><img src="https://avatars.githubusercontent.com/u/8779304?v=4?s=100" width="100px;" alt="Gleb"/><br /><sub><b>Gleb</b></sub></a><br /><a href="#translation-glebsterx" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
