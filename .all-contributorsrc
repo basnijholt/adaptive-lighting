@@ -93,6 +93,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Repsionu",
+      "name": "Jüri Rebane",
+      "avatar_url": "https://avatars.githubusercontent.com/u/46962963?v=4",
+      "profile": "https://github.com/Repsionu",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
