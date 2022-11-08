@@ -210,6 +210,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Hypfer",
+      "name": "Sören Beye",
+      "avatar_url": "https://avatars.githubusercontent.com/u/974410?v=4",
+      "profile": "http://hypfer.de/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
