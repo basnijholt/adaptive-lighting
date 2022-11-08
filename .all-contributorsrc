@@ -292,6 +292,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "covid10",
+      "name": "covid10",
+      "avatar_url": "https://avatars.githubusercontent.com/u/71146231?v=4",
+      "profile": "https://github.com/covid10",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
