@@ -106,8 +106,10 @@ from .const import (
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
+    CONF_MAX_SUNRISE_TIME,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
+    CONF_MIN_SUNSET_TIME,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_SEPARATE_TURN_ON_COMMANDS,
@@ -593,8 +595,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
+            max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
+            min_sunset_time=data[CONF_MIN_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
         )
@@ -1089,8 +1093,10 @@ class SunLightSettings:
     sleep_rgb_color: tuple[int, int, int]
     sunrise_offset: datetime.timedelta | None
     sunrise_time: datetime.time | None
+    max_sunrise_time: datetime.time | None
     sunset_offset: datetime.timedelta | None
     sunset_time: datetime.time | None
+    min_sunset_time: datetime.time | None
     time_zone: datetime.tzinfo
     transition: int
 
@@ -1135,7 +1141,22 @@ class SunLightSettings:
             else _replace_time(date, "sunset")
         ) + self.sunset_offset
 
-        if self.sunrise_time is None and self.sunset_time is None:
+        if self.max_sunrise_time is not None:
+            max_sunrise = _replace_time(date, "max_sunrise")
+            if max_sunrise < sunrise:
+                sunrise = max_sunrise
+
+        if self.min_sunset_time is not None:
+            min_sunset = _replace_time(date, "min_sunset")
+            if min_sunset > sunset:
+                sunset = min_sunset
+
+        if (
+            self.sunrise_time is None
+            and self.sunset_time is None
+            and self.max_sunrise_time is None
+            and self.min_sunset_time is None
+        ):
             try:
                 # Astral v1
                 solar_noon = location.solar_noon(date, local=False)
