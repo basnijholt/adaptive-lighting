@@ -65,6 +65,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "Shulyaka",
+      "name": "Denis Shulyaka",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2741408?v=4",
+      "profile": "https://github.com/Shulyaka",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
