@@ -120,6 +120,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Nicholaiii",
+      "name": "Nicholai Nissen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7280931?v=4",
+      "profile": "https://nicholai.dev/",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,

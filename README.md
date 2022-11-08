@@ -1,6 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-12-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-13-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 
@@ -221,6 +221,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Repsionu"><img src="https://avatars.githubusercontent.com/u/46962963?v=4?s=100" width="100px;" alt="Jüri Rebane"/><br /><sub><b>Jüri Rebane</b></sub></a><br /><a href="#translation-Repsionu" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/quantumlemur"><img src="https://avatars.githubusercontent.com/u/229782?v=4?s=100" width="100px;" alt="quantumlemur"/><br /><sub><b>quantumlemur</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=quantumlemur" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Oekn5w"><img src="https://avatars.githubusercontent.com/u/38046255?v=4?s=100" width="100px;" alt="Michael Kirsch"/><br /><sub><b>Michael Kirsch</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Oekn5w" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://nicholai.dev/"><img src="https://avatars.githubusercontent.com/u/7280931?v=4?s=100" width="100px;" alt="Nicholai Nissen"/><br /><sub><b>Nicholai Nissen</b></sub></a><br /><a href="#translation-Nicholaiii" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
