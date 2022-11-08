@@ -102,6 +102,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "quantumlemur",
+      "name": "quantumlemur",
+      "avatar_url": "https://avatars.githubusercontent.com/u/229782?v=4",
+      "profile": "https://github.com/quantumlemur",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
