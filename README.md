@@ -1,6 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-32-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-33-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 
@@ -247,6 +247,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="http://davidstenbeck.com/"><img src="https://avatars.githubusercontent.com/u/3330933?v=4?s=100" width="100px;" alt="David Stenbeck"/><br /><sub><b>David Stenbeck</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Davst" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/danaues"><img src="https://avatars.githubusercontent.com/u/24459240?v=4?s=100" width="100px;" alt="Kevin Addeman"/><br /><sub><b>Kevin Addeman</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=danaues" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/covid10"><img src="https://avatars.githubusercontent.com/u/71146231?v=4?s=100" width="100px;" alt="covid10"/><br /><sub><b>covid10</b></sub></a><br /><a href="#translation-covid10" title="Translation">🌍</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=covid10" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chishm"><img src="https://avatars.githubusercontent.com/u/18148723?v=4?s=100" width="100px;" alt="Michael Chisholm"/><br /><sub><b>Michael Chisholm</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=chishm" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>

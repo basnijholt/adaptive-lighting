@@ -302,6 +302,15 @@
         "translation",
         "code"
       ]
+    },
+    {
+      "login": "chishm",
+      "name": "Michael Chisholm",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18148723?v=4",
+      "profile": "https://github.com/chishm",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
