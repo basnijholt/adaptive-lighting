@@ -29,6 +29,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "willpuckett",
+      "name": "Will Puckett",
+      "avatar_url": "https://avatars.githubusercontent.com/u/12959477?v=4",
+      "profile": "https://github.com/willpuckett",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
