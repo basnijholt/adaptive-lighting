@@ -219,6 +219,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "hudsonbrendon",
+      "name": "Hudson Brendon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5201888?v=4",
+      "profile": "http://medium.com/@hudsonbrendon",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
