@@ -1,6 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-9-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 
@@ -217,6 +217,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/RubenKelevra"><img src="https://avatars.githubusercontent.com/u/614929?v=4?s=100" width="100px;" alt="@RubenKelevra"/><br /><sub><b>@RubenKelevra</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=RubenKelevra" title="Documentation">📖</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=RubenKelevra" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://robertheaton.com/"><img src="https://avatars.githubusercontent.com/u/1565857?v=4?s=100" width="100px;" alt="Rob Heaton"/><br /><sub><b>Rob Heaton</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=robert" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
