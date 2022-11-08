@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-36-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-37-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # Adaptive Lighting component for Home Assistant
@@ -253,6 +253,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/awashingmachine"><img src="https://avatars.githubusercontent.com/u/79043726?v=4?s=100" width="100px;" alt="awashingmachine"/><br /><sub><b>awashingmachine</b></sub></a><br /><a href="#translation-awashingmachine" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/claytonjn"><img src="https://avatars.githubusercontent.com/u/3850252?v=4?s=100" width="100px;" alt="Clayton Nummer"/><br /><sub><b>Clayton Nummer</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=claytonjn" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
