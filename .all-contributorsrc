@@ -165,6 +165,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Lynilia",
+      "name": "Lynilia",
+      "avatar_url": "https://avatars.githubusercontent.com/u/89228568?v=4",
+      "profile": "https://github.com/Lynilia",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
