@@ -106,8 +106,10 @@ from .const import (
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
+    CONF_MAX_SUNRISE_TIME,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
+    CONF_MIN_SUNSET_TIME,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_SEPARATE_TURN_ON_COMMANDS,
@@ -118,10 +120,8 @@ from .const import (
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
-    CONF_MAX_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
-    CONF_MIN_SUNSET_TIME,
     CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
@@ -1152,8 +1152,10 @@ class SunLightSettings:
                 sunset = min_sunset
 
         if (
-                self.sunrise_time is None and self.sunset_time is None and
-                self.max_sunrise_time is None and self.min_sunset_time is None
+            self.sunrise_time is None
+            and self.sunset_time is None
+            and self.max_sunrise_time is None
+            and self.min_sunset_time is None
         ):
             try:
                 # Astral v1
