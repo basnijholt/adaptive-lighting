@@ -14,6 +14,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "robert",
+      "name": "Rob Heaton",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1565857?v=4",
+      "profile": "https://robertheaton.com/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
