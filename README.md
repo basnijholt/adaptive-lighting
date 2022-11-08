@@ -1,6 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-28-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-29-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 
@@ -241,6 +241,9 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/glebsterx"><img src="https://avatars.githubusercontent.com/u/8779304?v=4?s=100" width="100px;" alt="Gleb"/><br /><sub><b>Gleb</b></sub></a><br /><a href="#translation-glebsterx" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/ghost"><img src="https://avatars.githubusercontent.com/u/10137?v=4?s=100" width="100px;" alt="Deleted user"/><br /><sub><b>Deleted user</b></sub></a><br /><a href="#translation-ghost" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://omg.dje.li/"><img src="https://avatars.githubusercontent.com/u/103232?v=4?s=100" width="100px;" alt="Avi Miller"/><br /><sub><b>Avi Miller</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Djelibeybi" title="Documentation">📖</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Djelibeybi" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/denysdovhan"><img src="https://avatars.githubusercontent.com/u/3459374?v=4?s=100" width="100px;" alt="Denys Dovhan"/><br /><sub><b>Denys Dovhan</b></sub></a><br /><a href="#translation-denysdovhan" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
