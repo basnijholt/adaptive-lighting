@@ -138,6 +138,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "mpeterson",
+      "name": "Michel Peterson",
+      "avatar_url": "https://avatars.githubusercontent.com/u/11870?v=4",
+      "profile": "https://github.com/mpeterson",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
