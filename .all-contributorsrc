@@ -338,6 +338,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "claytonjn",
+      "name": "Clayton Nummer",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3850252?v=4",
+      "profile": "https://github.com/claytonjn",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
