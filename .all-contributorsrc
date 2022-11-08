@@ -129,6 +129,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "myhrmans",
+      "name": "Martin Myhrman",
+      "avatar_url": "https://avatars.githubusercontent.com/u/14261388?v=4",
+      "profile": "https://github.com/myhrmans",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
