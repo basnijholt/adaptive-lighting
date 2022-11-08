@@ -199,7 +199,11 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 ##### Brightness:
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
 
-## Contributors
+# Credits
+
+This integration was originally based on the great work in [hass-circadian_lighting](https://github.com/claytonjn/hass-circadian_lighting) by @claytonjn from [6a919ae](https://github.com/claytonjn/hass-circadian_lighting/tree/6a919ae9dadc9103b91b50d8df812b5b86bb9fcd).
+
+# Contributors
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
