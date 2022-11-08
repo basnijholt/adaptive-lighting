@@ -147,6 +147,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "matt",
+      "name": "Matthew Mohrman",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2709?v=4",
+      "profile": "https://github.com/matt",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

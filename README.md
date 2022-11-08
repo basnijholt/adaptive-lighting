@@ -1,6 +1,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-15-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-16-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 
@@ -226,6 +226,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/mpeterson"><img src="https://avatars.githubusercontent.com/u/11870?v=4?s=100" width="100px;" alt="Michel Peterson"/><br /><sub><b>Michel Peterson</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=mpeterson" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/matt"><img src="https://avatars.githubusercontent.com/u/2709?v=4?s=100" width="100px;" alt="Matthew Mohrman"/><br /><sub><b>Matthew Mohrman</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=matt" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
