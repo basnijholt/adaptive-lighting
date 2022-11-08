@@ -47,6 +47,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "travisp",
+      "name": "Travis Pew",
+      "avatar_url": "https://avatars.githubusercontent.com/u/165698?v=4",
+      "profile": "https://github.com/travisp",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
