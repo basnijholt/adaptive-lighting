@@ -17,7 +17,8 @@
       "profile": "http://www.nijho.lt/",
       "contributions": [
         "code",
-        "maintenance"
+        "maintenance",
+        "bug"
       ]
     }
   ],
