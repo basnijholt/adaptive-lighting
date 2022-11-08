@@ -56,6 +56,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "sindrebroch",
+      "name": "Sindre Broch",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10772085?v=4",
+      "profile": "https://github.com/sindrebroch",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
