@@ -228,6 +228,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "gvssr",
+      "name": "Gabriel Visser",
+      "avatar_url": "https://avatars.githubusercontent.com/u/61377476?v=4",
+      "profile": "https://github.com/gvssr",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
