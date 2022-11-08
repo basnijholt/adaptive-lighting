@@ -183,6 +183,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "jowgn",
+      "name": "Joscha Wagner",
+      "avatar_url": "https://avatars.githubusercontent.com/u/24966042?v=4",
+      "profile": "https://github.com/jowgn",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
