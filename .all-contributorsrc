@@ -20,6 +20,15 @@
         "maintenance",
         "bug"
       ]
+    },
+    {
+      "login": "wrt54g",
+      "name": "Sven Serlier",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85389871?v=4",
+      "profile": "https://github.com/wrt54g",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
