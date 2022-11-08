@@ -216,7 +216,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Shulyaka"><img src="https://avatars.githubusercontent.com/u/2741408?v=4?s=100" width="100px;" alt="Denis Shulyaka"/><br /><sub><b>Denis Shulyaka</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Shulyaka" title="Code">💻</a></td>
     </tr>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/RubenKelevra"><img src="https://avatars.githubusercontent.com/u/614929?v=4?s=100" width="100px;" alt="@RubenKelevra"/><br /><sub><b>@RubenKelevra</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=RubenKelevra" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/RubenKelevra"><img src="https://avatars.githubusercontent.com/u/614929?v=4?s=100" width="100px;" alt="@RubenKelevra"/><br /><sub><b>@RubenKelevra</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=RubenKelevra" title="Documentation">📖</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=RubenKelevra" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
