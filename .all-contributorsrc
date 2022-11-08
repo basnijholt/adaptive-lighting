@@ -329,6 +329,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "awashingmachine",
+      "name": "awashingmachine",
+      "avatar_url": "https://avatars.githubusercontent.com/u/79043726?v=4",
+      "profile": "https://github.com/awashingmachine",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
