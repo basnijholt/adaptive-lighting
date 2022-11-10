@@ -86,15 +86,6 @@
       ]
     },
     {
-      "login": "robert",
-      "name": "Rob Heaton",
-      "avatar_url": "https://avatars.githubusercontent.com/u/1565857?v=4",
-      "profile": "https://robertheaton.com/",
-      "contributions": [
-        "code"
-      ]
-    },
-    {
       "login": "Repsionu",
       "name": "Jüri Rebane",
       "avatar_url": "https://avatars.githubusercontent.com/u/46962963?v=4",
@@ -144,15 +135,6 @@
       "name": "Michel Peterson",
       "avatar_url": "https://avatars.githubusercontent.com/u/11870?v=4",
       "profile": "https://github.com/mpeterson",
-      "contributions": [
-        "code"
-      ]
-    },
-    {
-      "login": "matt",
-      "name": "Matthew Mohrman",
-      "avatar_url": "https://avatars.githubusercontent.com/u/2709?v=4",
-      "profile": "https://github.com/matt",
       "contributions": [
         "code"
       ]
