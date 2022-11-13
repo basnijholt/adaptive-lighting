@@ -824,7 +824,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         ):
             _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
             attributes = self.hass.states.get(light).attributes
-            min_kelvin, max_kelvin = attributes["min_kelvin"], attributes["max_kelvin"]
+            min_kelvin = attributes["min_color_temp_kelvin"]
+            max_kelvin = attributes["max_color_temp_kelvin"]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
