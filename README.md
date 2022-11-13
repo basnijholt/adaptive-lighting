@@ -4,7 +4,7 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-37-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-# Adaptive Lighting - automatically adapt the brightness and color of lights based on the sun position and take over manual control
+# Automatically adapt the brightness and color of lights based on the sun position and take over manual control
 
 ![](https://github.com/home-assistant/brands/raw/b4a168b9af282ef916e120d31091ecd5e3c35e66/core_integrations/adaptive_lighting/icon.png)
 
