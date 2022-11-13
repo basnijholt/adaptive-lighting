@@ -62,6 +62,7 @@ from homeassistant.const import (
 from homeassistant.core import Context, State
 from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
+from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
 
@@ -487,7 +488,9 @@ async def test_manual_control(hass):
         return (light._brightness + 100) % 255
 
     def increased_color_temp():
-        return max((light._ct + 100) % light.max_mireds, light.min_mireds)
+        return max(
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+        )
 
     # Nothing is manually controlled
     await update()
@@ -526,7 +529,13 @@ async def test_manual_control(hass):
     await switch.adapt_brightness_switch.async_turn_off()
     await turn_light(True, brightness=increased_brightness())
     assert not manual_control[ENTITY_LIGHT]
-    await turn_light(True, color_temp=(light._ct + 100) % 500)
+    mired_range = (light.min_color_temp_kelvin, light.max_color_temp_kelvin)
+    kelvin_range = (
+        color_temperature_mired_to_kelvin(mired_range[1]),
+        color_temperature_mired_to_kelvin(mired_range[0]),
+    )
+    ptp_kelvin = kelvin_range[1] - kelvin_range[0]
+    await turn_light(True, color_temp_kelvin=(light._ct + 100) % ptp_kelvin)
     assert manual_control[ENTITY_LIGHT]
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
@@ -579,7 +588,9 @@ async def test_apply_service(hass):
         return (light._brightness + 100) % 255
 
     def increased_color_temp():
-        return max((light._ct + 100) % light.max_mireds, light.min_mireds)
+        return max(
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+        )
 
     async def change_light():
         await hass.services.async_call(
