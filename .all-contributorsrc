@@ -347,6 +347,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Mark-Niemeyer",
+      "name": "Mark Niemeyer",
+      "avatar_url": "https://avatars.githubusercontent.com/u/64665067?v=4",
+      "profile": "https://www.dfki.de/en/web/about-us/employee/person/maho10",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
