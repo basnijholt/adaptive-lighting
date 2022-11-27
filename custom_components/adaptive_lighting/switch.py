@@ -874,7 +874,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if len(service_datas) == 2:
                 transition = service_datas[0].get(ATTR_TRANSITION)
                 if transition is not None:
-                    await asyncio.sleep(transition + self._send_split_delay / 1000.0)
+                    await asyncio.sleep(transition)
+                await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
 
     async def _update_attrs_and_maybe_adapt_lights(
