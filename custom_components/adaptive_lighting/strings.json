@@ -30,6 +30,7 @@
           "only_once": "only_once: Only adapt the lights when turning them on.",
           "prefer_rgb_color": "prefer_rgb_color: Use 'rgb_color' rather than 'color_temp' when possible.",
           "separate_turn_on_commands": "separate_turn_on_commands: Separate the commands for each attribute (color, brightness, etc.) in 'light.turn_on' (required for some lights).",
+          "send_split_delay": "send_split_delay: wait between commands (milliseconds), when separate_turn_on_commands is used. May ensure that both commands are handled by the bulb correctly.",
           "sleep_brightness": "sleep_brightness, Brightness setting for Sleep Mode. (%)",
           "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, use 'rgb_color' or 'color_temp'",
           "sleep_rgb_color": "sleep_rgb_color, in RGB",

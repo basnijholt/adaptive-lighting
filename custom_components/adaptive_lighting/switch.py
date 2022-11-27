@@ -112,6 +112,7 @@ from .const import (
     CONF_MIN_SUNSET_TIME,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
+    CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
@@ -574,6 +575,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
+        self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -872,7 +874,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if len(service_datas) == 2:
                 transition = service_datas[0].get(ATTR_TRANSITION)
                 if transition is not None:
-                    await asyncio.sleep(transition)
+                    await asyncio.sleep(transition + self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
 
     async def _update_attrs_and_maybe_adapt_lights(
