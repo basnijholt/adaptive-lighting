@@ -31,6 +31,7 @@
           "only_once": "only_once, passe die Lichter nur beim Einschalten an",
           "prefer_rgb_color": "prefer_rgb_color, nutze 'rgb_color' vor 'color_temp', wenn möglich",
           "separate_turn_on_commands": "separate_turn_on_commands, für jedes Attribut (Farbe, Helligkeit usw.) in 'light.turn_on' werden separate Befehle gesendet. Wird für manche Leuchtmittel benötigt.",
+          "send_split_delay": "send_split_delay: Wartezeit zwischen dem Senden der Befehle (Millisekunden), wenn separate_turn_on_commands genutzt wird. Kann helfen, wenn die Leuchtmittel die separaten Befehle nicht korrekt umsetzen.",
           "sleep_brightness": "sleep_brightness, Schlafhelligkeit in %",
 	  "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, nutze 'rgb_color' oder 'color_temp'",
 	  "sleep_rgb_color": "sleep_rgb_color, in RGB",
