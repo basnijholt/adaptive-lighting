@@ -114,7 +114,7 @@ adaptive_lighting:
 | Service data attribute | Optional | Description                                                                                  |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
 | `entity_id`            | no       | The `entity_id` of the switch with the settings to apply.                                    |
-| `lights`               | no       | A light (or list of lights) to apply the settings to.                                        |
+| `lights`               | yes      | A light (or list of lights) to apply the settings to.                                        |
 | `transition`           | yes      | The number of seconds for the transition.                                                    |
 | `adapt_brightness`     | yes      | Whether to change the brightness of the light or not.                                        |
 | `adapt_color`          | yes      | Whether to adapt the color on supporting lights.                                             |
