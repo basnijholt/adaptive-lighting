@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-39-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-40-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # Automatically adapt the brightness and color of lights based on the sun position and take over manual control
@@ -257,6 +257,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center"><a href="https://mattforster.ca/"><img src="https://avatars.githubusercontent.com/u/3375444?v=4?s=100" width="100px;" alt="Matt Forster"/><br /><sub><b>Matt Forster</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=matt-forster" title="Code">💻</a></td>
       <td align="center"><a href="https://www.dfki.de/en/web/about-us/employee/person/maho10"><img src="https://avatars.githubusercontent.com/u/64665067?v=4?s=100" width="100px;" alt="Mark Niemeyer"/><br /><sub><b>Mark Niemeyer</b></sub></a><br /><a href="#translation-Mark-Niemeyer" title="Translation">🌍</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Mark-Niemeyer" title="Code">💻</a></td>
       <td align="center"><a href="https://www.linkedin.com/in/elliottplack/"><img src="https://avatars.githubusercontent.com/u/1827881?v=4?s=100" width="100px;" alt="Elliott Plack"/><br /><sub><b>Elliott Plack</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=talllguy" title="Documentation">📖</a></td>
+      <td align="center"><a href="https://github.com/ngommers"><img src="https://avatars.githubusercontent.com/u/82467671?v=4?s=100" width="100px;" alt="ngommers"/><br /><sub><b>ngommers</b></sub></a><br /><a href="#translation-ngommers" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
