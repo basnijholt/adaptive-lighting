@@ -154,7 +154,7 @@ SCAN_INTERVAL = timedelta(seconds=10)
 
 # Consider it a significant change when attribute changes more than
 BRIGHTNESS_CHANGE = 25  # ≈10% of total range
-COLOR_TEMP_CHANGE = 20  # ≈5% of total range
+COLOR_TEMP_CHANGE = 100  # ≈3% of total range (2000-6500)
 RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
@@ -1230,16 +1230,17 @@ class SunLightSettings:
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
 
-    def calc_color_temp_kelvin(self, percent: float) -> float:
+    def calc_color_temp_kelvin(self, percent: float) -> int:
         """Calculate the color temperature in Kelvin."""
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
-            return (delta * percent) + self.min_color_temp
+            ct = (delta * percent) + self.min_color_temp
+            return 5 * round(ct / 5)  # round to nearest 5
         return self.min_color_temp
 
     def get_settings(
         self, is_sleep, transition
-    ) -> dict[str, float | tuple[float, float] | tuple[float, float, float]]:
+    ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
