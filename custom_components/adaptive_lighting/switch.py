@@ -21,7 +21,7 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS_STEP,
     ATTR_BRIGHTNESS_STEP_PCT,
     ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP,
+    ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
     ATTR_KELVIN,
     ATTR_RGB_COLOR,
@@ -85,7 +85,6 @@ from homeassistant.helpers.template import area_entities
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_RGB_to_xy,
-    color_temperature_kelvin_to_mired,
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
@@ -155,12 +154,12 @@ SCAN_INTERVAL = timedelta(seconds=10)
 
 # Consider it a significant change when attribute changes more than
 BRIGHTNESS_CHANGE = 25  # ≈10% of total range
-COLOR_TEMP_CHANGE = 20  # ≈5% of total range
+COLOR_TEMP_CHANGE = 100  # ≈3% of total range (2000-6500)
 RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP,
+    ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
     ATTR_KELVIN,
     ATTR_RGB_COLOR,
@@ -228,7 +227,7 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     if adapt_brightness:
         service_data_brightness = service_data.copy()
         service_data_brightness.pop(ATTR_RGB_COLOR, None)
-        service_data_brightness.pop(ATTR_COLOR_TEMP, None)
+        service_data_brightness.pop(ATTR_COLOR_TEMP_KELVIN, None)
         service_datas.append(service_data_brightness)
 
     if not service_datas:  # neither adapt_brightness nor adapt_color
@@ -491,11 +490,11 @@ def _attributes_have_changed(
 
     if (
         adapt_color
-        and ATTR_COLOR_TEMP in old_attributes
-        and ATTR_COLOR_TEMP in new_attributes
+        and ATTR_COLOR_TEMP_KELVIN in old_attributes
+        and ATTR_COLOR_TEMP_KELVIN in new_attributes
     ):
-        last_color_temp = old_attributes[ATTR_COLOR_TEMP]
-        current_color_temp = new_attributes[ATTR_COLOR_TEMP]
+        last_color_temp = old_attributes[ATTR_COLOR_TEMP_KELVIN]
+        current_color_temp = new_attributes[ATTR_COLOR_TEMP_KELVIN]
         if abs(current_color_temp - last_color_temp) > COLOR_TEMP_CHANGE:
             _LOGGER.debug(
                 "Color temperature of '%s' significantly changed from %s to %s with"
@@ -530,7 +529,8 @@ def _attributes_have_changed(
         ATTR_RGB_COLOR in old_attributes and ATTR_RGB_COLOR not in new_attributes
     )
     switched_to_rgb_color = (
-        ATTR_COLOR_TEMP in old_attributes and ATTR_COLOR_TEMP not in new_attributes
+        ATTR_COLOR_TEMP_KELVIN in old_attributes
+        and ATTR_COLOR_TEMP_KELVIN not in new_attributes
     )
     if switched_color_temp or switched_to_rgb_color:
         # Light switched from RGB mode to color_temp or visa versa
@@ -824,10 +824,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         ):
             _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
             attributes = self.hass.states.get(light).attributes
-            min_mireds, max_mireds = attributes["min_mireds"], attributes["max_mireds"]
-            color_temp_mired = self._settings["color_temp_mired"]
-            color_temp_mired = max(min(color_temp_mired, max_mireds), min_mireds)
-            service_data[ATTR_COLOR_TEMP] = color_temp_mired
+            min_kelvin = attributes["min_color_temp_kelvin"]
+            max_kelvin = attributes["max_color_temp_kelvin"]
+            color_temp_kelvin = self._settings["color_temp_kelvin"]
+            color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
+            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
@@ -1229,16 +1230,17 @@ class SunLightSettings:
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
 
-    def calc_color_temp_kelvin(self, percent: float) -> float:
+    def calc_color_temp_kelvin(self, percent: float) -> int:
         """Calculate the color temperature in Kelvin."""
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
-            return (delta * percent) + self.min_color_temp
+            ct = (delta * percent) + self.min_color_temp
+            return 5 * round(ct / 5)  # round to nearest 5
         return self.min_color_temp
 
     def get_settings(
         self, is_sleep, transition
-    ) -> dict[str, float | tuple[float, float] | tuple[float, float, float]]:
+    ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
@@ -1257,13 +1259,11 @@ class SunLightSettings:
             rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
                 color_temp_kelvin
             )
-        color_temp_mired: float = color_temperature_kelvin_to_mired(color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
-            "color_temp_mired": color_temp_mired,
             "rgb_color": rgb_color,
             "xy_color": xy_color,
             "hs_color": hs_color,
@@ -1397,7 +1397,7 @@ class TurnOnOffListener:
             # settings the light will be later *or* the second event might indicate a
             # final state. The latter case happens for example when a light was
             # called with a color_temp outside of its range (and HA reports the
-            # incorrect 'min_mireds' and 'max_mireds', which happens e.g., for
+            # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
             old_state: list[State] | None = self.last_state_change.get(entity_id)
             if (

@@ -41,7 +41,7 @@ from homeassistant.components.demo.light import DemoLight
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
-    ATTR_COLOR_TEMP,
+    ATTR_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -62,6 +62,7 @@ from homeassistant.const import (
 from homeassistant.core import Context, State
 from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
+from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
 
@@ -338,7 +339,10 @@ async def test_light_settings(hass):
             state.entity_id
         ]
         assert state.attributes[ATTR_BRIGHTNESS] == last_service_data[ATTR_BRIGHTNESS]
-        assert state.attributes[ATTR_COLOR_TEMP] == last_service_data[ATTR_COLOR_TEMP]
+        assert (
+            state.attributes[ATTR_COLOR_TEMP_KELVIN]
+            == last_service_data[ATTR_COLOR_TEMP_KELVIN]
+        )
 
     # Turn off "sleep mode"
     await hass.services.async_call(
@@ -371,7 +375,10 @@ async def test_light_settings(hass):
         last_service_data = switch.turn_on_off_listener.last_service_data[
             state.entity_id
         ]
-        assert state.attributes[ATTR_COLOR_TEMP] == last_service_data[ATTR_COLOR_TEMP]
+        assert (
+            state.attributes[ATTR_COLOR_TEMP_KELVIN]
+            == last_service_data[ATTR_COLOR_TEMP_KELVIN]
+        )
 
     # At sunset the brightness should be max and color_temp at the smallest value
     light_states = await patch_time_and_get_updated_states(sunset)
@@ -481,7 +488,9 @@ async def test_manual_control(hass):
         return (light._brightness + 100) % 255
 
     def increased_color_temp():
-        return max((light._ct + 100) % light.max_mireds, light.min_mireds)
+        return max(
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+        )
 
     # Nothing is manually controlled
     await update()
@@ -520,7 +529,13 @@ async def test_manual_control(hass):
     await switch.adapt_brightness_switch.async_turn_off()
     await turn_light(True, brightness=increased_brightness())
     assert not manual_control[ENTITY_LIGHT]
-    await turn_light(True, color_temp=(light._ct + 100) % 500)
+    mired_range = (light.min_color_temp_kelvin, light.max_color_temp_kelvin)
+    kelvin_range = (
+        color_temperature_mired_to_kelvin(mired_range[1]),
+        color_temperature_mired_to_kelvin(mired_range[0]),
+    )
+    ptp_kelvin = kelvin_range[1] - kelvin_range[0]
+    await turn_light(True, color_temp_kelvin=(light._ct + 100) % ptp_kelvin)
     assert manual_control[ENTITY_LIGHT]
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
@@ -573,7 +588,9 @@ async def test_apply_service(hass):
         return (light._brightness + 100) % 255
 
     def increased_color_temp():
-        return max((light._ct + 100) % light.max_mireds, light.min_mireds)
+        return max(
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+        )
 
     async def change_light():
         await hass.services.async_call(
@@ -582,7 +599,7 @@ async def test_apply_service(hass):
             {
                 ATTR_ENTITY_ID: entity_id,
                 ATTR_BRIGHTNESS: increased_brightness(),
-                ATTR_COLOR_TEMP: increased_color_temp(),
+                ATTR_COLOR_TEMP_KELVIN: increased_color_temp(),
             },
             blocking=True,
         )
@@ -613,7 +630,7 @@ async def test_apply_service(hass):
     await apply(adapt_color=True, adapt_brightness=False)
     new_state = hass.states.get(entity_id).attributes
     assert old_state[ATTR_BRIGHTNESS] == new_state[ATTR_BRIGHTNESS]
-    assert old_state[ATTR_COLOR_TEMP] != new_state[ATTR_COLOR_TEMP]
+    assert old_state[ATTR_COLOR_TEMP_KELVIN] != new_state[ATTR_COLOR_TEMP_KELVIN]
 
     # Test only changing brightness
     await change_light()
@@ -621,7 +638,7 @@ async def test_apply_service(hass):
     await apply(adapt_color=False, adapt_brightness=True)
     new_state = hass.states.get(entity_id).attributes
     assert old_state[ATTR_BRIGHTNESS] != new_state[ATTR_BRIGHTNESS]
-    assert old_state[ATTR_COLOR_TEMP] == new_state[ATTR_COLOR_TEMP]
+    assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
 async def test_switch_off_on_off(hass):
@@ -733,11 +750,15 @@ def test_is_our_context():
 
 def test_attributes_have_changed():
     """Test _attributes_have_changed function."""
-    attributes_1 = {ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0), ATTR_COLOR_TEMP: 100}
+    attributes_1 = {
+        ATTR_BRIGHTNESS: 1,
+        ATTR_RGB_COLOR: (0, 0, 0),
+        ATTR_COLOR_TEMP_KELVIN: 100,
+    }
     attributes_2 = {
         ATTR_BRIGHTNESS: 100,
         ATTR_RGB_COLOR: (255, 0, 0),
-        ATTR_COLOR_TEMP: 300,
+        ATTR_COLOR_TEMP_KELVIN: 300,
     }
     kwargs = dict(
         light="light.test",
@@ -756,7 +777,7 @@ def test_attributes_have_changed():
         )
     # Switch from rgb_color to color_temp
     assert _attributes_have_changed(
-        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP: 100},
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 100},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0)},
         **kwargs,
     )
