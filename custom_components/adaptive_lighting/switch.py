@@ -1263,7 +1263,6 @@ class SunLightSettings:
         return {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
-            "color_temp_kelvin": color_temp_kelvin,
             "rgb_color": rgb_color,
             "xy_color": xy_color,
             "hs_color": hs_color,
