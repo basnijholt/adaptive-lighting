@@ -586,7 +586,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             interval_seconds > self._transition
             or interval_seconds > self._sleep_transition
         ):
-            interval_seconds = max(min(self._transition, self._sleep_transition) - 1, 0)
+            interval_seconds = min(self._transition, self._sleep_transition)
+            interval_seconds = max(interval_seconds - 1, 0)
             self._interval = timedelta(seconds=interval_seconds)
 
         if isinstance(_loc, tuple):
