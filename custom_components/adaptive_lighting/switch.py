@@ -580,9 +580,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         _loc = get_astral_location(self.hass)
 
+        interval_seconds = self._interval.total_seconds()
         # see https://github.com/basnijholt/adaptive-lighting/issues/377#issuecomment-1378012481
-        if self._interval > self._transition or self._interval > self._sleep_transition:
-            self._interval = max(min(self._transition, self._sleep_transition) - 1, 0)
+        if (
+            interval_seconds > self._transition
+            or interval_seconds > self._sleep_transition
+        ):
+            interval_seconds = max(min(self._transition, self._sleep_transition) - 1, 0)
+            self._interval = timedelta(seconds=interval_seconds)
 
         if isinstance(_loc, tuple):
             # Astral v2.2
