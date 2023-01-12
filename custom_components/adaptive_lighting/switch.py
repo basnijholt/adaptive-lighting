@@ -586,6 +586,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             interval_seconds > self._transition
             or interval_seconds > self._sleep_transition
         ):
+            _LOGGER.info(
+                "%s: The interval (%s) is larger than the transition (%s) or sleep transition (%s),"
+                " this can cause issues. Please consider making the interval smaller than"
+                " the transitions. We will now set the interval to the minimum of the"
+                " transitions, minus 1 second.",
+                self._name,
+                self._interval,
+                self._transition,
+                self._sleep_transition,
+            )
             interval_seconds = min(self._transition, self._sleep_transition)
             interval_seconds = max(interval_seconds - 1, 0)
             self._interval = timedelta(seconds=interval_seconds)
