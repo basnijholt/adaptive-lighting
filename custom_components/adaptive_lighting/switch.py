@@ -571,6 +571,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._interval = data[CONF_INTERVAL]
+
+        # see https://github.com/basnijholt/adaptive-lighting/issues/377#issuecomment-1378012481
+        if self._interval > self._transition or self._interval > self._sleep_transition:
+            self._interval = max(min(self._transition, self._sleep_transition) - 1, 0)
+
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
