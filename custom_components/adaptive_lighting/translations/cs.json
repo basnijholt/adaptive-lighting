@@ -1,0 +1,57 @@
+{
+  "title": "Adaptivní osvětlení",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Vyberte název instance Adaptivního osvětlení",
+        "description": "Vyberte název pro tuto instanci. Můžete spustit několik instancí Adaptivního osvětlení, každá z nich může obsahovat více světel!",
+        "data": {
+          "name": "Název"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Toto zařízení je již nakonfigurováno"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nastavení adaptivního osvětlení",
+        "description": "Všechna nastavení komponenty Adaptivního osvětlení. Názvy možností odpovídají nastavení YAML. Pokud máte v konfiguraci YAML definovánu položku 'adaptive_lighting', nezobrazí se žádné možnosti.",
+        "data": {
+          "lights": "osvětlení",
+          "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",
+          "sleep_transition": "sleep_transition: Prodleva pro přepnutí do „režimu spánku“ (sekundy)",
+          "interval": "interval: Prodleva pro změny osvětlení (v sekundách)",
+          "max_brightness": "max_brightness: Nejvyšší jas osvětlení během cyklu. (%)",
+          "max_color_temp": "max_color_temp: Nejchladnější odstín cyklu teploty barev. (Kelvin)",
+          "min_brightness": "min_brightness: Nejnižší jas osvětlení během cyklu. (%)",
+          "min_color_temp": "min_color_temp, Nejteplejší odstín cyklu teploty barev. (Kelvin)",
+          "only_once": "only_once: Přizpůsobení osvětlení pouze při rozsvícení.",
+          "prefer_rgb_color": "prefer_rgb_color: Upřednostněte použití 'rgb_color' před 'color_temp'.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Oddělení příkazů pro každý atribut (barva, jas, atd.) v atributu 'light.turn_on' (vyžadováno pro některá světla).",
+          "send_split_delay": "send_split_delay: prodleva mezi příkazy (milisekundy), když je použit atribut 'separate_turn_on_commands'. Může zajistit správné zpracování obou příkazů.",
+          "sleep_brightness": "sleep_brightness, Nastavení jasu pro režim spánku. (%)",
+          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, použijte 'rgb_color' nebo 'color_temp'",
+          "sleep_rgb_color": "sleep_rgb_color, v RGB",
+          "sleep_color_temp": "sleep_color_temp: Nastavení teploty barev pro režim spánku. (v Kelvinech)",
+          "sunrise_offset": "sunrise_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu východu slunce (+/- v sekundách)",
+          "sunrise_time": "sunrise_time: Manuální přepsání času východu slunce, pokud je „None“, použije se skutečný čas východu slunce ve vaší lokalitě (HH:MM:SS)",
+          "max_sunrise_time": "max_sunrise_time: Ruční přepsání nejpozdějšího času východu slunce, pokud je „None“, použije se skutečný čas východu slunce vaší lokality (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu západu slunce (+/- v sekundách)",
+          "sunset_time": "sunset_time: Ruční přepsání času západu slunce, pokud je „None“, použije se skutečný čas západu slunce vaší lokality (HH:MM:SS)",
+          "min_sunset_time": "min_sunset_time: Ruční přepsání nejdřívějšího času západu slunce, pokud je „None“, použije se skutečný čas západu slunce vaší lokality (HH:MM:SS)",
+          "take_over_control": "take_over_control: Je-li volán 'light.turn_on' z jiného zdroje, než Adaptivním osvětlením, když je světlo již rozsvíceno, přestaňte toto světlo ovládat, dokud není vypnuto -> zapnuto (nebo i vypínačem).",
+          "detect_non_ha_changes": "detect_non_ha_changes: detekuje všechny změny >10%  provedených pro osvětlení (také mimo HA), vyžaduje povolení atributu 'take_over_control' (každý 'interval' spouští 'homeassistant.update_entity'!)",
+          "transition": "transition: doba přechodu při změně osvětlení (sekundy)",
+          "adapt_delay": "adapt_delay: prodleva mezi zapnutím světla ( sekundy) a projevem změny v Adaptivní osvětlení. Může předcházet blikání."
+        }
+      }
+    },
+    "error": {
+      "option_error": "Neplatná možnost",
+      "entity_missing": "V aplikaci Home Assistant chybí jedna nebo více vybraných entit osvětlení"
+    }
+  }
+}
