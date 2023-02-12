@@ -384,6 +384,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "brebtatv",
+      "name": "Tomáš Valigura",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10747062?v=4",
+      "profile": "https://github.com/brebtatv",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
