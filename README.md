@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-41-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-42-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # Automatically adapt the brightness and color of lights based on the sun position and take over manual control
@@ -302,6 +302,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/elliottplack/"><img src="https://avatars.githubusercontent.com/u/1827881?v=4?s=100" width="100px;" alt="Elliott Plack"/><br /><sub><b>Elliott Plack</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=talllguy" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/ngommers"><img src="https://avatars.githubusercontent.com/u/82467671?v=4?s=100" width="100px;" alt="ngommers"/><br /><sub><b>ngommers</b></sub></a><br /><a href="#translation-ngommers" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/deviantintegral"><img src="https://avatars.githubusercontent.com/u/255023?v=4?s=100" width="100px;" alt="Andrew Berry"/><br /><sub><b>Andrew Berry</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=deviantintegral" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/brebtatv"><img src="https://avatars.githubusercontent.com/u/10747062?v=4?s=100" width="100px;" alt="Tomáš Valigura"/><br /><sub><b>Tomáš Valigura</b></sub></a><br /><a href="#translation-brebtatv" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
