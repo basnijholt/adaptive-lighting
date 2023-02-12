@@ -178,6 +178,7 @@ See the documentation of the PR at https://deploy-preview-14877--home-assistant-
 This integration was originally based of the great work of @claytonjn https://github.com/claytonjn/hass-circadian_lighting, but has been 100% rewritten and extended with new features.
 
 # Having problems?
+
 Please enable debug logging by putting this in `configuration.yaml`:
 ```yaml
 logger:
@@ -187,17 +188,59 @@ logger:
 ```
 and after the problem occurs please create an issue with the log (`/config/home-assistant.log`).
 
+## Lights are not responding or turning on by themselves
 
-### Graphs!
+This addon sends many more commands to lights compared to what humans would typically send. If the network used to send light commands is not healthy:
+
+- Manual commands like turning lights on or off may feel laggy.
+- Lights may not respond to commands at all.
+- Home Assistant may think a light is on, when it's actually off. Adaptive Lights will send it's regular adjustments causing the light to turn on after it's turned off.
+
+What's important is that many bugs that seem to be caused by this integration are really due to other unrelated issues. Fixing those will make your Home Assistant experience much better. Consider this integration a great stress test of your Home Assistant setup!
+
+### Wifi networks
+
+Make sure bulbs have a solid connection to your Wifi network. In general, if the signal is less than -70dBm, the connection is weak and may drop messages.
+
+### Zigbee, Z-Wave, and other mesh networks
+
+These types of mesh networks usually need powered devices that act as routers (that repeat messages) back to the central coordinator (the radio connected to Home Assistant). Most Philips lights are routers, but Ikea, Sengled, and generic Tuya bulbs often are not. If devices become unavailable or miss responding to commands, Adaptive Lighting will only make things worse. Use reporting tools such as network maps (available in ZHA, zigbee2mqtt, deCONZ, and ZWaveJS UI) to check your network. Smart plugs are often a cost-effective way to add additional routers to your network.
+
+For most Zigbee networks, groups are **absolutely required for good performance**. For example, imagine you want to use Adaptive Lighting in a hallway with 6 bulbs. If you add each individual bulb in the Adaptive Lighting configuration, then six individual commands will be sent to adjust them, which can eventually overwhelm a network. Instead, create a group in your Zigbee software (but _not_ a regular Home Assistant group), and add the one group to the Adaptive Lighting configuration. This will send only a single broadcast command to adjust the bulbs, giving much better response times and keeping the bulbs adjusting in sync with each other.
+
+A good rule to follow is that if you always control lights together (like bulbs in a ceiling fixture), then they should be in a Zigbee group. Then, only expose the group (and not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
+
+### Light colors are not matching
+
+Bulbs made by different manufacturers or of different models may have different specifications for the color temperatures they support. For example you have two Adaptive Lighting configurations:
+
+- The first configuration has only Philips Hue White Ambiance bulbs.
+- The second has the a few of the same model of White Ambiance bulbs as well as a few Sengled bulbs.
+
+Even with identical settings, the Philips Hue bulbs may appear to have different color temperatures set at the same time.
+
+To avoid this:
+
+1. Only put bulbs of the same make and model in a single Adaptive Lighting configuration.
+2. Move where bulbs are installed so you can't see different light temperatures at the same time.
+
+### Bulb-specific issues
+
+Some bulbs have buggy behaviour with long light transition commands.
+
+- [Sengled Z01-A19NAE26](https://www.zigbee2mqtt.io/devices/Z01-A19NAE26.html#sengled-z01-a19nae26): If Adaptive lighting sends a long transition time (like the default 45 seconds), and the bulb is turned off in that time, it will turn itself back on after 10 seconds or so to continue the transition command. Since the bulb is turning itself on, there will be no obvious trigger in Home Assistant or other logs showing what caused the light to turn on. Fix this by setting a much shorter transition time such as 1 second.
+- As well, the same bulbs peform poorly when in typical enclosed "dome" style ceiling lights. When hot, their performance becomes marginal at best. While most LEDs (even non-smart ones) say in the small print that they do not support working in enclosed fixtures, in practice more expensive bulbs like Philips Hue perform better. Fix this by moving suspect bulbs to open-air fixtures.
+
+## Graphs!
 These graphs were generated using the values calculated by the Adaptive Lighting sensor/switch(es).
 
-##### Sun Position:
+#### Sun Position:
 ![cl_percent|690x131](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/6/5/657ff98beb65a94598edeb4bdfd939095db1a22c.PNG)
 
-##### Color Temperature:
+#### Color Temperature:
 ![cl_color_temp|690x129](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/9/59e84263cbecd8e428cb08777a0413672c48dfcd.PNG)
 
-##### Brightness:
+#### Brightness:
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
 
 ## Contributors
