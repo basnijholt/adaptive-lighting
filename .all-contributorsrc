@@ -375,6 +375,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "deviantintegral",
+      "name": "Andrew Berry",
+      "avatar_url": "https://avatars.githubusercontent.com/u/255023?v=4",
+      "profile": "https://github.com/deviantintegral",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
