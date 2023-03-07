@@ -1,0 +1,57 @@
+{
+  "title": "Adaptieve verlichting",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kies een naam voor de adaptieve verlichting integratie",
+        "description": "Kies een naam voor deze integratie. U kunt verschillende integratie van Adaptieve verlichting uitvoeren, elk van deze kan meerdere lichten bevatten!",
+        "data": {
+          "name": "Naam"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dit apparaat is al geconfigureerd"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adaptieve verlichting instellingen",
+        "description": "Alle instellingen voor een Adaptieve verlichting component. De optienamen komen overeen met de YAML-instellingen. Er worden geen opties weergegeven als u het item adaptive_lighting hebt gedefinieerd in uw YAML-configuratie.",
+        "data": {
+          "lights": "Lichten",
+          "initial_transition": "initial_transition: Wanneer lichten van 'uit' naar 'aan' gaan. (seconden)",
+          "sleep_transition": "sleep_transition: Wanneer 'sleep_state' verandert. (seconden)",
+          "interval": "interval: Tijd tussen switch-updates. (seconden)",
+          "max_brightness": "max_brightness: Hoogste helderheid van lichten tijdens een cyclus. (%)",
+          "max_color_temp": "max_color_temp: Koudste tint van de kleurtemperatuurcyclus. (kelvin)",
+          "min_brightness": "min_brightness: Laagste helderheid van lichten tijdens een cyclus. (%)",
+          "min_color_temp": "min_color_temp, Warmste tint van de kleurtemperatuurcyclus. (kelvin)",
+          "only_once": "only_once: pas de verlichting alleen aan wanneer u ze aanzet.",
+          "prefer_rgb_color": "prefer_rgb_color: Gebruik waar mogelijk 'rgb_color' in plaats van 'color_temp'.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Scheid de commando's voor elk attribuut (kleur, helderheid, enz.) in 'light.turn_on' (vereist voor sommige lampen).",
+          "send_split_delay": "send_split_delay: wacht tussen commando's (milliseconden), wanneer separate_turn_on_commands wordt gebruikt. Kan ervoor zorgen dat beide commando's correct door de lamp worden afgehandeld.",
+          "sleep_brightness": "sleep_brightness, helderheidsinstelling voor slaapstand. (%)",
+          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, gebruik 'rgb_color' of 'color_temp'",
+          "sleep_rgb_color": "sleep_rgb_color, in RGB",
+          "sleep_color_temp": "sleep_color_temp: Kleurtemperatuurinstelling voor slaapstand. (kelvin)",
+          "sunrise_offset": "sunrise_offset: Hoe lang voor(-) of na(+) zonsopgang uitvoeren (+/- seconden)",
+          "sunrise_time": "sunrise_time: Handmatige wijziging van de zonsopgangstijd, indien 'Geen', wordt de werkelijke zonsopgangstijd op uw locatie gebruikt (UU:MM:SS)",
+          "max_sunrise_time": "max_sunrise_time: handmatige aanpassing van de maximale zonsopgangstijd, indien 'Geen', wordt de werkelijke zonsopgangstijd op uw locatie gebruikt (UU:MM:SS)",
+          "sunset_offset": "sunset_offset: Hoe lang voor(-) of na(+) zonsondergang uitvoeren (+/- seconden)",
+          "sunset_time": "sunset_time: handmatige onderdrukking van de zonsondergangstijd, indien 'Geen', wordt de werkelijke zonsopgangstijd op uw locatie gebruikt (UU:MM:SS)",
+          "min_sunset_time": "min_sunset_time: handmatige onderdrukking van de minimale zonsondergangstijd, indien 'Geen', wordt de werkelijke zonsondergangstijd op uw locatie gebruikt (UU:MM:SS)",
+          "take_over_control": "take_over_control: Als iets anders dan Adaptive Lighting 'light.turn_on' roept wanneer een lamp al aan is, stop dan met het aanpassen van het licht totdat het (of de schakelaar) uit -> aan gaat.",
+          "detect_non_ha_changes": "detect_non_ha_changes: detecteert alle >10% wijzigingen aan de lichten (ook buiten HA), vereist dat 'take_over_control' is ingeschakeld (heet 'homeassistant.update_entity' elke 'interval'!)",
+          "transition": "Overgangstijd bij het aanbrengen van een wijziging op de lichten (seconden)",
+          "adapt_delay": "adapt_delay: wachttijd tussen het inschakelen van het licht (seconden) en het aanbrengen van wijzigingen in de lichtstatus door Adaptieve verlichting. Kan flikkering voorkomen."
+        }
+      }
+    },
+    "error": {
+      "option_error": "Ongeldige optie",
+      "entity_missing": "Een of meer geselecteerde lichtentiteiten ontbreken in Home Assistant"
+    }
+  }
+}
