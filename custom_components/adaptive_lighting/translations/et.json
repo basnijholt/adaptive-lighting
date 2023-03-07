@@ -43,7 +43,8 @@
       }
     },
     "error": {
-      "option_error": "Vigane suvand"
+      "option_error": "Vigane suvand",
+      "entity_missing": "Valitud valgust ei leitud"
     }
   }
 }

@@ -14,7 +14,7 @@ from .const import (  # pylint: disable=unused-import
     NONE_STR,
     VALIDATION_TUPLES,
 )
-from .switch import _supported_features
+from .switch import _supported_features, validate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,12 +61,12 @@ def validate_options(user_input, errors):
     This is an extra validation step because the validators
     in `EXTRA_VALIDATION` cannot be serialized to json.
     """
-    for key, (validate, _) in EXTRA_VALIDATION.items():
+    for key, (_validate, _) in EXTRA_VALIDATION.items():
         # these are unserializable validators
         value = user_input.get(key)
         try:
             if value is not None and value != NONE_STR:
-                validate(value)
+                _validate(value)
         except vol.Invalid:
             _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
             errors["base"] = "option_error"
@@ -82,6 +82,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         """Handle options flow."""
         conf = self.config_entry
+        data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(step_id="init", data_schema=None)
         errors = {}
@@ -95,6 +96,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             for light in self.hass.states.async_entity_ids("light")
             if _supported_features(self.hass, light)
         ]
+        for configured_light in data[CONF_LIGHTS]:
+            if configured_light not in all_lights:
+                errors = {CONF_LIGHTS: "entity_missing"}
+                _LOGGER.error(
+                    "%s: light entity %s is configured, but was not found",
+                    data[CONF_NAME],
+                    configured_light,
+                )
+                all_lights.append(configured_light)
         to_replace = {CONF_LIGHTS: cv.multi_select(sorted(all_lights))}
 
         options_schema = {}
