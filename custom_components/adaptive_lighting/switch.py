@@ -316,6 +316,8 @@ async def handle_change_sunlight_settings(switch: AdaptiveSwitch, service_call: 
     min_color_temp=sun_light_settings.min_color_temp if not CONF_MIN_COLOR_TEMP in data else data[CONF_MIN_COLOR_TEMP]
     sleep_brightness=sun_light_settings.sleep_brightness if not CONF_SLEEP_BRIGHTNESS in data else data[CONF_SLEEP_BRIGHTNESS]
     sleep_color_temp=sun_light_settings.sleep_color_temp if not CONF_SLEEP_COLOR_TEMP in data else data[CONF_SLEEP_COLOR_TEMP]
+    sleep_rgb_color=sun_light_settings.sleep_rgb_color if not CONF_SLEEP_RGB_COLOR in data else data[CONF_SLEEP_RGB_COLOR]
+    sleep_rgb_or_color_temp=sun_light_settings.sleep_rgb_or_color_temp if not CONF_SLEEP_RGB_OR_COLOR_TEMP in data else data[CONF_SLEEP_RGB_OR_COLOR_TEMP]
     sunrise_offset=sun_light_settings.sunrise_offset if not CONF_SUNRISE_OFFSET in data else data[CONF_SUNRISE_OFFSET]
     if use_actual_sunrise_time:
         if CONF_SUNRISE_TIME in data:
@@ -326,6 +328,7 @@ async def handle_change_sunlight_settings(switch: AdaptiveSwitch, service_call: 
         sunrise_time = None
     else:
         sunrise_time=sun_light_settings.sunrise_time if not CONF_SUNRISE_TIME in data else data[CONF_SUNRISE_TIME]
+    max_sunrise_time=sun_light_settings.max_sunrise_time if not CONF_MAX_SUNRISE_TIME in data else data[CONF_MAX_SUNRISE_TIME]
     sunset_offset=sun_light_settings.sunset_offset if not CONF_SUNSET_OFFSET in data else data[CONF_SUNSET_OFFSET]
     if use_actual_sunset_time:
         if CONF_SUNSET_TIME in data:
@@ -336,6 +339,7 @@ async def handle_change_sunlight_settings(switch: AdaptiveSwitch, service_call: 
         sunset_time = None
     else:
         sunset_time=sun_light_settings.sunset_time if not CONF_SUNSET_TIME in data else data[CONF_SUNSET_TIME]
+    min_sunset_time=sun_light_settings.min_sunset_time if not CONF_MIN_SUNSET_TIME in data else data[CONF_MIN_SUNSET_TIME]
     transition=sun_light_settings.transition if not CONF_TRANSITION in data else data[CONF_TRANSITION]
 
     object.__setattr__(switch, '_sun_light_settings', SunLightSettings(  # pylint: disable=protected-access
@@ -347,10 +351,14 @@ async def handle_change_sunlight_settings(switch: AdaptiveSwitch, service_call: 
         min_color_temp=min_color_temp,
         sleep_brightness=sleep_brightness,
         sleep_color_temp=sleep_color_temp,
+        sleep_rgb_color=sleep_rgb_color,
+        sleep_rgb_or_color_temp=sleep_rgb_or_color_temp,
         sunrise_offset=sunrise_offset,
         sunrise_time=sunrise_time,
+        max_sunrise_time=max_sunrise_time,
         sunset_offset=sunset_offset,
         sunset_time=sunset_time,
+        min_sunset_time=min_sunset_time,
         time_zone=hass.config.time_zone,
         transition=transition,
     ))
@@ -719,10 +727,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_color_temp=data[CONF_MIN_COLOR_TEMP],
             sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
             sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
+            sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
+            sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
+            max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
+            min_sunset_time=data[CONF_MIN_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
         )
