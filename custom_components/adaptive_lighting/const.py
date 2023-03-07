@@ -59,6 +59,10 @@ SERVICE_SET_MANUAL_CONTROL = "set_manual_control"
 CONF_MANUAL_CONTROL = "manual_control"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
+SERVICE_CHANGE_SUNLIGHT_SETTINGS = "change_sunlight_settings"
+CONF_USE_CONFIG_DEFAULTS = "use_config_defaults"
+CONF_USE_ACTUAL_SUNRISE_TIME = "use_actual_sunrise_time"
+CONF_USE_ACTUAL_SUNSET_TIME = "use_actual_sunset_time"
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 TURNING_OFF_DELAY = 5

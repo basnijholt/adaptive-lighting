@@ -126,11 +126,15 @@ from .const import (
     CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
+    CONF_USE_ACTUAL_SUNRISE_TIME,
+    CONF_USE_ACTUAL_SUNSET_TIME,
+    CONF_USE_CONFIG_DEFAULTS,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON,
     SERVICE_APPLY,
     SERVICE_SET_MANUAL_CONTROL,
+    SERVICE_CHANGE_SUNLIGHT_SETTINGS,
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
@@ -290,6 +294,86 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
             )
 
 
+async def handle_change_sunlight_settings(switch: AdaptiveSwitch, service_call: ServiceCall):
+    """Reinitializes sunlight settings with new values for the specific switch"""
+    hass = switch.hass
+    data = service_call.data
+    name = switch.unique_id
+    use_actual_sunrise_time = data[CONF_USE_ACTUAL_SUNRISE_TIME]
+    use_actual_sunset_time = data[CONF_USE_ACTUAL_SUNSET_TIME]
+    all_lights = switch._lights  # pylint: disable=protected-access
+    current_sun_light_settings = switch._sun_light_settings  # pylint: disable=protected-access
+    original_sun_light_settings = switch.config_sun_light_settings  # pylint: disable=protected-access
+    if data[CONF_USE_CONFIG_DEFAULTS]:
+        sun_light_settings = original_sun_light_settings
+    else:
+        sun_light_settings = current_sun_light_settings
+
+    astral_location = sun_light_settings.astral_location
+    max_brightness=sun_light_settings.max_brightness if not CONF_MAX_BRIGHTNESS in data else data[CONF_MAX_BRIGHTNESS]
+    max_color_temp=sun_light_settings.max_color_temp if not CONF_MAX_COLOR_TEMP in data else data[CONF_MAX_COLOR_TEMP]
+    min_brightness=sun_light_settings.min_brightness if not CONF_MIN_BRIGHTNESS in data else data[CONF_MIN_BRIGHTNESS]
+    min_color_temp=sun_light_settings.min_color_temp if not CONF_MIN_COLOR_TEMP in data else data[CONF_MIN_COLOR_TEMP]
+    sleep_brightness=sun_light_settings.sleep_brightness if not CONF_SLEEP_BRIGHTNESS in data else data[CONF_SLEEP_BRIGHTNESS]
+    sleep_color_temp=sun_light_settings.sleep_color_temp if not CONF_SLEEP_COLOR_TEMP in data else data[CONF_SLEEP_COLOR_TEMP]
+    sunrise_offset=sun_light_settings.sunrise_offset if not CONF_SUNRISE_OFFSET in data else data[CONF_SUNRISE_OFFSET]
+    if use_actual_sunrise_time:
+        if CONF_SUNRISE_TIME in data:
+            _LOGGER.warn(
+                "ignoring 'sunrise_time' variable due to use_actual_sunrise_time being on. Set to false if you want to specify your own sunrise time. Data '%s'",
+                data,
+            )
+        sunrise_time = None
+    else:
+        sunrise_time=sun_light_settings.sunrise_time if not CONF_SUNRISE_TIME in data else data[CONF_SUNRISE_TIME]
+    sunset_offset=sun_light_settings.sunset_offset if not CONF_SUNSET_OFFSET in data else data[CONF_SUNSET_OFFSET]
+    if use_actual_sunset_time:
+        if CONF_SUNSET_TIME in data:
+            _LOGGER.warn(
+                "ignoring 'sunset_time' variable due to use_actual_sunset_time being on. Set to false if you want to specify your own sunset time. Data '%s'",
+                data,
+            )
+        sunset_time = None
+    else:
+        sunset_time=sun_light_settings.sunset_time if not CONF_SUNSET_TIME in data else data[CONF_SUNSET_TIME]
+    transition=sun_light_settings.transition if not CONF_TRANSITION in data else data[CONF_TRANSITION]
+
+    object.__setattr__(switch, '_sun_light_settings', SunLightSettings(  # pylint: disable=protected-access
+        name=name,
+        astral_location=astral_location,
+        max_brightness=max_brightness,
+        max_color_temp=max_color_temp,
+        min_brightness=min_brightness,
+        min_color_temp=min_color_temp,
+        sleep_brightness=sleep_brightness,
+        sleep_color_temp=sleep_color_temp,
+        sunrise_offset=sunrise_offset,
+        sunrise_time=sunrise_time,
+        sunset_offset=sunset_offset,
+        sunset_time=sunset_time,
+        time_zone=hass.config.time_zone,
+        transition=transition,
+    ))
+    new_sunlight_settings = switch._sun_light_settings  # pylint: disable=protected-access
+    
+    _LOGGER.info(
+        "Called 'adaptive_lighting.change_sunlight_settings' service with '%s'. Sunlight Values: Attempt %s -> %s",
+        data,
+        sun_light_settings,
+        new_sunlight_settings,
+    )
+    
+    switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
+    # pylint: disable=protected-access
+    if switch.is_on:
+        await switch._update_attrs_and_maybe_adapt_lights(
+            all_lights,
+            transition=switch._initial_transition,
+            force=True,
+            context=switch.create_context("service", parent=service_call.context),
+        )
+
+
 @callback
 def _fire_manual_control_event(
     switch: AdaptiveSwitch, light: str, context: Context, is_async=True
@@ -370,7 +454,27 @@ async def async_setup_entry(
         },
         handle_set_manual_control,
     )
-
+    
+    platform.async_register_entity_service(
+        SERVICE_CHANGE_SUNLIGHT_SETTINGS,
+        {
+            vol.Optional(CONF_USE_CONFIG_DEFAULTS, default=False): cv.boolean,
+            vol.Optional(CONF_USE_ACTUAL_SUNRISE_TIME, default=False): cv.boolean,
+            vol.Optional(CONF_USE_ACTUAL_SUNSET_TIME, default=False): cv.boolean,
+            vol.Optional(CONF_MAX_BRIGHTNESS): cv.positive_int,
+            vol.Optional(CONF_MAX_COLOR_TEMP): cv.positive_int,
+            vol.Optional(CONF_MIN_BRIGHTNESS): cv.positive_int,
+            vol.Optional(CONF_MIN_COLOR_TEMP): cv.positive_int,
+            vol.Optional(CONF_SLEEP_BRIGHTNESS): cv.positive_int,
+            vol.Optional(CONF_SLEEP_COLOR_TEMP): cv.positive_int,
+            vol.Optional(CONF_SUNRISE_OFFSET): cv.time_period_str,
+            vol.Optional(CONF_SUNRISE_TIME): cv.time,
+            vol.Optional(CONF_SUNSET_OFFSET): cv.time_period_str,
+            vol.Optional(CONF_SUNSET_TIME): cv.time,
+            vol.Optional(CONF_TRANSITION): cv.positive_int,
+        },
+        handle_change_sunlight_settings,
+    )
 
 def validate(config_entry: ConfigEntry):
     """Get the options and data from the config_entry and add defaults."""
@@ -606,7 +710,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
         )
-
+        self.config_sun_light_settings = SunLightSettings(
+            name=self._name,
+            astral_location=location,
+            max_brightness=data[CONF_MAX_BRIGHTNESS],
+            max_color_temp=data[CONF_MAX_COLOR_TEMP],
+            min_brightness=data[CONF_MIN_BRIGHTNESS],
+            min_color_temp=data[CONF_MIN_COLOR_TEMP],
+            sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
+            sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
+            sunrise_offset=data[CONF_SUNRISE_OFFSET],
+            sunrise_time=data[CONF_SUNRISE_TIME],
+            sunset_offset=data[CONF_SUNSET_OFFSET],
+            sunset_time=data[CONF_SUNSET_TIME],
+            time_zone=self.hass.config.time_zone,
+            transition=data[CONF_TRANSITION],
+        )
+        
         # Set other attributes
         self._icon = ICON
         self._state = None
