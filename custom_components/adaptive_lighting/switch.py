@@ -700,7 +700,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self._sleep_transition < 10
         ): # or check if sleep_transition == 1 # default - you're the boss.
             #self._sleep_transition = 0 # just disable it maybe?
-            self._sleep_transition = self._interval - 0.2
+            self._sleep_transition = self._interval.total_seconds() - 0.2
         if (
             interval_seconds > self._transition
             or interval_seconds > self._sleep_transition
