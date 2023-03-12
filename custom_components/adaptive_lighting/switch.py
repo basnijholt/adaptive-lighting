@@ -301,9 +301,9 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
     sun_light_settings = switch._sun_light_settings  # pylint: disable=protected-access
     all_lights = switch._lights  # pylint: disable=protected-access
     defaults = False
-    if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
+    #if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
         #cur = switch  # pylint: disable=protected-access
-    elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
+    if data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (not always configuration.yaml)
         defaults = switch._backup  # pylint: disable=protected-access
