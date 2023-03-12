@@ -2,7 +2,9 @@ name: Validate
 
 on:
   push:
-    branches: [master]
+    branches:
+    - master
+    - devbranch
   pull_request:
   schedule:
     - cron: "0 0 * * *"
