@@ -1400,6 +1400,9 @@ class SunLightSettings:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * percent) + self.min_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
+        if percent < 0:
+            delta = abs(self.min_color_temp - self.sleep_color_temp)
+            return (delta * abs(1 + percent)) + self.sleep_color_temp
         return self.min_color_temp
 
     def get_settings(
