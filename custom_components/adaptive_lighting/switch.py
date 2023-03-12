@@ -299,34 +299,35 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
     hass = switch.hass
     data = service_call.data
     sun_light_settings = switch._sun_light_settings  # pylint: disable=protected-access
-    all_lights = switch._lights  # pylint: disable=protected-access
     defaults = False
-    #if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
-        #cur = switch  # pylint: disable=protected-access
-    if data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
+    if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
+        cur = switch  # pylint: disable=protected-access
+    elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (not always configuration.yaml)
         defaults = switch._backup  # pylint: disable=protected-access
 
     for attr, value in switch.__dict__.items():
-        if not isinstance(attr, dict):
-            # thankfully all of the switch's attributes are just prefixed with an underscore. Probably should do all the setting in the class itself but cbf
-            if not attr[1:] in data and not defaults:
-                _LOGGER.debug("USING CURRENT VALUE FOR %s",attr)
-                v = value
-            elif attr[1:] in data:
-                _LOGGER.debug("USING NEW VALUE FROM SERVICE CALL FOR %s",attr)
-                v = data[attr[1:]]
-            else:
-                _LOGGER.debug("USING VALUE FROM DEFAULTS FOR %s",attr)
-                v = defaults[attr[1:]]
-            object.__setattr__(switch, attr, v)  # pylint: disable=protected-access
+        # thankfully all of the switch's attributes are just prefixed with an underscore. Probably should do all this in the class itself but cbf
+        if not attr[1:] in data and not defaults:
+            #_LOGGER.debug("USING CURRENT VALUE FOR %s",attr)
+            continue
+        elif attr[1:] in data:
+            _LOGGER.debug("USING NEW VALUE FROM SERVICE CALL FOR %s",attr)
+            v = data[attr[1:]]
+        elif attr[1:] in defaults:
+            _LOGGER.debug("USING VALUE FROM DEFAULTS FOR %s",attr)
+            v = defaults[attr[1:]]
+        else: #defaults exists and attr isn't in there.
+            continue
+        object.__setattr__(switch, attr, v)  # pylint: disable=protected-access
 
     _LOGGER.debug(
         "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
         data,
     )
     
+    all_lights = switch._lights  # pylint: disable=protected-access
     switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
     # pylint: disable=protected-access
     if switch.is_on:
@@ -426,10 +427,7 @@ async def async_setup_entry(
             vol.Optional(
                 CONF_LIGHTS, default=[]
             ): cv.entity_ids,  # pylint: disable=protected-access
-            vol.Optional(
-                CONF_TRANSITION,
-                default=switch._initial_transition,  # pylint: disable=protected-access
-            ): VALID_TRANSITION,
+            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
             vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
