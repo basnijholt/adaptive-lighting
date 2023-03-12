@@ -443,7 +443,6 @@ async def async_setup_entry(
         },
         handle_change_switch_settings,
     )
-]
 
 
 def validate(config_entry: ConfigEntry):
