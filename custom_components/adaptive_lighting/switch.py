@@ -1396,14 +1396,15 @@ class SunLightSettings:
 
     def calc_color_temp_kelvin(self, percent: float) -> int:
         """Calculate the color temperature in Kelvin."""
+        if percent == 0:
+            return self.min_color_temp
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * percent) + self.min_color_temp
-            return 5 * round(ct / 5)  # round to nearest 5
         if percent < 0:
             delta = abs(self.min_color_temp - self.sleep_color_temp)
-            return (delta * abs(1 + percent)) + self.sleep_color_temp
-        return self.min_color_temp
+            ct = (delta * abs(1 + percent)) + self.sleep_color_temp
+        return 5 * round(ct / 5)  # round to nearest 5
 
     def get_settings(
         self, is_sleep, transition
