@@ -2,7 +2,10 @@ name: pytest
 
 on:
   push:
-    branches: [master]
+    branches:
+      - "dev-branch"
+      - "master"
+      - "change-config-via-service-call"
   pull_request:
 
 jobs:
