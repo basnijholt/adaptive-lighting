@@ -34,4 +34,74 @@ set_manual_control:
     lights:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
-set_switch_settings:
+change_switch_settings:
+  description: "Change any settings you'd like in the switch. All options here are the same as in the config flow."
+  fields:
+    entity_id:
+      description: "entity_id of the Adaptive Lighting switch."
+      example: switch.adaptive_lighting_default
+    use_defaults:
+      description: "You can set this to 'factory', 'configuration', or 'current' to reset the variables not being set with this service call. 'current' leaves them as is, 'configuration' resets to whatever's in the integration, 'factory' resets to the default values listed in the documentation.
+      example: "current"
+    lights:
+      example: light.bedroom_ceiling
+    adapt_brightness:
+      description: "Adapt the 'brightness', default: true"
+      example: true
+    adapt_color:
+      description: "Adapt the color_temp/color_rgb, default: true"
+      example: true
+    turn_on_lights:
+      description: "Turn on the lights that are off, default: false"
+      example: false
+    initial_transition:
+      description: "initial_transition: When lights turn 'off' to 'on'. (seconds)"
+    sleep_transition:
+      description: "sleep_transition: When 'sleep_state' changes. (seconds)"
+    interval:
+      description: "interval: Time between switch updates. (seconds)"
+    max_brightness:
+      description: "max_brightness: Highest brightness of lights during a cycle. (%)"
+    max_color_temp:
+      description: "max_color_temp: Coldest hue of the color temperature cycle. (Kelvin)"
+    min_brightness:
+      description: "min_brightness: Lowest brightness of lights during a cycle. (%)"
+    min_color_temp:
+      description: "min_color_temp, Warmest hue of the color temperature cycle. (Kelvin)"
+    only_once:
+      description: "only_once: Only adapt the lights when turning them on."
+      example: false
+    prefer_rgb_color:
+      description: "prefer_rgb_color: Use 'rgb_color' rather than 'color_temp' when possible."
+    separate_turn_on_commands:
+      description: "separate_turn_on_commands: Separate the commands for each attribute (color, brightness, etc.) in 'light.turn_on' (required for some lights)."
+    send_split_delay:
+      description: "send_split_delay: wait between commands (milliseconds), when separate_turn_on_commands is used. May ensure that both commands are handled by the bulb correctly."
+    sleep_brightness:
+      description: "sleep_brightness, Brightness setting for Sleep Mode. (%)"
+    sleep_rgb_or_color_temp:
+      description: "sleep_rgb_or_color_temp, use 'rgb_color' or 'color_temp'"
+    sleep_rgb_color:
+      description: "sleep_rgb_color, in RGB"
+    sleep_color_temp:
+      description: "sleep_color_temp: Color temperature setting for Sleep Mode. (Kelvin)"
+    sunrise_offset:
+      description: "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- seconds)"
+    sunrise_time:
+      description: "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+    max_sunrise_time:
+      description: "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+    sunset_offset:
+      description: "sunset_offset: How long before(-) or after(+) to define the sunset point of the cycle (+/- seconds)"
+    sunset_time:
+      description: "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+    min_sunset_time:
+      description: "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)"
+    take_over_control:
+      description: "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on."
+    detect_non_ha_changes:
+      description: "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)"
+    transition:
+      description: "Transition time when applying a change to the lights (seconds)"
+    adapt_delay:
+      description: "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering."

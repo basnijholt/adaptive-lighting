@@ -126,6 +126,7 @@ from .const import (
     CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
+    CONF_USE_DEFAULTS,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON,
@@ -187,6 +188,9 @@ def _int_to_bytes(i: int, signed: bool = False) -> bytes:
         bits += 1
     return i.to_bytes((bits + 7) // 8, "little", signed=signed)
 
+def int_between(min_int, max_int):
+    """Return an integer between 'min_int' and 'max_int'."""
+    return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
@@ -417,11 +421,29 @@ async def async_setup_entry(
             ): VALID_TRANSITION,
             vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
-            vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+            vol.Optional(CONF_PREFER_RGB_COLOR): cv.boolean,
+            vol.Optional(CONF_INITIAL_TRANSITION): VALID_TRANSITION,
+            vol.Optional(CONF_SLEEP_TRANSITION): VALID_TRANSITION,
+            vol.Optional(CONF_INTERVAL): cv.positive_int,
+            vol.Optional(CONF_MIN_BRIGHTNESS): int_between(1, 100),
+            vol.Optional(CONF_MAX_BRIGHTNESS): int_between(1, 100),
+            vol.Optional(CONF_MIN_COLOR_TEMP): int_between(1000, 10000),
+            vol.Optional(CONF_MAX_COLOR_TEMP): int_between(1000, 10000),
+            vol.Optional(CONF_SLEEP_BRIGHTNESS): int_between(1, 100),
+            vol.Optional(CONF_SLEEP_RGB_OR_COLOR_TEMP): cv.string,
+            vol.Optional(CONF_SLEEP_COLOR_TEMP): int_between(1000, 10000),
+            vol.Optional(CONF_SLEEP_RGB_COLOR): cv.positive_int,
+            vol.Optional(CONF_ONLY_ONCE): cv.boolean,
+            vol.Optional(CONF_TAKE_OVER_CONTROL): cv.boolean,
+            vol.Optional(CONF_DETECT_NON_HA_CHANGES): cv.boolean,
+            vol.Optional(CONF_SEPARATE_TURN_ON_COMMANDS): cv.boolean,
+            vol.Optional(CONF_SEND_SPLIT_DELAY): int_between(0, 10000),
+            vol.Optional(CONF_ADAPT_DELAY): int_between(0, 10000),
         },
         handle_change_switch_settings,
     )
+]
 
 
 def validate(config_entry: ConfigEntry):

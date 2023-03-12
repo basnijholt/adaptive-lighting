@@ -60,6 +60,7 @@ CONF_MANUAL_CONTROL = "manual_control"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
+CONF_USE_DEFAULTS = "use_defaults"
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 TURNING_OFF_DELAY = 5
