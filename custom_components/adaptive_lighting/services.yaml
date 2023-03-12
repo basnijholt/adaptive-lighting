@@ -34,3 +34,4 @@ set_manual_control:
     lights:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
+set_switch_settings:

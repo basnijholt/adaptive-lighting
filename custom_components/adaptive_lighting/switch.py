@@ -131,6 +131,7 @@ from .const import (
     ICON,
     SERVICE_APPLY,
     SERVICE_SET_MANUAL_CONTROL,
+    SERVICE_CHANGE_SWITCH_SETTINGS,
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
@@ -289,6 +290,39 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
                 context=switch.create_context("service", parent=service_call.context),
             )
 
+async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: ServiceCall):
+    """Allows hassio to change config values via a service call, bypassing the annoying required reloading of the integration to make a simple change."""
+    hass = switch.hass
+    data = service_call.data
+    sun_light_settings = switch._sun_light_settings  # pylint: disable=protected-access
+    all_lights = switch._lights  # pylint: disable=protected-access
+    if data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
+        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (not always configuration.yaml)
+        defaults = self._backup  # pylint: disable=protected-access
+    #elif data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
+        #cur = self  # pylint: disable=protected-access
+
+    for attr, value in self.__dict__.items():
+        if not isinstance(attr, dict):
+            v = data[attr] = (not attr in data[attr] and not defaults and value) or (not defaults and data[attr]) or defaults[attr]
+            object.__setattr__(self, attr, v)  # pylint: disable=protected-access
+
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
+        data,
+    )
+    
+    switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
+    # pylint: disable=protected-access
+    if switch.is_on:
+        await switch._update_attrs_and_maybe_adapt_lights(
+            all_lights,
+            transition=switch._initial_transition,
+            force=True,
+            context=switch.create_context("service", parent=service_call.context),
+        )
+    # pylint: enable=protected-access
 
 @callback
 def _fire_manual_control_event(
@@ -371,6 +405,24 @@ async def async_setup_entry(
         handle_set_manual_control,
     )
 
+    platform.async_register_entity_service(
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        {
+            vol.Optional(
+                CONF_LIGHTS, default=[]
+            ): cv.entity_ids,  # pylint: disable=protected-access
+            vol.Optional(
+                CONF_TRANSITION,
+                default=switch._initial_transition,  # pylint: disable=protected-access
+            ): VALID_TRANSITION,
+            vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
+            vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
+            vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
+            vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+        },
+        handle_change_switch_settings,
+    )
+
 
 def validate(config_entry: ConfigEntry):
     """Get the options and data from the config_entry and add defaults."""
@@ -384,7 +436,6 @@ def validate(config_entry: ConfigEntry):
         if value is not None:
             data[key] = validate_value(value)  # Fix the types of the inputs
     return data
-
 
 def match_switch_state_event(event: Event, from_or_to_state: list[str]):
     """Match state event when either 'from_state' or 'to_state' matches."""
@@ -563,7 +614,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.adapt_color_switch = adapt_color_switch
         self.adapt_brightness_switch = adapt_brightness_switch
 
-        data = validate(config_entry)
+        self._backup = validate(config_entry)
+        data = deepcopy(self._backup)
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
