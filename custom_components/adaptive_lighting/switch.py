@@ -307,11 +307,10 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
         defaults = switch._backup  # pylint: disable=protected-access
 
     config_entry = {'data': data}
-    if defaults:
-        config_entry.defaults = defaults
     switch.__settings__(
         switch,
         config_entry,
+        defaults,
     )
 
     _LOGGER.debug(
@@ -412,26 +411,26 @@ async def async_setup_entry(
         handle_set_manual_control,
     )
 
+    args = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
+    for key, _, valid in VALIDATION_TUPLES:
+        args[vol.Optional(key)] = valid
     platform.async_register_entity_service(
         SERVICE_CHANGE_SWITCH_SETTINGS,
-        {
-            vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string,
-            vol.Optional(key): valid for key, _, valid in VALIDATION_TUPLES,
-        },
+        args,
         handle_change_switch_settings,
     )
 
-def validate(config_entry: ConfigEntry):
+def validate(config_entry: ConfigEntry, **kwargs):
     """Get the options and data from the config_entry and add defaults."""
-    # defaults will exist only if this is called from change_switch_settings
-    if not defaults in config_entry:
+    # defaults and data will exist only if this is called from change_switch_settings
+    defaults = kwargs.get("defaults")
+    data = kwargs.get("data")
+    if defaults is None:
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-    else:
-        defaults = config_entry.defaults
-
-    data = deepcopy(defaults)
-    data.update(config_entry.options)  # come from options flow
-    data.update(config_entry.data)  # all yaml settings come from data
+    if data is None and config_entry is not None:
+        data = deepcopy(defaults)
+        data.update(config_entry.options)  # come from options flow
+        data.update(config_entry.data)  # all yaml settings come from data
     data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate_value, _) in EXTRA_VALIDATION.items():
         value = data.get(key)
@@ -603,11 +602,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     # Should only contain the settings we want the users to be able to change during runtime.
     def __settings__(
         self,
-        config_entry: ConfigEntry,
+        data: dict,
+        defaults: dict,
     ):
-        data = validate(config_entry)
-        
-        self._current_settings = data # keep a copy of our current settings for use in change_switch_settings "current" CONF_USE_DEFAULTS
+        data = validate(
+            config_entry=None,
+            data=data,
+            defaults=defaults,
+        )
+
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
@@ -651,14 +654,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             transition=data[CONF_TRANSITION],
         )
         _LOGGER.debug(
-            "%s: Setting up with '%s',"
-            " config_entry.data: '%s',"
-            " config_entry.options: '%s', converted to '%s'.",
+            "%s: Changed switch settings for '%s' lights,"
+            " data: '%s',"
+            " defaults used: '%s'.",
             self._name,
             self._lights,
-            config_entry.data,
-            config_entry.options,
             data,
+            defaults,
         )
 
     def __init__(
@@ -677,11 +679,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.adapt_color_switch = adapt_color_switch
         self.adapt_brightness_switch = adapt_brightness_switch
 
-        self._config_backup = validate(config_entry) # backup config_entry for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        data = validate(config_entry)
+        self._config_backup = deepcopy(data) # backup config_entry for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self.__settings__(
-            self,
-            config_entry,
-        ):
+            data=data,
+            defaults=None,
+        )
 
         # Set other attributes
         self._icon = ICON
