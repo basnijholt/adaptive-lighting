@@ -307,8 +307,6 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
         defaults = switch._backup  # pylint: disable=protected-access
 
     switch.__settings__(
-        switch,
-        config_entry=None,
         data=data,
         defaults=defaults,
     )
@@ -424,13 +422,17 @@ def validate(config_entry: ConfigEntry, **kwargs):
     """Get the options and data from the config_entry and add defaults."""
     # defaults and data will exist only if this is called from change_switch_settings
     defaults = kwargs.get("defaults")
-    data = kwargs.get("data")
+    service_data = kwargs.get("data")
     if defaults is None:
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-    if data is None and config_entry is not None:
-        data = deepcopy(defaults)
+    if config_entry is not None:
+        data = deepcopy(defaults) # Is this deepcopy necessary? We're already creating a new array for the defaults variable, afterwards defaults is never used again.
         data.update(config_entry.options)  # come from options flow
         data.update(config_entry.data)  # all yaml settings come from data
+    else:
+        # no idea how to clear original data from memory, hopefully it does it automatically, otherwise TODO.
+        data = deepcopy(defaults)
+        data.update(service_data)
     data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate_value, _) in EXTRA_VALIDATION.items():
         value = data.get(key)
@@ -613,7 +615,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._current_settings = data # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
 
-        self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
@@ -656,13 +657,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             transition=data[CONF_TRANSITION],
         )
         _LOGGER.debug(
-            "%s: Changed switch settings for '%s' lights,"
-            " data: '%s',"
-            " defaults used: '%s'.",
+            "%s: Changed switch settings for lights '%s'. now using data: '%s'",
             self._name,
             self._lights,
             data,
-            defaults,
         )
 
     def __init__(
@@ -682,6 +680,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.adapt_brightness_switch = adapt_brightness_switch
 
         data = validate(config_entry)
+
+        self._name = data[CONF_NAME]
+
         self._config_backup = deepcopy(data) # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self.__settings__(
             data=data,
