@@ -180,7 +180,6 @@ BRIGHTNESS_ATTRS = {
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "adapt_lgt"
 
-
 def _int_to_bytes(i: int, signed: bool = False) -> bytes:
     bits = i.bit_length()
     if signed:
@@ -298,29 +297,22 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
     """Allows hassio to change config values via a service call, bypassing the annoying required reloading of the integration to make a simple change."""
     hass = switch.hass
     data = service_call.data
-    sun_light_settings = switch._sun_light_settings  # pylint: disable=protected-access
-    defaults = False
+    defaults = None
     if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
         cur = switch  # pylint: disable=protected-access
-    elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
-        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-    elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (not always configuration.yaml)
+    # not needed since validate() does this part for us
+    #elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
+        #defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (either configuration.yaml or config flow, configuration.yaml takes priority.)
         defaults = switch._backup  # pylint: disable=protected-access
 
-    for attr, value in switch.__dict__.items():
-        # thankfully all of the switch's attributes are just prefixed with an underscore. Probably should do all this in the class itself but cbf
-        if not attr[1:] in data and not defaults:
-            #_LOGGER.debug("USING CURRENT VALUE FOR %s",attr)
-            continue
-        elif attr[1:] in data:
-            _LOGGER.debug("USING NEW VALUE FROM SERVICE CALL FOR %s",attr)
-            v = data[attr[1:]]
-        elif attr[1:] in defaults:
-            _LOGGER.debug("USING VALUE FROM DEFAULTS FOR %s",attr)
-            v = defaults[attr[1:]]
-        else: #defaults exists and attr isn't in there.
-            continue
-        object.__setattr__(switch, attr, v)  # pylint: disable=protected-access
+    config_entry = {'data': data}
+    if defaults:
+        config_entry.defaults = defaults
+    switch.__settings__(
+        switch,
+        config_entry,
+    )
 
     _LOGGER.debug(
         "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
@@ -423,40 +415,20 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_CHANGE_SWITCH_SETTINGS,
         {
-            vol.Optional(CONF_USE_DEFAULTS): cv.string,
-            vol.Optional(
-                CONF_LIGHTS, default=[]
-            ): cv.entity_ids,  # pylint: disable=protected-access
-            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
-            vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
-            vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
-            vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
-            vol.Optional(CONF_PREFER_RGB_COLOR): cv.boolean,
-            vol.Optional(CONF_INITIAL_TRANSITION): VALID_TRANSITION,
-            vol.Optional(CONF_SLEEP_TRANSITION): VALID_TRANSITION,
-            vol.Optional(CONF_INTERVAL): cv.positive_int,
-            vol.Optional(CONF_MIN_BRIGHTNESS): int_between(1, 100),
-            vol.Optional(CONF_MAX_BRIGHTNESS): int_between(1, 100),
-            vol.Optional(CONF_MIN_COLOR_TEMP): int_between(1000, 10000),
-            vol.Optional(CONF_MAX_COLOR_TEMP): int_between(1000, 10000),
-            vol.Optional(CONF_SLEEP_BRIGHTNESS): int_between(1, 100),
-            vol.Optional(CONF_SLEEP_RGB_OR_COLOR_TEMP): cv.string,
-            vol.Optional(CONF_SLEEP_COLOR_TEMP): int_between(1000, 10000),
-            vol.Optional(CONF_SLEEP_RGB_COLOR): cv.positive_int,
-            vol.Optional(CONF_ONLY_ONCE): cv.boolean,
-            vol.Optional(CONF_TAKE_OVER_CONTROL): cv.boolean,
-            vol.Optional(CONF_DETECT_NON_HA_CHANGES): cv.boolean,
-            vol.Optional(CONF_SEPARATE_TURN_ON_COMMANDS): cv.boolean,
-            vol.Optional(CONF_SEND_SPLIT_DELAY): int_between(0, 10000),
-            vol.Optional(CONF_ADAPT_DELAY): int_between(0, 10000),
+            vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string,
+            vol.Optional(key): valid for key, _, valid in VALIDATION_TUPLES,
         },
         handle_change_switch_settings,
     )
 
-
 def validate(config_entry: ConfigEntry):
     """Get the options and data from the config_entry and add defaults."""
-    defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    # defaults will exist only if this is called from change_switch_settings
+    if not defaults in config_entry:
+        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    else:
+        defaults = config_entry.defaults
+
     data = deepcopy(defaults)
     data.update(config_entry.options)  # come from options flow
     data.update(config_entry.data)  # all yaml settings come from data
@@ -628,24 +600,14 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    def __init__(
+    # Should only contain the settings we want the users to be able to change during runtime.
+    def __settings__(
         self,
-        hass,
         config_entry: ConfigEntry,
-        turn_on_off_listener: TurnOnOffListener,
-        sleep_mode_switch: SimpleSwitch,
-        adapt_color_switch: SimpleSwitch,
-        adapt_brightness_switch: SimpleSwitch,
     ):
-        """Initialize the Adaptive Lighting switch."""
-        self.hass = hass
-        self.turn_on_off_listener = turn_on_off_listener
-        self.sleep_mode_switch = sleep_mode_switch
-        self.adapt_color_switch = adapt_color_switch
-        self.adapt_brightness_switch = adapt_brightness_switch
-
-        self._backup = validate(config_entry)
-        data = deepcopy(self._backup)
+        data = validate(config_entry)
+        
+        self._current_settings = data # keep a copy of our current settings for use in change_switch_settings "current" CONF_USE_DEFAULTS
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
@@ -688,6 +650,38 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
         )
+        _LOGGER.debug(
+            "%s: Setting up with '%s',"
+            " config_entry.data: '%s',"
+            " config_entry.options: '%s', converted to '%s'.",
+            self._name,
+            self._lights,
+            config_entry.data,
+            config_entry.options,
+            data,
+        )
+
+    def __init__(
+        self,
+        hass,
+        config_entry: ConfigEntry,
+        turn_on_off_listener: TurnOnOffListener,
+        sleep_mode_switch: SimpleSwitch,
+        adapt_color_switch: SimpleSwitch,
+        adapt_brightness_switch: SimpleSwitch,
+    ):
+        """Initialize the Adaptive Lighting switch. Should only set attributes we don't wish users to modify during runtime."""
+        self.hass = hass
+        self.turn_on_off_listener = turn_on_off_listener
+        self.sleep_mode_switch = sleep_mode_switch
+        self.adapt_color_switch = adapt_color_switch
+        self.adapt_brightness_switch = adapt_brightness_switch
+
+        self._config_backup = validate(config_entry) # backup config_entry for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        self.__settings__(
+            self,
+            config_entry,
+        ):
 
         # Set other attributes
         self._icon = ICON

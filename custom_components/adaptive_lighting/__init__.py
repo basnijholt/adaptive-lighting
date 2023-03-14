@@ -20,6 +20,20 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["switch"]
 
+# Keep service call 'change_switch_settings' updated directly from strings.json
+# import json
+# f = open("strings.json")
+# flow_strings = json.load(f)
+# f.close()
+
+#def update_services_yaml():
+#    f = open("services.yaml", "a")
+#    f.write("\n")
+#    for var,desc in flow_strings.options.step.init.data.items():
+#        f.write("    "+var+":\n")
+#        f.write("      description: " + desc + "\n")
+#        f.write("      required: false\n")
+#    f.close()
 
 def _all_unique_names(value):
     """Validate that all entities have a unique profile name."""
@@ -37,6 +51,9 @@ CONFIG_SCHEMA = vol.Schema(
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     """Import integration from config."""
+
+    # quickly populate data for change_switch_settings before actually loading integration.
+    # update_services_yaml()
 
     if DOMAIN in config:
         for entry in config[DOMAIN]:

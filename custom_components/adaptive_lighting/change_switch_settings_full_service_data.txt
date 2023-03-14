@@ -1,39 +1,3 @@
-apply:
-  description: Applies the current Adaptive Lighting settings to lights.
-  fields:
-    entity_id:
-      description: entity_id of the Adaptive Lighting switch.
-      example: switch.adaptive_lighting_default
-    lights:
-      description: "entity_id(s) of lights, default: lights of the switch"
-      example: light.bedroom_ceiling
-    transition:
-      description: Transition of the lights.
-      example: 10
-    adapt_brightness:
-      description: "Adapt the 'brightness', default: true"
-      example: true
-    adapt_color:
-      description: "Adapt the color_temp/color_rgb, default: true"
-      example: true
-    prefer_rgb_color:
-      description: "Prefer to use color_rgb over color_temp if possible, default: false"
-      example: false
-    turn_on_lights:
-      description: "Turn on the lights that are off, default: false"
-      example: false
-set_manual_control:
-  description: Mark whether a light is 'manually controlled'.
-  fields:
-    entity_id:
-      description: entity_id of the Adaptive Lighting switch.
-      example: switch.adaptive_lighting_default
-    manual_control:
-      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
-      example: true
-    lights:
-      description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
-      example: light.bedroom_ceiling
 change_switch_settings:
   description: "Change any settings you'd like in the switch. All options here are the same as in the config flow."
   fields:
@@ -154,18 +118,18 @@ change_switch_settings:
       required: false
       selector:
         text:
-    sunrise_offset:
-      description: "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- seconds)"
-    sunrise_time:
-      description: "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
-    max_sunrise_time:
-      description: "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
-    sunset_offset:
-      description: "sunset_offset: How long before(-) or after(+) to define the sunset point of the cycle (+/- seconds)"
-    sunset_time:
-      description: "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
-    min_sunset_time:
-      description: "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)"
+#    sunrise_offset:
+#      description: "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- seconds)"
+#    sunrise_time:
+#      description: "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+#    max_sunrise_time:
+#      description: "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+#    sunset_offset:
+#      description: "sunset_offset: How long before(-) or after(+) to define the sunset point of the cycle (+/- seconds)"
+#    sunset_time:
+#      description: "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+#    min_sunset_time:
+#      description: "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)"
     take_over_control:
       description: "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on."
       required: false
