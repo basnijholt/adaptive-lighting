@@ -155,17 +155,41 @@ change_switch_settings:
       selector:
         text:
     sunrise_offset:
-      description: "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- seconds)"
+      description: sunrise_offset, in +/- seconds (HH:MM:SS)
+      example: 02:00:00
+      required: false
+      selector:
+        text:
     sunrise_time:
-      description: "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+      description: sunrise_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunrise time at your location)
+      example: 07:00:00
+      required: false
+      selector:
+        time:
+    sunset_offset:
+      description: sunset_offset, in +/- seconds (HH:MM:SS)
+      example: 04:00:00
+      required: false
+      selector:
+        text:
+    sunset_time:
+      description: sunset_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunset time at your location)
+      example: 06:00:00
+      required: false
+      selector:
+        time:
     max_sunrise_time:
       description: "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
-    sunset_offset:
-      description: "sunset_offset: How long before(-) or after(+) to define the sunset point of the cycle (+/- seconds)"
-    sunset_time:
-      description: "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+      example: 07:00:00
+      required: false
+      selector:
+        time:
     min_sunset_time:
       description: "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)"
+      example: 08:00:00
+      required: false
+      selector:
+        time:
     take_over_control:
       description: "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on."
       required: false

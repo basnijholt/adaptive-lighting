@@ -304,7 +304,7 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
     elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (either configuration.yaml or config flow, configuration.yaml takes priority.)
-        defaults = switch._backup  # pylint: disable=protected-access
+        defaults = switch._config_backup  # pylint: disable=protected-access
 
     switch.__settings__(
         data=data,
