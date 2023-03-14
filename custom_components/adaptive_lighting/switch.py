@@ -299,18 +299,18 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
     data = service_call.data
     defaults = None
     if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
-        cur = switch  # pylint: disable=protected-access
+        defaults = switch._current_settings  # pylint: disable=protected-access
     # not needed since validate() does this part for us
-    #elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
-        #defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
+        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (either configuration.yaml or config flow, configuration.yaml takes priority.)
         defaults = switch._backup  # pylint: disable=protected-access
 
-    config_entry = {'data': data}
     switch.__settings__(
         switch,
-        config_entry,
-        defaults,
+        config_entry=None,
+        data=data,
+        defaults=defaults,
     )
 
     _LOGGER.debug(
@@ -611,6 +611,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             defaults=defaults,
         )
 
+        self._current_settings = data # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
+
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
@@ -680,7 +682,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.adapt_brightness_switch = adapt_brightness_switch
 
         data = validate(config_entry)
-        self._config_backup = deepcopy(data) # backup config_entry for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        self._config_backup = deepcopy(data) # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self.__settings__(
             data=data,
             defaults=None,
