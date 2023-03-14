@@ -2,10 +2,7 @@ name: pytest
 
 on:
   push:
-    branches:
-      - "dev-branch"
-      - "master"
-      - "change-config-via-service-call"
+    branches: [master]
   pull_request:
 
 jobs:
@@ -52,6 +49,7 @@ jobs:
           cd -
 
           python3 -X dev -m pytest \
+            -qq \
             --timeout=9 \
             --durations=10 \
             --cov="homeassistant" \
