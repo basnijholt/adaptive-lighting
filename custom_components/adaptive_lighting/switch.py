@@ -878,7 +878,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # If there is a transition, mark the time we started adapting this light
         # then the next time we start adapting, compare to the last timestamp. See #447
         if transition and transition != 0:
-            self._transition_timestamp = perf_counter()
+            self._transition_timer = perf_counter()
             self._last_transition = transition
         if not self._separate_turn_on_commands:
             await turn_on(service_data)
