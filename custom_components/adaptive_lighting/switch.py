@@ -12,6 +12,7 @@ from datetime import timedelta
 import functools
 import logging
 import math
+from time import perf_counter
 from typing import Any, Literal
 
 import astral
@@ -610,6 +611,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set other attributes
         self._icon = ICON
         self._state = None
+        self._last_transition = 0
+        self._transition_timer = 0
 
         # Tracks 'off' → 'on' state changes
         self._on_to_off_event: dict[str, Event] = {}
@@ -835,6 +838,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
 
+        # if we are in the middle of a transition, sleep until that transition finishes. Fixes #447
+        while self._transition_timer != 0 and (perf_counter() - self._transition_timer) < self._last_transition:
+            await asyncio.sleep(1.2)
+        self._transition_timer = 0
+        self._last_transition = 0
+
         context = context or self.create_context("adapt_lights")
         if (
             self._take_over_control
@@ -866,6 +875,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context=context,
             )
 
+        # If there is a transition, mark the time we started adapting this light
+        # then the next time we start adapting, compare to the last timestamp. See #447
+        if transition and transition != 0:
+            self._transition_timestamp = perf_counter()
+            self._last_transition = transition
         if not self._separate_turn_on_commands:
             await turn_on(service_data)
         else:
