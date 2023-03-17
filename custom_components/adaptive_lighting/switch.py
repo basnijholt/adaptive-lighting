@@ -864,7 +864,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
         self.turn_on_off_listener.reset(*self._lights)
 
-    # Not precise, called during update_at_interval
+    # Not precise, checked every `interval`
     async def _maybe_reset_manual_control(
         self,
         now: list[str] | None = None,
@@ -1667,9 +1667,8 @@ class TurnOnOffListener:
             self.manual_control[light] = True
             _fire_manual_control_event(switch, light, context, is_async=False)
         if switch._alt_detect_method:
-            _LOGGER.debug("ALTMETHOD!")
             for index, old_state in enumerate(old_states):
-                _LOGGER.debug("FOR LOOP INDEX %s old_state: %s",index, old_state)
+                _LOGGER.debug("%s: checking for a manual change between index %s and %s...", index, index-1, old_state)
                 if index == 0:
                     continue
                 prior_state = old_states[index-1]
