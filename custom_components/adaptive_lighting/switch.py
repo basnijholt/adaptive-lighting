@@ -100,6 +100,7 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
     CONF_LIGHTS,
@@ -124,7 +125,6 @@ from .const import (
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TAKE_OVER_CONTROL,
-    CONF_DETECT_NON_HA_CHANGES,
     CONF_STRICT_ADAPTING,
     CONF_ALT_DETECT_METHOD,
     CONF_AUTORESET_CONTROL,
@@ -596,7 +596,6 @@ def _attributes_have_changed(
                 light,
                 last_rgb_color,
                 current_rgb_color,
-                last_adapt_attempt[ATTR_RGB_COLOR],
                 context.id,
             )
             return True
@@ -665,7 +664,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
-
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -1001,7 +999,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         ):
             return
-
         self.turn_on_off_listener.last_service_data[light] = service_data
         async def turn_on(service_data):
             _LOGGER.debug(
