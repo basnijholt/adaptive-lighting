@@ -74,7 +74,7 @@ iphone_carly_wakeup:
         select("<", "switch.adaptive_lighting_al_z")    | join(",")).split(",")|length
         }}'
       sequence:
-      - service: adaptive_lighting.change_sunlight_settings
+      - service: adaptive_lighting.change_switch_settings
         data:
           entity_id: "{{ ((states.switch\n     | map(attribute='entity_id')\n    \
             \ | select(\">\",\"switch.adaptive_lighting_al_\")\n     | select(\"<\"\
