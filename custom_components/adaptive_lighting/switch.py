@@ -899,13 +899,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transitioning = False
 
     async def _async_update_at_interval(self, now=None) -> None:
-        #if (
-        #    self._alt_detect_method
-        #    or not self._strict_adapting
-        #):
-            #ret = await self._async_wait_transitions(now)
-            #if ret:
-            #    return
+        if (
+            self._alt_detect_method
+            or not self._strict_adapting
+        ):
+            ret = await self._async_wait_transitions(now)
+            if ret:
+                return
         if self._autoreset_control_time > 0:
             ret = await self._maybe_reset_manual_control(now)
             if ret:
