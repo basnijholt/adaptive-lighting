@@ -867,14 +867,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self,
         now: list[str] | None = None,
     ) -> bool:
-        _LOGGER.debug("Maybe reset manual control for lights? [%s] now: %s", self._lights, now)
         if self._manual_control_timer == 0:
             return False
         time_elapsed = perf_counter() - self._manual_control_timer
         time_remaining = self._autoreset_control_time - time_elapsed
         _LOGGER.debug("check manual control reset. time: %s, timer: %s elapsed: %s, remaining: %s", self._autoreset_control_time, self._manual_control_timer, time_elapsed, time_remaining)
         if time_remaining <= 0:
-            _LOGGER.debug("RESET manual control! time: %s, timer: %s elapsed: %s, remaining: %s", self._autoreset_control_time, self._manual_control_timer, time_elapsed, time_remaining)
+            _LOGGER.debug("DISABLING manual control for lights %s", self._lights)
             self.turn_on_off_listener.reset(*self._lights)
             return False
         return True
