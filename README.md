@@ -18,29 +18,10 @@ I work very odd hours that require me to wake up at a different time everyday, s
 - Useability & Flexibility.
 
 ### New Services
-
-`adaptive_lighting.change_sunlight_settings` Changes any sunlight settings on the specified switch.
-
-| Service data attribute    | Description                                                                                |
-|---------------------------|--------------------------------------------------------------------------------------------|
-| `entity_id`               | The `entity_id` of the switch with the settings to apply.                                  |
-| `transition`              | The number of seconds for the transition.                                                  |
-| `use_config_defaults`     | Any setting in this service call that isn't EXPLICITLY defined will either default back to the config (True) or the current values (False) |
-| `use_actual_sunrise_time` | Erase manual handling of the sunrise time (if any) and calculates the actual sunrise       |
-| `use_actual_sunset_time`  | Erase manual handling of the sunset time (if any) and calculates the actual sunset         |
-| `min_brightness`          | The minimum percent of brightness to set the lights to.                                    |
-| `max_brightness`          | The maximum percent of brightness to set the lights to.                                    |
-| `min_color_temp`          | The warmest color temperature to set the lights to, in Kelvin.                             |
-| `max_color_temp`          | The coldest color temperature to set the lights to, in Kelvin.                             |
-| `sleep_brightness`        | Brightness of lights while the sleep mode is enabled.                                      |
-| `sleep_color_temp`        | Color temperature of lights while the sleep mode is enabled.                               |
-| `sunrise_time`            | Override the sunrise time with a fixed time.	                                             |
-| `sunrise_offset`          | Change the sunrise time with a positive or negative offset.                                |
-| `sunset_time`             | Override the sunset time with a fixed time.                                                |
-| `sunset_offset`           | Change the sunset time with a positive or negative offset.                                 |
-
+`adaptive_lighting.change_sunlight_settings` is now DEPRECATED and has been REMOVED due to the addition of `change_switch_settings()`. Syntax is exactly the same.
 `adaptive_lighting.change_switch_settings` Changes any attribute of a switch without requiring a reload of the integration.
 Service data is the same as the config flow.
+You cannot change the switch's `name` property in this service call.
 ### Options
 | option                      | description                                                                                                                                                                                                                   | required | default        | type    |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------- | ------- |
