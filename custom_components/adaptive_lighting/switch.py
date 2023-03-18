@@ -306,7 +306,7 @@ def _fire_manual_control_event(
         switch.entity_id,
         light,
     )
-    switch._manual_control_timer = perf_counter()
+    switch._manual_lights[light]['timer'] = perf_counter()
     fire(
         f"{DOMAIN}.manual_control",
         {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
@@ -641,6 +641,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._lights = data[CONF_LIGHTS]
 
         #Fixes #447 'alt_detect_method: true'
+        #can't set variables here unfortunately. todo later if possible
         #for _,light in data[CONF_LIGHTS]:
         #    if _switches not in self.turn_on_off_listener:
         #        self.turn_on_off_listener._switches = {light: self}
@@ -701,8 +702,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition_timer = 0
         self._transitioning = False
         self._last_adapted_state = {}
-        self._manual_control_timer = 0
         self._manual_lights = {}
+        for light in self._lights:
+            self._manual_lights[light] = {'timer': 0}
 
         # Tracks 'off' → 'on' state changes
         self._on_to_off_event: dict[str, Event] = {}
@@ -866,17 +868,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _maybe_reset_manual_control(
         self,
         now: list[str] | None = None,
-    ) -> bool:
-        if self._manual_control_timer == 0:
-            return False
-        time_elapsed = perf_counter() - self._manual_control_timer
-        time_remaining = self._autoreset_control_time - time_elapsed
-        _LOGGER.debug("check manual control reset. time: %s, timer: %s elapsed: %s, remaining: %s", self._autoreset_control_time, self._manual_control_timer, time_elapsed, time_remaining)
-        if time_remaining <= 0:
-            _LOGGER.debug("DISABLING manual control for lights %s", self._lights)
-            self.turn_on_off_listener.reset(*self._lights)
-            return False
-        return True
+    ):
+        for light in self._lights:
+            if self._manual_lights[light]['timer'] == 0:
+                continue
+            time_elapsed = perf_counter() - self._manual_lights[light]['timer']
+            time_remaining = self._autoreset_control_time - time_elapsed
+            _LOGGER.debug("check manual control reset. time: %s, timer: %s elapsed: %s, remaining: %s", self._autoreset_control_time, self._manual_lights[light]['timer'], time_elapsed, time_remaining)
+            if time_remaining <= 0:
+                _LOGGER.debug("DISABLING manual control for lights %s", self._lights)
+                self.turn_on_off_listener.reset(*self._lights)
 
     # Fixes #447 (and #430 with 'alt_detect_method: true' set)
     # if we are in the middle of a transition, sleep until that transition finishes.
@@ -906,9 +907,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if ret:
                 return
         if self._autoreset_control_time > 0:
-            ret = await self._maybe_reset_manual_control(now)
-            if ret:
-                return
+            await self._maybe_reset_manual_control(now)
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._transition,
             force=False,
@@ -1041,7 +1040,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._last_adapted_state[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         if rgb_color:
             self._last_adapted_state[ATTR_RGB_COLOR] = rgb_color
-        self._manual_control_timer = 0
+        self._manual_lights[light]['timer'] = 0
         
 
     async def _update_attrs_and_maybe_adapt_lights(
@@ -1571,10 +1570,7 @@ class TurnOnOffListener:
             if (
                 old_state is not None
                 and entity_id in self.last_state_change # not sure why this failed in a previous test.
-                #and (
-                #    old_state[0].context.id == new_state.context.id # doesn't work correctly on my lights.
-                #    or self._switches[light]._alt_detect_method # readd when I figure out how to pass switch to this class func.
-                #)
+                #and old_state[0].context.id == new_state.context.id # doesn't work correctly on my lights?
             ):
                 # If there is already a state change event from this event (with this
                 # context) then append it to the already existing list.
