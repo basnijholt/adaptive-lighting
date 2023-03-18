@@ -833,10 +833,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             color_temp_kelvin = self._settings["color_temp_kelvin"]
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
             if self._dim_to_warm and "brightness" in features:
-                await self.hass.helpers.entity_component.async_update_entity(light)
-                cur_state = self.hass.states.get(light)
-                brightness = cur_state.attributes[ATTR_BRIGHTNESS]
-                service_data[ATTR_BRIGHTNESS] = brightness
+                #await self.hass.helpers.entity_component.async_update_entity(light)
+                #cur_state = self.hass.states.get(light)
+                #brightness = cur_state.attributes[ATTR_BRIGHTNESS]
+                #service_data[ATTR_BRIGHTNESS] = brightness
                 min_ct = self._sun_light_settings.min_color_temp  # pylint: disable=protected-access
                 max_ct = color_temp_kelvin
                 max_brightness = self._sun_light_settings.max_brightness  # pylint: disable=protected-access
@@ -868,7 +868,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._take_over_control
             and self._detect_non_ha_changes
             and not force
-            and not self._dim_to_warm
             and await self.turn_on_off_listener.significant_change(
                 self,
                 light,
@@ -955,7 +954,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 continue
             if (
                 self._take_over_control
-                and not self._dim_to_warm
                 and self.turn_on_off_listener.is_manually_controlled(
                     self,
                     light,
