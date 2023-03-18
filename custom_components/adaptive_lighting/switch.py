@@ -473,17 +473,11 @@ def check_direction_change(
     current: int,
     last_adapt_value: int 
 ) -> bool:
-    if last_adapt_value < last: # brightness adapting down.
-        _LOGGER.debug("compare direction: current %s larger than last %s", current, last)
-        if current > last:
-            return True
-        if current < last_adapt_value:
-            return True
-    elif last_adapt_value > last: # brightness adapting up.
-        if current < last:
-            return True
-        if current > last_adapt_value:
-            return True
+    _LOGGER.debug("compare direction: current value %s to last value %s", current, last)
+    if last_adapt_value < last: # Brightness adapting down
+        return current > last or current < last_adapt_value
+    elif last_adapt_value > last: # Brightness adapting up
+        return current < last or current > last_adapt_value
     return False
 
 def _attributes_have_changed(
