@@ -1654,7 +1654,7 @@ class TurnOnOffListener:
             _fire_manual_control_event(switch, light, context, is_async=False)
         if switch._alt_detect_method:
             for index, old_state in enumerate(old_states):
-                _LOGGER.debug("%s: checking for a manual change between index %s and %s...", index, index-1, old_state)
+                _LOGGER.debug("checking for a manual change between index %s and %s... old_state: %s", index, index-1, old_state)
                 if index == 0:
                     continue
                 prior_state = old_states[index-1]
