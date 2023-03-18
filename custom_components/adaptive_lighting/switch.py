@@ -100,6 +100,7 @@ from .const import (
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_DIM_TO_WARM,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
     CONF_LIGHTS,
@@ -568,6 +569,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._lights = data[CONF_LIGHTS]
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        self._dim_to_warm = data[CONF_DIM_TO_WARM]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._interval = data[CONF_INTERVAL]
@@ -830,6 +832,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             max_kelvin = attributes["max_color_temp_kelvin"]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
+            if self._dim_to_warm:
+                await self.hass.helpers.entity_component.async_update_entity(light)
+                cur_state = self.hass.states.get(light)
+                brightness = cur_state.attributes[ATTR_BRIGHTNESS]
+                min_ct = self._sun_light_settings.min_color_temp  # pylint: disable=protected-access
+                max_ct = color_temp_kelvin
+                max_brightness = self._sun_light_settings.max_brightness  # pylint: disable=protected-access
+                min_brightness = self._sun_light_settings.min_brightness  # pylint: disable=protected-access
+                 # y = a(x-h)^2+k where h,k is the vertex (255,6500) or (max_brightness,max_ct)
+                 # a = (min_ct-max_ct)/(min_brightness-2*(max_brightness)+max_brightness^2)
+                 # check: y = (1000-6500)/64516*(x-255)^{2}+6500 if x=1 y=1000
+                color_temp_kelvin = (min_ct-max_ct)/(min_brightness-(2*max_brightness)+(max_brightness**2))*((brightness-max_brightness)**2)+max_ct
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
@@ -840,6 +854,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._take_over_control
             and self._detect_non_ha_changes
             and not force
+            and not self._dim_to_warm
             and await self.turn_on_off_listener.significant_change(
                 self,
                 light,
@@ -926,6 +941,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 continue
             if (
                 self._take_over_control
+                and not self._dim_to_warm
                 and self.turn_on_off_listener.is_manually_controlled(
                     self,
                     light,
