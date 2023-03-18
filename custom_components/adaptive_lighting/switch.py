@@ -842,9 +842,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 max_brightness = self._sun_light_settings.max_brightness  # pylint: disable=protected-access
                 min_brightness = self._sun_light_settings.min_brightness  # pylint: disable=protected-access
                  # y = a(x-h)^2+k where h,k is the vertex (255,6500) or (max_brightness,max_ct)
-                 # a = (min_ct-max_ct)/(min_brightness-2*(max_brightness)+max_brightness^2)
-                 # check: y = (1000-6500)/64516*(x-255)^{2}+6500 if x=1 y=1000
-                color_temp_kelvin = (min_ct-max_ct)/(min_brightness-(2*max_brightness)+(max_brightness**2))*((brightness-max_brightness)**2)+max_ct
+                 # a = (min_ct-max_ct)/(min_brightness-max_brightness)^2
+                 # check: y = (1000-6500)/((1-h)^2)*(x-255)^2+6500 if x=2 then y=1043.221836 when min_brightness=1,max_brightness=255,max_ct=6500,min_ct=1000
+                color_temp_kelvin = ((min_ct-max_ct)/(min_brightness-max_brightness)**2)*(brightness-max_brightness)^2+max_kelvin
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
