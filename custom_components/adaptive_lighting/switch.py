@@ -634,20 +634,32 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
-        #Fixes #447 'alt_detect_method: true'
-        #can't set variables here unfortunately. todo later if possible
+        # Would really like a method of accessing this class from the TurnOnOffListener class.
+        # Unfortunately, this commented out code doesn't work.
+        # EDIT: Just noticed syntax errors here, try again later.
         #for _,light in data[CONF_LIGHTS]:
         #    if _switches not in self.turn_on_off_listener:
         #        self.turn_on_off_listener._switches = {light: self}
         #    else:
         #        self.turn_on_off_listener._switches[light] = self # light should never be in multiple switches anyway.
-        self._strict_adapting = data[CONF_STRICT_ADAPTING]
+
+        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
+        self._strict_adapting = data[CONF_STRICT_ADAPTING]
+        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        if not data[CONF_TAKE_OVER_CONTROL] and (
+            not data[CONF_STRICT_ADAPTING]
+            or  data[CONF_ALT_DETECT]
+            or  data[CONF_DETECT_NON_HA_CHANGES]
+        ):
+            _LOGGER.warn("%s: Config mismatch: 'alt_detect_method: true', 'strict_adapting: false', OR 'detect_non_ha_changes: true' are set in config, "
+                "however required variable 'take_over_control' is turned off. Please check your configuration to ensure desired functionality."
+                "We will now enable 'take_over_control' and continue setting up the adaptive-lighting integration normally.",
+                self._name,
+            )
+            self._take_over_control = True
+
         self._autoreset_control_time = data[CONF_AUTORESET_CONTROL]
-        if not data[CONF_STRICT_ADAPTING] or data[CONF_ALT_DETECT_METHOD]:
-            self._detect_non_ha_changes = True
-        else:
-            self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
 
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
@@ -655,7 +667,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
-        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
@@ -893,10 +904,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transitioning = False
 
     async def _async_update_at_interval(self, now=None) -> None:
-        if (
-            self._alt_detect_method
-            or not self._strict_adapting
-        ):
+        if not self._strict_adapting:
             ret = await self._async_wait_transitions(now)
             if ret:
                 return
@@ -1634,8 +1642,9 @@ class TurnOnOffListener:
         if light not in self.last_state_change:
             return False
         old_states: list[State] = self.last_state_change[light]
-        await self.hass.helpers.entity_component.async_update_entity(light)
-        new_state = self.hass.states.get(light)
+        if switch._detect_non_ha_changes or not switch._strict_adapting:
+            await self.hass.helpers.entity_component.async_update_entity(light)
+            new_state = self.hass.states.get(light)
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
@@ -1647,16 +1656,20 @@ class TurnOnOffListener:
         # start fix for #447
         if (
             not switch._strict_adapting
-            and compare_to(old_attributes=switch._last_adapted_state, new_attributes=new_state.attributes)
+            and compare_to(
+                old_attributes=switch._last_adapted_state,
+                new_attributes=new_state.attributes
+            )
         ):
             _LOGGER.debug("State of '%s' didn't change to the state we tried prior. Setting as manually controlled. (context.id=%s)", light, context.id)
             self.manual_control[light] = True
             _fire_manual_control_event(switch, light, context, is_async=False)
+            return True
         if switch._alt_detect_method:
             for index, old_state in enumerate(old_states):
-                _LOGGER.debug("checking for a manual change between index %s and %s... old_state: %s", index, index-1, old_state)
                 if index == 0:
                     continue
+                _LOGGER.debug("checking for a manual change between index %s and %s... old_state: %s", index, index-1, old_state)
                 prior_state = old_states[index-1]
                 if compare_to(
                     old_attributes=prior_state.attributes,
@@ -1675,7 +1688,6 @@ class TurnOnOffListener:
                     self.manual_control[light] = True
                     _fire_manual_control_event(switch, light, context, is_async=False)
                     return True
-            return False
         #end fix for #447
 
         for index, old_state in enumerate(old_states):
