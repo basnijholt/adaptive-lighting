@@ -702,7 +702,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition_timer = 0
         self._transitioning = False
         self._manual_lights = {}
-        for light in self._lights:
+        all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
             self._manual_lights[light] = {'timer': 0}
 
         # Tracks 'off' → 'on' state changes
