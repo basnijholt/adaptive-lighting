@@ -835,7 +835,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if self._dim_to_warm and "brightness" in features:
                 # uncomment these lines for easy debugging
                 # while using light.turn_on outside of the integration.
-                # 
+                #
                 # await self.hass.helpers.entity_component.async_update_entity(light)
                 # cur_state = self.hass.states.get(light)
                 # brightness = cur_state.attributes[ATTR_BRIGHTNESS]
