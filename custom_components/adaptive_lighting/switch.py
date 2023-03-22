@@ -902,7 +902,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self._transitioning:
             return True
         last_service_data = self.turn_on_off_listener.last_service_data
-        if not last_service_data or not last_service_data[ATTR_TRANSITION]:
+        if not last_service_data or ATTR_TRANSITION not in last_service_data:
             return False
         while (
             self._transition_timer != 0
