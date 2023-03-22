@@ -45,7 +45,7 @@
           "detect_non_ha_changes": "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)",
           "transition": "Transition time when applying a change to the lights (seconds)",
           "adapt_delay": "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering.",
-		  "dim to warm": "dim_to_warm: Adjust color temperature even further on a parabolic curve depending on the current brightness of the light. Does not work with take_over_control"
+          "dim to warm": "dim_to_warm: Adjust color temperature even further based on a parabolic curve depending on the current brightness of the light."
         }
       }
     },
