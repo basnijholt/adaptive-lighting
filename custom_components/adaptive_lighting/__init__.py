@@ -26,7 +26,7 @@ PLATFORMS = ["switch"]
 # flow_strings = json.load(f)
 # f.close()
 
-#def update_services_yaml():
+# def update_services_yaml():
 #    f = open("services.yaml", "a")
 #    f.write("\n")
 #    for var,desc in flow_strings.options.step.init.data.items():
@@ -34,6 +34,7 @@ PLATFORMS = ["switch"]
 #        f.write("      description: " + desc + "\n")
 #        f.write("      required: false\n")
 #    f.close()
+
 
 def _all_unique_names(value):
     """Validate that all entities have a unique profile name."""
