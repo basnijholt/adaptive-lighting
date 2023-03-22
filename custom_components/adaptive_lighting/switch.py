@@ -992,20 +992,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                     return
 
-            # Do not adapt any lights turned on with custom brightness/color_temp/rgb_color
-            if (
-                ATTR_COLOR_TEMP_KELVIN in new_state.attributes
-                or ATTR_RGB_COLOR in new_state.attributes
-                or ATTR_BRIGHTNESS in new_state.attributes
-            ):
-                _LOGGER.info(
-                    "%s: Light %s was turned on with custom settings."
-                    "Setting as manually controlled.",
-                    self._name,
-                    entity_id,
-                )
-                return
-
             if self._adapt_delay > 0:
                 _LOGGER.debug(
                     "%s: sleep started for '%s' with context.id='%s'",
