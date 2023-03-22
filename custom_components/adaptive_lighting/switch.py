@@ -843,7 +843,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 min_ct = (
                     self._sun_light_settings.min_color_temp
                 )  # pylint: disable=protected-access
-                min_ct = self._sun_light_settings.min_color_temp  # pylint: disable=protected-access
+                min_ct = (
+                    self._sun_light_settings.min_color_temp
+                )  # pylint: disable=protected-access
                 max_ct = color_temp_kelvin
                 max_brightness = (
                     self._sun_light_settings.max_brightness
