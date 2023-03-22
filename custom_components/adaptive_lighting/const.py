@@ -68,6 +68,7 @@ CONF_STRICT_ADAPTING, DEFAULT_STRICT_ADAPTING = "strict_adapting", True
 CONF_ALT_DETECT_METHOD, DEFAULT_ALT_DETECT_METHOD = "alt_detect_method", False
 CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_time", 0
 
+
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
