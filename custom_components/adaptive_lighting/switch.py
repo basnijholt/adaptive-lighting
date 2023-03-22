@@ -626,7 +626,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._settings: dict[str, Any] = {}
         if self._include_config_in_attributes:
             attrdata = deepcopy(data)
-            for k,v in attrdata.items():
+            for k, v in attrdata.items():
                 if isinstance(v, (datetime.date, datetime.datetime)):
                     attrdata[k] = v.isoformat()
                 if isinstance(v, (datetime.timedelta)):
@@ -816,9 +816,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_TRANSITION] = transition
 
         # The switch might be off and not have _settings set.
-        self._settings.update(self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on, transition
-        ))
+        self._settings.update(
+            self._sun_light_settings.get_settings(
+                self.sleep_mode_switch.is_on, transition
+            )
+        )
 
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
@@ -905,9 +907,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.id,
         )
         assert self.is_on
-        self._settings.update(self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on, transition
-        ))
+        self._settings.update(
+            self._sun_light_settings.get_settings(
+                self.sleep_mode_switch.is_on, transition
+            )
+        )
         self.async_write_ha_state()
         if lights is None:
             lights = self._lights
