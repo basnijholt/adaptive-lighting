@@ -131,8 +131,8 @@ from .const import (
     EXTRA_VALIDATION,
     ICON,
     SERVICE_APPLY,
-    SERVICE_SET_MANUAL_CONTROL,
     SERVICE_CHANGE_SWITCH_SETTINGS,
+    SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
@@ -180,6 +180,7 @@ BRIGHTNESS_ATTRS = {
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "adapt_lgt"
 
+
 def _int_to_bytes(i: int, signed: bool = False) -> bytes:
     bits = i.bit_length()
     if signed:
@@ -187,9 +188,11 @@ def _int_to_bytes(i: int, signed: bool = False) -> bytes:
         bits += 1
     return i.to_bytes((bits + 7) // 8, "little", signed=signed)
 
+
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
+
 
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
@@ -293,17 +296,26 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
                 context=switch.create_context("service", parent=service_call.context),
             )
 
-async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: ServiceCall):
+
+async def handle_change_switch_settings(
+    switch: AdaptiveSwitch, service_call: ServiceCall
+):
     """Allows hassio to change config values via a service call, bypassing the annoying required reloading of the integration to make a simple change."""
     hass = switch.hass
     data = service_call.data
     defaults = None
-    if CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current": # use whatever we're already using.
+    if (
+        CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current"
+    ):  # use whatever we're already using.
         defaults = switch._current_settings  # pylint: disable=protected-access
     # not needed since validate() does this part for us
-    elif data[CONF_USE_DEFAULTS] == "factory": # use actual defaults listed in the documentation
+    elif (
+        data[CONF_USE_DEFAULTS] == "factory"
+    ):  # use actual defaults listed in the documentation
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-    elif data[CONF_USE_DEFAULTS] == "configuration": # use whatever's in the config flow (either configuration.yaml or config flow, configuration.yaml takes priority.)
+    elif (
+        data[CONF_USE_DEFAULTS] == "configuration"
+    ):  # use whatever's in the config flow (either configuration.yaml or config flow, configuration.yaml takes priority.)
         defaults = switch._config_backup  # pylint: disable=protected-access
 
     switch.__settings__(
@@ -315,7 +327,7 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
         "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
         data,
     )
-    
+
     all_lights = switch._lights  # pylint: disable=protected-access
     switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
     # pylint: disable=protected-access
@@ -327,6 +339,7 @@ async def handle_change_switch_settings(switch: AdaptiveSwitch, service_call: Se
             context=switch.create_context("service", parent=service_call.context),
         )
     # pylint: enable=protected-access
+
 
 @callback
 def _fire_manual_control_event(
@@ -418,6 +431,7 @@ async def async_setup_entry(
         handle_change_switch_settings,
     )
 
+
 def validate(config_entry: ConfigEntry, **kwargs):
     """Get the options and data from the config_entry and add defaults."""
     # defaults and data will exist only if this is called from change_switch_settings
@@ -426,7 +440,9 @@ def validate(config_entry: ConfigEntry, **kwargs):
     if defaults is None:
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     if config_entry is not None:
-        data = deepcopy(defaults) # Is this deepcopy necessary? We're already creating a new array for the defaults variable, afterwards defaults is never used again.
+        data = deepcopy(
+            defaults
+        )  # Is this deepcopy necessary? We're already creating a new array for the defaults variable, afterwards defaults is never used again.
         data.update(config_entry.options)  # come from options flow
         data.update(config_entry.data)  # all yaml settings come from data
     else:
@@ -439,6 +455,7 @@ def validate(config_entry: ConfigEntry, **kwargs):
         if value is not None:
             data[key] = validate_value(value)  # Fix the types of the inputs
     return data
+
 
 def match_switch_state_event(event: Event, from_or_to_state: list[str]):
     """Match state event when either 'from_state' or 'to_state' matches."""
@@ -613,7 +630,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             defaults=defaults,
         )
 
-        self._current_settings = data # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
+        self._current_settings = data  # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
 
         self._lights = data[CONF_LIGHTS]
 
@@ -683,7 +700,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._name = data[CONF_NAME]
 
-        self._config_backup = deepcopy(data) # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        self._config_backup = deepcopy(
+            data
+        )  # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self.__settings__(
             data=data,
             defaults=None,
