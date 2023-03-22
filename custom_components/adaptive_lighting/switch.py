@@ -645,7 +645,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         if not data[CONF_TAKE_OVER_CONTROL] and (
             not data[CONF_STRICT_ADAPTING]
-            or data[CONF_ALT_DETECT]
+            or data[CONF_ALT_DETECT_METHOD]
             or data[CONF_DETECT_NON_HA_CHANGES]
         ):
             _LOGGER.warn(
