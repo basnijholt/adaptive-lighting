@@ -649,9 +649,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             or data[CONF_DETECT_NON_HA_CHANGES]
         ):
             _LOGGER.warn(
-                "%s: Config mismatch: 'alt_detect_method: true', 'strict_adapting: false', OR 'detect_non_ha_changes: true' are set in config, "
-                "however required variable 'take_over_control' is turned off. Please check your configuration to ensure desired functionality."
-                "We will now enable 'take_over_control' and continue setting up the adaptive-lighting integration normally.",
+                "%s: Config mismatch: 'alt_detect_method: true', 'strict_adapting: false',"
+                " OR 'detect_non_ha_changes: true' are set in config, however required"
+                " variable 'take_over_control' is turned off. Please check your"
+                " configuration to ensure desired functionality. We will now"
+                " enable 'take_over_control' and continue setting up the"
+                " adaptive-lighting integration normally.",
                 self._name,
             )
             self._take_over_control = True
@@ -888,9 +891,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     # Fixes #447 (and #430 with 'alt_detect_method: true' set)
     # if we are in the middle of a transition, sleep until that transition finishes.
-    # Needed so we can check if the previous adapt attempt succeeded after the transition finalizes the new state.
-    # Someone with a better understanding of async usage could clean this up, not sure if it's safe to check a variable in another thread.
-    # The '_transitioning' variable is simply set to prevent buildups of multiple calls to this function all running at once after a long transition finishes with a short interval set.
+    # Needed so we can check if the previous adapt attempt succeeded after the
+    # transition finalizes the new state.
+    # Someone with a better understanding of async usage could clean this up, not
+    # sure if it's safe to check a variable in another thread.
+    # The '_transitioning' variable is simply set to prevent buildups of multiple
+    # calls to this function all running at once after a long transition finishes
+    # with a short interval set.
     async def _async_wait_transitions(self, now=None) -> bool:
         if self._transitioning:
             return True
@@ -916,7 +923,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._transitioning = True
             await asyncio.sleep(
                 1 - 10 ** (-1 * math.log(10**time_remaining, 10))
-            )  # could also asyncio.sleep(0) without the logging above. alternately precision 10838 is the max
+            )  # could also asyncio.sleep(0) without the logging above.
+            # alternately precision 10838 is the max
         await asyncio.sleep(
             0.2
         )  # wait a short but guaranteed longer time than transition.
@@ -1679,7 +1687,8 @@ class TurnOnOffListener:
             old_attributes=last_service_data, new_attributes=new_state.attributes
         ):
             _LOGGER.debug(
-                "State of '%s' didn't change to the state we tried prior. Setting as manually controlled. (context.id=%s)",
+                "State of '%s' didn't change to the state we tried prior."
+                " Setting as manually controlled. (context.id=%s)",
                 light,
                 context.id,
             )
@@ -1704,7 +1713,8 @@ class TurnOnOffListener:
                     last_adapt_attempt=last_service_data,
                 ):
                     _LOGGER.debug(
-                        "Found unexpected state_change event for %s nr. %s (context.id=%s) old_state=%s\nprior_state=%s",
+                        "Found unexpected state_change event for %s nr. %s (context.id=%s)"
+                        " old_state=%s\nprior_state=%s",
                         light,
                         index,
                         context.id,
