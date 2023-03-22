@@ -300,8 +300,7 @@ async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: Servic
 async def handle_change_switch_settings(
     switch: AdaptiveSwitch, service_call: ServiceCall
 ):
-    """Allows hassio to change config values via a service call, bypassing the annoying required reloading of the integration to make a simple change."""
-    hass = switch.hass
+    """Allows HASS to change config values via a service call."""
     data = service_call.data
     defaults = None
     if (
@@ -315,7 +314,7 @@ async def handle_change_switch_settings(
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     elif (
         data[CONF_USE_DEFAULTS] == "configuration"
-    ):  # use whatever's in the config flow (either configuration.yaml or config flow, configuration.yaml takes priority.)
+    ):  # use whatever's in the config flow or configuration.yaml
         defaults = switch._config_backup  # pylint: disable=protected-access
 
     switch.__settings__(
@@ -440,13 +439,15 @@ def validate(config_entry: ConfigEntry, **kwargs):
     if defaults is None:
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     if config_entry is not None:
-        data = deepcopy(
-            defaults
-        )  # Is this deepcopy necessary? We're already creating a new array for the defaults variable, afterwards defaults is never used again.
+        # Is this deepcopy necessary?
+        # We're already creating a new array for the defaults variable...
+        # afterwards defaults is never used again.
+        data = deepcopy(defaults)
         data.update(config_entry.options)  # come from options flow
         data.update(config_entry.data)  # all yaml settings come from data
     else:
-        # no idea how to clear original data from memory, hopefully it does it automatically, otherwise TODO.
+        # no idea how to clear original data from memory
+        # hopefully it does it automatically, otherwise TODO.
         data = deepcopy(defaults)
         data.update(service_data)
     data = {key: replace_none_str(value) for key, value in data.items()}
@@ -630,7 +631,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             defaults=defaults,
         )
 
-        self._current_settings = data  # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
+        # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
+        self._current_settings = data
 
         self._lights = data[CONF_LIGHTS]
 
@@ -689,7 +691,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color_switch: SimpleSwitch,
         adapt_brightness_switch: SimpleSwitch,
     ):
-        """Initialize the Adaptive Lighting switch. Should only set attributes we don't wish users to modify during runtime."""
+        """Initialize the Adaptive Lighting switch."""
+        # Set attributes we DON'T want users modifying
+        # during runtime here.
         self.hass = hass
         self.turn_on_off_listener = turn_on_off_listener
         self.sleep_mode_switch = sleep_mode_switch
