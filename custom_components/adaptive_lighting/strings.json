@@ -44,7 +44,7 @@
           "take_over_control": "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on.",
           "detect_non_ha_changes": "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)",
           "alt_detect_method": "alt_detect_method: an alternative method of detecting non ha changes for those having issues with 'detect_non_ha_changes'. (default: false)",
-          "strict_adapting": "strict_adapting: how strict you want 'detect_non_ha_changes' and 'alt_detect_method' to be when checking for a manual change. (default: true)",
+          "strict_adapting": "strict_adapting: When false, the integration check the current state of the light and ensure it finished a prior adapt and if it differs it will fire a manually controlled event. (default: true)",
           "autoreset_control_time": "autoreset_control_time: reset manual control after this number of seconds (default: 0 for disabled)",
           "transition": "Transition time when applying a change to the lights (seconds)",
           "adapt_delay": "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering."
