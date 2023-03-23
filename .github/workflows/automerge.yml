@@ -1,0 +1,28 @@
+name: Automerge
+
+on:
+  push:
+    branches:
+      - '!dev-branch'
+
+env:
+  # path to the branch you're automerging into.
+  AUTOMERGE_INTO: https://github.com/th3w1zard1/adaptive-lighting/tree/dev-branch.git
+
+  # branch name above
+  AUTOMERGE_INTO_BRANCH: dev-branch
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Merge with automerge branch
+      run: |
+        git clone ${{github.repository}} -b ${{github.ref_name}} tmp
+        cd tmp
+        git config user.name "Automerge Bot"
+        git config user.email "bot@example.com"
+        git config pull.rebase false
+        git pull ${{env.AUTOMERGE_INTO}} ${{env.AUTOMERGE_INTO_BRANCH}}
+        git push
