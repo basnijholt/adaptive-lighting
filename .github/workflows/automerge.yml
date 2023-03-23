@@ -20,7 +20,7 @@ jobs:
     steps:
     - name: Merge with automerge branch
       run: |
-        git clone ${{github.repository}} -b ${{github.ref_name}} tmp
+        git clone ${{github.repositoryUrl}} -b ${{github.ref_name}} tmp
         cd tmp
         git config user.name "Automerge Bot"
         git config user.email "bot@example.com"
