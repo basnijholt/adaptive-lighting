@@ -45,7 +45,6 @@ from homeassistant.components.light import (
     VALID_TRANSITION,
     is_on,
 )
-from homeassistant.components.light import ATTR_KELVIN  # Deprecated in HA Core 2022.11
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchEntity
@@ -130,10 +129,7 @@ from .const import (
     CONF_TURN_ON_LIGHTS,
     DOMAIN,
     EXTRA_VALIDATION,
-    ICON_BRIGHTNESS,
-    ICON_COLOR_TEMP,
-    ICON_MAIN,
-    ICON_SLEEP,
+    ICON,
     SERVICE_APPLY,
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
@@ -168,7 +164,6 @@ COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
-    ATTR_KELVIN,  # Deprecated in HA Core 2022.11
     ATTR_RGB_COLOR,
     ATTR_XY_COLOR,
 }
@@ -325,15 +320,9 @@ async def async_setup_entry(
         data[ATTR_TURN_ON_OFF_LISTENER] = TurnOnOffListener(hass)
     turn_on_off_listener = data[ATTR_TURN_ON_OFF_LISTENER]
 
-    sleep_mode_switch = SimpleSwitch(
-        "Sleep Mode", False, hass, config_entry, ICON_SLEEP
-    )
-    adapt_color_switch = SimpleSwitch(
-        "Adapt Color", True, hass, config_entry, ICON_COLOR_TEMP
-    )
-    adapt_brightness_switch = SimpleSwitch(
-        "Adapt Brightness", True, hass, config_entry, ICON_BRIGHTNESS
-    )
+    sleep_mode_switch = SimpleSwitch("Sleep Mode", False, hass, config_entry)
+    adapt_color_switch = SimpleSwitch("Adapt Color", True, hass, config_entry)
+    adapt_brightness_switch = SimpleSwitch("Adapt Brightness", True, hass, config_entry)
     switch = AdaptiveSwitch(
         hass,
         config_entry,
@@ -620,7 +609,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
         # Set other attributes
-        self._icon = ICON_MAIN
+        self._icon = ICON
         self._state = None
 
         # Tracks 'off' → 'on' state changes
@@ -1041,17 +1030,12 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
     def __init__(
-        self,
-        which: str,
-        initial_state: bool,
-        hass: HomeAssistant,
-        config_entry,
-        icon: str,
+        self, which: str, initial_state: bool, hass: HomeAssistant, config_entry
     ):
         """Initialize the Adaptive Lighting switch."""
         self.hass = hass
         data = validate(config_entry)
-        self._icon = icon
+        self._icon = ICON
         self._state = None
         self._which = which
         name = data[CONF_NAME]
