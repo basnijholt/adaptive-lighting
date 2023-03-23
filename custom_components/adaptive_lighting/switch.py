@@ -35,9 +35,6 @@ from homeassistant.components.light import (
     COLOR_MODE_XY,
 )
 from homeassistant.components.light import (
-    ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
-)
-from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
@@ -45,7 +42,6 @@ from homeassistant.components.light import (
     VALID_TRANSITION,
     is_on,
 )
-from homeassistant.components.light import ATTR_KELVIN  # Deprecated in HA Core 2022.11
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchEntity
@@ -76,7 +72,7 @@ from homeassistant.core import (
     State,
     callback,
 )
-from homeassistant.helpers import entity_platform
+from homeassistant.helpers import entity_platform, entity_registry
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -165,10 +161,8 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
-    ATTR_KELVIN,  # Deprecated in HA Core 2022.11
     ATTR_RGB_COLOR,
     ATTR_XY_COLOR,
 }
@@ -242,10 +236,47 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
+# From https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
+def getSwitchFromLightId(hass: HomeAssistant, light: str) -> str:
+    all_adapt_switches = None
+    """Get switch entity_id by looping through all domain switches tied to adaptive-lighting."""
+    # first try if this is a config entry match
+    conf_entry = next(
+        (
+            entry.entry_id
+            for entry in hass.config_entries.async_entries()
+            if entry.title == DOMAIN
+        ),
+        None,
+    )
+    if conf_entry is not None:
+        ent_reg = entity_registry.async_get(hass)
+        entries = entity_registry.async_entries_for_config_entry(ent_reg, conf_entry)
+        all_adapt_switches = [entry.entity_id for entry in entries]
+
+    # fallback to just returning all entities for a domain
+    # pylint: disable-next=import-outside-toplevel
+    from .entity import entity_sources
+
+    all_adapt_switches = [
+        entity_id
+        for entity_id, info in entity_sources(hass).items()
+        if info["domain"] == DOMAIN
+    ]
+
+    for switch in all_adapt_switches:
+        lights = all_adapt_switches.get("lights")
+        if lights:
+            for thisLight in lights:
+                if light == thisLight:
+                    return switch
+
+
 async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Handle the entity service apply."""
-    hass = switch.hass
     data = service_call.data
+    switch = switch or getSwitchFromLightId(data[CONF_LIGHTS])
+    hass = switch.hass
     all_lights = data[CONF_LIGHTS]
     if not all_lights:
         all_lights = switch._lights
@@ -270,6 +301,7 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
 
 async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Set or unset lights as 'manually controlled'."""
+    switch = switch or getSwitchFromLightId(service_call.data[CONF_LIGHTS])
     lights = service_call.data[CONF_LIGHTS]
     if not lights:
         all_lights = switch._lights  # pylint: disable=protected-access
@@ -357,6 +389,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_APPLY,
         {
+            vol.Optional("entity_id", None): cv.entity_ids,
             vol.Optional(
                 CONF_LIGHTS, default=[]
             ): cv.entity_ids,  # pylint: disable=protected-access
@@ -375,6 +408,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_MANUAL_CONTROL,
         {
+            vol.Optional("entity_id", None): cv.entity_ids,
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
             vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
         },
