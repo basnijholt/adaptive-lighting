@@ -237,7 +237,7 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
 
 
 # From https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-def getSwitchFromLightId(hass: HomeAssistant, light: str) -> str:
+def getSwitchFromLights(hass: HomeAssistant, lights: dict[str, Any]) -> str:
     all_adapt_switches = None
     """Get switch entity_id by looping through all domain switches tied to adaptive-lighting."""
     # first try if this is a config entry match
@@ -264,23 +264,27 @@ def getSwitchFromLightId(hass: HomeAssistant, light: str) -> str:
         if info["domain"] == DOMAIN
     ]
 
-    for switch in all_adapt_switches:
-        lights = all_adapt_switches.get("lights")
-        if lights:
-            for thisLight in lights:
-                if light == thisLight:
-                    return switch
+    # No need to check if light is found in multiple switches, that's a user error.
+    for light in lights:
+        for switch in all_adapt_switches:
+            all_lights = all_adapt_switches.get("lights")
+            if all_lights:
+                for thisLight in all_lights:
+                    if light == thisLight:
+                        return switch
 
 
 async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Handle the entity service apply."""
     data = service_call.data
-    switch = switch or getSwitchFromLightId(data[CONF_LIGHTS])
+    lights = data[CONF_LIGHTS]
+    if not switch:
+        switch = getSwitchFromLights(lights)
+        _LOGGER.debug("Found %s in switch %s", lights, switch)
+    if not lights:
+        lights = switch._lights
     hass = switch.hass
-    all_lights = data[CONF_LIGHTS]
-    if not all_lights:
-        all_lights = switch._lights
-    all_lights = _expand_light_groups(hass, all_lights)
+    all_lights = _expand_light_groups(hass, lights)
     switch.turn_on_off_listener.lights.update(all_lights)
     _LOGGER.debug(
         "Called 'adaptive_lighting.apply' service with '%s'",
@@ -301,8 +305,11 @@ async def handle_apply(switch: AdaptiveSwitch, service_call: ServiceCall):
 
 async def handle_set_manual_control(switch: AdaptiveSwitch, service_call: ServiceCall):
     """Set or unset lights as 'manually controlled'."""
-    switch = switch or getSwitchFromLightId(service_call.data[CONF_LIGHTS])
-    lights = service_call.data[CONF_LIGHTS]
+    data = service_call.data
+    lights = data[CONF_LIGHTS]
+    if not switch:
+        switch = getSwitchFromLights(lights)
+        _LOGGER.debug("Found %s in switch %s", lights, switch)
     if not lights:
         all_lights = switch._lights  # pylint: disable=protected-access
     else:
@@ -389,7 +396,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_APPLY,
         {
-            vol.Optional("entity_id", None): cv.entity_ids,
+            vol.Optional("entity_id", default=None): cv.entity_ids,
             vol.Optional(
                 CONF_LIGHTS, default=[]
             ): cv.entity_ids,  # pylint: disable=protected-access
@@ -408,7 +415,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_MANUAL_CONTROL,
         {
-            vol.Optional("entity_id", None): cv.entity_ids,
+            vol.Optional("entity_id", default=None): cv.entity_ids,
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
             vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
         },
