@@ -565,23 +565,7 @@ def _attributes_have_changed(
         last_rgb_color = old_attributes[ATTR_RGB_COLOR]
         current_rgb_color = new_attributes[ATTR_RGB_COLOR]
         redmean_change = color_difference_redmean(last_rgb_color, current_rgb_color)
-        if last_adapt_attempt:
-            changed = check_direction_change(
-                last_rgb_color,
-                current_rgb_color,
-                last_adapt_attempt[ATTR_RGB_COLOR],
-            )
-            _LOGGER.debug(
-                "altdetect: color RGB of '%s' changed from %s to %s intended %s with"
-                " context.id='%s' Significant? %s",
-                light,
-                last_rgb_color,
-                current_rgb_color,
-                context.id,
-                changed,
-            )
-            return True
-        elif redmean_change > RGB_REDMEAN_CHANGE:
+        if redmean_change > RGB_REDMEAN_CHANGE:
             _LOGGER.debug(
                 "color RGB of '%s' significantly changed from %s to %s with"
                 " context.id='%s'",
@@ -1712,7 +1696,7 @@ class TurnOnOffListener:
                     new_attributes=old_state.attributes,
                     last_adapt_attempt=last_service_data,
                 ):
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         "Found unexpected state_change event for %s nr. %s (context.id=%s)"
                         " old_state=%s\nprior_state=%s",
                         light,
@@ -1721,7 +1705,7 @@ class TurnOnOffListener:
                         old_state,
                         prior_state,
                     )
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         "We will now set %s as manually controlled. (context.id=%s)",
                         light,
                         context.id,
@@ -1732,54 +1716,58 @@ class TurnOnOffListener:
         # end fix for #447
 
         # PLEASE DOCUMENT THIS!
-        for index, old_state in enumerate(old_states):
-            changed = compare_to(
-                old_attributes=old_state.attributes, new_attributes=new_state.attributes
-            )
-            if not changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt change event nr. %s (context.id=%s)",
-                    light,
-                    index,
-                    context.id,
+        if switch._detect_non_ha_changes:
+            for index, old_state in enumerate(old_states):
+                changed = compare_to(
+                    old_attributes=old_state.attributes,
+                    new_attributes=new_state.attributes,
                 )
-                break
+                if not changed:
+                    _LOGGER.debug(
+                        "State of '%s' didn't change wrt change event nr. %s (context.id=%s)",
+                        light,
+                        index,
+                        context.id,
+                    )
+                    break
 
-        if changed and last_service_data is not None:
-            # It can happen that the state change events that are associated
-            # with the last 'light.turn_on' call by this integration were not
-            # final states. Possibly a later EVENT_STATE_CHANGED happened, where
-            # the correct target brightness/color was reached.
-            changed = compare_to(
-                old_attributes=last_service_data, new_attributes=new_state.attributes
-            )
-            if not changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
-                    light,
-                    context.id,
+            if changed and last_service_data is not None:
+                # It can happen that the state change events that are associated
+                # with the last 'light.turn_on' call by this integration were not
+                # final states. Possibly a later EVENT_STATE_CHANGED happened, where
+                # the correct target brightness/color was reached.
+                changed = compare_to(
+                    old_attributes=last_service_data,
+                    new_attributes=new_state.attributes,
                 )
+                if not changed:
+                    _LOGGER.debug(
+                        "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
+                        light,
+                        context.id,
+                    )
 
-        n_changes = self.cnt_significant_changes[light]
-        if changed:
-            self.cnt_significant_changes[light] += 1
-            if n_changes >= self.max_cnt_significant_changes:
-                # Only mark a light as significantly changing, if changed==True
-                # N times in a row. We do this because sometimes a state changes
-                # happens only *after* a new update interval has already started.
-                self.manual_control[light] = True
-                _fire_manual_control_event(switch, light, context, is_async=False)
-        else:
-            if n_changes > 1:
-                _LOGGER.debug(
-                    "State of '%s' had 'cnt_significant_changes=%s' but the state"
-                    " changed to the expected settings now",
-                    light,
-                    n_changes,
-                )
-            self.cnt_significant_changes[light] = 0
+            n_changes = self.cnt_significant_changes[light]
+            if changed:
+                self.cnt_significant_changes[light] += 1
+                if n_changes >= self.max_cnt_significant_changes:
+                    # Only mark a light as significantly changing, if changed==True
+                    # N times in a row. We do this because sometimes a state changes
+                    # happens only *after* a new update interval has already started.
+                    self.manual_control[light] = True
+                    _fire_manual_control_event(switch, light, context, is_async=False)
+            else:
+                if n_changes > 1:
+                    _LOGGER.debug(
+                        "State of '%s' had 'cnt_significant_changes=%s' but the state"
+                        " changed to the expected settings now",
+                        light,
+                        n_changes,
+                    )
+                self.cnt_significant_changes[light] = 0
 
-        return changed
+            return changed
+        return False
 
     async def maybe_cancel_adjusting(
         self, entity_id: str, off_to_on_event: Event, on_to_off_event: Event | None
