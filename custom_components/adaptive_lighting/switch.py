@@ -21,10 +21,8 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS_STEP,
     ATTR_BRIGHTNESS_STEP_PCT,
     ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
-    ATTR_KELVIN,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
@@ -37,6 +35,9 @@ from homeassistant.components.light import (
     COLOR_MODE_XY,
 )
 from homeassistant.components.light import (
+    ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
+)
+from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
@@ -44,6 +45,7 @@ from homeassistant.components.light import (
     VALID_TRANSITION,
     is_on,
 )
+from homeassistant.components.light import ATTR_KELVIN  # Deprecated in HA Core 2022.11
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchEntity
@@ -160,10 +162,10 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP,
+    ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
-    ATTR_KELVIN,
+    ATTR_KELVIN,  # Deprecated in HA Core 2022.11
     ATTR_RGB_COLOR,
     ATTR_XY_COLOR,
 }
@@ -418,6 +420,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
+    # see #423, I guess not all lights have ATTR_SUPPORTED_FEATURES
     supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, {})
     supported = {
         key for key, value in _SUPPORT_OPTS.items() if supported_features & value
@@ -802,7 +805,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
 
-        if "transition" in features:
+        # Check transition == 0 to fix #378
+        if "transition" in features and transition != 0:
             service_data[ATTR_TRANSITION] = transition
 
         # The switch might be off and not have _settings set.
@@ -1261,11 +1265,14 @@ class SunLightSettings:
             rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
                 color_temp_kelvin
             )
+        # backwards compatibility for versions < 1.3.1 - see #403
+        color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
+            "color_temp_mired": color_temp_mired,
             "rgb_color": rgb_color,
             "xy_color": xy_color,
             "hs_color": hs_color,
@@ -1312,7 +1319,9 @@ class TurnOnOffListener:
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
-            self.last_state_change.pop(light, None)
+            # I can't think of a single reason we shouldn't clear the entire array here.
+            # Clearing the whole thing fixes #449
+            self.last_state_change.clear()
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
 
