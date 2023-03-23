@@ -35,9 +35,6 @@ from homeassistant.components.light import (
     COLOR_MODE_XY,
 )
 from homeassistant.components.light import (
-    ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
-)
-from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
@@ -161,7 +158,6 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP,  # Deprecated in HA Core 2022.11
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
     ATTR_RGB_COLOR,
