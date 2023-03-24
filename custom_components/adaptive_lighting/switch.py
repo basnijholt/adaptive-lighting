@@ -274,26 +274,27 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
             raise ValueError(
                 "adaptive-lighting: No config options available in service call."
             )
+        found = False
         for config in config_entries:
+            if found:
+                break
             _LOGGER.debug("entry_id: %s", config.entry_id)
             # this check is necessary as there seems to always be an extra config
             # entry that doesn't contain any data.
             if config.entry_id in hass.data[DOMAIN]:
                 switch = hass.data[DOMAIN][config.entry_id]["instance"]
-                all_check_lights = _expand_light_groups(lights)
-                all_switch_lights = _expand_light_groups(switch._lights)
-                for thisLight in all_switch_lights:
-                    for light in all_check_lights:
-                        _LOGGER.debug(
-                            "Check for %s in switch %s",
-                            light,
-                            switch._name,
-                        )
-                        if light == thisLight:
-                            break
-                    if lights[0] == thisLight:
-                        break
+                all_check_lights = _expand_light_groups(hass, lights)
+                switch._expand_light_groups()
                 _LOGGER.debug("switch_lights: %s", switch._lights)
+                for light in all_check_lights:
+                    _LOGGER.debug(
+                        "Check for %s in switch %s",
+                        light,
+                        switch._name,
+                    )
+                    if light in switch._lights:
+                        found = True
+                        break
     if not switch:
         _LOGGER.error(
             "bad service data to adaptive-lighting service call - "
