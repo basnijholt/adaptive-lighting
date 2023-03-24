@@ -265,8 +265,8 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
     elif lights:
         # all_adapt_switches = integration_entities(hass, DOMAIN)
         # No need to check if light is found in multiple switches, that's a user error.
-        allConfigs = hass.config_entries.async_entries(DOMAIN)
-        if not allConfigs:
+        config_entries = hass.config_entries.async_entries(DOMAIN)
+        if not config_entries:
             _LOGGER.error(
                 "You must create an adaptive-lighting config before using the provided services",
                 service_call.data,
@@ -274,8 +274,8 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
             raise ValueError(
                 "adaptive-lighting: No config options available in service call."
             )
-        for config in allConfigs:
-            switch = config.get("instance")
+        for config in config_entries:
+            switch = hass.data[DOMAIN][config.entry_id]["instance"]
             _LOGGER.debug("switch_lights: %s", switch._lights)
             # expanding light groups not implemented yet.
             for thisLight in switch._lights:
