@@ -243,6 +243,14 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
     data = service_call.data
     lights = data[CONF_LIGHTS]
     switch_unique_id = data.get("entity_id")
+    if not lights and not switch_unique_id:
+        # alternatively just loop and call the service for every switch.
+        _LOGGER.error(
+            "bad service data to adaptive-lighting service call - "
+            "you must pass either an entity_id or a light. Got: %s",
+            service_call.data,
+        )
+        raise ValueError("adaptive-lighting: User sent incorrect data to service call")
     if switch_unique_id is not None:
         _LOGGER.debug("ENTITY ID: %s", switch_unique_id)
         ent_reg = entity_registry.async_get(hass)
@@ -253,7 +261,7 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
         config_id = ent_entry.config_entry_id
         _LOGGER.debug("config_id: %s", config_id)
         switch = hass.data[DOMAIN][config_id]["instance"]
-    elif lights and switch_unique_id is not None:
+    if lights and not switch:
         # all_adapt_switches = integration_entities(hass, DOMAIN)
         # No need to check if light is found in multiple switches, that's a user error.
         allConfigs = hass.config_entries.async_entries(DOMAIN)
@@ -270,14 +278,6 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
                     )
                     if light == thisLight:
                         break
-    else:
-        # alternatively just loop and call the service on each switch.
-        _LOGGER.error(
-            "bad service data to adaptive-lighting service call - "
-            "you must pass either an entity_id or a light. Got: %s",
-            service_call.data,
-        )
-        raise ValueError("adaptive-lighting: User sent incorrect data to service call")
     return switch, data
 
 
