@@ -266,10 +266,18 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
         # all_adapt_switches = integration_entities(hass, DOMAIN)
         # No need to check if light is found in multiple switches, that's a user error.
         allConfigs = hass.config_entries.async_entries(DOMAIN)
-        _LOGGER.debug("allConfigs: %s", allConfigs)
+        if not allConfigs:
+            _LOGGER.error(
+                "You must create an adaptive-lighting config before using the provided services",
+                service_call.data,
+            )
+            raise ValueError(
+                "adaptive-lighting: No config options available in service call."
+            )
         for config in allConfigs:
-            switch = allConfigs.get("instance")
+            switch = config.get("instance")
             _LOGGER.debug("switch_lights: %s", switch._lights)
+            # expanding light groups not implemented yet.
             for thisLight in switch._lights:
                 for light in lights:
                     _LOGGER.debug(
@@ -282,7 +290,7 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
     if not switch:
         _LOGGER.error(
             "bad service data to adaptive-lighting service call - "
-            "entitines were not found in integration. Got: %s",
+            "entities were not found in integration. Got: %s",
             service_call.data,
         )
         raise ValueError("adaptive-lighting: User sent incorrect data to service call")
