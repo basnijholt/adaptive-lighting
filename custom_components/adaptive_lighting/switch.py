@@ -280,10 +280,10 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
             # entry that doesn't contain any data.
             if config.entry_id in hass.data[DOMAIN]:
                 switch = hass.data[DOMAIN][config.entry_id]["instance"]
-                _LOGGER.debug("switch_lights: %s", switch._lights)
-                # all_lights = _expand_light_groups(lights) # not supported yet.
-                for thisLight in switch._lights:
-                    for light in lights:
+                all_check_lights = _expand_light_groups(lights)
+                all_switch_lights = _expand_light_groups(switch._lights)
+                for thisLight in all_switch_lights:
+                    for light in all_check_lights:
                         _LOGGER.debug(
                             "Check for %s in switch %s",
                             light,
@@ -291,6 +291,9 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
                         )
                         if light == thisLight:
                             break
+                    if lights[0] == thisLight:
+                        break
+                _LOGGER.debug("switch_lights: %s", switch._lights)
     if not switch:
         _LOGGER.error(
             "bad service data to adaptive-lighting service call - "
