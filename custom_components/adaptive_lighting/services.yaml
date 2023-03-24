@@ -13,9 +13,9 @@ apply:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
       selector:
-        target:
-          entity:
-            domain: light
+        entity:
+          domain: light
+          multiple: true
     transition:
       description: Transition of the lights.
       example: 10
@@ -56,8 +56,9 @@ set_manual_control:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
       selector:
-        target:
+        entity:
           domain: light
+          multiple: true
     manual_control:
       description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
       example: true
