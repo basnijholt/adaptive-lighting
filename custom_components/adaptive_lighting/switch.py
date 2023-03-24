@@ -438,7 +438,7 @@ async def async_setup_entry(
         service_func=handle_apply,
         schema=vol.Schema(
             {
-                vol.Optional("entity_id", default=""): cv.entity_id,
+                vol.Optional("entity_id"): cv.entity_id,
                 vol.Optional(
                     CONF_LIGHTS, default=[]
                 ): cv.entity_ids,  # pylint: disable=protected-access
@@ -461,7 +461,7 @@ async def async_setup_entry(
         service_func=handle_set_manual_control,
         schema=vol.Schema(
             {
-                vol.Optional("entity_id", default=""): cv.entity_id,
+                vol.Optional("entity_id"): cv.entity_id,
                 vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
                 vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
             }
