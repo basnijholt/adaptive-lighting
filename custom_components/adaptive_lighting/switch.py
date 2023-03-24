@@ -243,6 +243,7 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
     data = service_call.data
     lights = data[CONF_LIGHTS]
     switch_unique_id = data.get("entity_id")
+    switch = None
     if not lights and not switch_unique_id:
         # alternatively just loop and call the service for every switch.
         _LOGGER.error(
@@ -261,7 +262,7 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
         config_id = ent_entry.config_entry_id
         _LOGGER.debug("config_id: %s", config_id)
         switch = hass.data[DOMAIN][config_id]["instance"]
-    if lights and not switch:
+    elif lights:
         # all_adapt_switches = integration_entities(hass, DOMAIN)
         # No need to check if light is found in multiple switches, that's a user error.
         allConfigs = hass.config_entries.async_entries(DOMAIN)
@@ -278,6 +279,13 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
                     )
                     if light == thisLight:
                         break
+    if not switch:
+        _LOGGER.error(
+            "bad service data to adaptive-lighting service call - "
+            "entitines were not found in integration. Got: %s",
+            service_call.data,
+        )
+        raise ValueError("adaptive-lighting: User sent incorrect data to service call")
     return switch, data
 
 
