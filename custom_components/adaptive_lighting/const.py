@@ -5,7 +5,10 @@ from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
-ICON = "mdi:theme-light-dark"
+ICON_MAIN = "mdi:theme-light-dark"
+ICON_BRIGHTNESS = "mdi:brightness-4"
+ICON_COLOR_TEMP = "mdi:sun-thermometer"
+ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
