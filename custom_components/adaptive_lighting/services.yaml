@@ -57,8 +57,7 @@ set_manual_control:
       example: light.bedroom_ceiling
       selector:
         target:
-          entity:
-            domain: light
+          domain: light
     manual_control:
       description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
       example: true

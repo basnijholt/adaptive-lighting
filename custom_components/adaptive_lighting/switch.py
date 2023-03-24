@@ -276,6 +276,8 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
             )
         for config in config_entries:
             _LOGGER.debug("entry_id: %s", config.entry_id)
+            # this check is necessary as there seems to always be an extra config
+            # entry that doesn't contain any data.
             if config.entry_id in hass.data[DOMAIN]:
                 switch = hass.data[DOMAIN][config.entry_id]["instance"]
                 _LOGGER.debug("switch_lights: %s", switch._lights)
