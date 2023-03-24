@@ -277,7 +277,7 @@ def parseServiceArgs(hass: HomeAssistant, service_call):
         for config in config_entries:
             switch = hass.data[DOMAIN][config.entry_id]["instance"]
             _LOGGER.debug("switch_lights: %s", switch._lights)
-            # expanding light groups not implemented yet.
+            # all_lights = _expand_light_groups(lights) # not supported yet.
             for thisLight in switch._lights:
                 for light in lights:
                     _LOGGER.debug(
