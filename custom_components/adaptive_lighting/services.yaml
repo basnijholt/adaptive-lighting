@@ -13,30 +13,34 @@ apply:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
       selector:
-        entity:
-          domain: light
-          multiple: true
-        device:
-          domain: light
-          multiple: true
-        area:
-          domain: light
-          multiple: true
+        target:
+          entity:
+            domain: light
     transition:
       description: Transition of the lights.
       example: 10
+      selector:
+        text:
     adapt_brightness:
       description: "Adapt the 'brightness', default: true"
       example: true
+      selector:
+        boolean:
     adapt_color:
       description: "Adapt the color_temp/color_rgb, default: true"
       example: true
+      selector:
+        boolean:
     prefer_rgb_color:
       description: "Prefer to use color_rgb over color_temp if possible, default: false"
       example: false
+      selector:
+        boolean:
     turn_on_lights:
       description: "Turn on the lights that are off, default: false"
       example: false
+      selector:
+        boolean:
 set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:
@@ -52,15 +56,12 @@ set_manual_control:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
       selector:
-        entity:
-          domain: light
-          multiple: true
-        device:
-          domain: light
-          multiple: true
-        area:
-          domain: light
-          multiple: true
+        target:
+          entity:
+            domain: light
     manual_control:
       description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
       example: true
+      default: true
+      selector:
+        boolean:
