@@ -237,6 +237,8 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
+# For documentation on this function, see integration_entities() from HomeAssistant Core:
+# https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
 def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
     _LOGGER.debug(
         "Called '_parse_service_args' with service data:\n'%s'",
@@ -278,7 +280,6 @@ def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
         for unique_id in switch_unique_id:
             ent_reg = entity_registry.async_get(hass)
             ent_entry = ent_reg.async_get(unique_id)
-            # `AttributeError: 'NoneType' object has no attribute 'config_entry_id'` fix later maybe
             config_id = ent_entry.config_entry_id
             _LOGGER.debug(
                 "_parse_service_args: switch: %s, ent_reg: %s, ent_entry: %s, config_id: %s",
@@ -289,14 +290,12 @@ def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
             )
             switch.append(hass.data[DOMAIN][config_id]["instance"])
     elif lights:
-        # all_adapt_switches = integration_entities(hass, DOMAIN)
         # No need to check if light is found in multiple switches, that's a user error.
         config_entries = hass.config_entries.async_entries(DOMAIN)
         found = False
         for config in config_entries:
             if found:
                 break
-            _LOGGER.debug("entry_id: %s", config.entry_id)
             # this check is necessary as there seems to always be an extra config
             # entry that doesn't contain any data. I believe this happens when the
             # integration exists, but is disabled by the user in HASS.
@@ -317,16 +316,16 @@ def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
         if not found:
             _LOGGER.error(
                 "bad service data: Light was not found in any of your switch's configs."
-                "You must either include the light in the integration config, or"
+                "You must either include the light(s) that is/are in the integration config, or"
                 "pass a switch under 'entity_id'. See the readme for details. Got %s",
                 service_call.data,
             )
             raise ValueError(
-                "adaptive-lighting: Light %s not found in any switch's configuration.",
+                "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
                 lights,
             )
     # Check assumedly not needed but exists for testing.
-    if not switch:  # Probably not needed but we're including this during testing.
+    if not switch:
         _LOGGER.error(
             "bad service data to adaptive-lighting service call - "
             "entities were not found in integration. Service data:\n%s",
@@ -335,38 +334,6 @@ def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
         raise ValueError("adaptive-lighting: User sent incorrect data to service call")
     _LOGGER.debug("Switches used: %s", switch)
     return switch, data
-
-
-# From https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-def integration_entities(hass: HomeAssistant, entry_name: str):
-    """Get entity ids for entities tied to an integration/domain.
-    Provide entry_name as domain to get all entity id's for a integration/domain
-    or provide a config entry title for filtering between instances of the same
-    integration.
-    """
-    # first try if this is a config entry match
-    conf_entry = next(
-        (
-            entry.entry_id
-            for entry in hass.config_entries.async_entries()
-            if entry.title == entry_name
-        ),
-        None,
-    )
-    if conf_entry is not None:
-        ent_reg = entity_registry.async_get(hass)
-        entries = entity_registry.async_entries_for_config_entry(ent_reg, conf_entry)
-        return [entry.entity_id for entry in entries]
-
-    # fallback to just returning all entities for a domain
-    # pylint: disable-next=import-outside-toplevel
-    from .entity import entity_sources
-
-    return [
-        entity_id
-        for entity_id, info in entity_sources(hass).items()
-        if info["domain"] == entry_name
-    ]
 
 
 @callback
