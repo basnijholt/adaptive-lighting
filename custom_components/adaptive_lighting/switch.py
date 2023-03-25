@@ -403,7 +403,6 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.apply' service with '%s'",
             service_call.data,
         )
-        these_switches = data = None
         these_switches, data = _parse_service_args(hass, service_call)
         lights = data[CONF_LIGHTS]
         for this_switch in these_switches:
@@ -433,7 +432,6 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
             service_call.data,
         )
-        these_switches = data = None
         these_switches, data = _parse_service_args(hass, service_call)
         lights = data[CONF_LIGHTS]
         for this_switch in these_switches:
