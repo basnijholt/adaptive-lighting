@@ -2,16 +2,14 @@ apply:
   description: Applies the current Adaptive Lighting settings to lights.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch. If not specified, the current switch adapting the light will be used.
-      example: switch.adaptive_lighting_default
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current switch adapting the light will be used. example: switch.adaptive_lighting_default
       selector:
         entity:
           integration: adaptive_lighting
           domain: switch
           multiple: false
     lights:
-      description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
-      example: light.bedroom_ceiling
+      description: entity_id(s) of lights, if not specified, all lights in the switch are selected. example: light.bedroom_ceiling
       selector:
         entity:
           domain: light
