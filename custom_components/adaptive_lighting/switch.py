@@ -837,9 +837,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # while using light.turn_on outside of the integration.
                 #
                 # await self.hass.helpers.entity_component.async_update_entity(light)
-                # cur_state = self.hass.states.get(light)
-                # brightness = cur_state.attributes[ATTR_BRIGHTNESS]
-                # service_data[ATTR_BRIGHTNESS] = brightness
+                cur_state = self.hass.states.get(light)
+                brightness = cur_state.attributes[ATTR_BRIGHTNESS]
                 min_ct = (
                     self._sun_light_settings.min_color_temp
                 )  # pylint: disable=protected-access
