@@ -23,6 +23,7 @@ required = [
     "components.mqtt",
     "components.zeroconf",
     "components.http",
+    "components.stream",
 ]
 to_install = []
 for r in required:
