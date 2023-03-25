@@ -64,10 +64,11 @@ from homeassistant.const import (
     SUN_EVENT_SUNRISE,
     SUN_EVENT_SUNSET,
 )
-from homeassistant.core import (  # ServiceCall,
+from homeassistant.core import (
     Context,
     Event,
     HomeAssistant,
+    ServiceCall,
     State,
     callback,
 )
@@ -237,7 +238,7 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
 
 def parseServiceArgs(hass: HomeAssistant, service_call: ServiceCall):
     _LOGGER.debug(
-        "Called 'parseServiceArgs' with '%s'",
+        "Called 'parseServiceArgs' with Service data:\n'%s'",
         service_call.data,
     )
     data = service_call.data
@@ -248,10 +249,12 @@ def parseServiceArgs(hass: HomeAssistant, service_call: ServiceCall):
         # alternatively just loop and call the service for every switch.
         _LOGGER.error(
             "bad service data to adaptive-lighting service call - "
-            "you must pass either an entity_id or a light. Got: %s",
+            "you must pass either an entity_id or a light. Service data:\n%s",
             service_call.data,
         )
-        raise ValueError("adaptive-lighting: User sent incorrect data to service call")
+        raise ValueError(
+            "adaptive-lighting: User did not pass the switch or lights to service"
+        )
     if switch_unique_id is not None:
         _LOGGER.debug("ENTITY ID: %s", switch_unique_id)
         ent_reg = entity_registry.async_get(hass)
@@ -268,7 +271,8 @@ def parseServiceArgs(hass: HomeAssistant, service_call: ServiceCall):
         config_entries = hass.config_entries.async_entries(DOMAIN)
         if not config_entries:
             _LOGGER.error(
-                "You must create an adaptive-lighting config before using the provided services",
+                "You must create an adaptive-lighting config before using the provided services"
+                "Service data:\n%s",
                 service_call.data,
             )
             raise ValueError(
@@ -295,10 +299,11 @@ def parseServiceArgs(hass: HomeAssistant, service_call: ServiceCall):
                     if light in switch._lights:
                         found = True
                         break
+    # Check assumedly not needed but exists for testing.
     if not switch:
         _LOGGER.error(
             "bad service data to adaptive-lighting service call - "
-            "entities were not found in integration. Got: %s",
+            "entities were not found in integration. Service data:\n%s",
             service_call.data,
         )
         raise ValueError("adaptive-lighting: User sent incorrect data to service call")
