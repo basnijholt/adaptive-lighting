@@ -621,12 +621,12 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    # Should only contain the settings we want the users to be able to change during runtime.
     def __settings__(
         self,
         data: dict,
         defaults: dict,
     ):
+        # Should only contain the settings we want the users to be able to change during runtime.
         data = validate(
             config_entry=None,
             data=data,
@@ -636,12 +636,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
         self._current_settings = data
 
-        self._lights = data[CONF_LIGHTS]
-
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
-        self._interval = data[CONF_INTERVAL]
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
@@ -678,7 +675,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             transition=data[CONF_TRANSITION],
         )
         _LOGGER.debug(
-            "%s: Changed switch settings for lights '%s'. now using data: '%s'",
+            "%s: Set switch settings for lights '%s'. now using data: '%s'",
             self._name,
             self._lights,
             data,
@@ -705,10 +702,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         data = validate(config_entry)
 
         self._name = data[CONF_NAME]
+        self._interval = data[CONF_INTERVAL]
+        self._lights = data[CONF_LIGHTS]
 
-        self._config_backup = deepcopy(
-            data
-        )  # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        self._config_backup = deepcopy(data)
         self.__settings__(
             data=data,
             defaults=None,
