@@ -2,7 +2,7 @@ apply:
   description: Applies the current Adaptive Lighting settings to lights.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch. If not specified, the current switch adapting the light will be used.
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       example: switch.adaptive_lighting_default
       selector:
         entity:
@@ -45,7 +45,7 @@ set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch. If not specified, the current switch adapting the light will be used.
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       example: switch.adaptive_lighting_default
       selector:
         entity:

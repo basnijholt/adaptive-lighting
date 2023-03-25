@@ -38,7 +38,7 @@ CONFIG_SCHEMA = vol.Schema(
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     """Import integration from config."""
-    # This will reload any changes the user made to any yaml configurations.
+    # This will reload any changes the user made to any YAML configurations.
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
 
     if DOMAIN in config:
