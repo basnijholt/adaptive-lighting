@@ -129,7 +129,7 @@ adaptive_lighting:
 | `lights`               | yes      | entity_id(s) of lights, if not specified, all lights in the switch are selected.                    |
 | `manual_control`       | yes      | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
 
-`adaptive_lighting.change_switch_settings` (NEW) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
+`adaptive_lighting.change_switch_settings` (new in 1.5.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
 
 | DISALLOWED service data   | Description                                                                                         |
 | ------------------------- | --------------------------------------------------------------------------------------------------- |
