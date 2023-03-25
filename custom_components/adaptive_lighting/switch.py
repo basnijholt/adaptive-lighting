@@ -398,7 +398,7 @@ async def async_setup_entry(
     )
 
     @callback
-    async def handle_apply(service_call):
+    async def handle_apply(service_call: ServiceCall):
         """Handle the entity service apply."""
         _LOGGER.debug(
             "Called 'adaptive_lighting.apply' service with '%s'",
