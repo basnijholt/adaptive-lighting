@@ -424,7 +424,7 @@ async def async_setup_entry(
                 )
 
     @callback
-    async def handle_set_manual_control(service_call):
+    async def handle_set_manual_control(service_call: ServiceCall):
         """Set or unset lights as 'manually controlled'."""
         _LOGGER.debug(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
