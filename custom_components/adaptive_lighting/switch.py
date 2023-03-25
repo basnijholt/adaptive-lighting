@@ -235,7 +235,7 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
-def parseServiceArgs(hass: HomeAssistant, service_call):
+def parseServiceArgs(hass: HomeAssistant, service_call: ServiceCall):
     _LOGGER.debug(
         "Called 'parseServiceArgs' with '%s'",
         service_call.data,
