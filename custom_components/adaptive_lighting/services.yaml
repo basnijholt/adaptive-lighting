@@ -54,11 +54,6 @@ change_switch_settings:
             - "current"
             - "configuration"
             - "factory"
-    lights:
-      description: Entity id of the lights you want this switch to adapt. Overwrites all existing lights in this switch!
-      selector:
-        entity:
-          domain: light
     turn_on_lights:
       description: "Turn on the lights that are off, default: false"
       example: false
@@ -75,12 +70,6 @@ change_switch_settings:
       description: "sleep_transition: When 'sleep_state' changes. (seconds)"
       example: 1
       required: false
-      selector:
-        text:
-    interval:
-      description: "interval: Time between switch updates. (seconds)"
-      required: false
-      example: 90
       selector:
         text:
     max_brightness:

@@ -422,8 +422,10 @@ async def async_setup_entry(
     )
 
     args = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
-    for key, _, valid in VALIDATION_TUPLES:
-        args[vol.Optional(key)] = valid
+    for k, _, valid in VALIDATION_TUPLES:
+        # Modifying these after initialization isn't possible (yet)
+        if k != CONF_INTERVAL and k != CONF_NAME and k != CONF_LIGHTS:
+            args[vol.Optional(k)] = valid
     platform.async_register_entity_service(
         SERVICE_CHANGE_SWITCH_SETTINGS,
         args,
