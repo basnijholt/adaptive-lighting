@@ -624,6 +624,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set in self._update_attrs_and_maybe_adapt_lights
         self._settings: dict[str, Any] = {}
+
+        self._config: dict[str, Any] = {}
         if self._include_config_in_attributes:
             attrdata = deepcopy(data)
             for k, v in attrdata.items():
@@ -631,7 +633,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     attrdata[k] = v.isoformat()
                 if isinstance(v, (datetime.timedelta)):
                     attrdata[k] = v.total_seconds()
-            self._settings.update(attrdata)
+            self._config.update(attrdata)
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners = []
@@ -726,13 +728,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the attributes of the switch."""
         if not self.is_on:
-            return {key: None for key in self._settings}
+            return dict(
+                {key: None for key in self._settings}, configuration=self._config
+            )
         manual_control = [
             light
             for light in self._lights
             if self.turn_on_off_listener.manual_control.get(light)
         ]
-        return dict(self._settings, manual_control=manual_control)
+        return dict(
+            self._settings, manual_control=manual_control, configuration=self._config
+        )
 
     def create_context(
         self, which: str = "default", parent: Context | None = None
@@ -816,10 +822,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_TRANSITION] = transition
 
         # The switch might be off and not have _settings set.
-        self._settings.update(
-            self._sun_light_settings.get_settings(
-                self.sleep_mode_switch.is_on, transition
-            )
+        self._settings = self._sun_light_settings.get_settings(
+            self.sleep_mode_switch.is_on, transition
         )
 
         if "brightness" in features and adapt_brightness:
