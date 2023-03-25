@@ -101,6 +101,7 @@ from .const import (
     CONF_ADAPT_DELAY,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_DIM_TO_WARM,
+    CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
     CONF_LIGHTS,
@@ -570,6 +571,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._dim_to_warm = data[CONF_DIM_TO_WARM]
+        self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._interval = data[CONF_INTERVAL]
@@ -624,6 +626,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set in self._update_attrs_and_maybe_adapt_lights
         self._settings: dict[str, Any] = {}
+
+        self._config: dict[str, Any] = {}
+        if self._include_config_in_attributes:
+            attrdata = deepcopy(data)
+            for k, v in attrdata.items():
+                if isinstance(v, (datetime.date, datetime.datetime)):
+                    attrdata[k] = v.isoformat()
+                if isinstance(v, (datetime.timedelta)):
+                    attrdata[k] = v.total_seconds()
+            self._config.update(attrdata)
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners = []
@@ -717,14 +729,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the attributes of the switch."""
+        extra_state_attributes = {"configuration": self._config}
         if not self.is_on:
-            return {key: None for key in self._settings}
-        manual_control = [
+            for key in self._settings:
+                extra_state_attributes[key] = None
+            return extra_state_attributes
+        extra_state_attributes["manual_control"] = [
             light
             for light in self._lights
             if self.turn_on_off_listener.manual_control.get(light)
         ]
-        return dict(self._settings, manual_control=manual_control)
+        extra_state_attributes.update(self._settings)
+        return extra_state_attributes
 
     def create_context(
         self, which: str = "default", parent: Context | None = None
@@ -936,8 +952,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.id,
         )
         assert self.is_on
-        self._settings = self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on, transition
+        self._settings.update(
+            self._sun_light_settings.get_settings(
+                self.sleep_mode_switch.is_on, transition
+            )
         )
         self.async_write_ha_state()
         if lights is None:

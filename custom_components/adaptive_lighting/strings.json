@@ -21,6 +21,7 @@
         "data": {
           "lights": "lights",
           "initial_transition": "initial_transition: When lights turn 'off' to 'on'. (seconds)",
+          "include_config_in_attributes": "include_config_in_attributes: All config options will be listed as attributes under the adaptive-lighting switch this integration creates. (default: false)",
           "sleep_transition": "sleep_transition: When 'sleep_state' changes. (seconds)",
           "interval": "interval: Time between switch updates. (seconds)",
           "max_brightness": "max_brightness: Highest brightness of lights during a cycle. (%)",
