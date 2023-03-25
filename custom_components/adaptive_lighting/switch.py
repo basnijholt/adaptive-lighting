@@ -236,9 +236,9 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
-def parseServiceArgs(hass: HomeAssistant, service_call: ServiceCall):
+def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
     _LOGGER.debug(
-        "Called 'parseServiceArgs' with Service data:\n'%s'",
+        "Called '_parse_service_args' with Service data:\n'%s'",
         service_call.data,
     )
     data = service_call.data
@@ -432,7 +432,7 @@ async def async_setup_entry(
             service_call.data,
         )
         theseSwitches = data = None
-        theseSwitches, data = parseServiceArgs(hass, service_call)
+        theseSwitches, data = _parse_service_args(hass, service_call)
         lights = data[CONF_LIGHTS]
         for thisSwitch in theseSwitches:
             if not lights:
@@ -462,7 +462,7 @@ async def async_setup_entry(
             service_call.data,
         )
         theseSwitches = data = None
-        theseSwitches, data = parseServiceArgs(hass, service_call)
+        theseSwitches, data = _parse_service_args(hass, service_call)
         lights = data[CONF_LIGHTS]
         for thisSwitch in theseSwitches:
             if not lights:
