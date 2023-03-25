@@ -870,6 +870,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._name = data[CONF_NAME]
 
+        self._config: dict[str, Any] = {}
         self._config_backup = deepcopy(
             data
         )  # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
@@ -893,7 +894,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set in self._update_attrs_and_maybe_adapt_lights
         self._settings: dict[str, Any] = {}
-        self._config: dict[str, Any] = {}
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners = []
