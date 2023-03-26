@@ -237,7 +237,7 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
-def _find_switch_with_lights(
+def _find_switch_with_any_of_lights(
     hass: HomeAssistant,
     lights: list[str],
     service_call: ServiceCall,
@@ -323,13 +323,19 @@ def _parse_service_args(
             )
             switches.append(hass.data[DOMAIN][config_id]["instance"])
         return switches
-    elif lights:
-        switch = _find_switch_with_lights(hass, lights, service_call)
+
+    if lights:
+        switch = _find_switch_with_any_of_lights(hass, lights, service_call)
+        _LOGGER.debug(
+            "_parse_service_args: Found switch '%s' for lights '%s'",
+            switch.entity_id,
+            lights,
+        )
         return [switch]
 
     _LOGGER.error(
-        "bad service data to adaptive-lighting service call - "
-        "entities were not found in integration. Service data:\n%s",
+        "bad service data to adaptive-lighting service call -"
+        " entities were not found in integration. Service data:\n%s",
         service_call.data,
     )
     raise ValueError("adaptive-lighting: User sent incorrect data to service call")
