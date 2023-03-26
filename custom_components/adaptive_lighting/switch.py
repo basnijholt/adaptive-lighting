@@ -375,7 +375,7 @@ async def handle_change_switch_settings(
     else:
         defaults = None
 
-    switch.__settings__(
+    switch._set_changeable_settings(
         data=data,
         defaults=defaults,
     )
@@ -755,7 +755,7 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    def __settings__(
+    def _set_changeable_settings(
         self,
         data: dict,
         defaults: dict,
@@ -842,7 +842,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
-        self.__settings__(
+        self._set_changeable_settings(
             data=data,
             defaults=None,
         )
