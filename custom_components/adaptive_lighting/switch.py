@@ -839,7 +839,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
 
         # if we are in the middle of a transition, sleep until that transition finishes. Fixes #447
-        while self._transition_timer != 0 and (perf_counter() - self._transition_timer) < self._last_transition:
+        while (
+            self._transition_timer != 0
+            and (perf_counter() - self._transition_timer) < self._last_transition
+        ):
             await asyncio.sleep(1.2)
         self._transition_timer = 0
         self._last_transition = 0
