@@ -2,35 +2,66 @@ apply:
   description: Applies the current Adaptive Lighting settings to lights.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch.
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       example: switch.adaptive_lighting_default
+      selector:
+        entity:
+          integration: adaptive_lighting
+          domain: switch
+          multiple: false
     lights:
-      description: "entity_id(s) of lights, default: lights of the switch"
+      description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
+      selector:
+        entity:
+          domain: light
+          multiple: true
     transition:
       description: Transition of the lights.
       example: 10
+      selector:
+        text:
     adapt_brightness:
       description: "Adapt the 'brightness', default: true"
       example: true
+      selector:
+        boolean:
     adapt_color:
       description: "Adapt the color_temp/color_rgb, default: true"
       example: true
+      selector:
+        boolean:
     prefer_rgb_color:
       description: "Prefer to use color_rgb over color_temp if possible, default: false"
       example: false
+      selector:
+        boolean:
     turn_on_lights:
       description: "Turn on the lights that are off, default: false"
       example: false
+      selector:
+        boolean:
 set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch.
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       example: switch.adaptive_lighting_default
-    manual_control:
-      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
-      example: true
+      selector:
+        entity:
+          integration: adaptive_lighting
+          domain: switch
+          multiple: false
     lights:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
+      selector:
+        entity:
+          domain: light
+          multiple: true
+    manual_control:
+      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
+      example: true
+      default: true
+      selector:
+        boolean:
