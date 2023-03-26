@@ -1235,7 +1235,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug(
             "%s: Setting rgb_color of light %s to %s", self._name, light, rgb_color
         )
-        service_data[ATTR_RGB_COLOR] = rgb_color
 
         self.turn_on_off_listener.last_service_data[light] = service_data
         self._manual_lights[light]["timer"] = 0
