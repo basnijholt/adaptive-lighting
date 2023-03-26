@@ -243,9 +243,9 @@ def _find_switch_with_any_of_lights(
     service_call: ServiceCall,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
-    # No need to check if light is found in multiple switches, that's a user error.
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
+    switches = {}
     for config in config_entries:
         # this check is necessary as there seems to always be an extra config
         # entry that doesn't contain any data. I believe this happens when the
@@ -255,18 +255,35 @@ def _find_switch_with_any_of_lights(
             all_check_lights = _expand_light_groups(hass, lights)
             switch._expand_light_groups()
             if set(switch._lights) & set(all_check_lights):
-                return switch
+                switches[config.entry_id] = switch
 
-    _LOGGER.error(
-        "bad service data: Light was not found in any of your switch's configs."
-        "You must either include the light(s) that is/are in the integration config, or"
-        "pass a switch under 'entity_id'. See the README for details. Got %s",
-        service_call.data,
-    )
-    raise ValueError(
-        "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
-        lights,
-    )
+    if len(switches) == 1:
+        return next(iter(switches.values()))
+
+    if len(switches) > 1:
+        _LOGGER.error(
+            "Bad service data: Light(s) %s found in multiple switch configs (%s)."
+            " You must pass a switch under 'entity_id'. See the README for"
+            " details. Got %s",
+            lights,
+            list(switches.keys()),
+            service_call.data,
+        )
+        raise ValueError(
+            "adaptive-lighting: Light(s) %s found in multiple switch configs.",
+            lights,
+        )
+    else:
+        _LOGGER.error(
+            "Bad service data: Light was not found in any of your switch's configs."
+            " You must either include the light(s) that is/are in the integration config, or"
+            " pass a switch under 'entity_id'. See the README for details. Got %s",
+            service_call.data,
+        )
+        raise ValueError(
+            "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
+            lights,
+        )
 
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
