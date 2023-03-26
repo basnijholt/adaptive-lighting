@@ -297,8 +297,8 @@ def _parse_service_args(
     )
     data = service_call.data
     lights = data[CONF_LIGHTS]
-    switch_unique_id: list[str] | None = data.get("entity_id")
-    if not lights and not switch_unique_id:
+    switch_entity_ids: list[str] | None = data.get("entity_id")
+    if not lights and not switch_entity_ids:
         # alternatively just loop and call the service for every switch.
         _LOGGER.debug(
             "adaptive-lighting: If you were trying to adapt every single light on every single"
@@ -308,16 +308,16 @@ def _parse_service_args(
             " service call. adaptive-lighting will now raise a soft error for you in the meantime."
         )
         _LOGGER.error(
-            "bad service data to adaptive-lighting service call -"
-            " you must pass either an entity_id or a light. Service data:\n%s",
+            "Bad service data to adaptive-lighting service call -"
+            " you must pass either a switch or a light's entity_id. Service data:\n%s",
             service_call.data,
         )
         raise ValueError(
             "adaptive-lighting: No switch or light was passed to service call."
         )
 
-    if switch_unique_id is not None:
-        if len(switch_unique_id) > 1 and lights:
+    if switch_entity_ids is not None:
+        if len(switch_entity_ids) > 1 and lights:
             _LOGGER.error(
                 "bad service data: cannot pass multiple switch entities while also passing"
                 " any lights. Got %s",
@@ -327,12 +327,14 @@ def _parse_service_args(
                 "adaptive-lighting: Multiple switches passed with lights argument"
             )
         switches = []
-        for unique_id in switch_unique_id:
-            ent_reg = entity_registry.async_get(hass)
-            ent_entry = ent_reg.async_get(unique_id)
+        ent_reg = entity_registry.async_get(hass)
+        for entity_id in switch_entity_ids:
+            ent_entry = ent_reg.async_get(entity_id)
             config_id = ent_entry.config_entry_id
             _LOGGER.debug(
-                "_parse_service_args: switches: %s, ent_reg: %s, ent_entry: %s, config_id: %s",
+                "_parse_service_args: entity_id: %s, switches: %s, ent_reg: %s,"
+                " ent_entry: %s, config_id: %s",
+                entity_id,
                 switches,
                 ent_reg,
                 ent_entry,
