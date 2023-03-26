@@ -28,10 +28,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install -r core/requirements.txt
-          pip install -r core/requirements_test.txt
-          pip install -e core/
-          pip install $(python test_dependencies.py)
+          pip install -r core/requirements.txt --use-pep517
+          pip install -r core/requirements_test.txt --use-pep517
+          pip install -e core/ --use-pep517
+          pip install $(python test_dependencies.py) --use-pep517
       - name: Run pytest
         timeout-minutes: 60
         run: |
