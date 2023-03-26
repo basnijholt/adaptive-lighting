@@ -1184,7 +1184,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         which: str,
         initial_state: bool,
         hass: HomeAssistant,
-        config_entry,
+        config_entry: ConfigEntry,
         icon: str,
     ):
         """Initialize the Adaptive Lighting switch."""
