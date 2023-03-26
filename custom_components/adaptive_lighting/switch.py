@@ -361,20 +361,19 @@ async def handle_change_switch_settings(
 ):
     """Allows HASS to change config values via a service call."""
     data = service_call.data
-    defaults = None
-    if (
-        CONF_USE_DEFAULTS not in data or data[CONF_USE_DEFAULTS] == "current"
-    ):  # use whatever we're already using.
+
+    which = data.get(CONF_USE_DEFAULTS, "current")
+    if which == "current":  # use whatever we're already using.
         defaults = switch._current_settings  # pylint: disable=protected-access
     # not needed since validate() does this part for us
-    elif (
-        data[CONF_USE_DEFAULTS] == "factory"
-    ):  # use actual defaults listed in the documentation
+    elif which == "factory":  # use actual defaults listed in the documentation
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
     elif (
-        data[CONF_USE_DEFAULTS] == "configuration"
+        which == "configuration"
     ):  # use whatever's in the config flow or configuration.yaml
         defaults = switch._config_backup  # pylint: disable=protected-access
+    else:
+        defaults = None
 
     switch.__settings__(
         data=data,
