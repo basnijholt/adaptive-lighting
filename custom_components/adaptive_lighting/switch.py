@@ -471,9 +471,7 @@ async def async_setup_entry(
         schema=vol.Schema(
             {
                 vol.Optional("entity_id"): cv.entity_ids,
-                vol.Optional(
-                    CONF_LIGHTS, default=[]
-                ): cv.entity_ids,  # pylint: disable=protected-access
+                vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
                 vol.Optional(
                     CONF_TRANSITION,
                     default=switch._initial_transition,  # pylint: disable=protected-access
