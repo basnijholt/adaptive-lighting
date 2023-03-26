@@ -288,11 +288,11 @@ def _find_switch_with_any_of_lights(
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-def _parse_service_args(
+def _get_switches_from_service_call(
     hass: HomeAssistant, service_call: ServiceCall
 ) -> list[AdaptiveSwitch]:
     _LOGGER.debug(
-        "Called '_parse_service_args' with service data:\n'%s'",
+        "Called '_get_switches_from_service_call' with service data:\n'%s'",
         service_call.data,
     )
     data = service_call.data
@@ -332,7 +332,7 @@ def _parse_service_args(
             ent_entry = ent_reg.async_get(entity_id)
             config_id = ent_entry.config_entry_id
             _LOGGER.debug(
-                "_parse_service_args: entity_id: %s, switches: %s, ent_reg: %s,"
+                "_get_switches_from_service_call: entity_id: %s, switches: %s, ent_reg: %s,"
                 " ent_entry: %s, config_id: %s",
                 entity_id,
                 switches,
@@ -346,7 +346,7 @@ def _parse_service_args(
     if lights:
         switch = _find_switch_with_any_of_lights(hass, lights, service_call)
         _LOGGER.debug(
-            "_parse_service_args: Found switch '%s' for lights '%s'",
+            "_get_switches_from_service_call: Found switch '%s' for lights '%s'",
             switch.entity_id,
             lights,
         )
@@ -428,7 +428,7 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.apply' service with '%s'",
             data,
         )
-        these_switches = _parse_service_args(hass, service_call)
+        these_switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
         for this_switch in these_switches:
             if not lights:
@@ -458,7 +458,7 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
             data,
         )
-        these_switches = _parse_service_args(hass, service_call)
+        these_switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
         for this_switch in these_switches:
             if not lights:
