@@ -1474,9 +1474,7 @@ class TurnOnOffListener:
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
-            # I can't think of a single reason we shouldn't clear the entire array here.
-            # Clearing the whole thing fixes #449
-            self.last_state_change.clear()
+            self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
 
