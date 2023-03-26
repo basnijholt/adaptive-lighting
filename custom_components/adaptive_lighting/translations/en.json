@@ -22,6 +22,7 @@
         "data": {
           "lights": "lights",
           "initial_transition": "initial_transition: When lights turn 'off' to 'on'. (seconds)",
+          "include_config_in_attributes": "include_config_in_attributes: All config options will be listed as attributes under the adaptive-lighting switch this integration creates. (default: false)",
           "sleep_transition": "sleep_transition: When 'sleep_state' changes. (seconds)",
           "interval": "interval: Time between switch updates. (seconds)",
           "max_brightness": "max_brightness: Highest brightness of lights during a cycle. (%)",
@@ -40,7 +41,7 @@
           "sunrise_time": "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)",
           "max_sunrise_time": "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)",
           "sunset_offset": "sunset_offset: How long before(-) or after(+) to define the sunset point of the cycle (+/- seconds)",
-          "sunset_time": "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)",
+          "sunset_time": "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)",
           "min_sunset_time": "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)",
           "take_over_control": "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on.",
           "detect_non_ha_changes": "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)",
