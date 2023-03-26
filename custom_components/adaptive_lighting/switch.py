@@ -262,7 +262,7 @@ def _find_switch_with_any_of_lights(
 
     if len(switches) > 1:
         _LOGGER.error(
-            "Bad service data: Light(s) %s found in multiple switch configs (%s)."
+            "Invalid service data: Light(s) %s found in multiple switch configs (%s)."
             " You must pass a switch under 'entity_id'. See the README for"
             " details. Got %s",
             lights,
@@ -275,7 +275,7 @@ def _find_switch_with_any_of_lights(
         )
     else:
         _LOGGER.error(
-            "Bad service data: Light was not found in any of your switch's configs."
+            "Invalid service data: Light was not found in any of your switch's configs."
             " You must either include the light(s) that is/are in the integration config, or"
             " pass a switch under 'entity_id'. See the README for details. Got %s",
             service_call.data,
@@ -292,24 +292,22 @@ def _get_switches_from_service_call(
     hass: HomeAssistant, service_call: ServiceCall
 ) -> list[AdaptiveSwitch]:
     _LOGGER.debug(
-        "Called '_get_switches_from_service_call' with service data:\n'%s'",
+        "Function '_get_switches_from_service_call' called with service data:\n'%s'",
         service_call.data,
     )
     data = service_call.data
     lights = data[CONF_LIGHTS]
     switch_entity_ids: list[str] | None = data.get("entity_id")
     if not lights and not switch_entity_ids:
-        # alternatively just loop and call the service for every switch.
         _LOGGER.debug(
-            "adaptive-lighting: If you were trying to adapt every single light on every single"
-            " switch, please inform the developers at"
-            " https://github.com/basnijholt/adaptive-lighting of your use case."
-            " Currently you must pass either the adapt main switch, or the lights to every"
-            " service call. adaptive-lighting will now raise a soft error for you in the meantime."
+            "If you intended to adapt every single light on every single switch, please inform the"
+            " developers at https://github.com/basnijholt/adaptive-lighting of your use case."
+            " Currently, you must pass either an adaptive-lighting switch or the lights to"
+            " an `adaptive_lighting` service call."
         )
         _LOGGER.error(
-            "Bad service data to adaptive-lighting service call -"
-            " you must pass either a switch or a light's entity_id. Service data:\n%s",
+            "Invalid service data passed to adaptive-lighting service call -"
+            " you must pass either a switch or a light's entity ID. Service data:\n%s",
             service_call.data,
         )
         raise ValueError(
@@ -319,42 +317,33 @@ def _get_switches_from_service_call(
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
             _LOGGER.error(
-                "bad service data: cannot pass multiple switch entities while also passing"
-                " any lights. Got %s",
+                "Invalid service data: cannot pass multiple switch entities while also passing"
+                " lights. Service data received: %s",
                 service_call.data,
             )
             raise ValueError(
-                "adaptive-lighting: Multiple switches passed with lights argument"
+                "adaptive-lighting: Multiple switches were passed with lights argument"
             )
         switches = []
         ent_reg = entity_registry.async_get(hass)
         for entity_id in switch_entity_ids:
             ent_entry = ent_reg.async_get(entity_id)
             config_id = ent_entry.config_entry_id
-            _LOGGER.debug(
-                "_get_switches_from_service_call: entity_id: %s, switches: %s, ent_reg: %s,"
-                " ent_entry: %s, config_id: %s",
-                entity_id,
-                switches,
-                ent_reg,
-                ent_entry,
-                config_id,
-            )
             switches.append(hass.data[DOMAIN][config_id]["instance"])
         return switches
 
     if lights:
         switch = _find_switch_with_any_of_lights(hass, lights, service_call)
         _LOGGER.debug(
-            "_get_switches_from_service_call: Found switch '%s' for lights '%s'",
+            "Switch '%s' found for lights '%s'",
             switch.entity_id,
             lights,
         )
         return [switch]
 
     _LOGGER.error(
-        "bad service data to adaptive-lighting service call -"
-        " entities were not found in integration. Service data:\n%s",
+        "Invalid service data passed to adaptive-lighting service call -"
+        " entities were not found in the integration. Service data:\n%s",
         service_call.data,
     )
     raise ValueError("adaptive-lighting: User sent incorrect data to service call")
