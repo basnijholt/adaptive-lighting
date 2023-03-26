@@ -237,17 +237,50 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
+def _find_switch_with_lights(
+    hass: HomeAssistant,
+    lights: list[str],
+    service_call: ServiceCall,
+) -> AdaptiveSwitch:
+    """Find the switch that controls the lights in 'lights'."""
+    # No need to check if light is found in multiple switches, that's a user error.
+    config_entries = hass.config_entries.async_entries(DOMAIN)
+    data = hass.data[DOMAIN]
+    for config in config_entries:
+        # this check is necessary as there seems to always be an extra config
+        # entry that doesn't contain any data. I believe this happens when the
+        # integration exists, but is disabled by the user in HASS.
+        if config.entry_id in data:
+            switch = data[config.entry_id]["instance"]
+            all_check_lights = _expand_light_groups(hass, lights)
+            switch._expand_light_groups()
+            if set(switch._lights) & set(all_check_lights):
+                return switch
+
+    _LOGGER.error(
+        "bad service data: Light was not found in any of your switch's configs."
+        "You must either include the light(s) that is/are in the integration config, or"
+        "pass a switch under 'entity_id'. See the README for details. Got %s",
+        service_call.data,
+    )
+    raise ValueError(
+        "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
+        lights,
+    )
+
+
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
+def _parse_service_args(
+    hass: HomeAssistant, service_call: ServiceCall
+) -> list[AdaptiveSwitch]:
     _LOGGER.debug(
         "Called '_parse_service_args' with service data:\n'%s'",
         service_call.data,
     )
     data = service_call.data
     lights = data[CONF_LIGHTS]
-    switch_unique_id = data.get("entity_id")
-    switch = None
+    switch_unique_id: list[str] | None = data.get("entity_id")
     if not lights and not switch_unique_id:
         # alternatively just loop and call the service for every switch.
         _LOGGER.debug(
@@ -258,8 +291,8 @@ def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
             " service call. adaptive-lighting will now raise a soft error for you in the meantime."
         )
         _LOGGER.error(
-            "bad service data to adaptive-lighting service call - "
-            "you must pass either an entity_id or a light. Service data:\n%s",
+            "bad service data to adaptive-lighting service call -"
+            " you must pass either an entity_id or a light. Service data:\n%s",
             service_call.data,
         )
         raise ValueError(
@@ -270,70 +303,36 @@ def _parse_service_args(hass: HomeAssistant, service_call: ServiceCall):
         if len(switch_unique_id) > 1 and lights:
             _LOGGER.error(
                 "bad service data: cannot pass multiple switch entities while also passing"
-                "any lights. Got %s",
+                " any lights. Got %s",
                 service_call.data,
             )
             raise ValueError(
                 "adaptive-lighting: Multiple switches passed with lights argument"
             )
-        switch = []
+        switches = []
         for unique_id in switch_unique_id:
             ent_reg = entity_registry.async_get(hass)
             ent_entry = ent_reg.async_get(unique_id)
             config_id = ent_entry.config_entry_id
             _LOGGER.debug(
-                "_parse_service_args: switch: %s, ent_reg: %s, ent_entry: %s, config_id: %s",
-                switch,
+                "_parse_service_args: switches: %s, ent_reg: %s, ent_entry: %s, config_id: %s",
+                switches,
                 ent_reg,
                 ent_entry,
                 config_id,
             )
-            switch.append(hass.data[DOMAIN][config_id]["instance"])
+            switches.append(hass.data[DOMAIN][config_id]["instance"])
+        return switches
     elif lights:
-        # No need to check if light is found in multiple switches, that's a user error.
-        config_entries = hass.config_entries.async_entries(DOMAIN)
-        found = False
-        for config in config_entries:
-            if found:
-                break
-            # this check is necessary as there seems to always be an extra config
-            # entry that doesn't contain any data. I believe this happens when the
-            # integration exists, but is disabled by the user in HASS.
-            if config.entry_id in hass.data[DOMAIN]:
-                switch = hass.data[DOMAIN][config.entry_id]["instance"]
-                all_check_lights = _expand_light_groups(hass, lights)
-                switch._expand_light_groups()
-                _LOGGER.debug("switch_lights: %s", switch._lights)
-                for light in all_check_lights:
-                    _LOGGER.debug(
-                        "Check for %s in switch %s",
-                        light,
-                        switch._name,
-                    )
-                    if light in switch._lights:
-                        found = True
-                        break
-        if not found:
-            _LOGGER.error(
-                "bad service data: Light was not found in any of your switch's configs."
-                "You must either include the light(s) that is/are in the integration config, or"
-                "pass a switch under 'entity_id'. See the readme for details. Got %s",
-                service_call.data,
-            )
-            raise ValueError(
-                "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
-                lights,
-            )
-    # Check assumedly not needed but exists for testing.
-    if not switch:
-        _LOGGER.error(
-            "bad service data to adaptive-lighting service call - "
-            "entities were not found in integration. Service data:\n%s",
-            service_call.data,
-        )
-        raise ValueError("adaptive-lighting: User sent incorrect data to service call")
-    _LOGGER.debug("Switches used: %s", switch)
-    return switch, data
+        switch = _find_switch_with_lights(hass, lights, service_call)
+        return [switch]
+
+    _LOGGER.error(
+        "bad service data to adaptive-lighting service call - "
+        "entities were not found in integration. Service data:\n%s",
+        service_call.data,
+    )
+    raise ValueError("adaptive-lighting: User sent incorrect data to service call")
 
 
 @callback
@@ -399,11 +398,12 @@ async def async_setup_entry(
     @callback
     async def handle_apply(service_call: ServiceCall):
         """Handle the entity service apply."""
+        data = service_call.data
         _LOGGER.debug(
             "Called 'adaptive_lighting.apply' service with '%s'",
-            service_call.data,
+            data,
         )
-        these_switches, data = _parse_service_args(hass, service_call)
+        these_switches = _parse_service_args(hass, service_call)
         lights = data[CONF_LIGHTS]
         for this_switch in these_switches:
             if not lights:
@@ -428,11 +428,12 @@ async def async_setup_entry(
     @callback
     async def handle_set_manual_control(service_call: ServiceCall):
         """Set or unset lights as 'manually controlled'."""
+        data = service_call.data
         _LOGGER.debug(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
-            service_call.data,
+            data,
         )
-        these_switches, data = _parse_service_args(hass, service_call)
+        these_switches = _parse_service_args(hass, service_call)
         lights = data[CONF_LIGHTS]
         for this_switch in these_switches:
             if not lights:
