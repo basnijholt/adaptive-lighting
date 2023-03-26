@@ -98,6 +98,8 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_ALT_DETECT_METHOD,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -119,6 +121,7 @@ from .const import (
     CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
+    CONF_STRICT_ADAPTING,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
@@ -362,6 +365,7 @@ def _fire_manual_control_event(
         switch.entity_id,
         light,
     )
+    switch._manual_lights[light]["timer"] = perf_counter()
     fire(
         f"{DOMAIN}.manual_control",
         {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
@@ -426,19 +430,17 @@ async def async_setup_entry(
             else:
                 all_lights = _expand_light_groups(this_switch.hass, lights)
             this_switch.turn_on_off_listener.lights.update(all_lights)
-            for light in all_lights:
-                if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    await this_switch._adapt_light(  # pylint: disable=protected-access
-                        light,
-                        data[CONF_TRANSITION],
-                        data[ATTR_ADAPT_BRIGHTNESS],
-                        data[ATTR_ADAPT_COLOR],
-                        data[CONF_PREFER_RGB_COLOR],
-                        force=True,
-                        context=this_switch.create_context(
-                            "service", parent=service_call.context
-                        ),
-                    )
+            await this_switch._adapt_lights(  # pylint: disable=protected-access
+                all_lights,
+                data[CONF_TRANSITION],
+                data[ATTR_ADAPT_BRIGHTNESS],
+                data[ATTR_ADAPT_COLOR],
+                data[CONF_PREFER_RGB_COLOR],
+                force=True,
+                context=this_switch.create_context(
+                    "service", parent=service_call.context
+                ),
+            )
 
     @callback
     async def handle_set_manual_control(service_call: ServiceCall):
@@ -600,6 +602,15 @@ def color_difference_redmean(
     return math.sqrt(red_term + green_term + blue_term)
 
 
+def check_direction_change(last: int, current: int, last_adapt_value: int) -> bool:
+    _LOGGER.debug("compare direction: current value %s to last value %s", current, last)
+    if last_adapt_value < last:  # Value adapting down
+        return current > last or current < last_adapt_value
+    elif last_adapt_value > last:  # Value adapting up
+        return current < last or current > last_adapt_value
+    return False
+
+
 def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
@@ -607,6 +618,7 @@ def _attributes_have_changed(
     adapt_brightness: bool,
     adapt_color: bool,
     context: Context,
+    last_adapt_attempt=None,
 ) -> bool:
     if (
         adapt_brightness
@@ -616,15 +628,33 @@ def _attributes_have_changed(
         last_brightness = old_attributes[ATTR_BRIGHTNESS]
         current_brightness = new_attributes[ATTR_BRIGHTNESS]
         if abs(current_brightness - last_brightness) > BRIGHTNESS_CHANGE:
-            _LOGGER.debug(
-                "Brightness of '%s' significantly changed from %s to %s with"
-                " context.id='%s'",
-                light,
-                last_brightness,
-                current_brightness,
-                context.id,
-            )
-            return True
+            if last_adapt_attempt:
+                changed = check_direction_change(
+                    last_brightness,
+                    current_brightness,
+                    last_adapt_attempt[ATTR_BRIGHTNESS],
+                )
+                _LOGGER.debug(
+                    "altdetect: Brightness of '%s' changed from %s to %s intended %s with"
+                    " context.id='%s' Significant? %s",
+                    light,
+                    last_brightness,
+                    current_brightness,
+                    last_adapt_attempt[ATTR_BRIGHTNESS],
+                    context.id,
+                    changed,
+                )
+                return changed
+            else:
+                _LOGGER.debug(
+                    "Brightness of '%s' significantly changed from %s to %s with"
+                    " context.id='%s'",
+                    light,
+                    last_brightness,
+                    current_brightness,
+                    context.id,
+                )
+                return True
 
     if (
         adapt_color
@@ -634,15 +664,33 @@ def _attributes_have_changed(
         last_color_temp = old_attributes[ATTR_COLOR_TEMP_KELVIN]
         current_color_temp = new_attributes[ATTR_COLOR_TEMP_KELVIN]
         if abs(current_color_temp - last_color_temp) > COLOR_TEMP_CHANGE:
-            _LOGGER.debug(
-                "Color temperature of '%s' significantly changed from %s to %s with"
-                " context.id='%s'",
-                light,
-                last_color_temp,
-                current_color_temp,
-                context.id,
-            )
-            return True
+            if last_adapt_attempt:
+                changed = check_direction_change(
+                    last_color_temp,
+                    current_color_temp,
+                    last_adapt_attempt[ATTR_COLOR_TEMP_KELVIN],
+                )
+                _LOGGER.debug(
+                    "altdetect: Color temperature of '%s' changed from %s to %s intended %s with"
+                    " context.id='%s' Significant? %s",
+                    light,
+                    last_color_temp,
+                    current_color_temp,
+                    last_adapt_attempt[ATTR_COLOR_TEMP_KELVIN],
+                    context.id,
+                    changed,
+                )
+                return changed
+            else:
+                _LOGGER.debug(
+                    "Color temperature of '%s' significantly changed from %s to %s with"
+                    " context.id='%s'",
+                    light,
+                    last_color_temp,
+                    current_color_temp,
+                    context.id,
+                )
+                return True
 
     if (
         adapt_color
@@ -703,7 +751,34 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
 
+        for light in data[CONF_LIGHTS]:
+            if not hasattr(self.turn_on_off_listener, "_switches"):
+                self.turn_on_off_listener._switches = {}
+            self.turn_on_off_listener._switches[
+                light
+            ] = self  # light should never be in multiple switches anyway.
+
+        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
+        self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
+        self._strict_adapting = data[CONF_STRICT_ADAPTING]
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        if not data[CONF_TAKE_OVER_CONTROL] and (
+            not data[CONF_STRICT_ADAPTING]
+            or data[CONF_ALT_DETECT_METHOD]
+            or data[CONF_DETECT_NON_HA_CHANGES]
+        ):
+            _LOGGER.warn(
+                "%s: Config mismatch: 'alt_detect_method: true', 'strict_adapting: false',"
+                " OR 'detect_non_ha_changes: true' are set in config, however required"
+                " variable 'take_over_control' is turned off. Please check your"
+                " configuration to ensure desired functionality. We will now"
+                " enable 'take_over_control' and continue setting up the"
+                " adaptive-lighting integration normally.",
+                self._name,
+            )
+            self._take_over_control = True
+
+        self._autoreset_control_time = data[CONF_AUTORESET_CONTROL]
         self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
@@ -711,7 +786,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
-        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
@@ -747,8 +821,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set other attributes
         self._icon = ICON_MAIN
         self._state = None
-        self._last_transition = 0
+
         self._transition_timer = 0
+        self._transitioning = False
+        self._manual_lights = {}
+        all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
+            self._manual_lights[light] = {"timer": 0}
 
         # Tracks 'off' → 'on' state changes
         self._on_to_off_event: dict[str, Event] = {}
@@ -822,6 +901,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
+            self._manual_lights[light] = {"timer": 0}
         self.turn_on_off_listener.lights.update(all_lights)
         self._lights = list(all_lights)
 
@@ -929,6 +1010,150 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
+    # Not precise, checked every `interval`
+    async def _maybe_reset_manual_control(
+        self,
+        now: list[str] | None = None,
+    ):
+        for light in self._lights:
+            if self._manual_lights[light]["timer"] == 0:
+                continue
+            time_elapsed = perf_counter() - self._manual_lights[light]["timer"]
+            time_remaining = self._autoreset_control_time - time_elapsed
+            _LOGGER.debug(
+                "check manual control reset. time: %s, timer: %s elapsed: %s, remaining: %s",
+                self._autoreset_control_time,
+                self._manual_lights[light]["timer"],
+                time_elapsed,
+                time_remaining,
+            )
+            if time_remaining <= 0:
+                _LOGGER.debug("DISABLING manual control for lights %s", self._lights)
+                self.turn_on_off_listener.reset(*self._lights)
+
+    # Fixes #447 (and #430 with 'alt_detect_method: true' set)
+    # if we are in the middle of a transition, sleep until that transition finishes.
+    # Needed so we can check if the previous adapt attempt succeeded after the
+    # transition finalizes the new state.
+    # Someone with a better understanding of async usage could clean this up, not
+    # sure if it's safe to check a variable in another thread.
+    # The '_transitioning' variable is simply set to prevent buildups of multiple
+    # calls to this function all running at once after a long transition finishes
+    # with a short interval set.
+    async def _async_wait_transitions(self, now=None) -> bool:
+        if self._transitioning:
+            return True
+        last_service_data = self.turn_on_off_listener.last_service_data
+        if not last_service_data or ATTR_TRANSITION not in last_service_data:
+            return False
+        while (
+            self._transition_timer != 0
+            and (perf_counter() - self._transition_timer)
+            < last_service_data[ATTR_TRANSITION]
+        ):
+            time_remaining = last_service_data[ATTR_TRANSITION] - (
+                perf_counter() - self._transition_timer
+            )
+            _LOGGER.debug(
+                "Sleeping for %s more seconds before adapting lights [%s]",
+                (
+                    last_service_data[ATTR_TRANSITION]
+                    - (perf_counter() - self._transition_timer)
+                ),
+                self._lights,
+            )
+            self._transitioning = True
+            await asyncio.sleep(
+                1 - 10 ** (-1 * math.log(10**time_remaining, 10))
+            )  # could also asyncio.sleep(0) without the logging above.
+            # alternately precision 10838 is the max
+        await asyncio.sleep(
+            0.2
+        )  # wait a short but guaranteed longer time than transition.
+        self._transitioning = False
+
+    async def _update_attrs_and_maybe_adapt_lights(
+        self,
+        lights: list[str] | None = None,
+        transition: int | None = None,
+        force: bool = False,
+        context: Context | None = None,
+    ) -> None:
+        assert context is not None
+        _LOGGER.debug(
+            "%s: '_update_attrs_and_maybe_adapt_lights' called with context.id='%s'",
+            self._name,
+            context.id,
+        )
+        assert self.is_on
+        self._settings.update(
+            self._sun_light_settings.get_settings(
+                self.sleep_mode_switch.is_on, transition
+            )
+        )
+        self.async_write_ha_state()
+        if self._autoreset_control_time > 0:
+            await self._maybe_reset_manual_control(lights)
+        if not force:
+            if self._only_once or await self._async_wait_transitions(lights):
+                return
+
+        await self._adapt_lights(lights, transition, force, context)
+
+    async def _adapt_lights(
+        self,
+        lights: list[str],
+        transition: int | None,
+        force: bool,
+        context: Context | None,
+    ) -> None:
+        assert context is not None
+        _LOGGER.debug(
+            "%s: '_adapt_lights(%s, %s, force=%s, context.id=%s)' called",
+            self.name,
+            lights,
+            transition,
+            force,
+            context.id,
+        )
+
+        # Probably unnecessary double check but existed in the original code.
+        if lights is None:
+            lights = self._lights
+
+        if not lights:
+            return
+
+        if not force:
+            for light in lights:
+                if not is_on(self.hass, light):
+                    continue
+                # detect HA 'light.turn_on' calls.
+                if (
+                    self._take_over_control
+                    and self.turn_on_off_listener.is_manually_controlled(
+                        self,
+                        light,
+                        self.adapt_brightness_switch.is_on,
+                        self.adapt_color_switch.is_on,
+                        context,
+                    )
+                ) or (
+                    (self._detect_non_ha_changes or self._alt_detect_method)
+                    and await self.turn_on_off_listener.significant_change(
+                        self,
+                        light,
+                        self.adapt_brightness_switch.is_on,
+                        self.adapt_color_switch.is_on,
+                        context,
+                    )
+                ):
+                    self.manual_control[light] = True
+                    _fire_manual_control_event(self, light, context, is_async=False)
+                    continue
+
+                await self._adapt_light(light, transition, force=force, context=context)
+
     async def _adapt_light(
         self,
         light: str,
@@ -943,8 +1168,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lock is not None and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
-        service_data = {ATTR_ENTITY_ID: light}
-        features = _supported_features(self.hass, light)
 
         if transition is None:
             transition = self._transition
@@ -955,13 +1178,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
 
-        if "transition" in features:
-            service_data[ATTR_TRANSITION] = transition
-
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on, transition
         )
+
+        # This check is unnecessary.
+        context = context or self.create_context("adapt_lights")
+
+        # Build service data.
+        service_data = {ATTR_ENTITY_ID: light}
+        features = _supported_features(self.hass, light)
+
+        # If there is a transition, mark the time we started adapting this light
+        # then the next time we start adapting, compare to the last timestamp.
+        # used only when strict_adapting==False
+        if "transition" in features:
+            service_data[ATTR_TRANSITION] = transition
+            self._transition_timer = perf_counter()
 
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
@@ -985,6 +1219,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
+            rgb_color = self._settings["rgb_color"]
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
 
@@ -997,21 +1232,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition_timer = 0
         self._last_transition = 0
 
-        context = context or self.create_context("adapt_lights")
-        if (
-            self._take_over_control
-            and self._detect_non_ha_changes
-            and not force
-            and await self.turn_on_off_listener.significant_change(
-                self,
-                light,
-                adapt_brightness,
-                adapt_color,
-                context,
-            )
-        ):
-            return
+        _LOGGER.debug(
+            "%s: Setting rgb_color of light %s to %s", self._name, light, rgb_color
+        )
+        service_data[ATTR_RGB_COLOR] = rgb_color
+
         self.turn_on_off_listener.last_service_data[light] = service_data
+        self._manual_lights[light]["timer"] = 0
 
         async def turn_on(service_data):
             _LOGGER.debug(
@@ -1028,11 +1255,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context=context,
             )
 
-        # If there is a transition, mark the time we started adapting this light
-        # then the next time we start adapting, compare to the last timestamp. See #447
-        if transition and transition != 0:
-            self._transition_timestamp = perf_counter()
-            self._last_transition = transition
         if not self._separate_turn_on_commands:
             await turn_on(service_data)
         else:
@@ -1047,70 +1269,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     await asyncio.sleep(transition)
                 await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
-
-    async def _update_attrs_and_maybe_adapt_lights(
-        self,
-        lights: list[str] | None = None,
-        transition: int | None = None,
-        force: bool = False,
-        context: Context | None = None,
-    ) -> None:
-        assert context is not None
-        _LOGGER.debug(
-            "%s: '_update_attrs_and_maybe_adapt_lights' called with context.id='%s'",
-            self._name,
-            context.id,
-        )
-        assert self.is_on
-        self._settings.update(
-            self._sun_light_settings.get_settings(
-                self.sleep_mode_switch.is_on, transition
-            )
-        )
-        self.async_write_ha_state()
-        if lights is None:
-            lights = self._lights
-        if (self._only_once and not force) or not lights:
-            return
-        await self._adapt_lights(lights, transition, force, context)
-
-    async def _adapt_lights(
-        self,
-        lights: list[str],
-        transition: int | None,
-        force: bool,
-        context: Context | None,
-    ) -> None:
-        assert context is not None
-        _LOGGER.debug(
-            "%s: '_adapt_lights(%s, %s, force=%s, context.id=%s)' called",
-            self.name,
-            lights,
-            transition,
-            force,
-            context.id,
-        )
-        for light in lights:
-            if not is_on(self.hass, light):
-                continue
-            if (
-                self._take_over_control
-                and self.turn_on_off_listener.is_manually_controlled(
-                    self,
-                    light,
-                    force,
-                    self.adapt_brightness_switch.is_on,
-                    self.adapt_color_switch.is_on,
-                )
-            ):
-                _LOGGER.debug(
-                    "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
-                    self._name,
-                    light,
-                    context.id,
-                )
-                continue
-            await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
@@ -1465,8 +1623,8 @@ class TurnOnOffListener:
         self.manual_control: dict[str, bool] = {}
         # Counts the number of times (in a row) a light had a changed state.
         self.cnt_significant_changes: dict[str, int] = defaultdict(int)
-        # Track 'state_changed' events of self.lights resulting from this integration
-        self.last_state_change: dict[str, list[State]] = {}
+        # Track 'state_changed' events to self.lights from any source.
+        self.all_state_changes: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
 
@@ -1486,7 +1644,7 @@ class TurnOnOffListener:
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
-            self.last_state_change.pop(light, None)
+            self.all_state_changes.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
 
@@ -1558,11 +1716,17 @@ class TurnOnOffListener:
                 new_state.attributes,
                 new_state.context.id,
             )
+        adapt_switch = self._switches.get(entity_id)
 
         if (
             new_state is not None
             and new_state.state == STATE_ON
-            and is_our_context(new_state.context)
+            and (
+                is_our_context(
+                    new_state.context
+                )  # doesn't work correctly on my lights. is this check necessary?
+                or (adapt_switch is not None and adapt_switch._alt_detect_method)
+            )
         ):
             # It is possible to have multiple state change events with the same context.
             # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
@@ -1575,30 +1739,134 @@ class TurnOnOffListener:
             # called with a color_temp outside of its range (and HA reports the
             # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
-            old_state: list[State] | None = self.last_state_change.get(entity_id)
+            old_state: list[State] | None = self.all_state_changes.get(entity_id)
             if (
                 old_state is not None
-                and old_state[0].context.id == new_state.context.id
+                # v not sure why this failed in a previous test v
+                and entity_id in self.all_state_changes
+                and (
+                    old_state[0].context.id
+                    == new_state.context.id  # doesn't work correctly on my lights?
+                    or (adapt_switch is not None and adapt_switch._alt_detect_method)
+                )
             ):
                 # If there is already a state change event from this event (with this
                 # context) then append it to the already existing list.
                 _LOGGER.debug(
-                    "State change event of '%s' is already in 'self.last_state_change' (%s)"
+                    "State change event of '%s' is already in 'self.all_state_changes' (%s)"
                     " adding this state also",
                     entity_id,
                     new_state.context.id,
                 )
-                self.last_state_change[entity_id].append(new_state)
+                self.all_state_changes[entity_id].append(new_state)
             else:
-                self.last_state_change[entity_id] = [new_state]
+                self.all_state_changes[entity_id] = [new_state]
+
+    async def significant_change(
+        self,
+        switch: AdaptiveSwitch,
+        light: str,
+        adapt_brightness: bool,
+        adapt_color: bool,
+        context: Context,
+    ) -> bool:
+        """Has the light made a significant change since last update.
+
+        This method will detect changes that were made to the light without
+        calling 'light.turn_on', so outside of Home Assistant. If a change is
+        detected, we mark the light as 'manually controlled' until the light
+        or switch is turned 'off' and 'on' again.
+        """
+        if light not in self.all_state_changes:
+            return False
+        last_service_data = self.last_service_data.get(light)
+        if last_service_data is None:
+            return
+
+        old_states: list[State] = self.all_state_changes[light]
+        compare_to = functools.partial(
+            _attributes_have_changed,
+            light=light,
+            adapt_brightness=adapt_brightness,
+            adapt_color=adapt_color,
+            context=context,
+        )
+
+        _LOGGER.debug("last_service_data: %s", last_service_data)
+        if switch._alt_detect_method:
+            for index, old_state in enumerate(old_states):
+                if index == 0:
+                    continue
+                _LOGGER.debug(
+                    "checking for a manual change between index %s and %s... old_state: %s",
+                    index,
+                    index - 1,
+                    old_state,
+                )
+                prior_state = old_states[index - 1]
+                if compare_to(
+                    old_attributes=prior_state.attributes,
+                    new_attributes=old_state.attributes,
+                    last_adapt_attempt=last_service_data,
+                ):
+                    _LOGGER.info(
+                        "Found unexpected state_change event for %s nr. %s (context.id=%s)"
+                        " old_state=%s\nprior_state=%s",
+                        light,
+                        index,
+                        context.id,
+                        old_state,
+                        prior_state,
+                    )
+                    _LOGGER.info(
+                        "We will now set %s as manually controlled. (context.id=%s)",
+                        light,
+                        context.id,
+                    )
+                    return True
+        elif switch._detect_non_ha_changes:
+            # Update state and check for a manual change not done in HA.
+            # This was 'strict_adapting: false' in the old pr #450
+            # Ensure HASS is correctly updating your light's state with
+            # light.turn_on calls if any problems arise. This
+            # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
+            # TODO: check if reporting is on automatically and warn user to prevent issue threads.
+            _LOGGER.debug(
+                "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
+                "and check if it's last adapt succeeded.",
+                switch._name,
+                light,
+            )
+            await self.hass.helpers.entity_component.async_update_entity(light)
+            refreshed_state = self.hass.states.get(light)
+            changed = compare_to(
+                old_attributes=last_service_data,
+                new_attributes=refreshed_state.attributes,
+            )
+            if not changed:
+                _LOGGER.debug(
+                    "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
+                    light,
+                    context.id,
+                )
+            else:
+                _LOGGER.info(
+                    "%s: Manual change to light '%s' found and was done outside of HA."
+                    "Change event: %s",
+                    switch._name,
+                    light,
+                    refreshed_state,
+                )
+                return True
+        return False
 
     def is_manually_controlled(
         self,
         switch: AdaptiveSwitch,
         light: str,
-        force: bool,
         adapt_brightness: bool,
         adapt_color: bool,
+        context: Context,
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
         manual_control = self.manual_control.setdefault(light, False)
@@ -1607,11 +1875,7 @@ class TurnOnOffListener:
             return True
 
         turn_on_event = self.turn_on_event.get(light)
-        if (
-            turn_on_event is not None
-            and not is_our_context(turn_on_event.context)
-            and not force
-        ):
+        if turn_on_event is not None and not is_our_context(turn_on_event.context):
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
@@ -1629,80 +1893,6 @@ class TurnOnOffListener:
                     turn_on_event.context.id,
                 )
         return manual_control
-
-    async def significant_change(
-        self,
-        switch: AdaptiveSwitch,
-        light: str,
-        adapt_brightness: bool,
-        adapt_color: bool,
-        context: Context,
-    ) -> bool:
-        """Has the light made a significant change since last update.
-
-        This method will detect changes that were made to the light without
-        calling 'light.turn_on', so outside of Home Assistant. If a change is
-        detected, we mark the light as 'manually controlled' until the light
-        or switch is turned 'off' and 'on' again.
-        """
-        if light not in self.last_state_change:
-            return False
-        old_states: list[State] = self.last_state_change[light]
-        await self.hass.helpers.entity_component.async_update_entity(light)
-        new_state = self.hass.states.get(light)
-        compare_to = functools.partial(
-            _attributes_have_changed,
-            light=light,
-            new_attributes=new_state.attributes,
-            adapt_brightness=adapt_brightness,
-            adapt_color=adapt_color,
-            context=context,
-        )
-        for index, old_state in enumerate(old_states):
-            changed = compare_to(old_attributes=old_state.attributes)
-            if not changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt change event nr. %s (context.id=%s)",
-                    light,
-                    index,
-                    context.id,
-                )
-                break
-
-        last_service_data = self.last_service_data.get(light)
-        if changed and last_service_data is not None:
-            # It can happen that the state change events that are associated
-            # with the last 'light.turn_on' call by this integration were not
-            # final states. Possibly a later EVENT_STATE_CHANGED happened, where
-            # the correct target brightness/color was reached.
-            changed = compare_to(old_attributes=last_service_data)
-            if not changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
-                    light,
-                    context.id,
-                )
-
-        n_changes = self.cnt_significant_changes[light]
-        if changed:
-            self.cnt_significant_changes[light] += 1
-            if n_changes >= self.max_cnt_significant_changes:
-                # Only mark a light as significantly changing, if changed==True
-                # N times in a row. We do this because sometimes a state changes
-                # happens only *after* a new update interval has already started.
-                self.manual_control[light] = True
-                _fire_manual_control_event(switch, light, context, is_async=False)
-        else:
-            if n_changes > 1:
-                _LOGGER.debug(
-                    "State of '%s' had 'cnt_significant_changes=%s' but the state"
-                    " changed to the expected settings now",
-                    light,
-                    n_changes,
-                )
-            self.cnt_significant_changes[light] = 0
-
-        return changed
 
     async def maybe_cancel_adjusting(
         self, entity_id: str, off_to_on_event: Event, on_to_off_event: Event | None

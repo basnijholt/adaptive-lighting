@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# th3w1zard1 custom
+pytest.yaml
+.github/workflows/pytest.yaml
