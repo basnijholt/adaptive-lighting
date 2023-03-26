@@ -1220,8 +1220,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             rgb_color = self._settings["rgb_color"]
-            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
-            service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
+            _LOGGER.debug(
+                "%s: Setting rgb_color of light %s to ", self._name, light, rgb_color
+            )
+            service_data[ATTR_RGB_COLOR] = rgb_color
 
         # if we are in the middle of a transition, sleep until that transition finishes. Fixes #447
         while (
@@ -1231,10 +1233,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await asyncio.sleep(1.2)
         self._transition_timer = 0
         self._last_transition = 0
-
-        _LOGGER.debug(
-            "%s: Setting rgb_color of light %s to %s", self._name, light, rgb_color
-        )
 
         self.turn_on_off_listener.last_service_data[light] = service_data
         self._manual_lights[light]["timer"] = 0
