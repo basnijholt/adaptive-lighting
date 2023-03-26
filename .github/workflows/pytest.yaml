@@ -48,7 +48,7 @@ jobs:
           cd -
 
           python3 -X dev -m pytest \
-            -qq \
+            -v \
             --timeout=9 \
             --durations=10 \
             --cov="homeassistant" \
