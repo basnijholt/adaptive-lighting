@@ -1,7 +1,7 @@
 {
   "domain": "adaptive_lighting",
   "name": "Adaptive Lighting",
-  "codeowners": ["@basnijholt", "@RubenKelevra"],
+  "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
