@@ -1126,8 +1126,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not lights:
             return
 
-        adapt_brightness = adapt_brightness or self.adapt_brightness_switch.is_on
-        adapt_color = adapt_brightness or self.adapt_color_switch.is_on
+        if adapt_brightness is None:
+            adapt_brightness = self.adapt_brightness_switch.is_on
+        if adapt_color is None:
+            adapt_color = self.adapt_color_switch.is_on
+        if prefer_rgb_color is None:
+            prefer_rgb_color = self._prefer_rgb_color
 
         for light in lights:
             if not is_on(self.hass, light):
@@ -1747,11 +1751,11 @@ class TurnOnOffListener:
             # called with a color_temp outside of its range (and HA reports the
             # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
-            old_state: list[State] | None = self.all_state_changes.get(entity_id)
+            old_state: list[State] | None = self.last_state_change.get(entity_id)
             if (
                 old_state is not None
                 # v not sure why this failed in a previous test v
-                and entity_id in self.all_state_changes
+                and entity_id in self.last_state_change
                 and (
                     old_state[0].context.id == new_state.context.id
                     or (adapt_switch is not None and adapt_switch._alt_detect_method)
