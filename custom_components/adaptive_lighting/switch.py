@@ -1151,7 +1151,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context,
                     )
                 ):
-                    _fire_manual_control_event(self, light, context, is_async=False)
+                    _fire_manual_control_event(self, light, context)
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
