@@ -366,7 +366,7 @@ def _fire_manual_control_event(
         light,
     )
     switch._manual_lights[light]["timer"] = perf_counter()
-    switch.turn_on_off_listener.manual_control = True
+    switch.turn_on_off_listener.manual_control[light] = True
     fire(
         f"{DOMAIN}.manual_control",
         {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
