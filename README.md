@@ -134,7 +134,7 @@ adaptive_lighting:
 
 | Service data attribute                            | Description                                                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `use_defaults`                                    | Either `"current"`, `"configuration"`, or `"factory"`, default `"current"`                        |
+| `use_defaults`                                    | (default: 'current' for current settings) You can set this to 'factory', 'configuration', or 'current' to reset the variables not being set with this service call. 'current' leaves them as is, 'configuration' resets to whatever already initializes at startup, 'factory' resets to the default values listed in the documentation.                        |
 | all other keys except the ones in the table below | See above, you may call `adaptive_lighting.apply` with your lights or create a new config instead |
 
 
