@@ -223,7 +223,9 @@ async def test_adaptive_lighting_switches(hass):
     assert ADAPT_COLOR_SWITCH in data
     assert ADAPT_BRIGHTNESS_SWITCH in data
     assert UNDO_UPDATE_LISTENER in data
-    assert len(data.keys()) == 5
+    assert "instance" in data
+
+    assert len(data.keys()) == 6
 
 
 @pytest.mark.parametrize("lat,long,timezone", LAT_LONG_TZS)
