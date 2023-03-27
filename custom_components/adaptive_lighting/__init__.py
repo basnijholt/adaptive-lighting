@@ -41,6 +41,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     # This will reload any changes the user made to any YAML configurations.
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
 
+    # quickly populate data for change_switch_settings before actually loading integration.
+    # update_services_yaml()
+
     if DOMAIN in config:
         for entry in config[DOMAIN]:
             hass.async_create_task(

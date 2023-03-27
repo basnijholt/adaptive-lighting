@@ -72,7 +72,7 @@ from homeassistant.core import (
     State,
     callback,
 )
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import entity_platform, entity_registry
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -125,6 +125,7 @@ from .const import (
     CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
+    CONF_USE_DEFAULTS,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -132,6 +133,7 @@ from .const import (
     ICON_MAIN,
     ICON_SLEEP,
     SERVICE_APPLY,
+    SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
@@ -185,6 +187,11 @@ def _int_to_bytes(i: int, signed: bool = False) -> bytes:
         # Make room for the sign bit.
         bits += 1
     return i.to_bytes((bits + 7) // 8, "little", signed=signed)
+
+
+def int_between(min_int, max_int):
+    """Return an integer between 'min_int' and 'max_int'."""
+    return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
 
 def _short_hash(string: str, length: int = 4) -> str:
@@ -349,6 +356,48 @@ def _get_switches_from_service_call(
     raise ValueError("adaptive-lighting: User sent incorrect data to service call")
 
 
+async def handle_change_switch_settings(
+    switch: AdaptiveSwitch, service_call: ServiceCall
+):
+    """Allows HASS to change config values via a service call."""
+    data = service_call.data
+
+    which = data.get(CONF_USE_DEFAULTS, "current")
+    if which == "current":  # use whatever we're already using.
+        defaults = switch._current_settings  # pylint: disable=protected-access
+    # not needed since validate() does this part for us
+    elif which == "factory":  # use actual defaults listed in the documentation
+        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    elif (
+        which == "configuration"
+    ):  # use whatever's in the config flow or configuration.yaml
+        defaults = switch._config_backup  # pylint: disable=protected-access
+    else:
+        defaults = None
+
+    switch._set_changeable_settings(
+        data=data,
+        defaults=defaults,
+    )
+
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
+        data,
+    )
+
+    all_lights = switch._lights  # pylint: disable=protected-access
+    switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
+    # pylint: disable=protected-access
+    if switch.is_on:
+        await switch._update_attrs_and_maybe_adapt_lights(
+            all_lights,
+            transition=switch._initial_transition,
+            force=True,
+            context=switch.create_context("service", parent=service_call.context),
+        )
+    # pylint: enable=protected-access
+
+
 @callback
 def _fire_manual_control_event(
     switch: AdaptiveSwitch, light: str, context: Context, is_async=True
@@ -506,13 +555,38 @@ async def async_setup_entry(
         ),
     )
 
+    args = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
+    for k, _, valid in VALIDATION_TUPLES:
+        # Modifying these after initialization isn't possible (yet)
+        if k != CONF_INTERVAL and k != CONF_NAME and k != CONF_LIGHTS:
+            args[vol.Optional(k)] = valid
+    platform = entity_platform.current_platform.get()
+    platform.async_register_entity_service(
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        args,
+        handle_change_switch_settings,
+    )
 
-def validate(config_entry: ConfigEntry):
+
+def validate(config_entry: ConfigEntry, **kwargs):
     """Get the options and data from the config_entry and add defaults."""
-    defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-    data = deepcopy(defaults)
-    data.update(config_entry.options)  # come from options flow
-    data.update(config_entry.data)  # all yaml settings come from data
+    # defaults and data will exist only if this is called from change_switch_settings
+    defaults = kwargs.get("defaults")
+    service_data = kwargs.get("data")
+    if defaults is None:
+        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+    if config_entry is not None:
+        # Is this deepcopy necessary?
+        # We're already creating a new array for the defaults variable...
+        # afterwards defaults is never used again.
+        data = deepcopy(defaults)
+        data.update(config_entry.options)  # come from options flow
+        data.update(config_entry.data)  # all yaml settings come from data
+    else:
+        # no idea how to clear original data from memory
+        # hopefully it does it automatically, otherwise TODO.
+        data = deepcopy(defaults)
+        data.update(service_data)
     data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate_value, _) in EXTRA_VALIDATION.items():
         value = data.get(key)
@@ -682,31 +756,25 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    def __init__(
+    def _set_changeable_settings(
         self,
-        hass,
-        config_entry: ConfigEntry,
-        turn_on_off_listener: TurnOnOffListener,
-        sleep_mode_switch: SimpleSwitch,
-        adapt_color_switch: SimpleSwitch,
-        adapt_brightness_switch: SimpleSwitch,
+        data: dict,
+        defaults: dict,
     ):
-        """Initialize the Adaptive Lighting switch."""
-        self.hass = hass
-        self.turn_on_off_listener = turn_on_off_listener
-        self.sleep_mode_switch = sleep_mode_switch
-        self.adapt_color_switch = adapt_color_switch
-        self.adapt_brightness_switch = adapt_brightness_switch
+        # Should only contain the settings we want the users to be able to change during runtime.
+        data = validate(
+            config_entry=None,
+            data=data,
+            defaults=defaults,
+        )
 
-        data = validate(config_entry)
-        self._name = data[CONF_NAME]
-        self._lights = data[CONF_LIGHTS]
+        # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
+        self._current_settings = data
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
-        self._interval = data[CONF_INTERVAL]
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
@@ -741,6 +809,43 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_sunset_time=data[CONF_MIN_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
+        )
+        _LOGGER.debug(
+            "%s: Set switch settings for lights '%s'. now using data: '%s'",
+            self._name,
+            self._lights,
+            data,
+        )
+
+    def __init__(
+        self,
+        hass,
+        config_entry: ConfigEntry,
+        turn_on_off_listener: TurnOnOffListener,
+        sleep_mode_switch: SimpleSwitch,
+        adapt_color_switch: SimpleSwitch,
+        adapt_brightness_switch: SimpleSwitch,
+    ):
+        """Initialize the Adaptive Lighting switch."""
+        # Set attributes we DON'T want users modifying
+        # during runtime here.
+        self.hass = hass
+        self.turn_on_off_listener = turn_on_off_listener
+        self.sleep_mode_switch = sleep_mode_switch
+        self.adapt_color_switch = adapt_color_switch
+        self.adapt_brightness_switch = adapt_brightness_switch
+
+        data = validate(config_entry)
+
+        self._name = data[CONF_NAME]
+        self._interval = data[CONF_INTERVAL]
+        self._lights = data[CONF_LIGHTS]
+
+        # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
+        self._config_backup = deepcopy(data)
+        self._set_changeable_settings(
+            data=data,
+            defaults=None,
         )
 
         # Set other attributes
