@@ -1,3 +1,6 @@
+# See tests/README.md for instructions on how to run the tests.
+
+# tl;dr:
 # Run the following command in the adaptive-lighting repo folder to run the tests:
 # docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
 
