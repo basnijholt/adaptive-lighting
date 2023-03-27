@@ -1126,6 +1126,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not lights:
             return
 
+        adapt_brightness = adapt_brightness or self.adapt_brightness_switch.is_on
+        adapt_color = adapt_brightness or self.adapt_color_switch.is_on
+
         for light in lights:
             if not is_on(self.hass, light):
                 continue
@@ -1141,17 +1144,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context,
                     )
                     # detect non HA changes to light.
-                ) or (
-                    (self._detect_non_ha_changes or self._alt_detect_method)
-                    and await self.turn_on_off_listener.significant_change(
-                        self,
-                        light,
-                        adapt_brightness,
-                        adapt_color,
-                        context,
-                    )
                 ):
-                    _LOGGER.debug("Fired manual control event in _adapt_lights")
+                    _LOGGER.debug(
+                        "Fired manual control event due to a light.turn_on call."
+                    )
+                elif (
+                    self._detect_non_ha_changes or self._alt_detect_method
+                ) and await self.turn_on_off_listener.significant_change(
+                    self,
+                    light,
+                    adapt_brightness,
+                    adapt_color,
+                    context,
+                ):
+                    _LOGGER.debug(
+                        "Fired manual control event due to a non HA light change."
+                    )
                     _fire_manual_control_event(self, light, context, is_async=False)
                     continue
                 else:
@@ -1626,7 +1634,7 @@ class TurnOnOffListener:
         # Counts the number of times (in a row) a light had a changed state.
         self.cnt_significant_changes: dict[str, int] = defaultdict(int)
         # Track 'state_changed' events to self.lights from any source.
-        self.all_state_changes: dict[str, list[State]] = {}
+        self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
 
@@ -1646,7 +1654,7 @@ class TurnOnOffListener:
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
-            self.all_state_changes.pop(light, None)
+            self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
 
@@ -1724,9 +1732,7 @@ class TurnOnOffListener:
             new_state is not None
             and new_state.state == STATE_ON
             and (
-                is_our_context(
-                    new_state.context
-                )  # doesn't work correctly on my lights. is this check necessary?
+                is_our_context(new_state.context)
                 or (adapt_switch is not None and adapt_switch._alt_detect_method)
             )
         ):
@@ -1747,22 +1753,21 @@ class TurnOnOffListener:
                 # v not sure why this failed in a previous test v
                 and entity_id in self.all_state_changes
                 and (
-                    old_state[0].context.id
-                    == new_state.context.id  # doesn't work correctly on my lights?
+                    old_state[0].context.id == new_state.context.id
                     or (adapt_switch is not None and adapt_switch._alt_detect_method)
                 )
             ):
                 # If there is already a state change event from this event (with this
                 # context) then append it to the already existing list.
                 _LOGGER.debug(
-                    "State change event of '%s' is already in 'self.all_state_changes' (%s)"
+                    "State change event of '%s' is already in 'self.last_state_change' (%s)"
                     " adding this state also",
                     entity_id,
                     new_state.context.id,
                 )
-                self.all_state_changes[entity_id].append(new_state)
+                self.last_state_change[entity_id].append(new_state)
             else:
-                self.all_state_changes[entity_id] = [new_state]
+                self.last_state_change[entity_id] = [new_state]
 
     async def significant_change(
         self,
@@ -1779,13 +1784,13 @@ class TurnOnOffListener:
         detected, we mark the light as 'manually controlled' until the light
         or switch is turned 'off' and 'on' again.
         """
-        if light not in self.all_state_changes:
+        if light not in self.last_state_change:
             return False
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return
 
-        old_states: list[State] = self.all_state_changes[light]
+        old_states: list[State] = self.last_state_change[light]
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
@@ -1835,7 +1840,7 @@ class TurnOnOffListener:
             # TODO: check if reporting is on automatically and warn user to prevent issue threads.
             _LOGGER.debug(
                 "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
-                "and check if it's last adapt succeeded.",
+                " and check if it's last adapt succeeded.",
                 switch._name,
                 light,
             )
@@ -1871,20 +1876,23 @@ class TurnOnOffListener:
         context: Context,
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
+        _LOGGER.debug("IS MANUALLY CONTROLLED?")
         manual_control = self.manual_control.setdefault(light, False)
         if manual_control:
             # Manually controlled until light is turned on and off
             return True
-
+        _LOGGER.debug("NOT MANUAL")
+        _LOGGER.debug("ADAPT_BRIGHTNESS: %s", adapt_brightness)
+        _LOGGER.debug("ADAPT_COLOR: %s", adapt_color)
         turn_on_event = self.turn_on_event.get(light)
         if turn_on_event is not None and not is_our_context(turn_on_event.context):
+            _LOGGER.debug("IS OUR CONTEXT")
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
                     " adaptive_lighting integration (context.id='%s'), the Adaptive"
@@ -1893,6 +1901,7 @@ class TurnOnOffListener:
                     light,
                     turn_on_event.context.id,
                 )
+                _fire_manual_control_event(switch, light, turn_on_event.context)
                 return True
         return manual_control
 
