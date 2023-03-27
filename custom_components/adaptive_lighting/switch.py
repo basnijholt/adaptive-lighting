@@ -547,9 +547,10 @@ async def async_setup_entry(
     )
 
     args = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
+    # Modifying these after init isn't possible
+    skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
     for k, _, valid in VALIDATION_TUPLES:
-        # Modifying these after initialization isn't possible
-        if k not in (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS):
+        if k not in skip:
             args[vol.Optional(k)] = valid
     platform = entity_platform.current_platform.get()
     platform.async_register_entity_service(
