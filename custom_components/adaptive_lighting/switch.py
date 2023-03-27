@@ -431,18 +431,19 @@ async def async_setup_entry(
             else:
                 all_lights = _expand_light_groups(this_switch.hass, lights)
             this_switch.turn_on_off_listener.lights.update(all_lights)
-            await this_switch._adapt_lights(  # pylint: disable=protected-access
-                all_lights,
-                data[CONF_TRANSITION],
-                force=True,
-                context=this_switch.create_context(
-                    "service",
-                    parent=service_call.context,
-                ),
-                adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
-                adapt_color=data[ATTR_ADAPT_COLOR],
-                prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
-            )
+            if data[CONF_TURN_ON_LIGHTS]:
+                await this_switch._adapt_lights(  # pylint: disable=protected-access
+                    all_lights,
+                    data[CONF_TRANSITION],
+                    force=True,
+                    context=this_switch.create_context(
+                        "service",
+                        parent=service_call.context,
+                    ),
+                    adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
+                    adapt_color=data[ATTR_ADAPT_COLOR],
+                    prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
+                )
 
     @callback
     async def handle_set_manual_control(service_call: ServiceCall):
@@ -902,8 +903,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
-        for light in all_lights:
-            self._manual_lights[light] = {"timer": 0}
         self.turn_on_off_listener.lights.update(all_lights)
         self._lights = list(all_lights)
 
@@ -992,7 +991,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if adapt_lights:
             await self._update_attrs_and_maybe_adapt_lights(
                 transition=self._initial_transition,
-                force=False,  # manual change detection not run when True.
+                force=True,  # manual change detection not run when True.
                 context=self.create_context("turn_on"),
             )
 
