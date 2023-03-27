@@ -1368,7 +1368,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                             light,
                             context.id,
                         )
-                        continue
                 if self._detect_non_ha_changes or self._alt_detect_method:
                     if await self.turn_on_off_listener.significant_change(
                         self,
