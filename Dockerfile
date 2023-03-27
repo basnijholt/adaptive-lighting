@@ -15,7 +15,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
-RUN git clone https://github.com/home-assistant/core.git /core
+RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
 
 # Install home-assistant/core dependencies
 RUN pip3 install -r /core/requirements.txt --use-pep517 && \
