@@ -747,67 +747,6 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
-    def _set_changeable_settings(
-        self,
-        data: dict,
-        defaults: dict,
-    ):
-        # Only pass settings users can change during runtime
-        data = validate(
-            config_entry=None,
-            data=data,
-            defaults=defaults,
-        )
-
-        # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
-        self._current_settings = data
-
-        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
-        self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
-        self._initial_transition = data[CONF_INITIAL_TRANSITION]
-        self._sleep_transition = data[CONF_SLEEP_TRANSITION]
-        self._only_once = data[CONF_ONLY_ONCE]
-        self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
-        self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
-        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
-        self._transition = data[CONF_TRANSITION]
-        self._adapt_delay = data[CONF_ADAPT_DELAY]
-        self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
-        _loc = get_astral_location(self.hass)
-        if isinstance(_loc, tuple):
-            # Astral v2.2
-            location, _ = _loc
-        else:
-            # Astral v1
-            location = _loc
-
-        self._sun_light_settings = SunLightSettings(
-            name=self._name,
-            astral_location=location,
-            max_brightness=data[CONF_MAX_BRIGHTNESS],
-            max_color_temp=data[CONF_MAX_COLOR_TEMP],
-            min_brightness=data[CONF_MIN_BRIGHTNESS],
-            min_color_temp=data[CONF_MIN_COLOR_TEMP],
-            sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
-            sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
-            sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
-            sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
-            sunrise_offset=data[CONF_SUNRISE_OFFSET],
-            sunrise_time=data[CONF_SUNRISE_TIME],
-            max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
-            sunset_offset=data[CONF_SUNSET_OFFSET],
-            sunset_time=data[CONF_SUNSET_TIME],
-            min_sunset_time=data[CONF_MIN_SUNSET_TIME],
-            time_zone=self.hass.config.time_zone,
-            transition=data[CONF_TRANSITION],
-        )
-        _LOGGER.debug(
-            "%s: Set switch settings for lights '%s'. now using data: '%s'",
-            self._name,
-            self._lights,
-            data,
-        )
-
     def __init__(
         self,
         hass,
@@ -874,6 +813,67 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._lights,
             config_entry.data,
             config_entry.options,
+            data,
+        )
+
+    def _set_changeable_settings(
+        self,
+        data: dict,
+        defaults: dict,
+    ):
+        # Only pass settings users can change during runtime
+        data = validate(
+            config_entry=None,
+            data=data,
+            defaults=defaults,
+        )
+
+        # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
+        self._current_settings = data
+
+        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
+        self._initial_transition = data[CONF_INITIAL_TRANSITION]
+        self._sleep_transition = data[CONF_SLEEP_TRANSITION]
+        self._only_once = data[CONF_ONLY_ONCE]
+        self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
+        self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
+        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
+        self._transition = data[CONF_TRANSITION]
+        self._adapt_delay = data[CONF_ADAPT_DELAY]
+        self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+        _loc = get_astral_location(self.hass)
+        if isinstance(_loc, tuple):
+            # Astral v2.2
+            location, _ = _loc
+        else:
+            # Astral v1
+            location = _loc
+
+        self._sun_light_settings = SunLightSettings(
+            name=self._name,
+            astral_location=location,
+            max_brightness=data[CONF_MAX_BRIGHTNESS],
+            max_color_temp=data[CONF_MAX_COLOR_TEMP],
+            min_brightness=data[CONF_MIN_BRIGHTNESS],
+            min_color_temp=data[CONF_MIN_COLOR_TEMP],
+            sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
+            sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
+            sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
+            sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
+            sunrise_offset=data[CONF_SUNRISE_OFFSET],
+            sunrise_time=data[CONF_SUNRISE_TIME],
+            max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
+            sunset_offset=data[CONF_SUNSET_OFFSET],
+            sunset_time=data[CONF_SUNSET_TIME],
+            min_sunset_time=data[CONF_MIN_SUNSET_TIME],
+            time_zone=self.hass.config.time_zone,
+            transition=data[CONF_TRANSITION],
+        )
+        _LOGGER.debug(
+            "%s: Set switch settings for lights '%s'. now using data: '%s'",
+            self._name,
+            self._lights,
             data,
         )
 
