@@ -110,7 +110,7 @@ adaptive_lighting:
 
 ### Services
 
-`adaptive_lighting.**apply**` applies Adaptive Lighting settings to lights on demand.
+`adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
 
 | Service data attribute | Optional | Description                                                                                  |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
@@ -131,6 +131,12 @@ adaptive_lighting:
 | `manual_control`       | yes      | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
+
+| Service data attribute                            | Description                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `use_defaults`                                    | Either `"current"`, `"configuration"`, or `"factory"`, default `"current"`                        |
+| all other keys except the ones in the table below | See above, you may call `adaptive_lighting.apply` with your lights or create a new config instead |
+
 
 | **DISALLOWED** service data | Description                                                                                       |
 | --------------------------- | ------------------------------------------------------------------------------------------------- |
