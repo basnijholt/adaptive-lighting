@@ -1130,8 +1130,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if not is_on(self.hass, light):
                 continue
             if not force:
-                # detect HA 'light.turn_on' calls.
                 if (
+                    # detect HA 'light.turn_on' calls.
                     self._take_over_control
                     and self.turn_on_off_listener.is_manually_controlled(
                         self,
@@ -1152,7 +1152,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                 ):
                     # non-async calls not needed anymore with update.
-                    _fire_manual_control_event(self, light, context)
+                    _fire_manual_control_event(self, light, context, is_async=False)
                     continue
             await self._adapt_light(light, transition, force=force, context=context)
 
