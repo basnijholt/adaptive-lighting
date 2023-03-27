@@ -1119,8 +1119,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lock is not None and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
-        service_data = {ATTR_ENTITY_ID: light}
-        features = _supported_features(self.hass, light)
 
         if transition is None:
             transition = self._transition
@@ -1131,13 +1129,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
 
-        if "transition" in features:
-            service_data[ATTR_TRANSITION] = transition
-
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on, transition
         )
+
+        # This check is unnecessary.
+        context = context or self.create_context("adapt_lights")
+
+        # Build service data.
+        service_data = {ATTR_ENTITY_ID: light}
+        features = _supported_features(self.hass, light)
+
+        # If there is a transition, mark the time we started adapting this light
+        # then the next time we start adapting, compare to the last timestamp.
+        # used only when strict_adapting==False
+        if "transition" in features:
+            service_data[ATTR_TRANSITION] = transition
+            self._transition_timer = perf_counter()
 
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
@@ -1161,24 +1170,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
-            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
-            service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
-
-        context = context or self.create_context("adapt_lights")
-        if (
-            self._take_over_control
-            and self._detect_non_ha_changes
-            and not force
-            and await self.turn_on_off_listener.significant_change(
-                self,
-                light,
-                adapt_brightness,
-                adapt_color,
-                context,
+            rgb_color = self._settings["rgb_color"]
+            _LOGGER.debug(
+                "%s: Setting rgb_color of light %s to ", self._name, light, rgb_color
             )
-        ):
-            return
+            service_data[ATTR_RGB_COLOR] = rgb_color
+
+        self._transition_timer = 0
+
         self.turn_on_off_listener.last_service_data[light] = service_data
+
+        # this check shouldn't need to exist but I've defined {"timer": 0}
+        # everywhere I can think of already.
+        if self._manual_lights.get(light) is None:
+            self._manual_lights[light] = {"timer": 0}
+
+        self._manual_lights[light]["timer"] = 0
 
         async def turn_on(service_data):
             _LOGGER.debug(
