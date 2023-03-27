@@ -1134,9 +1134,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         for light in lights:
-            if not is_on(self.hass, light):
-                continue
             if not force:
+                if not is_on(self.hass, light):
+                    continue
                 if (
                     # detect HA 'light.turn_on' calls.
                     self._take_over_control
@@ -1166,8 +1166,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                     _fire_manual_control_event(self, light, context, is_async=False)
                     continue
-                else:
-                    _LOGGER.debug("Did not set manual control")
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
