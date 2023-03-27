@@ -1,5 +1,5 @@
 # Run the following command in the adaptive-lighting repo folder to run the tests:
-# docker run -v $(pwd):/app adaptive-lighting
+# docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
 
 # Optionally build the image yourself with:
 # docker build -t basnijholt/adaptive-lighting:latest .
@@ -33,4 +33,23 @@ RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
 
 WORKDIR /core
 
-CMD ["python3", "-X", "dev", "-m", "pytest", "-qq", "--timeout=9", "--durations=10", "--cov='homeassistant'", "--cov-report=xml", "-o", "console_output_style=count", "tests/components/adaptive_lighting"]
+CMD ["python3", \
+    # Enable Python development mode
+    "-X", "dev", \
+    # Run pytest
+    "-m", "pytest", \
+    # Verbose output
+    "-vvv", \
+    # Set a timeout of 9 seconds per test
+    "--timeout=9", \
+    # Print the 10 slowest tests
+    "--durations=10", \
+    # Measure code coverage for the 'homeassistant' package
+    "--cov='homeassistant'", \
+    # Generate an XML report of the code coverage
+    "--cov-report=xml", \
+    # Print a count of test results in the console
+    "-o", "console_output_style=count", \
+    # Run tests in the 'tests/components/adaptive_lighting' directory
+    "tests/components/adaptive_lighting" \
+    ]
