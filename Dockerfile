@@ -12,10 +12,11 @@ FROM python:3.11-buster
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
+    build-essential libssl-dev libffi-dev python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
-RUN git clone https://github.com/home-assistant/core.git /core
+RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
 
 # Install home-assistant/core dependencies
 RUN pip3 install -r /core/requirements.txt --use-pep517 && \
@@ -36,7 +37,7 @@ RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
 
 WORKDIR /core
 
-CMD ["python3", \
+ENTRYPOINT ["python3", \
     # Enable Python development mode
     "-X", "dev", \
     # Run pytest
@@ -51,8 +52,14 @@ CMD ["python3", \
     "--cov='homeassistant'", \
     # Generate an XML report of the code coverage
     "--cov-report=xml", \
+    # Generate an HTML report of the code coverage
+    "--cov-report=html", \
+    # Print a summary of the code coverage in the console
+    "--cov-report=term", \
+    # Print logs in color
+    "--color=yes", \
     # Print a count of test results in the console
-    "-o", "console_output_style=count", \
-    # Run tests in the 'tests/components/adaptive_lighting' directory
-    "tests/components/adaptive_lighting" \
-    ]
+    "-o", "console_output_style=count"]
+
+# Run tests in the 'tests/components/adaptive_lighting' directory
+CMD ["tests/components/adaptive_lighting"]
