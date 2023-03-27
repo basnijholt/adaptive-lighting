@@ -560,19 +560,24 @@ async def async_setup_entry(
     )
 
 
-def validate(config_entry: ConfigEntry, **kwargs):
+def validate(
+    config_entry: ConfigEntry,
+    service_data: dict[str, Any] | None = None,
+    defaults: dict[str, Any] | None = None,
+):
     """Get the options and data from the config_entry and add defaults."""
-    # defaults and data will exist only if this is called from change_switch_settings
-    defaults = kwargs.get("defaults")
     if defaults is None:
-        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+        data = {key: default for key, default, _ in VALIDATION_TUPLES}
+    else:
+        data = defaults
 
-    data = deepcopy(defaults)
     if config_entry is not None:
+        assert service_data is None
+        assert defaults is None
         data.update(config_entry.options)  # come from options flow
         data.update(config_entry.data)  # all yaml settings come from data
     else:
-        service_data = kwargs["data"]
+        assert service_data is not None
         data.update(service_data)
     data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate_value, _) in EXTRA_VALIDATION.items():
@@ -820,7 +825,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Only pass settings users can change during runtime
         data = validate(
             config_entry=None,
-            data=data,
+            service_data=data,
             defaults=defaults,
         )
 
