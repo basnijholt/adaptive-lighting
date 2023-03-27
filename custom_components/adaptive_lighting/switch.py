@@ -436,12 +436,12 @@ async def async_setup_entry(
                 data[CONF_TRANSITION],
                 force=True,
                 context=this_switch.create_context(
-                    data[ATTR_ADAPT_BRIGHTNESS],
-                    data[ATTR_ADAPT_COLOR],
-                    data[CONF_PREFER_RGB_COLOR],
                     "service",
                     parent=service_call.context,
                 ),
+                adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
+                adapt_color=data[ATTR_ADAPT_COLOR],
+                prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
             )
 
     @callback
