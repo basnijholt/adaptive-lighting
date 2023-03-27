@@ -1128,7 +1128,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         for light in lights:
-            if not force and not is_on(self.hass, light):
+            if force or not is_on(self.hass, light):
                 continue
             # detect HA 'light.turn_on' calls.
             if (
