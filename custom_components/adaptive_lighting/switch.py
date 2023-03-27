@@ -1891,6 +1891,7 @@ class TurnOnOffListener:
                     light,
                     turn_on_event.context.id,
                 )
+                return True
         return manual_control
 
     async def maybe_cancel_adjusting(
