@@ -1262,6 +1262,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         transition: int | None,
         force: bool,
         context: Context | None,
+        adapt_brightness: bool | None = None,
+        adapt_color: bool | None = None,
+        prefer_rgb_color: bool | None = None,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
@@ -1272,6 +1275,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force,
             context.id,
         )
+
+        if adapt_brightness is None:
+            adapt_brightness = self.adapt_brightness_switch.is_on
+        if adapt_color is None:
+            adapt_color = self.adapt_color_switch.is_on
+        if prefer_rgb_color is None:
+            prefer_rgb_color = self._prefer_rgb_color
+
         for light in lights:
             if not is_on(self.hass, light):
                 continue
@@ -1286,11 +1297,27 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                 ):
                     _LOGGER.debug(
-                        "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
+                        "%s: HA 'light.turn_on' detected on '%s', stop adapting, context.id=%s.",
                         self._name,
                         light,
                         context.id,
                     )
+                elif (
+                    self._detect_non_ha_changes or self._alt_detect_method
+                ) and await self.turn_on_off_listener.significant_change(
+                    self,
+                    light,
+                    adapt_brightness,
+                    adapt_color,
+                    context,
+                ):
+                    _LOGGER.debug(
+                        "%s: Non HA light change detected on '%s', stop adapting, context.id=%s.",
+                        self._name,
+                        light,
+                        context.id,
+                    )
+                    _fire_manual_control_event(self, light, context, is_async=False)
                     continue
             await self._adapt_light(light, transition, force=force, context=context)
 
