@@ -22,6 +22,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
+    CONF_USE_DEFAULTS,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
@@ -967,3 +968,19 @@ async def test_change_switch_settings_service(hass):
         match="value must be at most 100 for dictionary",
     ):
         await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
+
+    # Change CONF_MIN_COLOR_TEMP, the factory default is 2000, but setup_lights_and_switch
+    # sets it to 2500
+    assert switch._sun_light_settings.min_color_temp == 2500
+
+    # testing with "factory" should change it to 2000
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    assert switch._sun_light_settings.min_color_temp == 2000
+
+    # testing with "current" should not change things
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "current"})
+    assert switch._sun_light_settings.min_color_temp == 2000
+
+    # testing with "configuration" should revert back to 2500
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
+    assert switch._sun_light_settings.min_color_temp == 2500
