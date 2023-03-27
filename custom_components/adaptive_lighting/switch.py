@@ -992,7 +992,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if adapt_lights:
             await self._update_attrs_and_maybe_adapt_lights(
                 transition=self._initial_transition,
-                force=True,
+                force=False,  # manual change detection not run when True.
                 context=self.create_context("turn_on"),
             )
 
@@ -1137,7 +1137,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                         adapt_brightness,
                         adapt_color,
-                        prefer_rgb_color,
                         context,
                     )
                     # detect non HA changes to light.
@@ -1277,9 +1276,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         # Reset the manually controlled status when the "sleep mode" changes
         self.turn_on_off_listener.reset(*self._lights)
+
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._sleep_transition,
-            force=True,
+            force=False,  # fix manual change detection during sleep mode in original code.
             context=self.create_context("sleep", parent=event.context),
         )
 
