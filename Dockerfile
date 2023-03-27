@@ -37,7 +37,7 @@ RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
 
 WORKDIR /core
 
-CMD ["python3", \
+ENTRYPOINT ["python3", \
     # Enable Python development mode
     "-X", "dev", \
     # Run pytest
@@ -59,7 +59,7 @@ CMD ["python3", \
     # Print logs in color
     "--color=yes", \
     # Print a count of test results in the console
-    "-o", "console_output_style=count", \
-    # Run tests in the 'tests/components/adaptive_lighting' directory
-    "tests/components/adaptive_lighting" \
-    ]
+    "-o", "console_output_style=count"]
+
+# Run tests in the 'tests/components/adaptive_lighting' directory
+CMD ["tests/components/adaptive_lighting"]
