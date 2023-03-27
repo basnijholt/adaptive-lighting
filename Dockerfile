@@ -12,6 +12,7 @@ FROM python:3.11-buster
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
+    build-essential libssl-dev libffi-dev python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
