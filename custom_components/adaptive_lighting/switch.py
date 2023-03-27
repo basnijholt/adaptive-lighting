@@ -12,6 +12,7 @@ from datetime import timedelta
 import functools
 import logging
 import math
+from time import perf_counter
 from typing import Any, Literal
 
 import astral
@@ -97,6 +98,8 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_ALT_DETECT_METHOD,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -118,6 +121,7 @@ from .const import (
     CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
+    CONF_STRICT_ADAPTING,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
@@ -771,6 +775,27 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
         self._current_settings = data
 
+        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
+        self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
+        self._strict_adapting = data[CONF_STRICT_ADAPTING]
+        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        if not data[CONF_TAKE_OVER_CONTROL] and (
+            not data[CONF_STRICT_ADAPTING]
+            or data[CONF_ALT_DETECT_METHOD]
+            or data[CONF_DETECT_NON_HA_CHANGES]
+        ):
+            _LOGGER.warn(
+                "%s: Config mismatch: 'alt_detect_method: true', 'strict_adapting: false',"
+                " OR 'detect_non_ha_changes: true' are set in config, however required"
+                " variable 'take_over_control' is turned off. Please check your"
+                " configuration to ensure desired functionality. We will now"
+                " enable 'take_over_control' and continue setting up the"
+                " adaptive-lighting integration normally.",
+                self._name,
+            )
+            self._take_over_control = True
+
+        self._autoreset_control_time = data[CONF_AUTORESET_CONTROL]
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
@@ -1136,6 +1161,68 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
 
+    # Not precise, checked every `interval`
+    async def _maybe_reset_manual_control(
+        self,
+        now: list[str] | None = None,
+    ):
+        for light in self._lights:
+            if self._manual_lights[light]["timer"] == 0:
+                continue
+            time_elapsed = perf_counter() - self._manual_lights[light]["timer"]
+            time_remaining = self._autoreset_control_time - time_elapsed
+            _LOGGER.debug(
+                "check manual control reset. time: %s, timer: %s elapsed: %s, remaining: %s",
+                self._autoreset_control_time,
+                self._manual_lights[light]["timer"],
+                time_elapsed,
+                time_remaining,
+            )
+            if time_remaining <= 0:
+                _LOGGER.debug("DISABLING manual control for lights %s", self._lights)
+                self.turn_on_off_listener.reset(*self._lights)
+
+    # Fixes #447 (and #430 with 'alt_detect_method: true' set)
+    # if we are in the middle of a transition, sleep until that transition finishes.
+    # Needed so we can check if the previous adapt attempt succeeded after the
+    # transition finalizes the new state.
+    # Someone with a better understanding of async usage could clean this up, not
+    # sure if it's safe to check a variable in another thread.
+    # The '_transitioning' variable is simply set to prevent buildups of multiple
+    # calls to this function all running at once after a long transition finishes
+    # with a short interval set.
+    async def _async_wait_transitions(self, now=None) -> bool:
+        if self._transitioning:
+            return True
+        last_service_data = self.turn_on_off_listener.last_service_data
+        if not last_service_data or ATTR_TRANSITION not in last_service_data:
+            return False
+        while (
+            self._transition_timer != 0
+            and (perf_counter() - self._transition_timer)
+            < last_service_data[ATTR_TRANSITION]
+        ):
+            time_remaining = last_service_data[ATTR_TRANSITION] - (
+                perf_counter() - self._transition_timer
+            )
+            _LOGGER.debug(
+                "Sleeping for %s more seconds before adapting lights [%s]",
+                (
+                    last_service_data[ATTR_TRANSITION]
+                    - (perf_counter() - self._transition_timer)
+                ),
+                self._lights,
+            )
+            self._transitioning = True
+            await asyncio.sleep(
+                1 - 10 ** (-1 * math.log(10**time_remaining, 10))
+            )  # could also asyncio.sleep(0) without the logging above.
+            # alternately precision 10838 is the max
+        await asyncio.sleep(
+            0.2
+        )  # wait a short but guaranteed longer time than transition.
+        self._transitioning = False
+
     async def _update_attrs_and_maybe_adapt_lights(
         self,
         lights: list[str] | None = None,
@@ -1158,8 +1245,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
         if lights is None:
             lights = self._lights
-        if (self._only_once and not force) or not lights:
-            return
+        if self._autoreset_control_time > 0:
+            await self._maybe_reset_manual_control(lights)
+        if not force:
+            if self._only_once or await self._async_wait_transitions(lights):
+                return
+
         await self._adapt_lights(lights, transition, force, context)
 
     async def _adapt_lights(
