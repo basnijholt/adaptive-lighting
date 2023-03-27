@@ -365,12 +365,10 @@ async def handle_change_switch_settings(
     which = data.get(CONF_USE_DEFAULTS, "current")
     if which == "current":  # use whatever we're already using.
         defaults = switch._current_settings  # pylint: disable=protected-access
-    # not needed since validate() does this part for us
     elif which == "factory":  # use actual defaults listed in the documentation
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-    elif (
-        which == "configuration"
-    ):  # use whatever's in the config flow or configuration.yaml
+    elif which == "configuration":
+        # use whatever's in the config flow or configuration.yaml
         defaults = switch._config_backup  # pylint: disable=protected-access
     else:
         defaults = None
@@ -387,15 +385,13 @@ async def handle_change_switch_settings(
 
     all_lights = switch._lights  # pylint: disable=protected-access
     switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
-    # pylint: disable=protected-access
     if switch.is_on:
-        await switch._update_attrs_and_maybe_adapt_lights(
+        await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
             all_lights,
             transition=switch._initial_transition,
             force=True,
             context=switch.create_context("service", parent=service_call.context),
         )
-    # pylint: enable=protected-access
 
 
 @callback
@@ -557,8 +553,8 @@ async def async_setup_entry(
 
     args = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
     for k, _, valid in VALIDATION_TUPLES:
-        # Modifying these after initialization isn't possible (yet)
-        if k != CONF_INTERVAL and k != CONF_NAME and k != CONF_LIGHTS:
+        # Modifying these after initialization isn't possible
+        if k not in (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS):
             args[vol.Optional(k)] = valid
     platform = entity_platform.current_platform.get()
     platform.async_register_entity_service(
@@ -572,20 +568,15 @@ def validate(config_entry: ConfigEntry, **kwargs):
     """Get the options and data from the config_entry and add defaults."""
     # defaults and data will exist only if this is called from change_switch_settings
     defaults = kwargs.get("defaults")
-    service_data = kwargs.get("data")
     if defaults is None:
         defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+
+    data = deepcopy(defaults)
     if config_entry is not None:
-        # Is this deepcopy necessary?
-        # We're already creating a new array for the defaults variable...
-        # afterwards defaults is never used again.
-        data = deepcopy(defaults)
         data.update(config_entry.options)  # come from options flow
         data.update(config_entry.data)  # all yaml settings come from data
     else:
-        # no idea how to clear original data from memory
-        # hopefully it does it automatically, otherwise TODO.
-        data = deepcopy(defaults)
+        service_data = kwargs["data"]
         data.update(service_data)
     data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate_value, _) in EXTRA_VALIDATION.items():
@@ -761,7 +752,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         data: dict,
         defaults: dict,
     ):
-        # Should only contain the settings we want the users to be able to change during runtime.
+        # Only pass settings users can change during runtime
         data = validate(
             config_entry=None,
             data=data,
@@ -827,8 +818,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness_switch: SimpleSwitch,
     ):
         """Initialize the Adaptive Lighting switch."""
-        # Set attributes we DON'T want users modifying
-        # during runtime here.
+        # Set attributes that can't be modified during runtime
         self.hass = hass
         self.turn_on_off_listener = turn_on_off_listener
         self.sleep_mode_switch = sleep_mode_switch
