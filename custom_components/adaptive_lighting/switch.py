@@ -72,7 +72,7 @@ from homeassistant.core import (
     State,
     callback,
 )
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import entity_platform, entity_registry
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -560,6 +560,7 @@ async def async_setup_entry(
         # Modifying these after initialization isn't possible (yet)
         if k != CONF_INTERVAL and k != CONF_NAME and k != CONF_LIGHTS:
             args[vol.Optional(k)] = valid
+    platform = entity_platform.current_platform.get()
     platform.async_register_entity_service(
         SERVICE_CHANGE_SWITCH_SETTINGS,
         args,
