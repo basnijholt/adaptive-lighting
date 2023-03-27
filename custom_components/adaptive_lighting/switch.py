@@ -500,8 +500,8 @@ async def async_setup_entry(
                     _fire_manual_control_event(this_switch, light, service_call.context)
             else:
                 this_switch.turn_on_off_listener.reset(*all_lights)
-                # pylint: disable=protected-access
                 if this_switch.is_on:
+                    # pylint: disable=protected-access
                     await this_switch._update_attrs_and_maybe_adapt_lights(
                         all_lights,
                         transition=this_switch._initial_transition,
