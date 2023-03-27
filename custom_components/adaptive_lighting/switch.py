@@ -1151,7 +1151,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context,
                     )
                 ):
+                    # non-async calls not needed anymore with update.
                     _fire_manual_control_event(self, light, context)
+                    continue
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
