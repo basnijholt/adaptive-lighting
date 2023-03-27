@@ -13,6 +13,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
+    CONF_MAX_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_PREFER_RGB_COLOR,
     CONF_SEPARATE_TURN_ON_COMMANDS,
@@ -27,6 +28,7 @@ from homeassistant.components.adaptive_lighting.const import (
     DEFAULT_SLEEP_COLOR_TEMP,
     DOMAIN,
     SERVICE_APPLY,
+    SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
@@ -65,6 +67,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
+import voluptuous.error
 
 from tests.common import MockConfigEntry, mock_area_registry
 from tests.components.demo.test_light import ENTITY_LIGHT
@@ -928,3 +931,39 @@ async def test_area(hass):
         switch.turn_on_off_listener.last_service_data,
     )
     assert light.entity_id not in switch.turn_on_off_listener.last_service_data
+
+
+async def test_change_switch_settings_service(hass):
+    """Test adaptive_lighting.change_switch_settings service."""
+    switch, (_, _, light) = await setup_lights_and_switch(hass)
+    entity_id = light.entity_id
+    assert entity_id not in switch._lights
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                **kwargs,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    # Test changing sunrise offset
+    assert switch._sun_light_settings.sunrise_offset.total_seconds() == 0
+    await change_switch_settings(**{CONF_SUNRISE_OFFSET: 10})
+    assert switch._sun_light_settings.sunrise_offset.total_seconds() == 10
+
+    # Test changing max brightness
+    assert switch._sun_light_settings.max_brightness == 100
+    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 50})
+    assert switch._sun_light_settings.max_brightness == 50
+
+    # Test changing to illegal max brightness
+    with pytest.raises(
+        voluptuous.error.MultipleInvalid,
+        match="value must be at most 100 for dictionary",
+    ):
+        await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
