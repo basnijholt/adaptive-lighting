@@ -223,7 +223,6 @@ async def test_adaptive_lighting_switches(hass):
     assert ADAPT_COLOR_SWITCH in data
     assert ADAPT_BRIGHTNESS_SWITCH in data
     assert UNDO_UPDATE_LISTENER in data
-    assert "instance" in data
 
     assert len(data.keys()) == 6
 
