@@ -366,6 +366,7 @@ def _fire_manual_control_event(
         light,
     )
     switch._manual_lights[light]["timer"] = perf_counter()
+    switch.turn_on_off_listener.manual_control = True
     fire(
         f"{DOMAIN}.manual_control",
         {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
@@ -459,7 +460,6 @@ async def async_setup_entry(
                 all_lights = _expand_light_groups(this_switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    this_switch.turn_on_off_listener.manual_control[light] = True
                     _fire_manual_control_event(this_switch, light, service_call.context)
             else:
                 this_switch.turn_on_off_listener.reset(*all_lights)
@@ -1148,7 +1148,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context,
                     )
                 ):
-                    self.manual_control[light] = True
                     _fire_manual_control_event(self, light, context, is_async=False)
                     continue
 
@@ -1879,7 +1878,6 @@ class TurnOnOffListener:
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = self.manual_control[light] = True
                 _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
