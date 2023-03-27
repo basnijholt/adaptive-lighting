@@ -1124,38 +1124,36 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Probably unnecessary double check but existed in the original code.
         if lights is None:
             lights = self._lights
-
         if not lights:
             return
 
-        if not force:
-            for light in lights:
-                if not is_on(self.hass, light):
-                    continue
-                # detect HA 'light.turn_on' calls.
-                if (
-                    self._take_over_control
-                    and self.turn_on_off_listener.is_manually_controlled(
-                        self,
-                        light,
-                        self.adapt_brightness_switch.is_on,
-                        self.adapt_color_switch.is_on,
-                        context,
-                    )
-                ) or (
-                    (self._detect_non_ha_changes or self._alt_detect_method)
-                    and await self.turn_on_off_listener.significant_change(
-                        self,
-                        light,
-                        self.adapt_brightness_switch.is_on,
-                        self.adapt_color_switch.is_on,
-                        context,
-                    )
-                ):
-                    _fire_manual_control_event(self, light, context, is_async=False)
-                    continue
-
-                await self._adapt_light(light, transition, force=force, context=context)
+        for light in lights:
+            if not force and not is_on(self.hass, light):
+                continue
+            # detect HA 'light.turn_on' calls.
+            if (
+                self._take_over_control
+                and self.turn_on_off_listener.is_manually_controlled(
+                    self,
+                    light,
+                    self.adapt_brightness_switch.is_on,
+                    self.adapt_color_switch.is_on,
+                    context,
+                )
+                # detect non HA changes to light.
+            ) or (
+                (self._detect_non_ha_changes or self._alt_detect_method)
+                and await self.turn_on_off_listener.significant_change(
+                    self,
+                    light,
+                    self.adapt_brightness_switch.is_on,
+                    self.adapt_color_switch.is_on,
+                    context,
+                )
+            ):
+                _fire_manual_control_event(self, light, context, is_async=False)
+                continue
+            await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
         self,
