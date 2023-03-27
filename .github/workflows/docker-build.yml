@@ -25,5 +25,5 @@ jobs:
           # Only push on the master branch
           push: ${{ github.ref == 'refs/heads/master' }}
           # TODO: fix builds on linux/arm64,linux/arm/v7
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64/v8
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-lighting:latest
