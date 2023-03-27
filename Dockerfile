@@ -52,6 +52,12 @@ CMD ["python3", \
     "--cov='homeassistant'", \
     # Generate an XML report of the code coverage
     "--cov-report=xml", \
+    # Generate an HTML report of the code coverage
+    "--cov-report=html", \
+    # Print a summary of the code coverage in the console
+    "--cov-report=term", \
+    # Print logs in color
+    "--color=yes", \
     # Print a count of test results in the console
     "-o", "console_output_style=count", \
     # Run tests in the 'tests/components/adaptive_lighting' directory
