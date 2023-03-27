@@ -1136,8 +1136,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 and self.turn_on_off_listener.is_manually_controlled(
                     self,
                     light,
-                    self.adapt_brightness_switch.is_on,
-                    self.adapt_color_switch.is_on,
+                    adapt_brightness,
+                    adapt_color,
+                    prefer_rgb_color,
                     context,
                 )
                 # detect non HA changes to light.
@@ -1146,8 +1147,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 and await self.turn_on_off_listener.significant_change(
                     self,
                     light,
-                    self.adapt_brightness_switch.is_on,
-                    self.adapt_color_switch.is_on,
+                    adapt_brightness,
+                    adapt_color,
+                    prefer_rgb_color,
                     context,
                 )
             ):
