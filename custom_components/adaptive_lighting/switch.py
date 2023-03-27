@@ -1128,33 +1128,32 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         for light in lights:
-            if force or not is_on(self.hass, light):
-                continue
-            # detect HA 'light.turn_on' calls.
-            if (
-                self._take_over_control
-                and self.turn_on_off_listener.is_manually_controlled(
-                    self,
-                    light,
-                    adapt_brightness,
-                    adapt_color,
-                    prefer_rgb_color,
-                    context,
-                )
-                # detect non HA changes to light.
-            ) or (
-                (self._detect_non_ha_changes or self._alt_detect_method)
-                and await self.turn_on_off_listener.significant_change(
-                    self,
-                    light,
-                    adapt_brightness,
-                    adapt_color,
-                    prefer_rgb_color,
-                    context,
-                )
-            ):
-                _fire_manual_control_event(self, light, context, is_async=False)
-                continue
+            if not force and is_on(self.hass, light):
+                # detect HA 'light.turn_on' calls.
+                if (
+                    self._take_over_control
+                    and self.turn_on_off_listener.is_manually_controlled(
+                        self,
+                        light,
+                        adapt_brightness,
+                        adapt_color,
+                        prefer_rgb_color,
+                        context,
+                    )
+                    # detect non HA changes to light.
+                ) or (
+                    (self._detect_non_ha_changes or self._alt_detect_method)
+                    and await self.turn_on_off_listener.significant_change(
+                        self,
+                        light,
+                        adapt_brightness,
+                        adapt_color,
+                        prefer_rgb_color,
+                        context,
+                    )
+                ):
+                    _fire_manual_control_event(self, light, context, is_async=False)
+                    continue
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
