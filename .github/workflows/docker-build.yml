@@ -26,4 +26,4 @@ jobs:
           push: ${{ github.ref == 'refs/heads/master' }}
           # TODO: fix builds on linux/arm64,linux/arm/v7
           platforms: linux/amd64
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/home-assistant-streamdeck-yaml:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-lighting:latest
