@@ -558,7 +558,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
-    supported_features = state.attributes[ATTR_SUPPORTED_FEATURES]
+    supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
     supported = {
         key for key, value in _SUPPORT_OPTS.items() if supported_features & value
     }
@@ -752,6 +752,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         data = validate(config_entry)
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
+        self._manual_lights = {}
+        all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
+            self._manual_lights[light] = {"timer": 0}
 
         for light in data[CONF_LIGHTS]:
             if not hasattr(self.turn_on_off_listener, "_switches"):
@@ -826,10 +830,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._transition_timer = 0
         self._transitioning = False
-        self._manual_lights = {}
-        all_lights = _expand_light_groups(self.hass, self._lights)
-        for light in all_lights:
-            self._manual_lights[light] = {"timer": 0}
 
         # Tracks 'off' → 'on' state changes
         self._on_to_off_event: dict[str, Event] = {}
@@ -905,6 +905,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         all_lights = _expand_light_groups(self.hass, self._lights)
         self.turn_on_off_listener.lights.update(all_lights)
         self._lights = list(all_lights)
+        all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
+            self._manual_lights[light] = {"timer": 0}
 
     async def _setup_listeners(self, _=None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
@@ -1094,9 +1097,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
         if self._autoreset_control_time > 0:
             await self._maybe_reset_manual_control(lights)
-        if not force:
-            if self._only_once or await self._async_wait_transitions(lights):
-                return
+        if not force and (
+            self._only_once or await self._async_wait_transitions(lights)
+        ):
+            return
 
         await self._adapt_lights(lights, transition, force, context)
 
@@ -1240,15 +1244,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             service_data[ATTR_RGB_COLOR] = rgb_color
 
-        # if we are in the middle of a transition, sleep until that transition finishes. Fixes #447
-        while (
-            self._transition_timer != 0
-            and (perf_counter() - self._transition_timer) < transition
-        ):
-            await asyncio.sleep(1.2)
         self._transition_timer = 0
 
         self.turn_on_off_listener.last_service_data[light] = service_data
+
+        # this check shouldn't need to exist but I've defined {"timer": 0}
+        # everywhere I can think of already.
+        if self._manual_lights.get(light) is None:
+            self._manual_lights[light] = {"timer": 0}
+
         self._manual_lights[light]["timer"] = 0
 
         async def turn_on(service_data):
