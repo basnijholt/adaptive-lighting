@@ -434,12 +434,13 @@ async def async_setup_entry(
             await this_switch._adapt_lights(  # pylint: disable=protected-access
                 all_lights,
                 data[CONF_TRANSITION],
-                data[ATTR_ADAPT_BRIGHTNESS],
-                data[ATTR_ADAPT_COLOR],
-                data[CONF_PREFER_RGB_COLOR],
                 force=True,
                 context=this_switch.create_context(
-                    "service", parent=service_call.context
+                    data[ATTR_ADAPT_BRIGHTNESS],
+                    data[ATTR_ADAPT_COLOR],
+                    data[CONF_PREFER_RGB_COLOR],
+                    "service",
+                    parent=service_call.context,
                 ),
             )
 
@@ -1103,9 +1104,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _adapt_lights(
         self,
         lights: list[str],
-        transition: int | None,
-        force: bool,
-        context: Context | None,
+        transition: int | None = None,
+        force: bool = False,
+        context: Context | None = None,
+        adapt_brightness: bool | None = None,
+        adapt_color: bool | None = None,
+        prefer_rgb_color: bool | None = None,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
