@@ -1275,23 +1275,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         for light in lights:
             if not is_on(self.hass, light):
                 continue
-            if (
-                self._take_over_control
-                and self.turn_on_off_listener.is_manually_controlled(
-                    self,
-                    light,
-                    force,
-                    self.adapt_brightness_switch.is_on,
-                    self.adapt_color_switch.is_on,
-                )
-            ):
-                _LOGGER.debug(
-                    "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
-                    self._name,
-                    light,
-                    context.id,
-                )
-                continue
+            if not force:
+                if (
+                    self._take_over_control
+                    and self.turn_on_off_listener.is_manually_controlled(
+                        self,
+                        light,
+                        self.adapt_brightness_switch.is_on,
+                        self.adapt_color_switch.is_on,
+                    )
+                ):
+                    _LOGGER.debug(
+                        "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
+                        self._name,
+                        light,
+                        context.id,
+                    )
+                    continue
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
@@ -1778,7 +1778,6 @@ class TurnOnOffListener:
         self,
         switch: AdaptiveSwitch,
         light: str,
-        force: bool,
         adapt_brightness: bool,
         adapt_color: bool,
     ) -> bool:
@@ -1789,11 +1788,7 @@ class TurnOnOffListener:
             return True
 
         turn_on_event = self.turn_on_event.get(light)
-        if (
-            turn_on_event is not None
-            and not is_our_context(turn_on_event.context)
-            and not force
-        ):
+        if turn_on_event is not None and not is_our_context(turn_on_event.context):
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
