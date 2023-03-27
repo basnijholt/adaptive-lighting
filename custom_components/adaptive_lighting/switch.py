@@ -414,6 +414,8 @@ def _fire_manual_control_event(
         switch.entity_id,
         light,
     )
+    switch._manual_lights[light]["timer"] = perf_counter()
+    switch.turn_on_off_listener.manual_control[light] = True
     fire(
         f"{DOMAIN}.manual_control",
         {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
@@ -509,7 +511,6 @@ async def async_setup_entry(
                 all_lights = _expand_light_groups(this_switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    this_switch.turn_on_off_listener.manual_control[light] = True
                     _fire_manual_control_event(this_switch, light, service_call.context)
             else:
                 this_switch.turn_on_off_listener.reset(*all_lights)
@@ -911,6 +912,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = data[CONF_NAME]
         self._interval = data[CONF_INTERVAL]
         self._lights = data[CONF_LIGHTS]
+        self._manual_lights = {}
+        all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
+            self._manual_lights[light] = {"timer": 0}
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
@@ -998,6 +1003,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
+        for light in all_lights:
+            self._manual_lights[light] = {"timer": 0}
         self.turn_on_off_listener.lights.update(all_lights)
         self._lights = list(all_lights)
 
@@ -1184,8 +1191,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # everywhere I can think of already.
         if self._manual_lights.get(light) is None:
             self._manual_lights[light] = {"timer": 0}
-
-        self._manual_lights[light]["timer"] = 0
+        else:
+            self._manual_lights[light]["timer"] = 0
 
         async def turn_on(service_data):
             _LOGGER.debug(
@@ -1370,7 +1377,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                         context.id,
                     )
-                    self.turn_on_off_event_listener.manual_control[light] = True
                     _fire_manual_control_event(self, light, context)
             await self._adapt_light(light, transition, force=force, context=context)
 
