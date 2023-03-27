@@ -1354,37 +1354,44 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if not is_on(self.hass, light):
                 continue
             if not force:
-                if (
-                    self._take_over_control
-                    and self.turn_on_off_listener.is_manually_controlled(
+                if self._take_over_control:
+                    if not self.turn_on_off_listener.is_manually_controlled(
                         self,
                         light,
                         self.adapt_brightness_switch.is_on,
                         self.adapt_color_switch.is_on,
-                    )
-                ):
-                    _LOGGER.debug(
-                        "%s: HA 'light.turn_on' detected on '%s', stop adapting, context.id=%s.",
-                        self._name,
+                    ):
+                        _LOGGER.debug(
+                            "%s: Did not detect 'light.turn_on' for light '%s'"
+                            ", continuing, context.id=%s.",
+                            self._name,
+                            light,
+                            context.id,
+                        )
+                elif self._detect_non_ha_changes or self._alt_detect_method:
+                    if await self.turn_on_off_listener.significant_change(
+                        self,
                         light,
-                        context.id,
-                    )
-                elif (
-                    self._detect_non_ha_changes or self._alt_detect_method
-                ) and await self.turn_on_off_listener.significant_change(
-                    self,
-                    light,
-                    adapt_brightness,
-                    adapt_color,
-                    context,
-                ):
-                    _LOGGER.debug(
-                        "%s: Non HA light change detected on '%s', stop adapting, context.id=%s.",
-                        self._name,
-                        light,
-                        context.id,
-                    )
-                    _fire_manual_control_event(self, light, context)
+                        adapt_brightness,
+                        adapt_color,
+                        context,
+                    ):
+                        _LOGGER.debug(
+                            "%s: Non HA light change detected on '%s',"
+                            "stop adapting, context.id=%s.",
+                            self._name,
+                            light,
+                            context.id,
+                        )
+                        _fire_manual_control_event(self, light, context)
+                    else:
+                        _LOGGER.debug(
+                            "%s: Light '%s' correctly matches our last adapt's service data."
+                            " We will now adapt the light normally. context.id=%s.",
+                            self._name,
+                            light,
+                            context.id,
+                        )
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
