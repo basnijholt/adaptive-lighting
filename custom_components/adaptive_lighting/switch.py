@@ -917,6 +917,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         for light in all_lights:
             self._manual_lights[light] = {"timer": 0}
 
+        for light in data[CONF_LIGHTS]:
+            if not hasattr(self.turn_on_off_listener, "_switches"):
+                self.turn_on_off_listener._switches = {}
+            self.turn_on_off_listener._switches[
+                light
+            ] = self  # light should never be in multiple switches anyway.
+
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(
