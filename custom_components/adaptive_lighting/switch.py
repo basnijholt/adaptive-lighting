@@ -1151,7 +1151,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context,
                     )
                 ):
-                    # non-async calls not needed anymore with update.
+                    _LOGGER.debug("Fired manual control event in _adapt_lights")
                     _fire_manual_control_event(self, light, context, is_async=False)
                     continue
                 else:
