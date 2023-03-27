@@ -1099,10 +1099,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
         if self._autoreset_control_time > 0:
             await self._maybe_reset_manual_control(lights)
-        if not force and (
-            self._only_once or await self._async_wait_transitions(lights)
-        ):
-            return
+        if not force:
+            if self._only_once or await self._async_wait_transitions(lights):
+                return
 
         await self._adapt_lights(lights, transition, force, context)
 
@@ -1299,7 +1298,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._sleep_transition,
-            force=False,  # fix manual change detection during sleep mode in original code.
+            force=False,  # fixes manual change detection during sleep mode in original code.
             context=self.create_context("sleep", parent=event.context),
         )
 
@@ -1884,14 +1883,10 @@ class TurnOnOffListener:
         context: Context,
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
-        _LOGGER.debug("IS MANUALLY CONTROLLED?")
         manual_control = self.manual_control.setdefault(light, False)
         if manual_control:
             # Manually controlled until light is turned on and off
             return True
-        _LOGGER.debug("NOT MANUAL")
-        _LOGGER.debug("ADAPT_BRIGHTNESS: %s", adapt_brightness)
-        _LOGGER.debug("ADAPT_COLOR: %s", adapt_color)
         turn_on_event = self.turn_on_event.get(light)
         if turn_on_event is not None and not is_our_context(turn_on_event.context):
             _LOGGER.debug("IS OUR CONTEXT")
