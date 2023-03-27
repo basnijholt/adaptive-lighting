@@ -1,16 +1,20 @@
 # Developer notes for the tests directory
 
-See how the tests are run in the [CI configuration](../.github/workflows/pytest.yml).
-We also provide a Docker image for running the tests locally.
+To run the tests, check out the [CI configuration](../.github/workflows/pytest.yml) to see how they are executed in the CI pipeline.
+Alternatively, you can use the provided Docker image to run the tests locally.
 
-Run the following command in the `adaptive-lighting` repo folder to run the tests:
+To run the tests using the Docker image, navigate to the `adaptive-lighting` repo folder and execute the following command:
+
 ```bash
 docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
 ```
-This should [download the image from Docker Hub](https://hub.docker.com/r/basnijholt/adaptive-lighting) and run the tests.
 
-Optionally build the image yourself with:
+This command will download the Docker image from [the adaptive-lighting Docker Hub repo]((https://hub.docker.com/r/basnijholt/adaptive-lighting)) and run the tests.
+
+If you prefer to build the image yourself, use the following command:
+
 ```bash
 docker build -t basnijholt/adaptive-lighting:latest --no-cache .
 ```
-You might want to do this if the image on Docker Hub is outdated (the `home-assistant/core` code is updated more frequently than this repo and baked in to the image) or if [`test_dependencies.py`](../test_dependencies.py) is updated.
+
+This might be necessary if the image on Docker Hub is outdated or if the [`test_dependencies.py`](../test_dependencies.py) file is updated.
