@@ -1246,9 +1246,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         for light in lights:
+            if not is_on(self.hass, light):
+                continue
             if not force:
-                if not is_on(self.hass, light):
-                    continue
                 if (
                     # detect HA 'light.turn_on' calls.
                     self._take_over_control
