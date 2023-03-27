@@ -189,11 +189,6 @@ def _int_to_bytes(i: int, signed: bool = False) -> bytes:
     return i.to_bytes((bits + 7) // 8, "little", signed=signed)
 
 
-def int_between(min_int, max_int):
-    """Return an integer between 'min_int' and 'max_int'."""
-    return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
-
-
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
     str_hash_bytes = _int_to_bytes(hash(string), signed=True)
