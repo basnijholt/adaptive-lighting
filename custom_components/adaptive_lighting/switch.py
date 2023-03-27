@@ -1231,11 +1231,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # if we are in the middle of a transition, sleep until that transition finishes. Fixes #447
         while (
             self._transition_timer != 0
-            and (perf_counter() - self._transition_timer) < self._last_transition
+            and (perf_counter() - self._transition_timer) < transition
         ):
             await asyncio.sleep(1.2)
         self._transition_timer = 0
-        self._last_transition = 0
 
         self.turn_on_off_listener.last_service_data[light] = service_data
         self._manual_lights[light]["timer"] = 0
