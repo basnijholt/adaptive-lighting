@@ -1151,7 +1151,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                 ):
                     _fire_manual_control_event(self, light, context, is_async=False)
-                    continue
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
@@ -1164,6 +1163,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         force: bool = False,
         context: Context | None = None,
     ) -> None:
+        _LOGGER.debug("Light: %s", light)
         lock = self._locks.get(light)
         if lock is not None and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
