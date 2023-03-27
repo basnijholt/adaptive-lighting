@@ -821,7 +821,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             defaults=defaults,
         )
 
-        data = validate(config_entry)
         self._name = data[CONF_NAME]
         self._lights = data[CONF_LIGHTS]
         self._manual_lights = {}
