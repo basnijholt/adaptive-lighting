@@ -877,6 +877,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._icon = ICON_MAIN
         self._state = None
 
+        self._transition_timer = 0
+        self._transitioning = False
+
         # Tracks 'off' → 'on' state changes
         self._on_to_off_event: dict[str, Event] = {}
         # Tracks 'on' → 'off' state changes
