@@ -1147,7 +1147,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                         adapt_brightness,
                         adapt_color,
-                        prefer_rgb_color,
                         context,
                     )
                 ):
