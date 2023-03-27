@@ -1368,6 +1368,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                             light,
                             context.id,
                         )
+                        continue
                 if self._detect_non_ha_changes or self._alt_detect_method:
                     if await self.turn_on_off_listener.significant_change(
                         self,
@@ -1384,6 +1385,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                             context.id,
                         )
                         _fire_manual_control_event(self, light, context)
+                        continue
                     else:
                         _LOGGER.debug(
                             "%s: Light '%s' correctly matches our last adapt's service data."
