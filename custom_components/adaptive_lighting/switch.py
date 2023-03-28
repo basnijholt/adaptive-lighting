@@ -1855,11 +1855,17 @@ class TurnOnOffListener:
                 new_state.attributes,
                 new_state.context.id,
             )
+        adapt_switch = self._switches.get(entity_id)
 
         if (
             new_state is not None
             and new_state.state == STATE_ON
-            and is_our_context(new_state.context)
+            and (
+                is_our_context(
+                    new_state.context
+                )  # doesn't work correctly on my lights. is this check necessary?
+                or (adapt_switch is not None and adapt_switch._alt_detect_method)
+            )
         ):
             # It is possible to have multiple state change events with the same context.
             # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
@@ -1873,9 +1879,10 @@ class TurnOnOffListener:
             # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
             old_state: list[State] | None = self.last_state_change.get(entity_id)
-            if (
-                old_state is not None
-                and old_state[0].context.id == new_state.context.id
+            if old_state is not None and (
+                old_state[0].context.id
+                == new_state.context.id  # doesn't work correctly on my lights?
+                or (adapt_switch is not None and adapt_switch._alt_detect_method)
             ):
                 # If there is already a state change event from this event (with this
                 # context) then append it to the already existing list.
