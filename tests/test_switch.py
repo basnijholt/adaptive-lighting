@@ -185,7 +185,7 @@ async def setup_lights_and_switch(hass, extra_conf=None):
 
     # Setup switch
     lights = [
-        "light.bed_light",
+        ENTITY_LIGHT,
         "light.ceiling_lights",
     ]
     assert all(hass.states.get(light) is not None for light in lights)
@@ -600,38 +600,31 @@ async def test_auto_reset_manual_control(hass):
         await hass.services.async_call(
             LIGHT_DOMAIN,
             SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            {ATTR_ENTITY_ID: light.entity_id, **kwargs},
             blocking=True,
         )
         await hass.async_block_till_done()
         await update()
-        _LOGGER.debug("Turn light %s to state %s, to %s", ENTITY_LIGHT, state, kwargs)
+        _LOGGER.debug(
+            "Turn light %s to state %s, to %s", light.entity_id, state, kwargs
+        )
 
-    def increased_brightness():
-        return (light._brightness + 100) % 255
-
-    await turn_light(True, brightness=increased_brightness())
-    assert manual_control[ENTITY_LIGHT]
-    await asyncio.sleep(0.3)
+    await turn_light(True, brightness=1)
+    await turn_light(True, brightness=10)
+    assert manual_control[light.entity_id]
+    await asyncio.sleep(0.3)  # Should be enough time for auto reset
     await update()
-    assert not manual_control[ENTITY_LIGHT]
+    assert not manual_control[light.entity_id], (light, manual_control)
 
     # Do a couple of quick changes and check that light is not reset
-    await turn_light(True, brightness=15)
-    await asyncio.sleep(0.04)  # Less than 0.1
-    assert manual_control[ENTITY_LIGHT]
+    for i in range(3):
+        await turn_light(True, brightness=i * 10)
+        await asyncio.sleep(0.05)  # Less than 0.1
+        assert manual_control[light.entity_id]
 
-    await turn_light(True, brightness=30)
-    await asyncio.sleep(0.04)  # Less than 0.1
-    assert manual_control[ENTITY_LIGHT]
-
-    await turn_light(True, brightness=60)
-    await asyncio.sleep(0.04)  # Less than 0.1
-    assert manual_control[ENTITY_LIGHT]
-
-    await asyncio.sleep(0.1)  # Wait the auto reset time
+    await asyncio.sleep(0.3)  # Wait the auto reset time
     await update()
-    assert not manual_control[ENTITY_LIGHT]
+    assert not manual_control[light.entity_id]
 
 
 async def test_apply_service(hass):

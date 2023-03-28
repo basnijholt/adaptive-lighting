@@ -1586,6 +1586,7 @@ class TurnOnOffListener:
 
     def mark_as_manual_control(self, light: str) -> None:
         """Mark a light as manually controlled."""
+        _LOGGER.debug("Marking '%s' as manually controlled.", light)
         self.manual_control[light] = True
         delay = self.auto_reset_manual_control_times.get(light)
         if timer := self.auto_reset_manual_control_timers.get(light):
@@ -1599,12 +1600,14 @@ class TurnOnOffListener:
 
             def reset():
                 self.reset(light)
+                self.last_service_data.pop(light, None)
                 _LOGGER.debug(
                     "Auto resetting 'manual_control' status of '%s' because"
                     " it was not manually controlled for %s seconds.",
                     light,
                     delay,
                 )
+                assert not self.manual_control[light]
 
             timer = _AsyncSingleShotTimer(delay, reset)
             self.auto_reset_manual_control_timers[light] = timer
@@ -1734,16 +1737,23 @@ class TurnOnOffListener:
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
         manual_control = self.manual_control.setdefault(light, False)
+        turn_on_event = self.turn_on_event.get(light)
         if manual_control:
             # Manually controlled until light is turned on and off
+            if not is_our_context(turn_on_event.context):
+                self.mark_as_manual_control(light)  # resets the timer
             return True
 
-        turn_on_event = self.turn_on_event.get(light)
         if (
             turn_on_event is not None
             and not is_our_context(turn_on_event.context)
             and not force
         ):
+            _LOGGER.debug(
+                "is_manually_controlled: '%s' was turned on with event '%s'",
+                light,
+                turn_on_event,
+            )
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
