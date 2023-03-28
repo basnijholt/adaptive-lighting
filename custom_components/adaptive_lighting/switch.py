@@ -1991,7 +1991,7 @@ class TurnOnOffListener:
                         context.id,
                     )
                     return True
-        elif switch._detect_non_ha_changes:
+        if switch._detect_non_ha_changes:
             # Update state and check for a manual change not done in HA.
             # This was 'strict_adapting: false' in the old pr #450
             # Ensure HASS is correctly updating your light's state with
