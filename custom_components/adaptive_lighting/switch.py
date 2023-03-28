@@ -1161,6 +1161,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if "transition" in features:
             service_data[ATTR_TRANSITION] = transition
             self._transition_timer = perf_counter()
+            _LOGGER.debug(
+                "%s: Transition of %s used - no further adapts"
+                "will happen to light %s until this one completes. Timer: %s",
+                self._name,
+                transition,
+                light,
+                self._transition_timer,
+            )
+        if transition:
+            self._transition_timer = 0
 
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
@@ -1189,8 +1199,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 "%s: Setting rgb_color of light %s to ", self._name, light, rgb_color
             )
             service_data[ATTR_RGB_COLOR] = rgb_color
-
-        self._transition_timer = 0
 
         self.turn_on_off_listener.last_service_data[light] = service_data
 
@@ -1276,9 +1284,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return False
         last_transition = last_service_data[self._lights[0]][ATTR_TRANSITION]
         _LOGGER.debug(
-            "%s: wait_transitions: Transition found in last service data: %s seconds",
+            "%s: wait_transitions: Transition found in last service"
+            "data: %s seconds Timer: %s. Time remaining: %s",
             self._name,
             last_transition,
+            self._transition_timer,
+            (last_transition - (perf_counter() - self._transition_timer)),
         )
         while (
             self._transition_timer != 0
