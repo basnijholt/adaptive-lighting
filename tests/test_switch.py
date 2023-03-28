@@ -616,6 +616,23 @@ async def test_auto_reset_manual_control(hass):
     await update()
     assert not manual_control[ENTITY_LIGHT]
 
+    # Do a couple of quick changes and check that light is not reset
+    await turn_light(True, brightness=15)
+    await asyncio.sleep(0.04)  # Less than 0.1
+    assert manual_control[ENTITY_LIGHT]
+
+    await turn_light(True, brightness=30)
+    await asyncio.sleep(0.04)  # Less than 0.1
+    assert manual_control[ENTITY_LIGHT]
+
+    await turn_light(True, brightness=60)
+    await asyncio.sleep(0.04)  # Less than 0.1
+    assert manual_control[ENTITY_LIGHT]
+
+    await asyncio.sleep(0.1)  # Wait the auto reset time
+    await update()
+    assert not manual_control[ENTITY_LIGHT]
+
 
 async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
