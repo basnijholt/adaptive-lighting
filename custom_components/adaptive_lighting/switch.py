@@ -1119,7 +1119,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.sleep_mode_switch.is_on, transition
         )
 
-        # This check is unnecessary.
         context = context or self.create_context("adapt_lights")
 
         # Build service data.
@@ -1149,9 +1148,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             rgb_color = self._settings["rgb_color"]
-            _LOGGER.debug(
-                "%s: Setting rgb_color of light %s to ", self._name, light, rgb_color
-            )
+            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = rgb_color
 
         self.turn_on_off_listener.last_service_data[light] = service_data
@@ -1272,10 +1269,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and (perf_counter() - self._transition_timer) < last_transition
         ):
             self._transitioning = True
-            await asyncio.sleep(0)
-        await asyncio.sleep(
-            0.2
-        )  # wait a short but guaranteed longer time than transition.
+            await asyncio.sleep(last_transition)
+        # wait a short but guaranteed longer time than transition.
+        await asyncio.sleep(0.2)
         self._transitioning = False
 
     async def _update_attrs_and_maybe_adapt_lights(
