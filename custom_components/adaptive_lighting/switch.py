@@ -1274,19 +1274,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             or ATTR_TRANSITION not in last_service_data[self._lights[0]]
         ):
             return False
+        last_transition = last_service_data[self._lights[0]][ATTR_TRANSITION]
         _LOGGER.debug(
             "%s: wait_transitions: Transition found in last service data: %s seconds",
             self._name,
-            last_service_data[ATTR_TRANSITION],
+            last_transition,
         )
         while (
             self._transition_timer != 0
-            and (perf_counter() - self._transition_timer)
-            < last_service_data[ATTR_TRANSITION]
+            and (perf_counter() - self._transition_timer) < last_transition
         ):
-            time_remaining = last_service_data[ATTR_TRANSITION] - (
-                perf_counter() - self._transition_timer
-            )
+            time_remaining = last_transition - (perf_counter() - self._transition_timer)
             _LOGGER.debug(
                 "Sleeping for %s more seconds before adapting lights [%s]",
                 time_remaining,
