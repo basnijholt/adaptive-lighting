@@ -10,6 +10,7 @@ from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
@@ -582,6 +583,38 @@ async def test_manual_control(hass):
     # do not pass "lights" so reset all
     await change_manual_control(False, {})
     assert all([not manual_control[eid] for eid in switch._lights])
+
+
+async def test_auto_reset_manual_control(hass):
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass, {CONF_AUTORESET_CONTROL: 0.1}
+    )
+    context = switch.create_context("test")  # needs to be passed to update method
+    manual_control = switch.turn_on_off_listener.manual_control
+
+    async def update():
+        await switch._update_attrs_and_maybe_adapt_lights(transition=0, context=context)
+        await hass.async_block_till_done()
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        await update()
+        _LOGGER.debug("Turn light %s to state %s, to %s", ENTITY_LIGHT, state, kwargs)
+
+    def increased_brightness():
+        return (light._brightness + 100) % 255
+
+    await turn_light(True, brightness=increased_brightness())
+    assert manual_control[ENTITY_LIGHT]
+    await asyncio.sleep(0.3)
+    await update()
+    assert not manual_control[ENTITY_LIGHT]
 
 
 async def test_apply_service(hass):

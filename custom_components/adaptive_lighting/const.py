@@ -73,6 +73,8 @@ CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 TURNING_OFF_DELAY = 5
 CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY = "send_split_delay", 0
 
+CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_time", 0
+
 
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""
@@ -121,6 +123,11 @@ VALIDATION_TUPLES = [
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
+    (
+        CONF_AUTORESET_CONTROL,
+        DEFAULT_AUTORESET_CONTROL,
+        int_between(0, 7 * 24 * 60 * 60),  # 7 days max
+    ),
 ]
 
 

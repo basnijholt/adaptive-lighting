@@ -97,6 +97,7 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -496,7 +497,7 @@ async def async_setup_entry(
                 all_lights = _expand_light_groups(this_switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    this_switch.turn_on_off_listener.manual_control[light] = True
+                    this_switch.turn_on_off_listener.mark_as_manual_control(light)
                     _fire_manual_control_event(this_switch, light, service_call.context)
             else:
                 this_switch.turn_on_off_listener.reset(*all_lights)
@@ -843,6 +844,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+        self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -916,6 +918,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
         self.turn_on_off_listener.lights.update(all_lights)
+        self.turn_on_off_listener.set_auto_reset_manual_control_times(
+            all_lights, self._auto_reset_manual_control_time
+        )
         self._lights = list(all_lights)
 
     async def _setup_listeners(self, _=None) -> None:
@@ -1549,6 +1554,10 @@ class TurnOnOffListener:
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
 
+        # Track auto reset of manual_control
+        self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
+        self.auto_reset_manual_control_times: dict[str, float | None] = {}
+
         # When a state is different `max_cnt_significant_changes` times in a row,
         # mark it as manually_controlled.
         self.max_cnt_significant_changes = 2
@@ -1560,11 +1569,55 @@ class TurnOnOffListener:
             EVENT_STATE_CHANGED, self.state_changed_event_listener
         )
 
+    def set_auto_reset_manual_control_times(self, lights, time):
+        """Set the time after which the lights are automatically reset."""
+        for light in lights:
+            if (old_time := self.auto_reset_manual_control_times.get(light)) and (
+                old_time != time
+            ):
+                _LOGGER.info(
+                    "Setting auto_reset_manual_control for '%s' from %s seconds to %s seconds."
+                    " This might happen because the light is in multiple swiches.",
+                    light,
+                    old_time,
+                    time,
+                )
+            self.auto_reset_manual_control_times[light] = time
+
+    def mark_as_manual_control(self, light: str) -> None:
+        """Mark a light as manually controlled."""
+        self.manual_control[light] = True
+        delay = self.auto_reset_manual_control_times.get(light)
+        if timer := self.auto_reset_manual_control_timers.get(light):
+            if delay is None:  # Timer object exists, but should not anymore
+                timer.cancel()
+                self.auto_reset_manual_control_timers.pop(light)
+            else:  # Timer object already exists, just update the delay and restart it
+                timer.delay = delay
+                timer.start()
+        elif delay is not None:  # Timer object does not exist, create it
+
+            def reset():
+                self.reset(light)
+                _LOGGER.debug(
+                    "Auto resetting 'manual_control' status of '%s' because"
+                    " it was not manually controlled for %s seconds.",
+                    light,
+                    delay,
+                )
+
+            timer = _AsyncSingleShotTimer(delay, reset)
+            self.auto_reset_manual_control_timers[light] = timer
+            timer.start()
+
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
+                timer = self.auto_reset_manual_control_timers.pop(light, None)
+                if timer:
+                    timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
@@ -1697,7 +1750,7 @@ class TurnOnOffListener:
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = self.manual_control[light] = True
+                manual_control = self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
@@ -1769,7 +1822,7 @@ class TurnOnOffListener:
                 # Only mark a light as significantly changing, if changed==True
                 # N times in a row. We do this because sometimes a state changes
                 # happens only *after* a new update interval has already started.
-                self.manual_control[light] = True
+                self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, context, is_async=False)
         else:
             if n_changes > 1:
@@ -1880,3 +1933,33 @@ class TurnOnOffListener:
         # other 'off' → 'on' state switches resulting from polling. That
         # would mean we 'return True' here.
         return False
+
+
+class _AsyncSingleShotTimer:
+    def __init__(self, delay, callback):
+        """Initialize the timer."""
+        self.delay = delay
+        self.callback = callback
+        self.task = None
+
+    async def _run(self):
+        """Run the timer. Don't call this directly, use start() instead."""
+        await asyncio.sleep(self.delay)
+        if self.callback:
+            if asyncio.iscoroutinefunction(self.callback):
+                await self.callback()
+            else:
+                self.callback()
+
+    def start(self):
+        """Start the timer."""
+        if self.task is not None and not self.task.done():
+            self.task.cancel()
+
+        self.task = asyncio.create_task(self._run())
+
+    def cancel(self):
+        """Cancel the timer."""
+        if self.task:
+            self.task.cancel()
+            self.callback = None
