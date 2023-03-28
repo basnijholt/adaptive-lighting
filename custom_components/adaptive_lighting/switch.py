@@ -1169,7 +1169,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 light,
                 self._transition_timer,
             )
-        if transition:
+        if not transition:
             self._transition_timer = 0
 
         if "brightness" in features and adapt_brightness:
