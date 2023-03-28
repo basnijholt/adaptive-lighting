@@ -1262,11 +1262,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     # calls to this function all running at once after a long transition finishes
     # with a short interval set.
     async def _async_wait_transitions(self, now=None) -> bool:
+        _LOGGER.debug("%s: Check if we need to wait for transitions.", self._name)
         if self._transitioning:
             return True
+        _LOGGER.debug("%s: First call of _async_wait_transitions", self._name)
         last_service_data = self.turn_on_off_listener.last_service_data
-        if not last_service_data or ATTR_TRANSITION not in last_service_data:
+        _LOGGER.debug("%s: Last service data: %s", self._name, last_service_data)
+        if (
+            not last_service_data
+            or self._lights[0] not in last_service_data
+            or ATTR_TRANSITION not in last_service_data[self._lights[0]]
+        ):
             return False
+        _LOGGER.debug(
+            "%s: wait_transitions: Transition found in last service data: %s seconds",
+            self._name,
+            last_service_data[ATTR_TRANSITION],
+        )
         while (
             self._transition_timer != 0
             and (perf_counter() - self._transition_timer)
@@ -1277,10 +1289,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             _LOGGER.debug(
                 "Sleeping for %s more seconds before adapting lights [%s]",
-                (
-                    last_service_data[ATTR_TRANSITION]
-                    - (perf_counter() - self._transition_timer)
-                ),
+                time_remaining,
                 self._lights,
             )
             self._transitioning = True
