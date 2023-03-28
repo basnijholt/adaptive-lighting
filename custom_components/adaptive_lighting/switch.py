@@ -121,7 +121,6 @@ from .const import (
     CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
-    CONF_STRICT_ADAPTING,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
@@ -908,6 +907,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+        self._autoreset_control_time = data[CONF_AUTORESET_CONTROL]
+        self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
