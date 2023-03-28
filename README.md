@@ -110,7 +110,7 @@ adaptive_lighting:
 
 ### Services
 
-`adaptive_lighting.**apply**` applies Adaptive Lighting settings to lights on demand.
+`adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
 
 | Service data attribute | Optional | Description                                                                                  |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
@@ -132,16 +132,23 @@ adaptive_lighting:
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
 
-| DISALLOWED service data   | Description                                                                                         |
-| ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `entity_id`               | You cannot change the switch's unique_id, it's already been registered                              |
-| `lights`                  | See above, you may call adaptive_lighting.apply() with your lights or create a new config instead   |
-| `name`                    | See above. You can already rename your switch's display name in Home Assistant's UI.                |
-| `interval`                | Nope. The interval is only used once when the config loads. A config change and restart is required |
+| Service data attribute                            | Description                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `use_defaults`                                    | (default: 'current' for current settings) You can set this to 'factory', 'configuration', or 'current' to reset the variables not being set with this service call. 'current' leaves them as is, 'configuration' resets to whatever already initializes at startup, 'factory' resets to the default values listed in the documentation.                        |
+| all other keys except the ones in the table below | See above, you may call `adaptive_lighting.apply` with your lights or create a new config instead |
+
+
+| **DISALLOWED** service data | Description                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| `entity_id`                 | You cannot change the switch's `entity_id`, it's already been registered                          |
+| `lights`                    | See above, you may call `adaptive_lighting.apply` with your lights or create a new config instead |
+| `name`                      | See above. You can already rename your switch's display name in Home Assistant's UI.              |
+| `interval`                  | The interval is only used once when the config loads. A config change and restart is required     |
 
 ## Automation examples
 
 Reset the `manual_control` status of a light after an hour.
+
 ```yaml
 - alias: "Adaptive lighting: reset manual_control after 1 hour"
   mode: parallel
@@ -186,42 +193,46 @@ Set your sunrise and sunset time based on your alarm. The below script sets suns
 iphone_carly_wakeup:
   alias: iPhone Carly Wakeup
   sequence:
-  - condition: state
-    entity_id: input_boolean.carly_iphone_wakeup
-    state: 'off'
-  - service: input_datetime.set_datetime
-    target:
-      entity_id: input_datetime.carly_iphone_wakeup
-    data:
-      time: '{{ now().strftime("%H:%M:%S") }}'
-  - service: input_boolean.turn_on
-    target:
+    - condition: state
       entity_id: input_boolean.carly_iphone_wakeup
-  - repeat:
-      count: '{{ (states.switch    | map(attribute=''entity_id'')    | select(">","switch.adaptive_lighting_al_")    |
-        select("<", "switch.adaptive_lighting_al_z")    | join(",")).split(",")|length
-        }}'
-      sequence:
-      - service: adaptive_lighting.change_switch_settings
-        data:
-          entity_id: switch.adaptive_lighting_al_den_ceilingfan_lights
-          sunrise_time: '{{ now().strftime("%H:%M:%S") }}'
-          sunset_time: '{{ (as_timestamp(now()) + 12*60*60) | timestamp_custom("%H:%M:%S")
-            }}'
-  - service: script.turn_on
-    target:
-      entity_id: script.run_wakeup_routine
-  - service: input_boolean.turn_off
-    target:
-      entity_id:
-      - input_boolean.carly_iphone_winddown
-      - input_boolean.carly_iphone_bedtime
-  - service: input_datetime.set_datetime
-    target:
-      entity_id: input_datetime.wakeup_time
-    data:
-      time: '{{ now().strftime("%H:%M:%S") }}'
-  - service: script.adaptive_lighting_disable_sleep_mode
+      state: "off"
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.carly_iphone_wakeup
+      data:
+        time: '{{ now().strftime("%H:%M:%S") }}'
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.carly_iphone_wakeup
+    - repeat:
+        count: >
+          {{ (states.switch
+              | map(attribute="entity_id")
+              | select(">","switch.adaptive_lighting_al_")
+              | select("<", "switch.adaptive_lighting_al_z")
+              | join(",")
+             ).split(",") | length }}
+        sequence:
+          - service: adaptive_lighting.change_switch_settings
+            data:
+              entity_id: switch.adaptive_lighting_al_den_ceilingfan_lights
+              sunrise_time: '{{ now().strftime("%H:%M:%S") }}'
+              sunset_time: >
+                {{ (as_timestamp(now()) + 12*60*60) | timestamp_custom("%H:%M:%S") }}
+    - service: script.turn_on
+      target:
+        entity_id: script.run_wakeup_routine
+    - service: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.carly_iphone_winddown
+          - input_boolean.carly_iphone_bedtime
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.wakeup_time
+      data:
+        time: '{{ now().strftime("%H:%M:%S") }}'
+    - service: script.adaptive_lighting_disable_sleep_mode
   mode: queued
   icon: mdi:weather-sunset
   max: 10
