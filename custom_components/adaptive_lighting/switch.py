@@ -1272,12 +1272,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _async_wait_transitions(self, now=None) -> bool:
         _LOGGER.debug("%s: Check if we need to wait for transitions.", self._name)
         if self._transitioning:
+            _LOGGER.debug(
+                "%s: Waiting for last transition to finish before attempting another adapt.",
+                self._name,
+            )
             return True
         _LOGGER.debug("%s: First call of _async_wait_transitions", self._name)
         last_service_data = self.turn_on_off_listener.last_service_data
         _LOGGER.debug("%s: Last service data: %s", self._name, last_service_data)
         if (
             not last_service_data
+            or not len(self._lights)
             or self._lights[0] not in last_service_data
             or ATTR_TRANSITION not in last_service_data[self._lights[0]]
         ):
@@ -1295,17 +1300,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._transition_timer != 0
             and (perf_counter() - self._transition_timer) < last_transition
         ):
-            time_remaining = last_transition - (perf_counter() - self._transition_timer)
-            _LOGGER.debug(
-                "Sleeping for %s more seconds before adapting lights [%s]",
-                time_remaining,
-                self._lights,
-            )
             self._transitioning = True
-            await asyncio.sleep(
-                1 - 10 ** (-1 * math.log(10**time_remaining, 10))
-            )  # could also asyncio.sleep(0) without the logging above.
-            # alternately precision 10838 is the max
+            await asyncio.sleep(0)
         await asyncio.sleep(
             0.2
         )  # wait a short but guaranteed longer time than transition.
