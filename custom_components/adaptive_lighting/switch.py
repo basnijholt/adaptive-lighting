@@ -1155,23 +1155,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         service_data = {ATTR_ENTITY_ID: light}
         features = _supported_features(self.hass, light)
 
-        # If there is a transition, mark the time we started adapting this light
-        # then the next time we start adapting, compare to the last timestamp.
-        # used only when strict_adapting==False
-        if "transition" in features:
-            service_data[ATTR_TRANSITION] = transition
-            self._transition_timer = perf_counter()
-            _LOGGER.debug(
-                "%s: Transition of %s used - no further adapts"
-                "will happen to light %s until this one completes. Timer: %s",
-                self._name,
-                transition,
-                light,
-                self._transition_timer,
-            )
-        if not transition:
-            self._transition_timer = 0
-
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
@@ -1201,6 +1184,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_RGB_COLOR] = rgb_color
 
         self.turn_on_off_listener.last_service_data[light] = service_data
+
+        # If there is a transition, mark the time we started adapting this light
+        # then the next time we start adapting, compare to the last timestamp.
+        # used only when strict_adapting==False
+        if "transition" in features:
+            service_data[ATTR_TRANSITION] = transition
+            self._transition_timer = perf_counter()
+            _LOGGER.debug(
+                "%s: Transition of %s used - no further adapts"
+                "will happen to light %s until this one completes. Timer: %s",
+                self._name,
+                transition,
+                light,
+                self._transition_timer,
+            )
+        else:
+            self._transition_timer = 0
 
         # this check shouldn't need to exist but I've defined {"timer": 0}
         # everywhere I can think of already.
