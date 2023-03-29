@@ -1149,7 +1149,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = rgb_color
 
-        self.turn_on_off_listener.last_service_data[light] = service_data
+        self.turn_on_off_listener.last_service_data[light] = {
+            **service_data,
+            "context": context,
+        }
 
         # If there is a transition, mark the time we started adapting this light
         # then the next time we start adapting, compare to the last timestamp.
@@ -1309,6 +1312,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         for light in lights:
+            _LOGGER.debug("LOOP light %s", light)
             if not is_on(self.hass, light):
                 continue
 
@@ -1321,11 +1325,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                         context,
                     )
-                    # _fire_manual_control_event(self, light, context, is_async=False)
+                    _fire_manual_control_event(self, light, context, is_async=False)
                 await self._adapt_light(light, transition, force=force, context=context)
                 continue
 
             if self._take_over_control:
+                _LOGGER.debug("TAKE OVER CONTROL")
                 if self.turn_on_off_listener.is_manually_controlled(
                     self,
                     light,
@@ -1706,16 +1711,10 @@ class TurnOnOffListener:
         self.manual_control: dict[str, bool] = {}
         # Counts the number of times (in a row) a light had a changed state.
         self.cnt_significant_changes: dict[str, int] = defaultdict(int)
-        # Track 'state_changed' events of self.lights resulting from this integration
-        self.last_state_change: dict[str, list[State]] = {}
         # Track 'state_changed' events of self.lights from any source.
-        self.all_state_changes: dict[str, list[State]] = {}
+        self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
-
-        # When a state is different `max_cnt_significant_changes` times in a row,
-        # mark it as manually_controlled.
-        self.max_cnt_significant_changes = 2
 
         self.remove_listener = self.hass.bus.async_listen(
             EVENT_CALL_SERVICE, self.turn_on_off_event_listener
@@ -1730,9 +1729,7 @@ class TurnOnOffListener:
             if reset_manual_control:
                 self.manual_control[light] = False
             self.last_state_change.pop(light, None)
-            self.all_state_changes.pop(light, None)
             self.last_service_data.pop(light, None)
-            self.cnt_significant_changes[light] = 0
 
     async def turn_on_off_event_listener(self, event: Event) -> None:
         """Track 'light.turn_off' and 'light.turn_on' service calls."""
@@ -1804,40 +1801,29 @@ class TurnOnOffListener:
             )
 
         if new_state is not None and new_state.state == STATE_ON:
-            if is_our_context(new_state.context):
-                # It is possible to have multiple state change events with the same context.
-                # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
-                # event leads to an instant state change of
-                # `new_state=dict(brightness=100, ...)`. However, after polling the light
-                # could still only be `new_state=dict(brightness=50, ...)`.
-                # We save all events because the first event change might indicate at what
-                # settings the light will be later *or* the second event might indicate a
-                # final state. The latter case happens for example when a light was
-                # called with a color_temp outside of its range (and HA reports the
-                # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
-                # Philips Hue White GU10 Bluetooth lights).
-                old_state: list[State] | None = self.last_state_change.get(entity_id)
+            old_state: list[State] | None = self.last_state_change.get(entity_id)
+            if old_state is not None and is_our_context(new_state.context):
                 if (
-                    old_state is not None
-                    and old_state[0].context.id == new_state.context.id
+                    self.last_service_data[entity_id]
+                    and self.last_service_data[entity_id]["context"].id
+                    == new_state.context.id
                 ):
-                    # If there is already a state change event from this event (with this
-                    # context) then append it to the already existing list.
                     _LOGGER.debug(
                         "State change event of '%s' is already in 'self.last_state_change' (%s)"
                         " adding this state also",
                         entity_id,
                         new_state.context.id,
                     )
-                    self.last_state_change[entity_id].append(new_state)
                 else:
-                    self.last_state_change[entity_id] = [new_state]
-            # Used in alt_detect_method
-            old_state: list[State] | None = self.all_state_changes.get(entity_id)
-            if old_state is not None:
-                self.all_state_changes[entity_id].append(new_state)
-            else:
-                self.all_state_changes[entity_id] = [new_state]
+                    _LOGGER.debug(
+                        "Found state change to our light not caused by the integration"
+                    )
+                self.last_state_change[entity_id].append(new_state)
+            elif old_state is not None:
+                _LOGGER.debug(
+                    "New state change '%s' created for %s", new_state, entity_id
+                )
+                self.last_state_change[entity_id] = [new_state]
 
     def is_manually_controlled(
         self,
@@ -1891,14 +1877,9 @@ class TurnOnOffListener:
         detected, we mark the light as 'manually controlled' until the light
         or switch is turned 'off' and 'on' again.
         """
-        if light not in self.last_state_change:
-            return False
-        if light not in self.all_state_changes:
-            return False
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return
-
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
@@ -1909,77 +1890,62 @@ class TurnOnOffListener:
 
         _LOGGER.debug("last_service_data: %s", last_service_data)
         if switch._alt_detect_method:
-            old_states: list[State] = self.all_state_changes[light]
-            _LOGGER.debug("Total state changes detected: %s", len(old_states))
-            _LOGGER.debug(
-                "%s: 'alt_detect_method: true', check all state changes made to light %s",
-                switch._name,
-                light,
-            )
-            for index, old_state in enumerate(old_states):
-                if index == 0:
-                    continue
+            if light in self.last_state_change:
+                old_states: list[State] = self.last_state_change[light]
+                _LOGGER.debug("Total state changes detected: %s", len(old_states))
                 _LOGGER.debug(
-                    "%s: checking for a manual change between index %s and %s... old_state: %s",
+                    "%s: 'alt_detect_method: true', check all state changes made to light %s",
                     switch._name,
-                    index,
-                    index - 1,
-                    old_state,
+                    light,
                 )
-                prior_state = old_states[index - 1]
-                if compare_to(
-                    old_attributes=prior_state.attributes,
-                    new_attributes=old_state.attributes,
-                    last_adapt_attempt=last_service_data,
-                ):
-                    _LOGGER.info(
-                        "Found unexpected state_change event for %s nr. %s (context.id=%s)"
-                        " old_state=%s\nprior_state=%s",
-                        light,
+                for index, old_state in enumerate(old_states):
+                    if index == 0:
+                        continue
+                    _LOGGER.debug(
+                        "%s: checking for a manual change between index %s and %s... old_state: %s",
+                        switch._name,
                         index,
-                        context.id,
+                        index - 1,
                         old_state,
-                        prior_state,
                     )
-                    _LOGGER.info(
-                        "We will now set %s as manually controlled. (context.id=%s)",
-                        light,
-                        context.id,
-                    )
-                    return True
+                    prior_state = old_states[index - 1]
+                    if compare_to(
+                        old_attributes=prior_state.attributes,
+                        new_attributes=old_state.attributes,
+                        last_adapt_attempt=last_service_data,
+                    ):
+                        _LOGGER.info(
+                            "Found unexpected state_change event for %s nr. %s (context.id=%s)"
+                            " old_state=%s\nprior_state=%s",
+                            light,
+                            index,
+                            context.id,
+                            old_state,
+                            prior_state,
+                        )
+                        _LOGGER.info(
+                            "We will now set %s as manually controlled. (context.id=%s)",
+                            light,
+                            context.id,
+                        )
+                        return True
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
         # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
         if switch._detect_non_ha_changes:
-            # quickly check if the last state already doesn't match
-            # last_service_data before calling update_entity()
-            old_states: list[State] = self.last_state_change[light]
-            last_known_state = old_states[len(old_states) - 1]
-            changed = compare_to(
-                old_attributes=last_known_state.attributes,
-                new_attributes=last_service_data,
+            _LOGGER.debug(
+                "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
+                " and check if it's last adapt succeeded.",
+                switch._name,
+                light,
             )
-            if not changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt change event nr. %s (context.id=%s)",
-                    light,
-                    index,
-                    context.id,
-                )
-            if not changed:
-                _LOGGER.debug(
-                    "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
-                    " and check if it's last adapt succeeded.",
-                    switch._name,
-                    light,
-                )
-                await self.hass.helpers.entity_component.async_update_entity(light)
-                refreshed_state = self.hass.states.get(light)
-                changed = compare_to(
-                    old_attributes=last_service_data,
-                    new_attributes=refreshed_state.attributes,
-                )
+            await self.hass.helpers.entity_component.async_update_entity(light)
+            refreshed_state = self.hass.states.get(light)
+            changed = compare_to(
+                old_attributes=last_service_data,
+                new_attributes=refreshed_state.attributes,
+            )
             if changed:
                 _LOGGER.debug(
                     "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
