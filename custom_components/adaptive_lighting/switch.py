@@ -824,13 +824,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         for light in all_lights:
             self._manual_lights[light] = {"timer": 0}
 
-        for light in data[CONF_LIGHTS]:
-            if not hasattr(self.turn_on_off_listener, "_switches"):
-                self.turn_on_off_listener._switches = {}
-            self.turn_on_off_listener._switches[
-                light
-            ] = self  # light should never be in multiple switches anyway.
-
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(
@@ -1706,6 +1699,8 @@ class TurnOnOffListener:
         self.cnt_significant_changes: dict[str, int] = defaultdict(int)
         # Track 'state_changed' events of self.lights resulting from this integration
         self.last_state_change: dict[str, list[State]] = {}
+        # Track 'state_changed' events of self.lights from any source.
+        self.all_state_changes: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
 
@@ -1797,17 +1792,11 @@ class TurnOnOffListener:
                 new_state.attributes,
                 new_state.context.id,
             )
-        adapt_switch = self._switches.get(entity_id)
 
         if (
             new_state is not None
             and new_state.state == STATE_ON
-            and (
-                is_our_context(
-                    new_state.context
-                )  # doesn't work correctly on my lights. is this check necessary?
-                or (adapt_switch is not None and adapt_switch._alt_detect_method)
-            )
+            and entity_id in self.lights
         ):
             # It is possible to have multiple state change events with the same context.
             # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
@@ -1821,22 +1810,22 @@ class TurnOnOffListener:
             # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
             old_state: list[State] | None = self.last_state_change.get(entity_id)
-            if old_state is not None and (
-                old_state[0].context.id
-                == new_state.context.id  # doesn't work correctly on my lights?
-                or (adapt_switch is not None and adapt_switch._alt_detect_method)
-            ):
-                # If there is already a state change event from this event (with this
-                # context) then append it to the already existing list.
-                _LOGGER.debug(
-                    "State change event of '%s' is already in 'self.last_state_change' (%s)"
-                    " adding this state also",
-                    entity_id,
-                    new_state.context.id,
-                )
-                self.last_state_change[entity_id].append(new_state)
+            if old_state is not None:
+                if old_state[0].context.id == new_state.context.id:
+                    # If there is already a state change event from this event (with this
+                    # context) then append it to the already existing list.
+                    _LOGGER.debug(
+                        "State change event of '%s' is already in 'self.last_state_change' (%s)"
+                        " adding this state also",
+                        entity_id,
+                        new_state.context.id,
+                    )
+                    self.last_state_change[entity_id].append(new_state)
+                elif is_our_context(new_state.context):
+                    self.last_state_change[entity_id] = [new_state]
+                self.all_state_changes[entity_id].append(new_state)
             else:
-                self.last_state_change[entity_id] = [new_state]
+                self.all_state_changes[entity_id] = [new_state]
 
     def is_manually_controlled(
         self,
@@ -1888,6 +1877,8 @@ class TurnOnOffListener:
         """
         if light not in self.last_state_change:
             return False
+        if light not in self.all_state_changes:
+            return False
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return
@@ -1903,7 +1894,8 @@ class TurnOnOffListener:
 
         _LOGGER.debug("last_service_data: %s", last_service_data)
         if switch._alt_detect_method:
-            for index, old_state in enumerate(old_states):
+            all_old_states = list[State] = self.all_state_changes[light]
+            for index, old_state in enumerate(all_old_states):
                 if index == 0:
                     continue
                 _LOGGER.debug(
