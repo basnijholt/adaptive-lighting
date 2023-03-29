@@ -2,35 +2,244 @@ apply:
   description: Applies the current Adaptive Lighting settings to lights.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch.
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       example: switch.adaptive_lighting_default
+      selector:
+        entity:
+          integration: adaptive_lighting
+          domain: switch
+          multiple: false
     lights:
-      description: "entity_id(s) of lights, default: lights of the switch"
+      description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
+      selector:
+        entity:
+          domain: light
+          multiple: true
     transition:
       description: Transition of the lights.
       example: 10
+      selector:
+        text:
     adapt_brightness:
       description: "Adapt the 'brightness', default: true"
       example: true
+      selector:
+        boolean:
     adapt_color:
       description: "Adapt the color_temp/color_rgb, default: true"
       example: true
+      selector:
+        boolean:
     prefer_rgb_color:
       description: "Prefer to use color_rgb over color_temp if possible, default: false"
       example: false
+      selector:
+        boolean:
     turn_on_lights:
       description: "Turn on the lights that are off, default: false"
       example: false
+      selector:
+        boolean:
+
 set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:
     entity_id:
-      description: entity_id of the Adaptive Lighting switch.
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       example: switch.adaptive_lighting_default
-    manual_control:
-      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
-      example: true
+      selector:
+        entity:
+          integration: adaptive_lighting
+          domain: switch
+          multiple: false
     lights:
       description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       example: light.bedroom_ceiling
+      selector:
+        entity:
+          domain: light
+          multiple: true
+    manual_control:
+      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
+      example: true
+      default: true
+      selector:
+        boolean:
+
+change_switch_settings:
+  description: "Change any settings you'd like in the switch. All options here are the same as in the config flow."
+  fields:
+    entity_id:
+      description: "entity_id of the Adaptive Lighting switch."
+      required: true
+      selector:
+        entity:
+          domain: switch
+    use_defaults:
+      description: "(default: 'current' for current settings) You can set this to 'factory', 'configuration', or 'current' to reset the variables not being set with this service call. 'current' leaves them as is, 'configuration' resets to whatever already initializes at startup, 'factory' resets to the default values listed in the documentation."
+      example: "current"
+      required: false
+      default: "current"
+      selector:
+        select:
+          options:
+            - "current"
+            - "configuration"
+            - "factory"
+    turn_on_lights:
+      description: "Turn on the lights that are off, default: false"
+      example: false
+      required: false
+      selector:
+        boolean:
+    initial_transition:
+      description: "initial_transition: When lights turn 'off' to 'on'. (seconds)"
+      example: 1
+      required: false
+      selector:
+        text:
+    sleep_transition:
+      description: "sleep_transition: When 'sleep_state' changes. (seconds)"
+      example: 1
+      required: false
+      selector:
+        text:
+    max_brightness:
+      description: "max_brightness: Highest brightness of lights during a cycle. (%)"
+      required: false
+      example: 100
+      selector:
+        text:
+    max_color_temp:
+      description: "max_color_temp: Coldest hue of the color temperature cycle. (Kelvin)"
+      required: false
+      example: 5500
+      selector:
+        text:
+    min_brightness:
+      description: "min_brightness: Lowest brightness of lights during a cycle. (%)"
+      required: false
+      example: 1
+      selector:
+        text:
+    min_color_temp:
+      description: "min_color_temp, Warmest hue of the color temperature cycle. (Kelvin)"
+      required: false
+      example: 2000
+      selector:
+        text:
+    only_once:
+      description: "only_once: Only adapt the lights when turning them on."
+      example: false
+      required: false
+      selector:
+        boolean:
+    prefer_rgb_color:
+      description: "prefer_rgb_color: Use 'rgb_color' rather than 'color_temp' when possible."
+      required: false
+      example: false
+      selector:
+        boolean:
+    separate_turn_on_commands:
+      description: "separate_turn_on_commands: Separate the commands for each attribute (color, brightness, etc.) in 'light.turn_on' (required for some lights)."
+      required: false
+      example: false
+      selector:
+        boolean:
+    send_split_delay:
+      description: "send_split_delay: wait between commands (milliseconds), when separate_turn_on_commands is used. May ensure that both commands are handled by the bulb correctly."
+      required: false
+      example: 0
+      selector:
+        boolean:
+    sleep_brightness:
+      description: "sleep_brightness, Brightness setting for Sleep Mode. (%)"
+      required: false
+      example: 1
+      selector:
+        text:
+    sleep_rgb_or_color_temp:
+      description: "sleep_rgb_or_color_temp, use 'rgb_color' or 'color_temp'"
+      required: false
+      example: "color_temp"
+      selector:
+        select:
+          options:
+            - "rgb_color"
+            - "color_temp"
+    sleep_rgb_color:
+      description: "sleep_rgb_color, in RGB"
+      required: false
+      selector:
+        color_rgb:
+    sleep_color_temp:
+      description: "sleep_color_temp: Color temperature setting for Sleep Mode. (Kelvin)"
+      required: false
+      example: 1000
+      selector:
+        text:
+    sunrise_offset:
+      description: sunrise_offset, in +/- seconds (integer)
+      required: false
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 86300
+    sunrise_time:
+      description: sunrise_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunrise time at your location)
+      required: false
+      example: ""
+      selector:
+        time:
+    sunset_offset:
+      description: sunset_offset, in +/- seconds (integer)
+      required: false
+      example: ""
+      selector:
+        number:
+          min: 0
+          max: 86300
+    sunset_time:
+      description: sunset_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunset time at your location)
+      example: ""
+      required: false
+      selector:
+        time:
+    max_sunrise_time:
+      description: "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+      example: ""
+      required: false
+      selector:
+        time:
+    min_sunset_time:
+      description: "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)"
+      example: ""
+      required: false
+      selector:
+        time:
+    take_over_control:
+      description: "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on."
+      required: false
+      example: true
+      selector:
+        boolean:
+    detect_non_ha_changes:
+      description: "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)"
+      required: false
+      example: false
+      selector:
+        boolean:
+    transition:
+      description: "Transition time when applying a change to the lights (seconds)"
+      required: false
+      example: 45
+      selector:
+        text:
+    adapt_delay:
+      description: "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering."
+      required: false
+      example: 0
+      selector:
+        text:
