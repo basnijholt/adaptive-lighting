@@ -1794,36 +1794,36 @@ class TurnOnOffListener:
         new_state = event.data.get("new_state")
         if new_state is not None and new_state.state == STATE_ON:
             _LOGGER.debug(
-                "Detected a '%s' 'state_changed' event: '%s' with context.id='%s'",
+                "TurnOnOffListener: Detected a '%s' 'state_changed' event: '%s' with"
+                " context.id='%s'",
                 entity_id,
                 new_state.attributes,
                 new_state.context.id,
             )
 
-        if new_state is not None and new_state.state == STATE_ON:
             old_state: list[State] | None = self.last_state_change.get(entity_id)
-            if old_state is not None and is_our_context(new_state.context):
+            if is_our_context(new_state.context):
                 if (
-                    self.last_service_data[entity_id]
-                    and self.last_service_data[entity_id]["context"].id
-                    == new_state.context.id
+                    old_state is not None
+                    and old_state[0].context.id == new_state.context.id
                 ):
                     _LOGGER.debug(
-                        "State change event of '%s' is already in 'self.last_state_change' (%s)"
+                        "TurnOnOffListener: State change event of '%s' is already"
+                        " in 'self.last_state_change' (%s)"
                         " adding this state also",
                         entity_id,
                         new_state.context.id,
                     )
+                    self.last_state_change[entity_id].append(new_state)
                 else:
                     _LOGGER.debug(
-                        "Found state change to our light not caused by the integration"
+                        "TurnOnOffListener: New state change '%s' created for %s",
+                        new_state,
+                        entity_id,
                     )
-                self.last_state_change[entity_id].append(new_state)
+                    self.last_state_change[entity_id] = [new_state]
             elif old_state is not None:
-                _LOGGER.debug(
-                    "New state change '%s' created for %s", new_state, entity_id
-                )
-                self.last_state_change[entity_id] = [new_state]
+                self.last_state_change[entity_id].append(new_state)
 
     def is_manually_controlled(
         self,
