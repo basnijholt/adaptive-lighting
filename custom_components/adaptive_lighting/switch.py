@@ -1588,6 +1588,8 @@ class TurnOnOffListener:
 
     def set_auto_reset_manual_control_times(self, lights, time):
         """Set the time after which the lights are automatically reset."""
+        if time == 0:
+            return
         for light in lights:
             old_time = self.auto_reset_manual_control_times.get(light)
             if (old_time is not None) and (old_time != time):
@@ -1635,7 +1637,7 @@ class TurnOnOffListener:
             if reset_manual_control:
                 self.manual_control[light] = False
                 timer = self.auto_reset_manual_control_timers.pop(light, None)
-                if timer:
+                if timer is not None:
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
@@ -1754,6 +1756,7 @@ class TurnOnOffListener:
         """Check if the light has been 'on' and is now manually controlled."""
         manual_control = self.manual_control.setdefault(light, False)
         if manual_control:
+            # Manually controlled until light is turned on and o
             return True
 
         turn_on_event = self.turn_on_event.get(light)
