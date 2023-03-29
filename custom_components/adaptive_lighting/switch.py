@@ -241,33 +241,33 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
 
 
 def _get_switches_with_lights(
-    hass: HomeAssistant, lights: list[str], on_only: bool
-) -> dict:
+    hass: HomeAssistant, lights: list[str], is_on: bool
+) -> list[AdaptiveSwitch]:
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
-    switches = {}
+    switches = []
     for config in config_entries:
         if config.entry_id in data:
             switch = data[config.entry_id]["instance"]
-            if on_only and not switch.is_on:
+            if is_on and not switch.is_on:
                 continue
             all_check_lights = _expand_light_groups(hass, lights)
             switch._expand_light_groups()
             # Check if any of the lights are in the switch's lights
             if set(switch._lights) & set(all_check_lights):
-                switches[config.entry_id] = switch
+                switches.append(switch)
     return switches
 
 
 def _handle_multiple_switches(
-    switches: dict, lights: list[str], service_call: ServiceCall
+    switches: list[AdaptiveSwitch], lights: list[str], service_call: ServiceCall
 ):
     _LOGGER.error(
         "Invalid service data: Light(s) %s found in multiple switch configs (%s)."
         " You must pass a switch under 'entity_id'. See the README for"
         " details. Got %s",
         lights,
-        list(switches.keys()),
+        [s.entity_id for s in switches],
         service_call.data,
     )
     raise ValueError(
@@ -293,13 +293,12 @@ def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
     service_call: ServiceCall,
-    on_only: bool = False,
+    is_on: bool = False,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
-    switches = _get_switches_with_lights(hass, lights, on_only)
+    switches = _get_switches_with_lights(hass, lights, is_on)
     if len(switches) == 1:
-        switch = next(iter(switches.values()))
-        return switch
+        return switches[0]
     elif len(switches) > 1:
         _handle_multiple_switches(switches, lights, service_call)
     else:
@@ -1616,9 +1615,17 @@ class TurnOnOffListener:
                 timer.start()
         elif delay is not None:  # Timer object does not exist, create it
 
-            def reset():
+            async def reset():
                 self.reset(light)
-                self.last_service_data.pop(light, None)
+                switches = _get_switches_with_lights(self.hass, [light], is_on=True)
+                for switch in switches.values():
+                    # pylint: disable=protected-access
+                    await switch._update_attrs_and_maybe_adapt_lights(
+                        [light],
+                        transition=switch._initial_transition,
+                        force=True,
+                        context=switch.create_context("autoreset"),
+                    )
                 _LOGGER.debug(
                     "Auto resetting 'manual_control' status of '%s' because"
                     " it was not manually controlled for %s seconds.",
