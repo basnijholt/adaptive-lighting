@@ -733,6 +733,10 @@ async def test_significant_change(hass):
         )
         await hass.async_block_till_done()
 
+    async def do_nothing(entity_id):
+        _LOGGER.debug("update entity successfully replaced for %s", entity_id)
+        return None
+
     switch, (bed_light_instance, *_) = await setup_lights_and_switch(hass)
     for i in range(2):
         if i == 0:
@@ -758,20 +762,18 @@ async def test_significant_change(hass):
             assert not switch.turn_on_off_listener.manual_control[light]
 
         # Change brightness by setting state (not using 'light.turn_on')
-        attributes = hass.states.get(ENTITY_LIGHT).attributes
-        new_attributes = attributes.copy()
         new_brightness = 50
-        new_attributes[ATTR_BRIGHTNESS] = new_brightness
-        bed_light_instance._brightness = new_brightness
+        hass.states.async_set(ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: new_brightness})
         _LOGGER.debug("Test: Brightness set to %s", new_brightness)
-        await asyncio.sleep(2)
         assert (
             switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
         )
         # On next update ENTITY_LIGHT should be marked as manually controlled
-        # todo: fix later
-        # await update(force=False)
-        # assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        # Override update_entity() to do nothing so significant_change
+        # will get the new value we set above with async_set()
+        switch.hass.helpers.entity_component.async_update_entity = do_nothing
+        await update(force=False)
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():
