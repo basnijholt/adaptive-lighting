@@ -1754,13 +1754,10 @@ class TurnOnOffListener:
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
         manual_control = self.manual_control.setdefault(light, False)
-        turn_on_event = self.turn_on_event.get(light)
         if manual_control:
-            # Manually controlled until light is turned on and off
-            if not is_our_context(turn_on_event.context):
-                self.mark_as_manual_control(light)  # resets the timer
             return True
 
+        turn_on_event = self.turn_on_event.get(light)
         if (
             turn_on_event is not None
             and not is_our_context(turn_on_event.context)
