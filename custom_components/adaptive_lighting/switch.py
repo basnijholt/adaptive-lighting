@@ -99,7 +99,6 @@ from .const import (
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
     CONF_ALT_DETECT_METHOD,
-    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -907,7 +906,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
-        self._autoreset_control_time = data[CONF_AUTORESET_CONTROL]
         self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
@@ -1207,27 +1205,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
 
-    # Not precise, checked every `interval`
-    async def _maybe_reset_manual_control(
-        self,
-        now: list[str] | None = None,
-    ):
-        for light in self._lights:
-            if self._manual_lights[light]["timer"] == 0:
-                continue
-            time_elapsed = perf_counter() - self._manual_lights[light]["timer"]
-            time_remaining = self._autoreset_control_time - time_elapsed
-            _LOGGER.debug(
-                "check manual control reset. time: %s, timer: %s elapsed: %s, remaining: %s",
-                self._autoreset_control_time,
-                self._manual_lights[light]["timer"],
-                time_elapsed,
-                time_remaining,
-            )
-            if time_remaining <= 0:
-                _LOGGER.debug("DISABLING manual control for lights %s", self._lights)
-                self.turn_on_off_listener.reset(*self._lights)
-
     # Fixes #447 (and #430 with 'alt_detect_method: true' set)
     # if we are in the middle of a transition, sleep until that transition finishes.
     # Needed so we can check if the previous adapt attempt succeeded after the
@@ -1296,8 +1273,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
         if lights is None:
             lights = self._lights
-        if self._autoreset_control_time > 0:
-            await self._maybe_reset_manual_control(lights)
         if not force:
             if self._only_once or await self._async_wait_transitions(lights):
                 return
