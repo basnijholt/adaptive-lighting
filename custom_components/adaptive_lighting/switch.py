@@ -553,8 +553,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
-    # see #423, I guess not all lights have ATTR_SUPPORTED_FEATURES
-    supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, {})
+    supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
     supported = {
         key for key, value in _SUPPORT_OPTS.items() if supported_features & value
     }
@@ -954,7 +953,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         # Check transition == 0 to fix #378
-        if "transition" in features and transition != 0:
+        if "transition" in features and transition >= 0:
             service_data[ATTR_TRANSITION] = transition
 
         # The switch might be off and not have _settings set.
