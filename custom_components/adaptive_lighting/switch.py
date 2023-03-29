@@ -1823,6 +1823,8 @@ class TurnOnOffListener:
                     self.last_state_change[entity_id].append(new_state)
                 elif is_our_context(new_state.context):
                     self.last_state_change[entity_id] = [new_state]
+            old_state: list[State] | None = self.all_state_changes.get(entity_id)
+            if old_state is not None:
                 self.all_state_changes[entity_id].append(new_state)
             else:
                 self.all_state_changes[entity_id] = [new_state]
