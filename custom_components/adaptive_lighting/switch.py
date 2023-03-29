@@ -1573,7 +1573,7 @@ class TurnOnOffListener:
 
         # Track auto reset of manual_control
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
-        self.auto_reset_manual_control_times: dict[str, float | None] = {}
+        self.auto_reset_manual_control_times: dict[str, float] = {}
 
         # When a state is different `max_cnt_significant_changes` times in a row,
         # mark it as manually_controlled.
@@ -1586,7 +1586,7 @@ class TurnOnOffListener:
             EVENT_STATE_CHANGED, self.state_changed_event_listener
         )
 
-    def set_auto_reset_manual_control_times(self, lights, time):
+    def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
         if time == 0:
             return
