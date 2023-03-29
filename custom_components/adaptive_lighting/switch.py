@@ -1246,7 +1246,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and (perf_counter() - self._transition_timer) < last_transition
         ):
             self._transitioning = True
-            await asyncio.sleep(last_transition)
+            await asyncio.sleep(perf_counter() - self._transition_timer)
         # wait a short but guaranteed longer time than transition.
         await asyncio.sleep(0.2)
         self._transitioning = False
@@ -1893,7 +1893,6 @@ class TurnOnOffListener:
         if last_service_data is None:
             return
 
-        old_states: list[State] = self.last_state_change[light]
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
@@ -1904,13 +1903,13 @@ class TurnOnOffListener:
 
         _LOGGER.debug("last_service_data: %s", last_service_data)
         if switch._alt_detect_method:
-            all_old_states: list[State] = self.all_state_changes[light]
+            old_states: list[State] = self.all_state_changes[light]
             _LOGGER.debug(
                 "%s: 'alt_detect_method: true', check all state changes made to light %s",
                 switch._name,
                 light,
             )
-            for index, old_state in enumerate(all_old_states):
+            for index, old_state in enumerate(old_states):
                 if index == 0:
                     continue
                 _LOGGER.debug(
