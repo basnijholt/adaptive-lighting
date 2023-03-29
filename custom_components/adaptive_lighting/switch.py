@@ -1618,7 +1618,7 @@ class TurnOnOffListener:
             async def reset():
                 self.reset(light)
                 switches = _get_switches_with_lights(self.hass, [light], is_on=True)
-                for switch in switches.values():
+                for switch in switches:
                     # pylint: disable=protected-access
                     await switch._update_attrs_and_maybe_adapt_lights(
                         [light],
