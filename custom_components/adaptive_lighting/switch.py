@@ -1798,20 +1798,23 @@ class TurnOnOffListener:
             and new_state.state == STATE_ON
             and entity_id in self.lights
         ):
-            # It is possible to have multiple state change events with the same context.
-            # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
-            # event leads to an instant state change of
-            # `new_state=dict(brightness=100, ...)`. However, after polling the light
-            # could still only be `new_state=dict(brightness=50, ...)`.
-            # We save all events because the first event change might indicate at what
-            # settings the light will be later *or* the second event might indicate a
-            # final state. The latter case happens for example when a light was
-            # called with a color_temp outside of its range (and HA reports the
-            # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
-            # Philips Hue White GU10 Bluetooth lights).
-            old_state: list[State] | None = self.last_state_change.get(entity_id)
-            if old_state is not None:
-                if old_state[0].context.id == new_state.context.id:
+            if is_our_context(new_state.context):
+                # It is possible to have multiple state change events with the same context.
+                # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
+                # event leads to an instant state change of
+                # `new_state=dict(brightness=100, ...)`. However, after polling the light
+                # could still only be `new_state=dict(brightness=50, ...)`.
+                # We save all events because the first event change might indicate at what
+                # settings the light will be later *or* the second event might indicate a
+                # final state. The latter case happens for example when a light was
+                # called with a color_temp outside of its range (and HA reports the
+                # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
+                # Philips Hue White GU10 Bluetooth lights).
+                old_state: list[State] | None = self.last_state_change.get(entity_id)
+                if (
+                    old_state is not None
+                    and old_state[0].context.id == new_state.context.id
+                ):
                     # If there is already a state change event from this event (with this
                     # context) then append it to the already existing list.
                     _LOGGER.debug(
@@ -1821,8 +1824,9 @@ class TurnOnOffListener:
                         new_state.context.id,
                     )
                     self.last_state_change[entity_id].append(new_state)
-                elif is_our_context(new_state.context):
+                else:
                     self.last_state_change[entity_id] = [new_state]
+            # Used for alt_detect_method
             old_state: list[State] | None = self.all_state_changes.get(entity_id)
             if old_state is not None:
                 self.all_state_changes[entity_id].append(new_state)
@@ -1896,7 +1900,8 @@ class TurnOnOffListener:
 
         _LOGGER.debug("last_service_data: %s", last_service_data)
         if switch._alt_detect_method:
-            all_old_states = list[State] = self.all_state_changes[light]
+            all_old_states: list[State] = self.all_state_changes[light]
+            _LOGGER.debug("ALL OLD STATES: %s", all_old_states)
             for index, old_state in enumerate(all_old_states):
                 if index == 0:
                     continue
