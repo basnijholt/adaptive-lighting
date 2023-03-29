@@ -1218,14 +1218,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug("%s: First call of _async_wait_transitions", self._name)
         last_service_data = self.turn_on_off_listener.last_service_data
         _LOGGER.debug("%s: Last service data: %s", self._name, last_service_data)
+        found_light = None
+        for light in self._lights:
+            if light in last_service_data:
+                found_light = light
+                break
+        if not found_light:
+            return False
         if (
             not last_service_data
             or not len(self._lights)
-            or self._lights[0] not in last_service_data
-            or ATTR_TRANSITION not in last_service_data[self._lights[0]]
+            or found_light not in last_service_data
+            or ATTR_TRANSITION not in last_service_data[found_light]
         ):
             return False
-        last_transition = last_service_data[self._lights[0]][ATTR_TRANSITION]
+        last_transition = last_service_data[found_light][ATTR_TRANSITION]
         _LOGGER.debug(
             "%s: wait_transitions: Transition found in last service"
             "data: %s seconds Timer: %s. Time remaining: %s",
