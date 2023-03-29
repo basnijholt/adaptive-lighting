@@ -403,7 +403,6 @@ def _fire_manual_control_event(
         switch.entity_id,
         light,
     )
-    switch._manual_lights[light]["timer"] = perf_counter()
     switch.turn_on_off_listener.manual_control[light] = True
     fire(
         f"{DOMAIN}.manual_control",
@@ -819,10 +818,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = data[CONF_NAME]
         self._interval = data[CONF_INTERVAL]
         self._lights = data[CONF_LIGHTS]
-        self._manual_lights = {}
-        all_lights = _expand_light_groups(self.hass, self._lights)
-        for light in all_lights:
-            self._manual_lights[light] = {"timer": 0}
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
@@ -895,11 +890,25 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
-        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
+        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        if not data[CONF_TAKE_OVER_CONTROL] and (
+            data[CONF_ALT_DETECT_METHOD] or data[CONF_DETECT_NON_HA_CHANGES]
+        ):
+            _LOGGER.warn(
+                "%s: Config mismatch: 'alt_detect_method: true'"
+                " OR 'detect_non_ha_changes: true' are set in config, however required"
+                " variable 'take_over_control' is turned off. Please check your"
+                " configuration to ensure desired functionality. We will now"
+                " enable 'take_over_control' and continue setting up the"
+                " adaptive-lighting integration normally.",
+                self._name,
+            )
+            self._take_over_control = True
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -972,8 +981,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
-        for light in all_lights:
-            self._manual_lights[light] = {"timer": 0}
         self.turn_on_off_listener.lights.update(all_lights)
         self._lights = list(all_lights)
 
@@ -1161,13 +1168,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         else:
             self._transition_timer = 0
 
-        # this check shouldn't need to exist but I've defined {"timer": 0}
-        # everywhere I can think of already.
-        if self._manual_lights.get(light) is None:
-            self._manual_lights[light] = {"timer": 0}
-        else:
-            self._manual_lights[light]["timer"] = 0
-
         async def turn_on(service_data):
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
@@ -1277,9 +1277,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if self._only_once or await self._async_wait_transitions(lights):
                 return
 
-        await self._adapt_lights(lights, transition, force, context)
+        await self._update_manual_control_and_maybe_adapt(
+            lights, transition, force, context
+        )
 
-    async def _adapt_lights(
+    async def _update_manual_control_and_maybe_adapt(
         self,
         lights: list[str],
         transition: int | None,
@@ -1291,7 +1293,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     ) -> None:
         assert context is not None
         _LOGGER.debug(
-            "%s: '_adapt_lights(%s, %s, force=%s, context.id=%s)' called",
+            "%s: '_update_manual_control_and_maybe_adapt(%s, %s, force=%s, context.id=%s)' called",
             self.name,
             lights,
             transition,
@@ -1350,6 +1352,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                             light,
                             context.id,
                         )
+            elif self.turn_on_off_listener.manual_control[light]:
+                _LOGGER.debug(
+                    "%s: Resetting manual control for '%s' due to forced"
+                    " call of '_update_manual_control_and_maybe_adapt'",
+                    self._name,
+                    light,
+                )
+                self.turn_on_off_listener.manual_control[light] = False
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
@@ -1904,6 +1914,7 @@ class TurnOnOffListener:
         _LOGGER.debug("last_service_data: %s", last_service_data)
         if switch._alt_detect_method:
             old_states: list[State] = self.all_state_changes[light]
+            _LOGGER.debug("Total state changes detected: %s", len(old_states))
             _LOGGER.debug(
                 "%s: 'alt_detect_method: true', check all state changes made to light %s",
                 switch._name,
