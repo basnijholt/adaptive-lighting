@@ -1703,6 +1703,13 @@ class TurnOnOffListener:
                 if task is not None:
                     task.cancel()
                 self.turn_on_event[eid] = event
+                timer = self.auto_reset_manual_control_timers.get(eid)
+                if (
+                    timer is not None
+                    and timer.is_running()
+                    and event.time_fired > timer.start_time
+                ):
+                    timer.start()
 
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
@@ -1763,7 +1770,7 @@ class TurnOnOffListener:
         """Check if the light has been 'on' and is now manually controlled."""
         manual_control = self.manual_control.setdefault(light, False)
         if manual_control:
-            # Manually controlled until light is turned on and o
+            # Manually controlled until light is turned on and off
             return True
 
         turn_on_event = self.turn_on_event.get(light)
@@ -1974,9 +1981,11 @@ class _AsyncSingleShotTimer:
         self.delay = delay
         self.callback = callback
         self.task = None
+        self.start_time: int | None = None
 
     async def _run(self):
         """Run the timer. Don't call this directly, use start() instead."""
+        self.start_time = dt_util.utcnow()
         await asyncio.sleep(self.delay)
         if self.callback:
             if asyncio.iscoroutinefunction(self.callback):
@@ -1984,11 +1993,14 @@ class _AsyncSingleShotTimer:
             else:
                 self.callback()
 
+    def is_running(self):
+        """Return whether the timer is running."""
+        return self.task is not None and not self.task.done()
+
     def start(self):
         """Start the timer."""
         if self.task is not None and not self.task.done():
             self.task.cancel()
-
         self.task = asyncio.create_task(self._run())
 
     def cancel(self):
