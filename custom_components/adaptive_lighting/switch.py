@@ -240,53 +240,70 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
-def _find_switch_with_any_of_lights(
-    hass: HomeAssistant,
-    lights: list[str],
-    service_call: ServiceCall,
-) -> AdaptiveSwitch:
-    """Find the switch that controls the lights in 'lights'."""
+def _get_switches_with_lights(
+    hass: HomeAssistant, lights: list[str], on_only: bool
+) -> dict:
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
     switches = {}
     for config in config_entries:
-        # this check is necessary as there seems to always be an extra config
-        # entry that doesn't contain any data. I believe this happens when the
-        # integration exists, but is disabled by the user in HASS.
         if config.entry_id in data:
             switch = data[config.entry_id]["instance"]
+            if on_only and not switch.is_on:
+                continue
             all_check_lights = _expand_light_groups(hass, lights)
             switch._expand_light_groups()
+            # Check if any of the lights are in the switch's lights
             if set(switch._lights) & set(all_check_lights):
                 switches[config.entry_id] = switch
+    return switches
 
+
+def _handle_multiple_switches(
+    switches: dict, lights: list[str], service_call: ServiceCall
+):
+    _LOGGER.error(
+        "Invalid service data: Light(s) %s found in multiple switch configs (%s)."
+        " You must pass a switch under 'entity_id'. See the README for"
+        " details. Got %s",
+        lights,
+        list(switches.keys()),
+        service_call.data,
+    )
+    raise ValueError(
+        "adaptive-lighting: Light(s) %s found in multiple switch configs.",
+        lights,
+    )
+
+
+def _handle_no_switches(service_call: ServiceCall, lights: list[str]):
+    _LOGGER.error(
+        "Invalid service data: Light was not found in any of your switch's configs."
+        " You must either include the light(s) that is/are in the integration config, or"
+        " pass a switch under 'entity_id'. See the README for details. Got %s",
+        service_call.data,
+    )
+    raise ValueError(
+        "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
+        lights,
+    )
+
+
+def find_switch_for_lights(
+    hass: HomeAssistant,
+    lights: list[str],
+    service_call: ServiceCall,
+    on_only: bool = False,
+) -> AdaptiveSwitch:
+    """Find the switch that controls the lights in 'lights'."""
+    switches = _get_switches_with_lights(hass, lights, on_only)
     if len(switches) == 1:
-        return next(iter(switches.values()))
-
-    if len(switches) > 1:
-        _LOGGER.error(
-            "Invalid service data: Light(s) %s found in multiple switch configs (%s)."
-            " You must pass a switch under 'entity_id'. See the README for"
-            " details. Got %s",
-            lights,
-            list(switches.keys()),
-            service_call.data,
-        )
-        raise ValueError(
-            "adaptive-lighting: Light(s) %s found in multiple switch configs.",
-            lights,
-        )
+        switch = next(iter(switches.values()))
+        return switch
+    elif len(switches) > 1:
+        _handle_multiple_switches(switches, lights, service_call)
     else:
-        _LOGGER.error(
-            "Invalid service data: Light was not found in any of your switch's configs."
-            " You must either include the light(s) that is/are in the integration config, or"
-            " pass a switch under 'entity_id'. See the README for details. Got %s",
-            service_call.data,
-        )
-        raise ValueError(
-            "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
-            lights,
-        )
+        _handle_no_switches(service_call, lights)
 
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
@@ -336,7 +353,7 @@ def _get_switches_from_service_call(
         return switches
 
     if lights:
-        switch = _find_switch_with_any_of_lights(hass, lights, service_call)
+        switch = find_switch_for_lights(hass, lights, service_call)
         _LOGGER.debug(
             "Switch '%s' found for lights '%s'",
             switch.entity_id,
