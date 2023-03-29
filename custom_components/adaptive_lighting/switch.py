@@ -1594,7 +1594,8 @@ class TurnOnOffListener:
             if (old_time is not None) and (old_time != time):
                 _LOGGER.info(
                     "Setting auto_reset_manual_control for '%s' from %s seconds to %s seconds."
-                    " This might happen because the light is in multiple swiches.",
+                    " This might happen because the light is in multiple swiches"
+                    " or because of a config change.",
                     light,
                     old_time,
                     time,
@@ -1709,6 +1710,7 @@ class TurnOnOffListener:
                     and timer.is_running()
                     and event.time_fired > timer.start_time
                 ):
+                    # Restart the auto reset timer
                     timer.start()
 
     async def state_changed_event_listener(self, event: Event) -> None:
@@ -1779,11 +1781,6 @@ class TurnOnOffListener:
             and not is_our_context(turn_on_event.context)
             and not force
         ):
-            _LOGGER.debug(
-                "is_manually_controlled: '%s' was turned on with event '%s'",
-                light,
-                turn_on_event,
-            )
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
