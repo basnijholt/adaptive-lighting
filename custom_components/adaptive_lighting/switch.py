@@ -1149,10 +1149,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = rgb_color
 
-        self.turn_on_off_listener.last_service_data[light] = {
-            **service_data,
-            "context": context,
-        }
+        self.turn_on_off_listener.last_service_data[light] = service_data
 
         # If there is a transition, mark the time we started adapting this light
         # then the next time we start adapting, compare to the last timestamp.
@@ -1312,7 +1309,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         for light in lights:
-            _LOGGER.debug("LOOP light %s", light)
             if not is_on(self.hass, light):
                 continue
 
@@ -1330,7 +1326,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 continue
 
             if self._take_over_control:
-                _LOGGER.debug("TAKE OVER CONTROL")
                 if self.turn_on_off_listener.is_manually_controlled(
                     self,
                     light,
@@ -1817,7 +1812,7 @@ class TurnOnOffListener:
                     self.last_state_change[entity_id].append(new_state)
                 else:
                     _LOGGER.debug(
-                        "TurnOnOffListener: New state change '%s' created for %s",
+                        "TurnOnOffListener: New adapt '%s' found for %s",
                         new_state,
                         entity_id,
                     )
