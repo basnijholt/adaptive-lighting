@@ -1897,11 +1897,10 @@ class TurnOnOffListener:
                     if index == 0:
                         continue
                     _LOGGER.debug(
-                        "%s: checking for a manual change between index %s and %s... old_state: %s",
+                        "%s: checking for a manual change between index %s and %s...",
                         switch._name,
                         index,
                         index - 1,
-                        old_state,
                     )
                     prior_state = old_states[index - 1]
                     if compare_to(
