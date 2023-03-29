@@ -1589,9 +1589,8 @@ class TurnOnOffListener:
     def set_auto_reset_manual_control_times(self, lights, time):
         """Set the time after which the lights are automatically reset."""
         for light in lights:
-            if (old_time := self.auto_reset_manual_control_times.get(light)) and (
-                old_time != time
-            ):
+            old_time = self.auto_reset_manual_control_times.get(light)
+            if (old_time is not None) and (old_time != time):
                 _LOGGER.info(
                     "Setting auto_reset_manual_control for '%s' from %s seconds to %s seconds."
                     " This might happen because the light is in multiple swiches.",

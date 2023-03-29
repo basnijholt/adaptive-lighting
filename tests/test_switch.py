@@ -609,6 +609,7 @@ async def test_auto_reset_manual_control(hass):
             "Turn light %s to state %s, to %s", light.entity_id, state, kwargs
         )
 
+    _LOGGER.debug("Start test auto reset manual control")
     await turn_light(True, brightness=1)
     await turn_light(True, brightness=10)
     assert manual_control[light.entity_id]
