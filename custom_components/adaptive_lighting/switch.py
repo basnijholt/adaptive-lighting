@@ -1309,57 +1309,48 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         for light in lights:
-            _LOGGER.debug("LOOP for light %s", light)
             if not is_on(self.hass, light):
                 continue
-            if not force:
-                if self._take_over_control:
-                    if not self.turn_on_off_listener.is_manually_controlled(
-                        self,
+
+            if force:
+                if self.turn_on_off_listener.manual_control[light]:
+                    _LOGGER.debug(
+                        "%s: Resetting manual control for '%s' due to forced"
+                        " call of '_update_manual_control_and_maybe_adapt' context.id='%s'",
+                        self._name,
                         light,
-                        self.adapt_brightness_switch.is_on,
-                        self.adapt_color_switch.is_on,
-                    ):
-                        _LOGGER.debug(
-                            "%s: Did not detect 'light.turn_on' for light '%s'"
-                            ", continuing, context.id=%s.",
-                            self._name,
-                            light,
-                            context.id,
-                        )
-                if self._detect_non_ha_changes or self._alt_detect_method:
-                    if await self.turn_on_off_listener.significant_change(
-                        self,
-                        light,
-                        adapt_brightness,
-                        adapt_color,
                         context,
-                    ):
-                        _LOGGER.debug(
-                            "%s: Non HA light change detected on '%s',"
-                            "stop adapting, context.id=%s.",
-                            self._name,
-                            light,
-                            context.id,
-                        )
-                        _fire_manual_control_event(self, light, context)
-                        continue
-                    else:
-                        _LOGGER.debug(
-                            "%s: Light '%s' correctly matches our last adapt's service data."
-                            " We will now adapt the light normally. context.id=%s.",
-                            self._name,
-                            light,
-                            context.id,
-                        )
-            elif self.turn_on_off_listener.manual_control[light]:
-                _LOGGER.debug(
-                    "%s: Resetting manual control for '%s' due to forced"
-                    " call of '_update_manual_control_and_maybe_adapt'",
-                    self._name,
+                    )
+                    # _fire_manual_control_event(self, light, context, is_async=False)
+                await self._adapt_light(light, transition, force=force, context=context)
+                continue
+
+            if self._take_over_control:
+                if self.turn_on_off_listener.is_manually_controlled(
+                    self,
                     light,
-                )
-                self.turn_on_off_listener.manual_control[light] = False
+                    force,
+                    adapt_brightness,
+                    adapt_color,
+                ):
+                    _LOGGER.debug(
+                        "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
+                        self._name,
+                        light,
+                        context.id,
+                    )
+                    continue
+                if (
+                    self._detect_non_ha_changes or self._alt_detect_method
+                ) and await self.turn_on_off_listener.significant_change(
+                    self,
+                    light,
+                    adapt_brightness,
+                    adapt_color,
+                    context,
+                ):
+                    _fire_manual_control_event(self, light, context, is_async=False)
+                    continue
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
@@ -1739,6 +1730,7 @@ class TurnOnOffListener:
             if reset_manual_control:
                 self.manual_control[light] = False
             self.last_state_change.pop(light, None)
+            self.all_state_changes.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
 
@@ -1851,6 +1843,7 @@ class TurnOnOffListener:
         self,
         switch: AdaptiveSwitch,
         light: str,
+        force: bool,
         adapt_brightness: bool,
         adapt_color: bool,
     ) -> bool:
@@ -1861,14 +1854,17 @@ class TurnOnOffListener:
             return True
 
         turn_on_event = self.turn_on_event.get(light)
-        if turn_on_event is not None and not is_our_context(turn_on_event.context):
+        if (
+            turn_on_event is not None
+            and not is_our_context(turn_on_event.context)
+            and not force
+        ):
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = self.manual_control[light] = True
                 _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
@@ -1951,40 +1947,53 @@ class TurnOnOffListener:
                         context.id,
                     )
                     return True
+        # Update state and check for a manual change not done in HA.
+        # Ensure HASS is correctly updating your light's state with
+        # light.turn_on calls if any problems arise. This
+        # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
         if switch._detect_non_ha_changes:
-            # Update state and check for a manual change not done in HA.
-            # This was 'strict_adapting: false' in the old pr #450
-            # Ensure HASS is correctly updating your light's state with
-            # light.turn_on calls if any problems arise. This
-            # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
-            # TODO: check if reporting is on automatically and warn user to prevent issue threads.
-            _LOGGER.debug(
-                "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
-                " and check if it's last adapt succeeded.",
-                switch._name,
-                light,
-            )
-            await self.hass.helpers.entity_component.async_update_entity(light)
-            refreshed_state = self.hass.states.get(light)
+            # quickly check if the last state already doesn't match
+            # last_service_data before calling update_entity()
+            old_states: list[State] = self.last_state_change[light]
+            last_known_state = old_states[len(old_states) - 1]
             changed = compare_to(
-                old_attributes=last_service_data,
-                new_attributes=refreshed_state.attributes,
+                old_attributes=last_known_state.attributes,
+                new_attributes=last_service_data,
             )
             if not changed:
+                _LOGGER.debug(
+                    "State of '%s' didn't change wrt change event nr. %s (context.id=%s)",
+                    light,
+                    index,
+                    context.id,
+                )
+            if not changed:
+                _LOGGER.debug(
+                    "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
+                    " and check if it's last adapt succeeded.",
+                    switch._name,
+                    light,
+                )
+                await self.hass.helpers.entity_component.async_update_entity(light)
+                refreshed_state = self.hass.states.get(light)
+                changed = compare_to(
+                    old_attributes=last_service_data,
+                    new_attributes=refreshed_state.attributes,
+                )
+            if changed:
                 _LOGGER.debug(
                     "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
                     light,
                     context.id,
                 )
                 return True
-            else:
-                _LOGGER.info(
-                    "%s: Manual change to light '%s' found and was done outside of HA."
-                    "Change event: %s",
-                    switch._name,
-                    light,
-                    refreshed_state,
-                )
+        _LOGGER.debug(
+            "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
+            " context.id=%s.",
+            switch._name,
+            light,
+            context.id,
+        )
         return False
 
     async def maybe_cancel_adjusting(

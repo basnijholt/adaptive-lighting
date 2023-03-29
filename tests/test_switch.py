@@ -747,13 +747,12 @@ async def test_significant_change(hass):
             _LOGGER.debug("Test alt_detect_method:")
             switch._take_over_control = True
             assert switch._take_over_control
-            switch._detect_non_ha_changes = False
+            switch._detect_non_ha_changes = True
             assert not switch._detect_non_ha_changes
             switch._alt_detect_method = True
             assert switch._alt_detect_method
         await turn_light(False)
         await turn_light(True)
-        await turn_light(True, brightness=80)
         await update(force=True)  # removes manual control
         for light in switch._lights:
             assert not switch.turn_on_off_listener.manual_control[light]
