@@ -1049,7 +1049,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         # Check transition == 0 to fix #378
-        if "transition" in features and transition >= 0:
+        if "transition" in features and transition > 0:
             service_data[ATTR_TRANSITION] = transition
 
         # The switch might be off and not have _settings set.
