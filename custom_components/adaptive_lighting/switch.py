@@ -1218,7 +1218,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and new_state.state == STATE_ON
         ):
             _LOGGER.debug(
-                "%s: Detected an 'off' → 'on' event for '%s'" "with context.id='%s'",
+                "%s: Detected an 'off' → 'on' event for '%s' with context.id='%s'",
                 self._name,
                 entity_id,
                 event.context.id,
