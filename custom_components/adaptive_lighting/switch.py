@@ -1152,7 +1152,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._transition_timer = perf_counter()
             _LOGGER.debug(
                 "%s: Transition of %s used - no further adapts"
-                "will happen to light %s until this one completes. Timer: %s",
+                " will happen to these lights until this one completes. Timer: %s",
                 self._name,
                 transition,
                 light,
