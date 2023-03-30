@@ -248,8 +248,8 @@ def _get_switches_with_lights(
     data = hass.data[DOMAIN]
     switches = []
     for config in config_entries:
-        entry = data.get(config.entry_id)  # entry might be disabled and missing
-        if entry is None:
+        entry = data.get(config.entry_id)
+        if entry is None:  # entry might be disabled and therefore missing
             continue
         switch = data[config.entry_id]["instance"]
         if is_on and not switch.is_on:
