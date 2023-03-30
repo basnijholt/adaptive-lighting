@@ -434,24 +434,24 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.apply' service with '%s'",
             data,
         )
-        these_switches = _get_switches_from_service_call(hass, service_call)
+        switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
-        for this_switch in these_switches:
+        for switch in switches:
             if not lights:
-                all_lights = this_switch._lights  # pylint: disable=protected-access
+                all_lights = switch._lights  # pylint: disable=protected-access
             else:
-                all_lights = _expand_light_groups(this_switch.hass, lights)
-            this_switch.turn_on_off_listener.lights.update(all_lights)
+                all_lights = _expand_light_groups(switch.hass, lights)
+            switch.turn_on_off_listener.lights.update(all_lights)
             for light in all_lights:
                 if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    await this_switch._adapt_light(  # pylint: disable=protected-access
+                    await switch._adapt_light(  # pylint: disable=protected-access
                         light,
                         data[CONF_TRANSITION],
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
                         force=True,
-                        context=this_switch.create_context(
+                        context=switch.create_context(
                             "service", parent=service_call.context
                         ),
                     )
@@ -464,26 +464,26 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
             data,
         )
-        these_switches = _get_switches_from_service_call(hass, service_call)
+        switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
-        for this_switch in these_switches:
+        for switch in switches:
             if not lights:
-                all_lights = this_switch._lights  # pylint: disable=protected-access
+                all_lights = switch._lights  # pylint: disable=protected-access
             else:
-                all_lights = _expand_light_groups(this_switch.hass, lights)
+                all_lights = _expand_light_groups(switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    this_switch.turn_on_off_listener.manual_control[light] = True
-                    _fire_manual_control_event(this_switch, light, service_call.context)
+                    switch.turn_on_off_listener.manual_control[light] = True
+                    _fire_manual_control_event(switch, light, service_call.context)
             else:
-                this_switch.turn_on_off_listener.reset(*all_lights)
-                if this_switch.is_on:
+                switch.turn_on_off_listener.reset(*all_lights)
+                if switch.is_on:
                     # pylint: disable=protected-access
-                    await this_switch._update_attrs_and_maybe_adapt_lights(
+                    await switch._update_attrs_and_maybe_adapt_lights(
                         all_lights,
-                        transition=this_switch._initial_transition,
+                        transition=switch._initial_transition,
                         force=True,
-                        context=this_switch.create_context(
+                        context=switch.create_context(
                             "service", parent=service_call.context
                         ),
                     )
