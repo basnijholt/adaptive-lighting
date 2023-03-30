@@ -777,9 +777,13 @@ async def test_significant_change(hass):
     for _ in range(switch.turn_on_off_listener.max_cnt_significant_changes):
         await update(force=False)
         assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        # Check that the brightness was not changed since setting it manually
+        assert (
+            new_brightness == hass.states.get(ENTITY_LIGHT).attributes[ATTR_BRIGHTNESS]
+        )
     # On next update the light should be marked as manually controlled
     await update(force=False)
-    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():
