@@ -5,7 +5,10 @@ from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
-ICON = "mdi:theme-light-dark"
+ICON_MAIN = "mdi:theme-light-dark"
+ICON_BRIGHTNESS = "mdi:brightness-4"
+ICON_COLOR_TEMP = "mdi:sun-thermometer"
+ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
@@ -15,6 +18,10 @@ CONF_NAME, DEFAULT_NAME = "name", "default"
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
     "detect_non_ha_changes",
+    False,
+)
+CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
+    "include_config_in_attributes",
     False,
 )
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
@@ -59,6 +66,8 @@ SERVICE_SET_MANUAL_CONTROL = "set_manual_control"
 CONF_MANUAL_CONTROL = "manual_control"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
+SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
+CONF_USE_DEFAULTS = "use_defaults"
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 TURNING_OFF_DELAY = 5
@@ -73,6 +82,7 @@ def int_between(min_int, max_int):
 VALIDATION_TUPLES = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
+    (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
@@ -110,7 +120,7 @@ VALIDATION_TUPLES = [
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
-    (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, int_between(0, 10000)),
+    (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
 ]
 
 

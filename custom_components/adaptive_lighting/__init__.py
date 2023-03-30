@@ -6,6 +6,7 @@ from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.reload import async_setup_reload_service
 import voluptuous as vol
 
 from .const import (
@@ -37,6 +38,8 @@ CONFIG_SCHEMA = vol.Schema(
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     """Import integration from config."""
+    # This will reload any changes the user made to any YAML configurations.
+    await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
 
     if DOMAIN in config:
         for entry in config[DOMAIN]:

@@ -27,12 +27,22 @@ jobs:
         uses: actions/setup-python@v4.1.0
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Click here for troubleshooting steps if tests break again.
+        run: |
+          echo "::notice::### If tests fail, try these debug steps: ###"
+          echo "::notice::### 1. Replace '-qq' from .github/workflow/pytest.yaml. with '-v' for extra verbosity. ###"
+          echo "::notice::### 2. Push or run action again. ###"
+          echo "::notice::### 3. Check for any log messages in github actions resembling the following using CTRL+F ###
+          echo "::notice::### 4. ERROR:homeassistant.setup:Setup failed for 'component': Unable to import component: No module named ''module'' ###"
+          echo "::notice::### 5. add 'component'.'module' (without the '') from the above log into the 'required' list inside of 'test_dependencies.py' ###"
+          echo "::notice::### 6. Try again! If more issues persist they should be easily solvable by reading the verbose logs now. ###"
       - name: Install dependencies
         run: |
-          pip install -r core/requirements.txt
-          pip install -r core/requirements_test.txt
-          pip install -e core/
-          pip install $(python test_dependencies.py)
+          echo "::warning::### WARNING! Deprecation warnings muted with option '--use-pep517' please address this at some point in pytest.yaml. ###"
+          pip install -r core/requirements.txt --use-pep517
+          pip install -r core/requirements_test.txt --use-pep517
+          pip install -e core/ --use-pep517
+          pip install $(python test_dependencies.py) --use-pep517
       - name: Run pytest
         timeout-minutes: 60
         run: |
