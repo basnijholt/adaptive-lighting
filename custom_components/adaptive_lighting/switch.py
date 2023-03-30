@@ -266,7 +266,7 @@ def find_switch_for_lights(
     is_on: bool = False,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
-    switches = _get_switches_with_lights(hass, lights, is_on)
+    switches = _get_switches_with_lights(hass, lights)
     if len(switches) == 1:
         return switches[0]
     elif len(switches) > 1:
@@ -1568,7 +1568,8 @@ class TurnOnOffListener:
         _LOGGER.debug("Marking '%s' as manually controlled.", light)
         self.manual_control[light] = True
         delay = self.auto_reset_manual_control_times.get(light)
-        if timer := self.auto_reset_manual_control_timers.get(light):
+        timer = self.auto_reset_manual_control_timers.get(light)
+        if timer is not None:
             if delay is None:  # Timer object exists, but should not anymore
                 timer.cancel()
                 self.auto_reset_manual_control_timers.pop(light)
@@ -1579,8 +1580,10 @@ class TurnOnOffListener:
 
             async def reset():
                 self.reset(light)
-                switches = _get_switches_with_lights(self.hass, [light], is_on=True)
+                switches = _get_switches_with_lights(self.hass, [light])
                 for switch in switches:
+                    if not switch.is_on:
+                        continue
                     # pylint: disable=protected-access
                     await switch._update_attrs_and_maybe_adapt_lights(
                         [light],
