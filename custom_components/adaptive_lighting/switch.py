@@ -99,6 +99,7 @@ from .const import (
     CONF_ADAPT_DELAY,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_DIM_TO_WARM,
+    CONF_DIM_TO_WARM_BRIGHTNESS_CHECK,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -705,6 +706,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._dim_to_warm = data[CONF_DIM_TO_WARM]
+        self._dim_to_warm_brightness_check = data[CONF_DIM_TO_WARM_BRIGHTNESS_CHECK]
         self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
@@ -1674,6 +1676,8 @@ class TurnOnOffListener:
         """
         if light not in self.last_state_change:
             return False
+        if switch._dim_to_warm_brightness_check:
+            adapt_brightness = False
         old_states: list[State] = self.last_state_change[light]
         await self.hass.helpers.entity_component.async_update_entity(light)
         new_state = self.hass.states.get(light)
