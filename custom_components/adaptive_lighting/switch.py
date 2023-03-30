@@ -307,8 +307,8 @@ def _get_switches_from_service_call(
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
             raise ValueError(
-                f"adaptive-lighting: Cannot pass multiple switches with lights argument. "
-                f"Invalid service data received: {service_call.data}"
+                f"adaptive-lighting: Cannot pass multiple switches with lights argument."
+                f" Invalid service data received: {service_call.data}"
             )
         switches = []
         ent_reg = entity_registry.async_get(hass)
