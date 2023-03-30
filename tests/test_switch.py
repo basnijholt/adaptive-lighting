@@ -796,6 +796,9 @@ async def test_significant_change(hass):
             {ATTR_BRIGHTNESS: new_brightness, ATTR_SUPPORTED_FEATURES: 1},
         )
         _LOGGER.debug("Test: Brightness set to %s", new_brightness)
+
+        # This state change doesn't happen during runtime, but for some reason the above
+        # state change isn't appended to `last_state_change` until another one is appended.
         switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT].append(new_state)
         new_state = hass.states.get(ENTITY_LIGHT)
         hass.states.async_set(
