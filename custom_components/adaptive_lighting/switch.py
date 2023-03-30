@@ -333,7 +333,7 @@ def _get_switches_from_service_call(
 
 async def handle_change_switch_settings(
     switch: AdaptiveSwitch, service_call: ServiceCall
-):
+) -> None:
     """Allows HASS to change config values via a service call."""
     data = service_call.data
 
