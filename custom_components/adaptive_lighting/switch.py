@@ -241,7 +241,7 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
 
 
 def _get_switches_with_lights(
-    hass: HomeAssistant, lights: list[str], is_on: bool
+    hass: HomeAssistant, lights: list[str]
 ) -> list[AdaptiveSwitch]:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
@@ -252,8 +252,6 @@ def _get_switches_with_lights(
         if entry is None:  # entry might be disabled and therefore missing
             continue
         switch = data[config.entry_id]["instance"]
-        if is_on and not switch.is_on:
-            continue
         all_check_lights = _expand_light_groups(hass, lights)
         switch._expand_light_groups()
         # Check if any of the lights are in the switch's lights
