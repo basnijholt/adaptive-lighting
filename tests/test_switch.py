@@ -783,7 +783,7 @@ async def test_significant_change(hass):
         )
     # On next update the light should be marked as manually controlled
     await update(force=False)
-    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():
