@@ -986,8 +986,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
             if self._dim_to_warm and "brightness" in features:
                 # remove update_entity after testing completes!
-                await self.hass.helpers.entity_component.async_update_entity(light)
-                cur_state = self.hass.states.get(light)
+                cur_state = None
+                if self._dim_to_warm_brightness_check:
+                    await self.hass.helpers.entity_component.async_update_entity(light)
+                    cur_state = self.hass.states.get(light)
                 if cur_state:
                     brightness = cur_state.attributes[ATTR_BRIGHTNESS]
                 else:
