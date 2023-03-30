@@ -272,6 +272,10 @@ def find_switch_for_lights(
     if len(switches) == 1:
         return switches[0]
     elif len(switches) > 1:
+        on_switches = [s for s in switches if s.is_on]
+        if len(on_switches) == 1:
+            # Of the multiple switches, only one is on
+            return on_switches[0]
         raise ValueError(
             f"find_switch_for_lights: Light(s) {lights} found in multiple switch configs"
             f" ({[s.entity_id for s in switches]}). You must pass a switch under"
