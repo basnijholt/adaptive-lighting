@@ -239,52 +239,50 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
-def _find_switch_with_any_of_lights(
-    hass: HomeAssistant,
-    lights: list[str],
-    service_call: ServiceCall,
-) -> AdaptiveSwitch:
-    """Find the switch that controls the lights in 'lights'."""
+def _get_switches_with_lights(
+    hass: HomeAssistant, lights: list[str]
+) -> list[AdaptiveSwitch]:
+    """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
-    switches = {}
+    switches = []
     for config in config_entries:
-        # this check is necessary as there seems to always be an extra config
-        # entry that doesn't contain any data. I believe this happens when the
-        # integration exists, but is disabled by the user in HASS.
-        if config.entry_id in data:
-            switch = data[config.entry_id]["instance"]
-            all_check_lights = _expand_light_groups(hass, lights)
-            switch._expand_light_groups()
-            if set(switch._lights) & set(all_check_lights):
-                switches[config.entry_id] = switch
+        entry = data.get(config.entry_id)
+        if entry is None:  # entry might be disabled and therefore missing
+            continue
+        switch = data[config.entry_id]["instance"]
+        all_check_lights = _expand_light_groups(hass, lights)
+        switch._expand_light_groups()
+        # Check if any of the lights are in the switch's lights
+        if set(switch._lights) & set(all_check_lights):
+            switches.append(switch)
+    return switches
 
+
+def find_switch_for_lights(
+    hass: HomeAssistant,
+    lights: list[str],
+    is_on: bool = False,
+) -> AdaptiveSwitch:
+    """Find the switch that controls the lights in 'lights'."""
+    switches = _get_switches_with_lights(hass, lights, is_on)
     if len(switches) == 1:
-        return next(iter(switches.values()))
-
-    if len(switches) > 1:
-        _LOGGER.error(
-            "Invalid service data: Light(s) %s found in multiple switch configs (%s)."
-            " You must pass a switch under 'entity_id'. See the README for"
-            " details. Got %s",
-            lights,
-            list(switches.keys()),
-            service_call.data,
-        )
+        return switches[0]
+    elif len(switches) > 1:
+        on_switches = [s for s in switches if s.is_on]
+        if len(on_switches) == 1:
+            # Of the multiple switches, only one is on
+            return on_switches[0]
         raise ValueError(
-            "adaptive-lighting: Light(s) %s found in multiple switch configs.",
-            lights,
+            f"find_switch_for_lights: Light(s) {lights} found in multiple switch configs"
+            f" ({[s.entity_id for s in switches]}). You must pass a switch under"
+            f" 'entity_id'."
         )
     else:
-        _LOGGER.error(
-            "Invalid service data: Light was not found in any of your switch's configs."
-            " You must either include the light(s) that is/are in the integration config, or"
-            " pass a switch under 'entity_id'. See the README for details. Got %s",
-            service_call.data,
-        )
         raise ValueError(
-            "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
-            lights,
+            f"find_switch_for_lights: Light(s) {lights} not found in any switch's"
+            f" configuration. You must either include the light(s) that is/are"
+            f" in the integration config, or pass a switch under 'entity_id'."
         )
 
 
@@ -293,38 +291,24 @@ def _find_switch_with_any_of_lights(
 def _get_switches_from_service_call(
     hass: HomeAssistant, service_call: ServiceCall
 ) -> list[AdaptiveSwitch]:
-    _LOGGER.debug(
-        "Function '_get_switches_from_service_call' called with service data:\n'%s'",
-        service_call.data,
-    )
     data = service_call.data
     lights = data[CONF_LIGHTS]
     switch_entity_ids: list[str] | None = data.get("entity_id")
+
     if not lights and not switch_entity_ids:
-        _LOGGER.debug(
-            "If you intended to adapt every single light on every single switch, please inform the"
-            " developers at https://github.com/basnijholt/adaptive-lighting of your use case."
-            " Currently, you must pass either an adaptive-lighting switch or the lights to"
-            " an `adaptive_lighting` service call."
-        )
-        _LOGGER.error(
-            "Invalid service data passed to adaptive-lighting service call -"
-            " you must pass either a switch or a light's entity ID. Service data:\n%s",
-            service_call.data,
-        )
         raise ValueError(
-            "adaptive-lighting: No switch or light was passed to service call."
+            "adaptive-lighting: Neither a switch nor a light was provided in the service call."
+            " If you intend to adapt all lights on all switches, please inform the developers at"
+            " https://github.com/basnijholt/adaptive-lighting about your use case."
+            " Currently, you must pass either an adaptive-lighting switch or the lights to an"
+            " `adaptive_lighting` service call."
         )
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
-            _LOGGER.error(
-                "Invalid service data: cannot pass multiple switch entities while also passing"
-                " lights. Service data received: %s",
-                service_call.data,
-            )
             raise ValueError(
-                "adaptive-lighting: Multiple switches were passed with lights argument"
+                f"adaptive-lighting: Cannot pass multiple switches with lights argument."
+                f" Invalid service data received: {service_call.data}"
             )
         switches = []
         ent_reg = entity_registry.async_get(hass)
@@ -335,20 +319,13 @@ def _get_switches_from_service_call(
         return switches
 
     if lights:
-        switch = _find_switch_with_any_of_lights(hass, lights, service_call)
-        _LOGGER.debug(
-            "Switch '%s' found for lights '%s'",
-            switch.entity_id,
-            lights,
-        )
+        switch = find_switch_for_lights(hass, lights, service_call)
         return [switch]
 
-    _LOGGER.error(
-        "Invalid service data passed to adaptive-lighting service call -"
-        " entities were not found in the integration. Service data:\n%s",
-        service_call.data,
+    raise ValueError(
+        f"adaptive-lighting: Incorrect data provided in service call."
+        f" Entities not found in the integration. Service data: {service_call.data}"
     )
-    raise ValueError("adaptive-lighting: User sent incorrect data to service call")
 
 
 async def handle_change_switch_settings(
@@ -457,24 +434,24 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.apply' service with '%s'",
             data,
         )
-        these_switches = _get_switches_from_service_call(hass, service_call)
+        switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
-        for this_switch in these_switches:
+        for switch in switches:
             if not lights:
-                all_lights = this_switch._lights  # pylint: disable=protected-access
+                all_lights = switch._lights  # pylint: disable=protected-access
             else:
-                all_lights = _expand_light_groups(this_switch.hass, lights)
-            this_switch.turn_on_off_listener.lights.update(all_lights)
+                all_lights = _expand_light_groups(switch.hass, lights)
+            switch.turn_on_off_listener.lights.update(all_lights)
             for light in all_lights:
                 if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    await this_switch._adapt_light(  # pylint: disable=protected-access
+                    await switch._adapt_light(  # pylint: disable=protected-access
                         light,
                         data[CONF_TRANSITION],
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
                         force=True,
-                        context=this_switch.create_context(
+                        context=switch.create_context(
                             "service", parent=service_call.context
                         ),
                     )
@@ -487,26 +464,26 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
             data,
         )
-        these_switches = _get_switches_from_service_call(hass, service_call)
+        switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
-        for this_switch in these_switches:
+        for switch in switches:
             if not lights:
-                all_lights = this_switch._lights  # pylint: disable=protected-access
+                all_lights = switch._lights  # pylint: disable=protected-access
             else:
-                all_lights = _expand_light_groups(this_switch.hass, lights)
+                all_lights = _expand_light_groups(switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    this_switch.turn_on_off_listener.manual_control[light] = True
-                    _fire_manual_control_event(this_switch, light, service_call.context)
+                    switch.turn_on_off_listener.manual_control[light] = True
+                    _fire_manual_control_event(switch, light, service_call.context)
             else:
-                this_switch.turn_on_off_listener.reset(*all_lights)
-                if this_switch.is_on:
+                switch.turn_on_off_listener.reset(*all_lights)
+                if switch.is_on:
                     # pylint: disable=protected-access
-                    await this_switch._update_attrs_and_maybe_adapt_lights(
+                    await switch._update_attrs_and_maybe_adapt_lights(
                         all_lights,
-                        transition=this_switch._initial_transition,
+                        transition=switch._initial_transition,
                         force=True,
-                        context=this_switch.create_context(
+                        context=switch.create_context(
                             "service", parent=service_call.context
                         ),
                     )
