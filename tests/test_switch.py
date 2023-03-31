@@ -766,6 +766,10 @@ async def test_significant_change(hass):
             switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
         )
         # Simulate a transition to 255 where the update() is already using brightness 255.
+        # First entry is always more or less the exact service data in last_service_data
+        hass.states.async_set(
+            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 255, ATTR_SUPPORTED_FEATURES: 1}
+        )
         hass.states.async_set(
             ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 240, ATTR_SUPPORTED_FEATURES: 1}
         )
@@ -858,6 +862,12 @@ def test_attributes_have_changed():
         assert _attributes_have_changed(
             old_attributes=attributes_1, new_attributes=attrs, **kwargs
         )
+    # Switch from rgb_color to color_temp
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 100},
+        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0)},
+        **kwargs,
+    )
 
 
 async def test_unload_switch(hass):
