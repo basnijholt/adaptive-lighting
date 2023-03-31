@@ -376,8 +376,8 @@ def _fire_manual_control_event(
     hass = switch.hass
     fire = hass.bus.async_fire if is_async else hass.bus.fire
     _LOGGER.debug(
-        "'adaptive_lighting.manual_control' event fired for %s for light %s",
-        switch.entity_id,
+        "%s: 'adaptive_lighting.manual_control' event fired for light %s",
+        switch._name,
         light,
     )
     switch.turn_on_off_listener.manual_control[light] = True
@@ -1797,6 +1797,15 @@ class TurnOnOffListener:
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
         manual_control = self.manual_control.setdefault(light, False)
+        if force and manual_control:
+            _LOGGER.debug(
+                "%s: Resetting manual control for '%s' due to forced"
+                " call of '_update_manual_control_and_maybe_adapt' context.id='%s'",
+                switch._name,
+                light,
+                context,
+            )
+            manual_control = self.manual_control[light] = False
         if manual_control:
             # Manually controlled until light is turned on and off
             return True
@@ -1822,15 +1831,6 @@ class TurnOnOffListener:
                     light,
                     turn_on_event.context.id,
                 )
-        if force and manual_control:
-            _LOGGER.debug(
-                "%s: Resetting manual control for '%s' due to forced"
-                " call of '_update_manual_control_and_maybe_adapt' context.id='%s'",
-                switch._name,
-                light,
-                context,
-            )
-            _fire_manual_control_event(self, light, context, is_async=False)
         return manual_control
 
     async def significant_change(
@@ -1851,21 +1851,6 @@ class TurnOnOffListener:
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return
-        # Light should always be in last_state_change
-        # if there is last_service_data found.
-        if light not in self.last_state_change:
-            _LOGGER.warn(
-                "%s: No last_state_change entry for light %s"
-                " Please report to developers at https://github.com/basnijholt/adaptive-lighting"
-                " Make sure to include your config."
-                " context='%s', last_service_data='%s'",
-                switch._name,
-                light,
-                context.id,
-                last_service_data,
-            )
-            return False
-        old_states: list[State] = self.last_state_change[light]
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
@@ -1874,8 +1859,12 @@ class TurnOnOffListener:
             context=context,
         )
 
-        _LOGGER.debug("last_service_data: %s", last_service_data)
+        _LOGGER.debug(
+            "last service data: %s",
+            last_service_data,
+        )
         if switch._alt_detect_method:
+            old_states: list[State] = self.last_state_change[light]
             _LOGGER.debug("Total state changes detected: %s", len(old_states))
             _LOGGER.debug(
                 "%s: 'alt_detect_method: true', check all state changes made to light %s",
@@ -1929,8 +1918,14 @@ class TurnOnOffListener:
             # if transitions finished from our last adapt.
             await self.hass.helpers.entity_component.async_update_entity(light)
             refreshed_state = self.hass.states.get(light)
+            _LOGGER.debug(
+                "%s: Current state of %s: %s",
+                switch._name,
+                light,
+                refreshed_state,
+            )
             changed = compare_to(
-                old_attributes=old_states[0].attributes,
+                old_attributes=last_service_data,
                 new_attributes=refreshed_state.attributes,
             )
             if changed:

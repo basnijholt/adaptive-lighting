@@ -652,6 +652,98 @@ async def test_apply_service(hass):
     assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
+async def test_significant_change(hass):
+    """Test significant change."""
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    async def update(force):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            transition=0,
+            context=switch.create_context("test"),
+            force=force,
+        )
+        await hass.async_block_till_done()
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                **kwargs,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    async def set_brightness(val: int):
+        hass.states.async_set(
+            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: val, ATTR_SUPPORTED_FEATURES: 1}
+        )
+        await hass.async_block_till_done()
+
+    async def do_nothing(entity_id):
+        _LOGGER.debug("update entity successfully replaced for %s", entity_id)
+        return None
+
+    switch, (bed_light_instance, *_) = await setup_lights_and_switch(hass)
+    for i in range(2):
+        if i == 0:
+            _LOGGER.debug("Test detect_non_ha_changes:")
+            switch._take_over_control = True
+            assert switch._take_over_control
+            switch._detect_non_ha_changes = True
+            assert switch._detect_non_ha_changes
+            switch._alt_detect_method = False
+            assert not switch._alt_detect_method
+        elif i == 1:
+            _LOGGER.debug("Test alt_detect_method:")
+            switch._take_over_control = True
+            assert switch._take_over_control
+            switch._detect_non_ha_changes = False
+            assert not switch._detect_non_ha_changes
+            switch._alt_detect_method = True
+            assert switch._alt_detect_method
+
+        await turn_light(True)
+        await update(force=True)  # removes manual control
+        for light in switch._lights:
+            assert not switch.turn_on_off_listener.manual_control[light]
+
+        # turn_on_off_listener isn't updated quick enough, so this should always be False
+        # leave here in case a home assistant core update changes this behavior.
+        assert (
+            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+        )
+
+        # Simulate a transition to 255 where the update() is already using brightness 255.
+        await set_brightness(240)
+        await set_brightness(244)
+        await set_brightness(247)
+        await set_brightness(250)
+        # Change brightness by async_set (not using 'light.turn_on')
+        new_brightness = 50
+        await set_brightness(new_brightness)
+        _LOGGER.debug("Test: Brightness set to %s", new_brightness)
+
+        # Override update_entity() to do nothing. Otherwise what happens is
+        # update_entity() refreshes the state to the last call of
+        # light.turn_on().
+        switch.hass.helpers.entity_component.async_update_entity = do_nothing
+        # On next update ENTITY_LIGHT should be marked as manually controlled
+        await update(force=False)
+        assert ENTITY_LIGHT in switch.turn_on_off_listener.last_state_change
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+
+
 async def test_switch_off_on_off(hass):
     """Test switch rapid off_on_off."""
 
@@ -700,122 +792,6 @@ async def test_switch_off_on_off(hass):
             assert state == STATE_ON
         else:
             assert state == STATE_OFF
-
-
-async def test_significant_change(hass):
-    """Test significant change."""
-
-    async def turn_light(state, **kwargs):
-        await hass.services.async_call(
-            LIGHT_DOMAIN,
-            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
-            blocking=True,
-        )
-        await hass.async_block_till_done()
-
-    async def update(force):
-        await switch._update_attrs_and_maybe_adapt_lights(
-            transition=0,
-            context=switch.create_context("test"),
-            force=force,
-        )
-        await hass.async_block_till_done()
-
-    async def change_switch_settings(**kwargs):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_CHANGE_SWITCH_SETTINGS,
-            {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
-                **kwargs,
-            },
-            blocking=True,
-        )
-        await hass.async_block_till_done()
-
-    async def do_nothing(entity_id):
-        _LOGGER.debug("update entity successfully replaced for %s", entity_id)
-        return None
-
-    switch, (bed_light_instance, *_) = await setup_lights_and_switch(hass)
-    for i in range(2):
-        if i == 0:
-            _LOGGER.debug("Test detect_non_ha_changes:")
-            switch._take_over_control = True
-            assert switch._take_over_control
-            switch._detect_non_ha_changes = True
-            assert switch._detect_non_ha_changes
-            switch._alt_detect_method = False
-            assert not switch._alt_detect_method
-        elif i == 1:
-            _LOGGER.debug("Test alt_detect_method:")
-            switch._take_over_control = True
-            assert switch._take_over_control
-            switch._detect_non_ha_changes = False
-            assert not switch._detect_non_ha_changes
-            switch._alt_detect_method = True
-            assert switch._alt_detect_method
-        await turn_light(False)
-        await turn_light(True)
-        await update(force=True)  # removes manual control
-        for light in switch._lights:
-            assert not switch.turn_on_off_listener.manual_control[light]
-
-        assert (
-            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-        )
-        # Simulate a transition to 255 where the update() is already using brightness 255.
-        # First entry is always more or less the exact service data in last_service_data
-        hass.states.async_set(
-            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 255, ATTR_SUPPORTED_FEATURES: 1}
-        )
-        hass.states.async_set(
-            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 240, ATTR_SUPPORTED_FEATURES: 1}
-        )
-        new_state = hass.states.get(ENTITY_LIGHT)
-        switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT] = [new_state]
-        new_state = hass.states.get(ENTITY_LIGHT)
-        hass.states.async_set(
-            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 244, ATTR_SUPPORTED_FEATURES: 1}
-        )
-        switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT].append(new_state)
-        new_state = hass.states.get(ENTITY_LIGHT)
-        hass.states.async_set(
-            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 247, ATTR_SUPPORTED_FEATURES: 1}
-        )
-        switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT].append(new_state)
-        new_state = hass.states.get(ENTITY_LIGHT)
-        hass.states.async_set(
-            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 250, ATTR_SUPPORTED_FEATURES: 1}
-        )
-        switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT].append(new_state)
-
-        # Change brightness by async_set (not using 'light.turn_on')
-        new_brightness = 50
-        new_state = hass.states.get(ENTITY_LIGHT)
-        hass.states.async_set(
-            ENTITY_LIGHT,
-            "on",
-            {ATTR_BRIGHTNESS: new_brightness, ATTR_SUPPORTED_FEATURES: 1},
-        )
-        _LOGGER.debug("Test: Brightness set to %s", new_brightness)
-
-        # This state change doesn't happen during runtime, but for some reason the above
-        # state change isn't appended to `last_state_change` until another one is appended.
-        switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT].append(new_state)
-        new_state = hass.states.get(ENTITY_LIGHT)
-        hass.states.async_set(
-            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: 47, ATTR_SUPPORTED_FEATURES: 1}
-        )
-        switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT].append(new_state)
-
-        # On next update ENTITY_LIGHT should be marked as manually controlled
-        # Override update_entity() to do nothing so significant_change
-        # will get the new value we set above with async_set()
-        switch.hass.helpers.entity_component.async_update_entity = do_nothing
-        await update(force=False)
-        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():
