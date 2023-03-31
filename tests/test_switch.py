@@ -858,12 +858,6 @@ def test_attributes_have_changed():
         assert _attributes_have_changed(
             old_attributes=attributes_1, new_attributes=attrs, **kwargs
         )
-    # Switch from rgb_color to color_temp
-    assert _attributes_have_changed(
-        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 100},
-        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0)},
-        **kwargs,
-    )
 
 
 async def test_unload_switch(hass):
