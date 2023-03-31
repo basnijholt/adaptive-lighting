@@ -4,43 +4,67 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-46-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-# Automatically adapt the brightness and color of lights based on the sun position and take over manual control
+# 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
 
 ![](https://github.com/home-assistant/brands/raw/b4a168b9af282ef916e120d31091ecd5e3c35e66/core_integrations/adaptive_lighting/icon.png)
 
-_Try out this code by adding https://github.com/basnijholt/adaptive-lighting to your custom repos in [HACS (Home Assistant Community Store)](https://hacs.xyz/) and install it!_
+Adaptive Lighting is a custom component for Home Assistant that intelligently adjusts the brightness and color of your lights 💡 based on the sun's position, while still allowing for manual control. Try it out now by finding it in HACS (Home Assistant Community Store) and installing it!
 
+By automatically adapting the settings of your lights throughout the day, Adaptive Lighting helps maintain your natural circadian rhythm 😴, which can lead to improved sleep, mood, and overall well-being. Experience cooler color temperatures at noon, gradually transitioning to warmer colors at sunset and sunrise.
 
-The `adaptive_lighting` platform changes the settings of your lights throughout the day.
-It uses the position of the sun to calculate the color temperature and brightness that is most fitting for that time of the day.
-Scientific research has shown that this helps to maintain your natural circadian rhythm (your biological clock) and might lead to improved sleep, mood, and general well-being.
+In addition to its regular mode, Adaptive Lighting also offers a "sleep mode" 🌜 which sets your lights to minimal brightness and a very warm color, perfect for winding down at night.
 
-In practical terms, this means that after the sun sets, the brightness of your lights will decrease to a certain minimum brightness, while the color temperature will be at its coolest color temperature at noon, after which it will decrease and reach its warmest color at sunset.
-Around sunrise, the opposite will happen.
+[[ToC](#books-table-of-contents)]
 
-Additionally, the integration provides a way to define and set your lights in "sleep mode".
-When "sleep mode" is enabled, the lights will be at a minimal brightness and have a very warm color.
+## :bulb: Features
 
-The integration creates 4 switches (in this example the component's name is `"living_room"`):
-1. `switch.adaptive_lighting_living_room`, which turns the Adaptive Lighting integration on or off. It has several attributes that show the current light settings.
-2. `switch.adaptive_lighting_sleep_mode_living_room`, which when activated, turns on "sleep mode" (you can set a specific `sleep_brightness` and `sleep_color_temp`).
-3. `switch.adaptive_lighting_adapt_brightness_living_room`, which sets whether the integration should adapt the brightness of the lights (if supported by the light).
-4. `switch.adaptive_lighting_adapt_color_living_room`, which sets whether the integration should adapt the color of the lights (if supported by the light).
+Adaptive Lighting provides four switches (using "living_room" as an example component name):
 
-## Taking back control
+- `switch.adaptive_lighting_living_room`: Turn Adaptive Lighting on or off and view current light settings through its attributes.
+- `switch.adaptive_lighting_sleep_mode_living_room`: Activate "sleep mode" 😴 and set custom sleep_brightness and sleep_color_temp.
+- `switch.adaptive_lighting_adapt_brightness_living_room`: Enable or disable brightness adaptation 🔆 for supported lights.
+- `switch.adaptive_lighting_adapt_color_living_room`: Enable or disable color adaptation 🌈 for supported lights.
 
-Although having your lights automatically adapt is great most of the time, there might be times at which you want to set the lights to a different color/brightness and keep it that way.
-For this purpose, the integration (when `take_over_control` is enabled) automatically detects whether someone (e.g., person toggling the light switch) or something (automation) changes the lights.
-If this happens *and* the light is already on, the light that was changed gets marked as "manually controlled" and the Adaptive Lighting component will stop adapting that light until it turns off and on again (or if you use the service call `adaptive_lighting.set_manual_control`).
-This mechanism works by listening to all `light.turn_on` calls that change the color or brightness and by noting that the component did not make the call.
-Additionally, there is an option to detect all state changes (when `detect_non_ha_changes` is enabled), so also changes to the lights that were not made by a `light.turn_on` call (e.g., through an app or via something outside of Home Assistant.)
-It does this by comparing a light's state to Adaptive Lighting's previously used settings.
-Whenever a light gets marked as "manually controlled", an `adaptive_lighting.manual_control` event is fired, such that one can use this information in automations.
+### :control_knobs: Regain Manual Control
 
-## Configuration
+Adaptive Lighting is designed to automatically detect when you or another source (e.g., automation) manually changes light settings 🕹️.
+When this occurs, the affected light is marked as "manually controlled," and Adaptive Lighting will not make further adjustments until the light is turned off and back on or reset using the `adaptive_lighting.set_manual_control` service call.
+This feature is available when take_over_control is enabled.
 
-This integration is both fully configurable through YAML _and_ the frontend. (**Configuration** -> **Integrations** -> **Adaptive Lighting**, **Adaptive Lighting** -> **Options**)
-Here, the options in the frontend and in YAML have the same names.
+Additionally, enabling detect_non_ha_changes allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
+The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
+
+## :books: Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+  - [:gear: Configuration](#gear-configuration)
+    - [:memo: Options](#memo-options)
+    - [:hammer_and_wrench: Services](#hammer_and_wrench-services)
+      - [`adaptive_lighting.apply`](#adaptive_lightingapply)
+      - [`adaptive_lighting.set_manual_control`](#adaptive_lightingset_manual_control)
+      - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
+  - [:robot: Automation examples](#robot-automation-examples)
+- [Additional Information](#additional-information)
+- [Troubleshooting](#troubleshooting)
+  - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
+    - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
+      - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
+      - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
+    - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
+    - [:bulb: Bulb-Specific Issues](#bulb-bulb-specific-issues)
+  - [:bar_chart: Graphs!](#bar_chart-graphs)
+      - [:sunny: Sun Position](#sunny-sun-position)
+      - [:thermometer: Color Temperature](#thermometer-color-temperature)
+      - [:high_brightness: Brightness](#high_brightness-brightness)
+  - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## :gear: Configuration
+
+Adaptive Lighting supports configuration through both YAML and the frontend (**Configuration** -> **Integrations** -> **Adaptive Lighting**, **Adaptive Lighting** -> **Options**), with identical option names in both methods.
 
 ```yaml
 # Example configuration.yaml entry
@@ -49,37 +73,40 @@ adaptive_lighting:
     - light.living_room_lights
 ```
 
-### Options
-| option                         | description                                                                                                                                                                                                                   | required | default        | type    |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------- | ------- |
-| `name`                         | The name to use when displaying this switch.                                                                                                                                                                                  | False    | default        | string  |
-| `include_config_in_attributes` | When set to `true`, will list all of the below options as attributes on the switch in Home Assistant.                                                                                                                         | False    | False          | boolean |
-| `lights`                       | List of light entities for Adaptive Lighting to control (may be empty).                                                                                                                                                       | False    | list           | []      |
-| `prefer_rgb_color`             | Whether to use RGB color adjustment instead of native light color temperature.                                                                                                                                                | False    | False          | boolean |
-| `initial_transition`           | How long the first transition is when the lights go from `off` to `on`.                                                                                                                                                       | False    | 1              | time    |
-| `sleep_transition`             | How long the transition is when when "sleep mode" is toggled                                                                                                                                                                  | False    | 1              | time    |
-| `transition`                   | How long the transition is when the lights change, in seconds.                                                                                                                                                                | False    | 45             | integer |
-| `interval`                     | How often to adapt the lights, in seconds.                                                                                                                                                                                    | False    | 90             | integer |
-| `min_brightness`               | The minimum percent of brightness to set the lights to.                                                                                                                                                                       | False    | 1              | integer |
-| `max_brightness`               | The maximum percent of brightness to set the lights to.                                                                                                                                                                       | False    | 100            | integer |
-| `min_color_temp`               | The warmest color temperature to set the lights to, in Kelvin.                                                                                                                                                                | False    | 2000           | integer |
-| `max_color_temp`               | The coldest color temperature to set the lights to, in Kelvin.                                                                                                                                                                | False    | 5500           | integer |
-| `sleep_brightness`             | Brightness of lights while the sleep mode is enabled.                                                                                                                                                                         | False    | 1              | integer |
-| `sleep_rgb_or_color_temp`      | Use either 'rgb_color' or 'color_temp' when in sleep mode.                                                                                                                                                                    | False    | 'color_temp'   | string  |
-| `sleep_rgb_color`              | List of three numbers between 0-255, indicating the RGB color in sleep mode (only used when sleep_rgb_or_color_temp is 'rgb_color').                                                                                          | False    | `[255, 56, 0]` | list    |
-| `sleep_color_temp`             | Color temperature of lights while the sleep mode is enabled (only used when sleep_rgb_or_color_temp is 'color_temp').                                                                                                         | False    | 1000           | integer |
-| `sunrise_time`                 | Override the sunrise time with a fixed time.                                                                                                                                                                                  | False    | None           | time    |
-| `max_sunrise_time`             | Make the virtual sun always rise at at most a specific time while still allowing for even earlier times based on the real sun                                                                                                 | False    | None           | time    |
-| `sunrise_offset`               | Change the sunrise time with a positive or negative offset.                                                                                                                                                                   | False    | 0              | time    |
-| `sunset_time`                  | Override the sunset time with a fixed time.                                                                                                                                                                                   | False    | None           | time    |
-| `min_sunset_time`              | Make the virtual sun always set at at least a specific time while still allowing for even later times based on the real sun                                                                                                   | False    | None           | time    |
-| `sunset_offset`                | Change the sunset time with a positive or negative offset.                                                                                                                                                                    | False    | 0              | time    |
-| `only_once`                    | Whether to keep adapting the lights (false) or to only adapt the lights as soon as they are turned on (true).                                                                                                                 | False    | False          | boolean |
-| `take_over_control`            | If another source calls `light.turn_on` while the lights are on and being adapted, disable Adaptive Lighting.                                                                                                                 | False    | True           | boolean |
-| `detect_non_ha_changes`        | Whether to detect state changes and stop adapting lights, even not from `light.turn_on`. Needs `take_over_control` to be enabled. Note that by enabling this option, it calls 'homeassistant.update_entity' every 'interval'! | False    | False          | boolean |
-| `separate_turn_on_commands`    | Whether to use separate `light.turn_on` calls for color and brightness, needed for some types of lights                                                                                                                       | False    | False          | boolean |
-| `send_split_delay`             | Wait between commands (milliseconds), when separate_turn_on_commands is used. May ensure that both commands are handled by the bulb correctly.                                                                                | False    | 0              | integer |
-| `adapt_delay`                  | Wait time in seconds between light turn on, and Adaptive Lights applying changes to the light state. May avoid flickering.                                                                                                    | False    | 0              | integer |
+Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the benefits of intelligent, sun-synchronized lighting today!
+
+### :memo: Options
+
+| Option                         | Description                                                                                                                                                                     | Required | Default        | Type      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------- | --------- |
+| `name`                         | Display name for this switch.                                                                                                                                                   | ❌        | `default`      | `string`  |
+| `include_config_in_attributes` | Show all options as attributes on the switch in Home Assistant when set to `true`.                                                                                              | ❌        | `False`        | `boolean` |
+| `lights`                       | List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟                                                                                                  | ❌        | `list`         | `list`    |
+| `prefer_rgb_color`             | Use RGB color adjustment instead of native light color temperature. 🌈                                                                                                           | ❌        | `False`        | `boolean` |
+| `initial_transition`           | Duration of the first transition when lights turn from `off` to `on`. ⏲️                                                                                                         | ❌        | `1`            | `time`    |
+| `sleep_transition`             | Duration of transition when "sleep mode" is toggled. 😴                                                                                                                          | ❌        | `1`            | `time`    |
+| `transition`                   | Duration of transition when lights change, in seconds.                                                                                                                          | ❌        | `45`           | `integer` |
+| `interval`                     | Frequency to adapt the lights, in seconds.                                                                                                                                      | ❌        | `90`           | `integer` |
+| `min_brightness`               | Minimum brightness percentage. 💡                                                                                                                                                | ❌        | `1`            | `integer` |
+| `max_brightness`               | Maximum brightness percentage. 💡                                                                                                                                                | ❌        | `100`          | `integer` |
+| `min_color_temp`               | Warmest color temperature in Kelvin. 🔥                                                                                                                                          | ❌        | `2000`         | `integer` |
+| `max_color_temp`               | Coldest color temperature in Kelvin. ❄️                                                                                                                                          | ❌        | `5500`         | `integer` |
+| `sleep_brightness`             | Brightness of lights in sleep mode. 😴                                                                                                                                           | ❌        | `1`            | `integer` |
+| `sleep_rgb_or_color_temp`      | Use either `"rgb_color"` or `"color_temp"` in sleep mode.                                                                                                                       | ❌        | `'color_temp'` | `string`  |
+| `sleep_rgb_color`              | RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is `"rgb_color"`). 🌈                                                                                               | ❌        | `[255, 56, 0]` | `list`    |
+| `sleep_color_temp`             | Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`). 😴                                                                                        | ❌        | `1000`         | `integer` |
+| `sunrise_time`                 | Set a fixed time for sunrise. 🌅                                                                                                                                                 | ❌        | `None`         | `time`    |
+| `max_sunrise_time`             | Set the latest virtual sunrise time, allowing for earlier real sunrises. 🌅                                                                                                      | ❌        | `None`         | `time`    |
+| `sunrise_offset`               | Adjust sunrise time with a positive or negative offset. ⏰                                                                                                                       | ❌        | `0`            | `time`    |
+| `sunset_time`                  | Set a fixed time for sunset. 🌇                                                                                                                                                  | ❌        | `None`         | `time`    |
+| `min_sunset_time`              | Set the earliest virtual sunset time, allowing for later real sunsets. 🌇                                                                                                        | ❌        | `None`         | `time`    |
+| `sunset_offset`                | Adjust sunset time with a positive or negative offset. ⏰                                                                                                                        | ❌        | `0`            | `time`    |
+| `only_once`                    | Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄                                                                                           | ❌        | `False`        | `boolean` |
+| `take_over_control`            | Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒 | ❌        | `True`         | `boolean` |
+| `detect_non_ha_changes`        | Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️                                                                              | ❌        | `False`        | `boolean` |
+| `separate_turn_on_commands`    | Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀                                                                                     | ❌        | `False`        | `boolean` |
+| `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                              | ❌        | `0`            | `integer` |
+| `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                     | ❌        | `0`            | `integer` |
 
 Full example:
 
@@ -108,46 +135,54 @@ adaptive_lighting:
 
 ```
 
-### Services
+### :hammer_and_wrench: Services
+
+#### `adaptive_lighting.apply`
 
 `adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
 
-| Service data attribute | Optional | Description                                                                                  |
+| Service data attribute | Required | Description                                                                                  |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `entity_id`            | no       | The `entity_id` of the switch with the settings to apply.                                    |
-| `lights`               | yes      | A light (or list of lights) to apply the settings to.                                        |
-| `transition`           | yes      | The number of seconds for the transition.                                                    |
-| `adapt_brightness`     | yes      | Whether to change the brightness of the light or not.                                        |
-| `adapt_color`          | yes      | Whether to adapt the color on supporting lights.                                             |
-| `prefer_rgb_color`     | yes      | Whether to prefer RGB color adjustment over of native light color temperature when possible. |
-| `turn_on_lights`       | yes      | Whether to turn on lights that are currently off.                                            |
+| `entity_id`            | ✅        | The `entity_id` of the switch with the settings to apply.                                    |
+| `lights`               | ❌        | A light (or list of lights) to apply the settings to.                                        |
+| `transition`           | ❌        | The number of seconds for the transition.                                                    |
+| `adapt_brightness`     | ❌        | Whether to change the brightness of the light or not.                                        |
+| `adapt_color`          | ❌        | Whether to adapt the color on supporting lights.                                             |
+| `prefer_rgb_color`     | ❌        | Whether to prefer RGB color adjustment over of native light color temperature when possible. |
+| `turn_on_lights`       | ❌        | Whether to turn on lights that are currently off.                                            |
+
+#### `adaptive_lighting.set_manual_control`
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
-| Service data attribute | Optional | Description                                                                                         |
+| Service data attribute | Required | Description                                                                                         |
 | ---------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `entity_id`            | no       | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".        |
-| `lights`               | yes      | entity_id(s) of lights, if not specified, all lights in the switch are selected.                    |
-| `manual_control`       | yes      | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
+| `entity_id`            | ✅        | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".        |
+| `lights`               | ❌        | entity_id(s) of lights, if not specified, all lights in the switch are selected.                    |
+| `manual_control`       | ❌        | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
+
+#### `adaptive_lighting.change_switch_settings`
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
 
-| Service data attribute                            | Description                                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `use_defaults`                                    | (default: 'current' for current settings) You can set this to 'factory', 'configuration', or 'current' to reset the variables not being set with this service call. 'current' leaves them as is, 'configuration' resets to whatever already initializes at startup, 'factory' resets to the default values listed in the documentation.                        |
-| all other keys except the ones in the table below | See above, you may call `adaptive_lighting.apply` with your lights or create a new config instead |
+| Service data attribute                                    | Required | Description                                                                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `use_defaults`                                            | ❌        | (default: `current` for current settings) Choose from `factory`, `configuration`, or `current` to reset variables not being set with this service call. `current` leaves them as they are, `configuration` resets to initial startup values, `factory` resets to default values listed in the documentation. |
+| **all other keys** (except the ones in the table below ⚠️) | ❌        | See the table below for disallowed keys.                                                                                                                                                                                                                                                                     |
 
+The following keys are disallowed:
 
-| **DISALLOWED** service data | Description                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------- |
-| `entity_id`                 | You cannot change the switch's `entity_id`, it's already been registered                          |
-| `lights`                    | See above, you may call `adaptive_lighting.apply` with your lights or create a new config instead |
-| `name`                      | See above. You can already rename your switch's display name in Home Assistant's UI.              |
-| `interval`                  | The interval is only used once when the config loads. A config change and restart is required     |
+| **DISALLOWED** service data | Description                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `entity_id`                 | You cannot change the switch's `entity_id`, as it has already been registered.                  |
+| `lights`                    | You may call `adaptive_lighting.apply` with your lights or create a new config instead.         |
+| `name`                      | You can rename your switch's display name in Home Assistant's UI.                               |
+| `interval`                  | The interval is used only once when the config loads. A config change and restart are required. |
 
-## Automation examples
+## :robot: Automation examples
 
-Reset the `manual_control` status of a light after an hour.
+<details>
+<summary>Reset the <code>manual_control</code> status of a light after an hour.</summary>
 
 ```yaml
 - alias: "Adaptive lighting: reset manual_control after 1 hour"
@@ -169,7 +204,10 @@ Reset the `manual_control` status of a light after an hour.
         manual_control: false
 ```
 
-Toggle multiple Adaptive Lighting switches to "sleep mode" using an `input_boolean.sleep_mode`.
+</details>
+
+<details>
+<summary>Toggle multiple Adaptive Lighting switches to "sleep mode" using an <code>input_boolean.sleep_mode</code>.</summary>
 
 ```yaml
 - alias: "Adaptive lighting: toggle 'sleep mode'"
@@ -189,7 +227,7 @@ Toggle multiple Adaptive Lighting switches to "sleep mode" using an `input_boole
 
 Set your sunrise and sunset time based on your alarm. The below script sets sunset_time exactly 12 hours after the custom sunrise time.
 
-```
+```yaml
 iphone_carly_wakeup:
   alias: iPhone Carly Wakeup
   sequence:
@@ -238,79 +276,80 @@ iphone_carly_wakeup:
   max: 10
 ```
 
-# Other
+</details>
 
-See the documentation of the PR at https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/ and [this video on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/) to see how to add the integration and set the options.
+# Additional Information
 
-This integration was originally based of the great work of @claytonjn https://github.com/claytonjn/hass-circadian_lighting, but has been 100% rewritten and extended with new features.
+For more details on adding the integration and setting options, refer to the [documentation of the PR](https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/) and [this video tutorial on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/).
 
-# Having problems?
+Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
-Please enable debug logging by putting this in `configuration.yaml`:
+# Troubleshooting
+
+Encountering issues? Enable debug logging in your `configuration.yaml`:
+
 ```yaml
 logger:
   default: warning
   logs:
     custom_components.adaptive_lighting: debug
 ```
-and after the problem occurs please create an issue with the log (`/config/home-assistant.log`).
 
-## Lights are not responding or turning on by themselves
+After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
 
-This addon sends many more commands to lights compared to what humans would typically send. If the network used to send light commands is not healthy:
+## :exclamation: Common Problems & Solutions
 
-- Manual commands like turning lights on or off may feel laggy.
-- Lights may not respond to commands at all.
-- Home Assistant may think a light is on, when it's actually off. Adaptive Lights will send it's regular adjustments causing the light to turn on after it's turned off.
+### :bulb: Lights Not Responding or Turning On by Themselves
 
-What's important is that many bugs that seem to be caused by this integration are really due to other unrelated issues. Fixing those will make your Home Assistant experience much better. Consider this integration a great stress test of your Home Assistant setup!
+Adaptive Lighting sends more commands to lights than a typical human user would. If your light control network is unhealthy, you may experience:
 
-### Wifi networks
+- Laggy manual commands (e.g., turning lights on or off).
+- Unresponsive lights.
+- Home Assistant reporting incorrect light states, causing Adaptive Lighting to inadvertently turn lights back on.
 
-Make sure bulbs have a solid connection to your Wifi network. In general, if the signal is less than -70dBm, the connection is weak and may drop messages.
+Most issues that appear to be caused by Adaptive Lighting are actually due to unrelated problems. Addressing these issues will significantly improve your Home Assistant experience.
 
-### Zigbee, Z-Wave, and other mesh networks
+#### :signal_strength: WiFi Networks
 
-These types of mesh networks usually need powered devices that act as routers (that repeat messages) back to the central coordinator (the radio connected to Home Assistant). Most Philips lights are routers, but Ikea, Sengled, and generic Tuya bulbs often are not. If devices become unavailable or miss responding to commands, Adaptive Lighting will only make things worse. Use reporting tools such as network maps (available in ZHA, zigbee2mqtt, deCONZ, and ZWaveJS UI) to check your network. Smart plugs are often a cost-effective way to add additional routers to your network.
+Ensure your light bulbs have a strong WiFi connection. If the signal strength is less than -70dBm, the connection may be weak and prone to dropping messages.
 
-For most Zigbee networks, groups are **absolutely required for good performance**. For example, imagine you want to use Adaptive Lighting in a hallway with 6 bulbs. If you add each individual bulb in the Adaptive Lighting configuration, then six individual commands will be sent to adjust them, which can eventually overwhelm a network. Instead, create a group in your Zigbee software (but _not_ a regular Home Assistant group), and add the one group to the Adaptive Lighting configuration. This will send only a single broadcast command to adjust the bulbs, giving much better response times and keeping the bulbs adjusting in sync with each other.
+#### :spider_web: Zigbee, Z-Wave, and Other Mesh Networks
 
-A good rule to follow is that if you always control lights together (like bulbs in a ceiling fixture), then they should be in a Zigbee group. Then, only expose the group (and not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
+Mesh networks typically require powered devices to act as routers, relaying messages back to the central coordinator (the radio connected to Home Assistant). Philips lights usually function as routers, while Ikea, Sengled, and generic Tuya bulbs often do not. If devices become unresponsive or fail to respond to commands, Adaptive Lighting can exacerbate the issue. Use network maps (available in ZHA, zigbee2mqtt, deCONZ, and ZWaveJS UI) to evaluate your network health. Smart plugs can be an affordable way to add more routers to your network.
 
-### Light colors are not matching
+For most Zigbee networks, **using groups is essential for optimal performance**. For example, if you want to use Adaptive Lighting in a hallway with six bulbs, adding each bulb individually to the Adaptive Lighting configuration could overwhelm the network with commands. Instead, create a group in your Zigbee software (not a regular Home Assistant group) and add that single group to the Adaptive Lighting configuration. This sends a single broadcast command to adjust all bulbs, improving response times and keeping the bulbs in sync.
 
-Bulbs made by different manufacturers or of different models may have different specifications for the color temperatures they support. For example you have two Adaptive Lighting configurations:
+As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
-- The first configuration has only Philips Hue White Ambiance bulbs.
-- The second has the a few of the same model of White Ambiance bulbs as well as a few Sengled bulbs.
+### :rainbow: Light Colors Not Matching
 
-Even with identical settings, the Philips Hue bulbs may appear to have different color temperatures set at the same time.
+Bulbs from different manufacturers or models may have varying color temperature specifications. For instance, if you have two Adaptive Lighting configurations—one with only Philips Hue White Ambiance bulbs and another with a mix of Philips Hue White Ambiance and Sengled bulbs—the Philips Hue bulbs may appear to have different color temperatures despite having identical settings.
 
-To avoid this:
+To resolve this:
 
-1. Only put bulbs of the same make and model in a single Adaptive Lighting configuration.
-2. Move where bulbs are installed so you can't see different light temperatures at the same time.
+1.  Include only bulbs of the same make and model in a single Adaptive Lighting configuration.
+2.  Rearrange bulbs so that different color temperatures are not visible simultaneously.
 
-### Bulb-specific issues
+### :bulb: Bulb-Specific Issues
 
-Some bulbs have buggy behaviour with long light transition commands.
+Certain bulbs may have issues with long light transition commands:
 
-- [Sengled Z01-A19NAE26](https://www.zigbee2mqtt.io/devices/Z01-A19NAE26.html#sengled-z01-a19nae26): If Adaptive lighting sends a long transition time (like the default 45 seconds), and the bulb is turned off in that time, it will turn itself back on after 10 seconds or so to continue the transition command. Since the bulb is turning itself on, there will be no obvious trigger in Home Assistant or other logs showing what caused the light to turn on. Fix this by setting a much shorter transition time such as 1 second.
-- As well, the same bulbs peform poorly when in typical enclosed "dome" style ceiling lights. When hot, their performance becomes marginal at best. While most LEDs (even non-smart ones) say in the small print that they do not support working in enclosed fixtures, in practice more expensive bulbs like Philips Hue perform better. Fix this by moving suspect bulbs to open-air fixtures.
+- [Sengled Z01-A19NAE26](https://www.zigbee2mqtt.io/devices/Z01-A19NAE26.html#sengled-z01-a19nae26): If Adaptive Lighting sends a long transition time (like the default 45 seconds), and the bulb is turned off during that time, it may turn back on after approximately 10 seconds to continue the transition command. Since the bulb is turning itself on, there will be no obvious trigger in Home Assistant or other logs indicating the cause of the light turning on. To fix this, set a much shorter transition time, such as 1 second.
+- Additionally, these bulbs may perform poorly in enclosed "dome" style ceiling lights, particularly when hot. While most LEDs (even non-smart ones) state in the fine print that they do not support working in enclosed fixtures, in practice, more expensive bulbs like Philips Hue generally perform better. To resolve this issue, move the problematic bulbs to open-air fixtures.
 
-## Graphs!
+## :bar_chart: Graphs!
 These graphs were generated using the values calculated by the Adaptive Lighting sensor/switch(es).
 
-#### Sun Position:
+#### :sunny: Sun Position
 ![cl_percent|690x131](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/6/5/657ff98beb65a94598edeb4bdfd939095db1a22c.PNG)
 
-#### Color Temperature:
+#### :thermometer: Color Temperature
 ![cl_color_temp|690x129](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/9/59e84263cbecd8e428cb08777a0413672c48dfcd.PNG)
 
-#### Brightness:
+#### :high_brightness: Brightness
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
 
-## Contributors
+## :busts_in_silhouette: Contributors
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
