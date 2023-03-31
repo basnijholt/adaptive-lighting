@@ -753,21 +753,6 @@ def _attributes_have_changed(
                 context.id,
             )
             return True
-
-    switched_color_temp = (
-        ATTR_RGB_COLOR in old_attributes and ATTR_RGB_COLOR not in new_attributes
-    )
-    switched_to_rgb_color = (
-        ATTR_COLOR_TEMP_KELVIN in old_attributes
-        and ATTR_COLOR_TEMP_KELVIN not in new_attributes
-    )
-    if switched_color_temp or switched_to_rgb_color:
-        # Light switched from RGB mode to color_temp or visa versa
-        _LOGGER.debug(
-            "'%s' switched from RGB mode to color_temp or visa versa",
-            light,
-        )
-        return True
     return False
 
 
