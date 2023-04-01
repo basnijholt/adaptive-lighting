@@ -714,15 +714,30 @@ async def test_significant_change(hass):
             switch._alt_detect_method = True
             assert switch._alt_detect_method
 
-        await turn_light(True)
-        await update(force=True)  # removes manual control
-        for light in switch._lights:
-            assert not switch.turn_on_off_listener.manual_control[light]
+        # build last service data
+        await update(force=False)
 
-        # turn_on_off_listener isn't updated quick enough, so this should always be False
-        # leave here in case a home assistant core update changes this behavior.
+        # force=True should not reset manual control.
+        await turn_light(True, brightness=40)
+        await turn_light(True, brightness=20)
+        await update(force=False)
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        await update(force=True)
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+
+        # turn light off then on should reset manual control.
+        await turn_light(False)
+        await turn_light(True)
+        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+
+        # Assert last_service_data got filled from update()
+        # Assert last_state_change got filled from update()
+        await update(force=True)
         assert (
             switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+        )
+        assert (
+            switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
         )
 
         # Simulate a transition to 255 where the update() is already using brightness 255.
@@ -730,6 +745,8 @@ async def test_significant_change(hass):
         await set_brightness(244)
         await set_brightness(247)
         await set_brightness(250)
+
+        # last_state_change should have our state changes.
         # Change brightness by async_set (not using 'light.turn_on')
         new_brightness = 50
         await set_brightness(new_brightness)
