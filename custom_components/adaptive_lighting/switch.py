@@ -952,6 +952,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
