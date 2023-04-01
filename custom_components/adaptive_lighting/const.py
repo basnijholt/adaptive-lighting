@@ -57,6 +57,7 @@ CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
     False,
 )
 
+
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
