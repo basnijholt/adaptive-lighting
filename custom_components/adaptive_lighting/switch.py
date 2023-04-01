@@ -1096,15 +1096,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         ):
             return
-        # See #80
-        if (
-            light in self.turn_on_off_listener.last_service_data
-            and self.turn_on_off_listener.last_service_data[light] == service_data
-        ):
+        # See #80. Doesn't check if transitions differ but it does the job.
+        last_service_data = self.turn_on_off_listener.last_service_data
+        if light in last_service_data and last_service_data[light] == service_data:
             _LOGGER.debug(
-                "%s: Cancelling adapt to light %s as there's no new values to set.",
+                "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
                 light,
+                context.id,
             )
             return
         else:
