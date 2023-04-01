@@ -1097,7 +1097,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         ):
             return
         # See #80
-        if self.turn_on_off_listener.last_service_data[light] == service_data:
+        if (
+            light in self.turn_on_off_listener.last_service_data
+            and self.turn_on_off_listener.last_service_data[light] == service_data
+        ):
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s as there's no new values to set.",
                 self._name,
