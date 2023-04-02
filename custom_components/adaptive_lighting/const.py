@@ -310,6 +310,8 @@ def generate_markdown_table():
             type_ = f"one of {type_.config['options']}"
         elif isinstance(type_, selector.ColorRGBSelector):
             type_ = "RGB color"
+        else:
+            raise ValueError(f"Unknown type: {type_}")
         row = {
             "Variable name": f"`{k}`",
             "Description": description,
