@@ -52,6 +52,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
       - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
       - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
+        - [Zigbee2MQTT](#zigbee2mqtt)
     - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
     - [:bulb: Bulb-Specific Issues](#bulb-bulb-specific-issues)
   - [:bar_chart: Graphs!](#bar_chart-graphs)
