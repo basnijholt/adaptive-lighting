@@ -107,6 +107,7 @@ Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the
 | `separate_turn_on_commands`    | Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀                                                                                     | ❌        | `False`        | `boolean` |
 | `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                              | ❌        | `0`            | `integer` |
 | `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                     | ❌        | `0`            | `integer` |
+| `autoreset_control_seconds`       | Wait time (seconds) before Adaptive Lighting resets `manual_control` status of any light (default: 0)                                                                            | ❌        | `0`         | `integer` |
 
 Full example:
 
