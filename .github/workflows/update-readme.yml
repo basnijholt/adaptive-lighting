@@ -1,0 +1,49 @@
+name: Update README.md
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/update-readme.py"
+      - "README.md"
+      - ".github/workflows/update-readme.yml"
+      - "home_assistant_streamdeck_yaml.py"
+      - "tests/test_examples.py"
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas tabulate pytest
+          pip install -e .
+
+      - name: Run update-readme.py
+        run: python ./ci/update-readme.py
+
+      - name: Commit updated README.md
+        run: |
+          git add README.md
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update README.md"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
