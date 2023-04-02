@@ -335,6 +335,11 @@ For most Zigbee networks, **using groups is essential for optimal performance**.
 
 As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
+##### Zigbee2MQTT
+Please read the [Zigbee2MQTT FAQ](https://www.zigbee2mqtt.io/guide/faq/)
+
+(coming soon): A guide on configurating the best options for zigbee2mqtt configuration with Adaptive Lighting.
+
 ### :rainbow: Light Colors Not Matching
 
 Bulbs from different manufacturers or models may have varying color temperature specifications. For instance, if you have two Adaptive Lighting configurations—one with only Philips Hue White Ambiance bulbs and another with a mix of Philips Hue White Ambiance and Sengled bulbs—the Philips Hue bulbs may appear to have different color temperatures despite having identical settings.
