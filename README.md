@@ -355,8 +355,9 @@ However if you'd like to debug ZHA check out the following articles:
 https://www.home-assistant.io/integrations/zha/#troubleshooting specifically [ZHA EXCEPTION AND DEVIATION HANDLING](https://www.home-assistant.io/integrations/zha/#zha-exception-and-deviation-handling)
 
 We recommend the following addons/integrations for ZHA:
-1.[ZHA-Toolkit](https://github.com/mdeweerd/zha-toolkit)
-2.[ZHA-Device-Handlers](https://github.com/zigpy/zha-device-handlers) also available [here](https://pypi.org/project/zha-quirks/)
+
+1. [ZHA-Toolkit](https://github.com/mdeweerd/zha-toolkit)
+2. [ZHA-Device-Handlers](https://github.com/zigpy/zha-device-handlers) also available [here](https://pypi.org/project/zha-quirks/)
 
 ### :rainbow: Light Colors Not Matching
 
