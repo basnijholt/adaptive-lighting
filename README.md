@@ -337,9 +337,18 @@ For most Zigbee networks, **using groups is essential for optimal performance**.
 As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
 ##### Zigbee2MQTT
-Please read the [Zigbee2MQTT FAQ](https://www.zigbee2mqtt.io/guide/faq/)
+Please check out the following resources:
+[Zigbee2MQTT | FAQ](https://www.zigbee2mqtt.io/guide/faq/)
+[Zigbee2MQTT | Configuration](https://www.zigbee2mqtt.io/guide/configuration/)
+[Zigbee2MQTT | Device-Specific Configurations](https://www.zigbee2mqtt.io/supported-devices/)
 
-(coming soon): A guide on configuring the best options in Zigbee2MQTT for use with Adaptive Lighting.
+##### ZHA
+We recommend Zigbee2MQTT as it's widely considered to be the best performer.
+However if you'd like to debug ZHA check out the following articles:
+https://www.home-assistant.io/integrations/zha/#troubleshooting specifically `ZHA EXCEPTION AND DEVIATION HANDLING`
+We recommend the following addons/integrations for ZHA:
+https://github.com/mdeweerd/zha-toolkit
+https://github.com/zigpy/zha-device-handlers also available [here](https://pypi.org/project/zha-quirks/)
 
 ### :rainbow: Light Colors Not Matching
 
