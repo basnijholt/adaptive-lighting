@@ -82,8 +82,10 @@ Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the
 ### :memo: Options
 
 <!-- START_CODE -->
+<!-- import os, sys -->
+<!-- sys.path.append(os.path.join(os.path.dirname(__file__), '..')) -->
 <!-- from custom_components.adaptive_lighting import const -->
-<!-- markdown_table = generate_markdown_table() -->
+<!-- markdown_table = const.generate_markdown_table() -->
 <!-- print(markdown_table) -->
 <!-- END_CODE -->
 
