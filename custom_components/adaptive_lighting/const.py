@@ -22,7 +22,8 @@ DOCS[CONF_NAME] = ("Display name for this switch. 📝")
 
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 DOCS[CONF_LIGHTS] = (
-    "List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟"
+    "List of light entities to be controlled by Adaptive "
+    "Lighting (may be empty). 🌟"
 )
 
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
@@ -39,13 +40,14 @@ CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
     False,
 )
 DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
-    "Show all options as attributes on the switch in Home Assistant when set to "
-    "`true`. 📝"
+    "Show all options as attributes on the switch in "
+    "Home Assistant when set to `true`. 📝"
 )
 
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 DOCS[CONF_INITIAL_TRANSITION] = (
-    "Duration of the first transition when lights turn from `off` to `on`. ⏲️"
+    "Duration of the first transition when lights turn "
+    "from `off` to `on`. ⏲️"
 )
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
