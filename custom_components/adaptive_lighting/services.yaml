@@ -231,6 +231,12 @@ change_switch_settings:
       example: false
       selector:
         boolean:
+    alt_detect_method:
+      description: "alt_detect_method: When true, will check for any significant changes in the opposite direction of where adaptive-lighting tried to adapt last. This is an alternative to 'detect_non_ha_changes' (default: false)"
+      required: false
+      example: false
+      selector:
+        boolean:
     transition:
       description: "Transition time when applying a change to the lights (seconds)"
       required: false
