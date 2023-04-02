@@ -47,7 +47,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
       - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
   - [:robot: Automation examples](#robot-automation-examples)
 - [Additional Information](#additional-information)
-- [Troubleshooting](#troubleshooting)
+- [:sos: Troubleshooting](#sos-troubleshooting)
   - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
       - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
