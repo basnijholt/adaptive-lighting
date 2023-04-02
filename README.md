@@ -338,7 +338,7 @@ As a rule of thumb, if you always control lights together (e.g., bulbs in a ceil
 ##### Zigbee2MQTT
 Please read the [Zigbee2MQTT FAQ](https://www.zigbee2mqtt.io/guide/faq/)
 
-(coming soon): A guide on configurating the best options for zigbee2mqtt configuration with Adaptive Lighting.
+(coming soon): A guide on configuring the best options in Zigbee2MQTT for use with Adaptive Lighting.
 
 ### :rainbow: Light Colors Not Matching
 
