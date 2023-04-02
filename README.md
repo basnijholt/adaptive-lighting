@@ -299,7 +299,7 @@ For more details on adding the integration and setting options, refer to the [do
 
 Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
-# Troubleshooting
+# :sos: Troubleshooting
 
 Encountering issues? Enable debug logging in your `configuration.yaml`:
 
