@@ -18,12 +18,11 @@ DOCS = {}
 
 
 CONF_NAME, DEFAULT_NAME = "name", "default"
-DOCS[CONF_NAME] = ("Display name for this switch. 📝")
+DOCS[CONF_NAME] = "Display name for this switch. 📝"
 
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 DOCS[CONF_LIGHTS] = (
-    "List of light entities to be controlled by Adaptive "
-    "Lighting (may be empty). 🌟"
+    "List of light entities to be controlled by Adaptive " "Lighting (may be empty). 🌟"
 )
 
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
@@ -46,29 +45,26 @@ DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
 
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 DOCS[CONF_INITIAL_TRANSITION] = (
-    "Duration of the first transition when lights turn "
-    "from `off` to `on`. ⏲️"
+    "Duration of the first transition when lights turn " "from `off` to `on`. ⏲️"
 )
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
-DOCS[CONF_SLEEP_TRANSITION] = (
-    "Duration of transition when 'sleep mode' is toggled. 😴"
-)
+DOCS[CONF_SLEEP_TRANSITION] = "Duration of transition when 'sleep mode' is toggled. 😴"
 
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
-DOCS[CONF_INTERVAL] = ("Frequency to adapt the lights, in seconds. 🔄")
+DOCS[CONF_INTERVAL] = "Frequency to adapt the lights, in seconds. 🔄"
 
 CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS = "max_brightness", 100
-DOCS[CONF_MAX_BRIGHTNESS] = ("Maximum brightness percentage. 💡")
+DOCS[CONF_MAX_BRIGHTNESS] = "Maximum brightness percentage. 💡"
 
 CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP = "max_color_temp", 5500
-DOCS[CONF_MAX_COLOR_TEMP] = ("Coldest color temperature in Kelvin. ❄️")
+DOCS[CONF_MAX_COLOR_TEMP] = "Coldest color temperature in Kelvin. ❄️"
 
 CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS = "min_brightness", 1
-DOCS[CONF_MIN_BRIGHTNESS] = ("Minimum brightness percentage. 💡")
+DOCS[CONF_MIN_BRIGHTNESS] = "Minimum brightness percentage. 💡"
 
 CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP = "min_color_temp", 2000
-DOCS[CONF_MIN_COLOR_TEMP] = ("Warmest color temperature in Kelvin. 🔥")
+DOCS[CONF_MIN_COLOR_TEMP] = "Warmest color temperature in Kelvin. 🔥"
 
 CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE = "only_once", False
 DOCS[CONF_ONLY_ONCE] = (
@@ -77,9 +73,9 @@ DOCS[CONF_ONLY_ONCE] = (
 )
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
-DOCS[CONF_PREFER_RGB_COLOR] = (
-    "Use RGB color adjustment instead of native light color temperature. 🌈"
-)
+DOCS[
+    CONF_PREFER_RGB_COLOR
+] = "Use RGB color adjustment instead of native light color temperature. 🌈"
 
 CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS = (
     "separate_turn_on_commands",
@@ -91,52 +87,47 @@ DOCS[CONF_SEPARATE_TURN_ON_COMMANDS] = (
 )
 
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
-DOCS[CONF_SLEEP_BRIGHTNESS] = ("Brightness of lights in sleep mode. 😴")
+DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness of lights in sleep mode. 😴"
 
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
 DOCS[CONF_SLEEP_COLOR_TEMP] = (
-    "Color temperature in sleep mode (used when `sleep_rgb_or
     "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is "
     "`color_temp`). 😴"
 )
 
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
 DOCS[CONF_SLEEP_RGB_COLOR] = (
-    "RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is 'rgb_color'). 🌈"
+    "RGB color in sleep mode (used when " "`sleep_rgb_or_color_temp` is 'rgb_color'). 🌈"
 )
 
 CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
     "sleep_rgb_or_color_temp",
     "color_temp",
 )
-DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
-    "Use either `'rgb_color'` or `'color_temp'` in sleep mode. 🌙"
-)
+DOCS[
+    CONF_SLEEP_RGB_OR_COLOR_TEMP
+] = "Use either `'rgb_color'` or `'color_temp'` in sleep mode. 🌙"
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
-DOCS[CONF_SUNRISE_OFFSET] = (
-    "Adjust sunrise time with a positive or negative offset. ⏰"
-)
+DOCS[CONF_SUNRISE_OFFSET] = "Adjust sunrise time with a positive or negative offset. ⏰"
 
 CONF_SUNRISE_TIME = "sunrise_time"
-DOCS[CONF_SUNRISE_TIME] = ("Set a fixed time for sunrise. 🌅")
+DOCS[CONF_SUNRISE_TIME] = "Set a fixed time for sunrise. 🌅"
 
 CONF_MAX_SUNRISE_TIME = "max_sunrise_time"
 DOCS[CONF_MAX_SUNRISE_TIME] = (
-    "Set the latest virtual sunrise time, allowing for earlier real sunrises. 🌅"
+    "Set the latest virtual sunrise time, allowing" " for earlier real sunrises. 🌅"
 )
 
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
-DOCS[CONF_SUNSET_OFFSET] = (
-    "Adjust sunset time with a positive or negative offset. ⏰"
-)
+DOCS[CONF_SUNSET_OFFSET] = "Adjust sunset time with a positive or negative offset. ⏰"
 
 CONF_SUNSET_TIME = "sunset_time"
-DOCS[CONF_SUNSET_TIME] = ("Set a fixed time for sunset. 🌇")
+DOCS[CONF_SUNSET_TIME] = "Set a fixed time for sunset. 🌇"
 
 CONF_MIN_SUNSET_TIME = "min_sunset_time"
 DOCS[CONF_MIN_SUNSET_TIME] = (
-    "Set the earliest virtual sunset time, allowing for later real sunsets. 🌇"
+    "Set the earliest virtual sunset time, allowing" " for later real sunsets. 🌇"
 )
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
@@ -147,9 +138,7 @@ DOCS[CONF_TAKE_OVER_CONTROL] = (
 )
 
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 45
-DOCS[CONF_TRANSITION] = (
-    "Duration of transition when lights change, in seconds. 🕑"
-)
+DOCS[CONF_TRANSITION] = "Duration of transition when lights change, in seconds. 🕑"
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
