@@ -8,8 +8,7 @@ on:
       - ".github/update-readme.py"
       - "README.md"
       - ".github/workflows/update-readme.yml"
-      - "home_assistant_streamdeck_yaml.py"
-      - "tests/test_examples.py"
+      - "custom_components/adaptive_lighting/const.py"
   pull_request:
 
 jobs:
