@@ -313,6 +313,8 @@ logger:
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
 
+Please include your [Adaptive Lighting Configuration](https://github.com/basnijholt/adaptive-lighting/discussions/503)
+
 ## :exclamation: Common Problems & Solutions
 
 ### :bulb: Lights Not Responding or Turning On by Themselves
