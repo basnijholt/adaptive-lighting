@@ -301,13 +301,13 @@ def generate_markdown_table():
         if type_ == cv.entity_ids:
             type_ = "list of entity ids"
         elif type_ in (bool, int, float, str):
-            type_ = type_.__name__
+            type_ = f"`{type_.__name__}`"
         elif isinstance(type_, vol.All):
             type_ = _format_voluptuous_instance(type_)
         elif isinstance(type_, vol.In):
-            type_ = f"one of {type_.container}"
+            type_ = f"one of `{type_.container}`"
         elif isinstance(type_, selector.SelectSelector):
-            type_ = f"one of {type_.config['options']}"
+            type_ = f"one of `{type_.config['options']}`"
         elif isinstance(type_, selector.ColorRGBSelector):
             type_ = "RGB color"
         else:
