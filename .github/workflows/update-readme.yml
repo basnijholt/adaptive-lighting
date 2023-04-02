@@ -16,8 +16,11 @@ jobs:
   update_readme:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4
+
       - name: Install Home Assistant
-        uses: basnijholt/adaptive-lighting/install_dependencies@auto-generate-readme
+        uses: ./.github/workflows/install_dependencies
         with:
           python_version: "3.10"
 

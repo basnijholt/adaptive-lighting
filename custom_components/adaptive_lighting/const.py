@@ -322,7 +322,3 @@ def generate_markdown_table():
 
     df = pd.DataFrame(rows)
     return df.to_markdown(index=False)
-
-
-# markdown_table = generate_markdown_table()
-# print(markdown_table)
