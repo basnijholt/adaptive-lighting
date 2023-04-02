@@ -138,13 +138,16 @@ DOCS[CONF_TAKE_OVER_CONTROL] = (
 )
 
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 45
+DOCS[CONF_TRANSITION] = "Duration of transition when lights change, in seconds. 🕑"
 
 CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
     "transition_until_sleep",
     False,
 )
-
-DOCS[CONF_TRANSITION] = "Duration of transition when lights change, in seconds. 🕑"
+DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
+    "adapt_until_sleep: When checked, Adaptive Lighting will use the sleep settings as the minimum,"
+    " and transition to these values past the sunset (default: false)"
+)
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
