@@ -268,3 +268,59 @@ _DOMAIN_SCHEMA = vol.Schema(
         for key, default, validation in _yaml_validation_tuples
     }
 )
+
+
+def _format_voluptuous_instance(instance):
+    coerce_type = None
+    min_val = None
+    max_val = None
+
+    for validator in instance.validators:
+        if isinstance(validator, vol.Coerce):
+            coerce_type = validator.type.__name__
+        elif isinstance(validator, (vol.Clamp, vol.Range)):
+            min_val = validator.min
+            max_val = validator.max
+
+    if min_val is not None and max_val is not None:
+        return f"`{coerce_type}` {min_val}-{max_val}"
+    elif min_val is not None:
+        return f"`{coerce_type} > {min_val}`"
+    elif max_val is not None:
+        return f"`{coerce_type} < {max_val}`"
+    else:
+        return f"`{coerce_type}`"
+
+
+def generate_markdown_table():
+    import pandas as pd
+
+    rows = []
+    for k, default, type_ in VALIDATION_TUPLES:
+        description = DOCS[k]
+        if type_ == cv.entity_ids:
+            type_ = "list of entity ids"
+        elif type_ in (bool, int, float, str):
+            type_ = type_.__name__
+        elif isinstance(type_, vol.All):
+            type_ = _format_voluptuous_instance(type_)
+        elif isinstance(type_, vol.In):
+            type_ = f"one of {type_.container}"
+        elif isinstance(type_, selector.SelectSelector):
+            type_ = f"one of {type_.config['options']}"
+        elif isinstance(type_, selector.ColorRGBSelector):
+            type_ = "RGB color"
+        row = {
+            "Variable name": f"`{k}`",
+            "Description": description,
+            "Default": f"`{default}`",
+            "Type": type_,
+        }
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    return df.to_markdown(index=False)
+
+
+# markdown_table = generate_markdown_table()
+# print(markdown_table)
