@@ -338,24 +338,19 @@ For most Zigbee networks, **using groups is essential for optimal performance**.
 As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
 ##### Zigbee2MQTT
-Please check out the following resources:
-[Zigbee2MQTT | FAQ](https://www.zigbee2mqtt.io/guide/faq/)
-
-[Zigbee2MQTT | Configuration](https://www.zigbee2mqtt.io/guide/configuration/)
-
-[Zigbee2MQTT | Device-Specific Configurations](https://www.zigbee2mqtt.io/supported-devices/)
+Please check out the following resources:\
+- [Zigbee2MQTT | FAQ](https://www.zigbee2mqtt.io/guide/faq/)
+- [Zigbee2MQTT | Configuration](https://www.zigbee2mqtt.io/guide/configuration/)
+- [Zigbee2MQTT | Device-Specific Configurations](https://www.zigbee2mqtt.io/supported-devices/)
 
 Coming soon: [The best configuration options for use with Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting/discussions/502)
 
 ##### ZHA
-We recommend Zigbee2MQTT as it's widely considered to be the best performer.
-
-However if you'd like to debug ZHA check out the following articles:
-
+We recommend Zigbee2MQTT as it's widely considered to be the best performer.\
+However if you'd like to debug ZHA check out the following articles:\
 https://www.home-assistant.io/integrations/zha/#troubleshooting specifically [ZHA EXCEPTION AND DEVIATION HANDLING](https://www.home-assistant.io/integrations/zha/#zha-exception-and-deviation-handling)
 
-We recommend the following addons/integrations for ZHA:
-
+We recommend the following addons/integrations for ZHA:\
 1. [ZHA-Toolkit](https://github.com/mdeweerd/zha-toolkit)
 2. [ZHA-Device-Handlers](https://github.com/zigpy/zha-device-handlers) also available [here](https://pypi.org/project/zha-quirks/)
 
