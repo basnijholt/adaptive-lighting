@@ -1,10 +1,9 @@
 name: pytest
 
 on:
-  workflow_run:
-    workflows: ["Install Dependencies"]
-    types:
-      - completed
+  push:
+    branches: [master]
+  pull_request:
 
 jobs:
   pytest:
@@ -15,6 +14,8 @@ jobs:
       matrix:
         python-version: ["3.10"]
     steps:
+      - name: Install Home Assistant
+        uses: ./.github/workflows/install_dependencies.yaml
       - name: Click here for troubleshooting steps if tests break again.
         run: |
           echo "::notice::### If tests fail, try these debug steps: ###"

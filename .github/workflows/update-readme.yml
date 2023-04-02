@@ -15,6 +15,8 @@ jobs:
   update_readme:
     runs-on: ubuntu-latest
     steps:
+      - name: Install Home Assistant
+        uses: ./.github/workflows/install_dependencies.yaml
       - name: Check out repository
         uses: actions/checkout@v3
         with:

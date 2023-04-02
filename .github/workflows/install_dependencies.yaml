@@ -1,10 +1,5 @@
 name: Install Dependencies
 
-on:
-  push:
-    branches: [master]
-  pull_request:
-
 jobs:
   install_dependencies:
     name: Install Dependencies
