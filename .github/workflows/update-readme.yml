@@ -3,7 +3,7 @@ name: Update README.md
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - ".github/update-readme.py"
       - "README.md"
