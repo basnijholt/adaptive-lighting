@@ -1,3 +1,7 @@
+# Copyright (c) 2023, Bas Nijholt
+# All rights reserved.
+# When using this code, please cite the original source.
+# and include the LICENSE file in your project.
 """Are you tired of manually updating Markdown files with code output?.
 
 Fear not! With this script, you can easily insert code block output into
