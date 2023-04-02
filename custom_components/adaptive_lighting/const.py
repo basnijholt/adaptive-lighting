@@ -152,6 +152,11 @@ DOCS[CONF_SEND_SPLIT_DELAY] = (
     "Helps ensure correct handling. ⏲️"
 )
 
+CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds", 0
+DOCS[CONF_AUTORESET_CONTROL] = (
+    "Automatically reset the manual control after a number of seconds. "
+    "Set to 0 to disable. ⏲️"
+)
 
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
@@ -220,6 +225,11 @@ VALIDATION_TUPLES = [
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
+    (
+        CONF_AUTORESET_CONTROL,
+        DEFAULT_AUTORESET_CONTROL,
+        int_between(0, 7 * 24 * 60 * 60),  # 7 days max
+    ),
 ]
 
 
