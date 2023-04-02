@@ -19,6 +19,8 @@ This will be replaced by the output of the code block above.
 <!-- END_OUTPUT -->
 ```
 """
+from __future__ import annotations
+
 import contextlib
 import io
 from pathlib import Path
@@ -55,56 +57,42 @@ def execute_code_block(code: list[str]) -> list[str]:
 
 def process_markdown(content: list[str]) -> list[str]:
     """Executes code blocks in a list of Markdown-formatted strings and returns the modified list.
+
     Parameters
     ----------
     content
         A list of Markdown-formatted strings.
+
     Returns
     -------
     list[str]
         A modified list of Markdown-formatted strings with code block output inserted.
     """
     assert isinstance(content, list), "Input must be a list"
-    if not content:
-        return content
-
-    new_lines: list[str] = []
-    code: list[str] = []
-    in_code_block = False
-    in_output_block = False
-    output: list[str] | None = None
+    new_lines = []
+    code = []
+    in_code_block = in_output_block = False
+    output = None
 
     for line in content:
         if MARKERS["start_code"] in line:
             in_code_block = True
-            new_lines.append(line)
-            continue
-
-        if MARKERS["start_output"] in line:
+        elif MARKERS["start_output"] in line:
             in_output_block = True
-            new_lines.append(line)
-            msg = MARKERS["warning"]
-            new_lines.append(msg)
-            assert output is not None
-            new_lines.extend(output)
+            new_lines.extend([line, MARKERS["warning"]] + output)
             output = None
-            continue
-
-        if in_output_block:
-            if MARKERS["end_output"] in line:
-                in_output_block = False
-                new_lines.append(line)
-                continue
-        else:
-            new_lines.append(line)
-
-        if in_code_block:
+        elif MARKERS["end_output"] in line:
+            in_output_block = False
+        elif in_code_block:
             if MARKERS["end_code"] in line:
                 in_code_block = False
                 output = execute_code_block(code)
                 code = []
             else:
                 code.append(remove_md_comment(line))
+
+        if not in_output_block:
+            new_lines.append(line)
 
     return new_lines
 
