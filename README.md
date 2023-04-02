@@ -345,18 +345,18 @@ Please check out the following resources:
 
 [Zigbee2MQTT | Device-Specific Configurations](https://www.zigbee2mqtt.io/supported-devices/)
 
+Coming soon: [The best configuration options for use with Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting/discussions/502)
+
 ##### ZHA
 We recommend Zigbee2MQTT as it's widely considered to be the best performer.
 
 However if you'd like to debug ZHA check out the following articles:
 
-https://www.home-assistant.io/integrations/zha/#troubleshooting specifically `ZHA EXCEPTION AND DEVIATION HANDLING`
+https://www.home-assistant.io/integrations/zha/#troubleshooting specifically [ZHA EXCEPTION AND DEVIATION HANDLING](https://www.home-assistant.io/integrations/zha/#zha-exception-and-deviation-handling)
 
 We recommend the following addons/integrations for ZHA:
-
-[ZHA-Toolkit](https://github.com/mdeweerd/zha-toolkit)
-
-[ZHA-Device-Handlers](https://github.com/zigpy/zha-device-handlers) also available [here](https://pypi.org/project/zha-quirks/)
+1.[ZHA-Toolkit](https://github.com/mdeweerd/zha-toolkit)
+2.[ZHA-Device-Handlers](https://github.com/zigpy/zha-device-handlers) also available [here](https://pypi.org/project/zha-quirks/)
 
 ### :rainbow: Light Colors Not Matching
 
