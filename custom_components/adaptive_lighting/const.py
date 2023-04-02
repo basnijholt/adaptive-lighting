@@ -299,7 +299,7 @@ def generate_markdown_table():
     for k, default, type_ in VALIDATION_TUPLES:
         description = DOCS[k]
         if type_ == cv.entity_ids:
-            type_ = "list of entity ids"
+            type_ = "list of `entity_id`s"
         elif type_ in (bool, int, float, str):
             type_ = f"`{type_.__name__}`"
         elif isinstance(type_, vol.All):
