@@ -1,0 +1,44 @@
+name: Update README.md
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/update-readme.py"
+      - "README.md"
+      - ".github/workflows/update-readme.yml"
+      - "custom_components/adaptive_lighting/const.py"
+  pull_request:
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3
+
+      - name: Install Home Assistant
+        uses: ./.github/workflows/install_dependencies
+        with:
+          python_version: "3.10"
+
+      - name: Install pandas and tabulate
+        run: |
+          pip install pandas tabulate
+
+      - name: Run update-readme.py
+        run: python ./.github/update-readme.py
+
+      - name: Commit updated README.md
+        run: |
+          git add README.md
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update README.md"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
