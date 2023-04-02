@@ -29,7 +29,7 @@ jobs:
           pip install pandas tabulate
 
       - name: Run update-readme.py
-        run: python ./ci/update-readme.py
+        run: python ./.github/update-readme.py
 
       - name: Commit updated README.md
         run: |
