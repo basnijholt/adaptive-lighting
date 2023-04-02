@@ -39,26 +39,30 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+- [🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙](#-adaptive-lighting-enhance-your-homes-atmosphere-with-smart-sun-synchronized-lighting-)
+  - [:bulb: Features](#bulb-features)
+    - [:control\_knobs: Regain Manual Control](#control_knobs-regain-manual-control)
+  - [:books: Table of Contents](#books-table-of-contents)
   - [:gear: Configuration](#gear-configuration)
     - [:memo: Options](#memo-options)
-    - [:hammer_and_wrench: Services](#hammer_and_wrench-services)
+    - [:hammer\_and\_wrench: Services](#hammer_and_wrench-services)
       - [`adaptive_lighting.apply`](#adaptive_lightingapply)
       - [`adaptive_lighting.set_manual_control`](#adaptive_lightingset_manual_control)
       - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
   - [:robot: Automation examples](#robot-automation-examples)
 - [Additional Information](#additional-information)
 - [Troubleshooting](#troubleshooting)
-  - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
+  - [:exclamation: Common Problems \& Solutions](#exclamation-common-problems--solutions)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
-      - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
-      - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
+      - [:signal\_strength: WiFi Networks](#signal_strength-wifi-networks)
+      - [:spider\_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
     - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
     - [:bulb: Bulb-Specific Issues](#bulb-bulb-specific-issues)
-  - [:bar_chart: Graphs!](#bar_chart-graphs)
+  - [:bar\_chart: Graphs!](#bar_chart-graphs)
       - [:sunny: Sun Position](#sunny-sun-position)
       - [:thermometer: Color Temperature](#thermometer-color-temperature)
-      - [:high_brightness: Brightness](#high_brightness-brightness)
-  - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
+      - [:high\_brightness: Brightness](#high_brightness-brightness)
+  - [:busts\_in\_silhouette: Contributors](#busts_in_silhouette-contributors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -76,6 +80,9 @@ adaptive_lighting:
 Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the benefits of intelligent, sun-synchronized lighting today!
 
 ### :memo: Options
+
+All of the configuration options are listed below, along with their default values.
+The YAML and frontend configuration methods support all of the options listed below.
 
 <!-- START_CODE -->
 <!-- import os, sys -->
