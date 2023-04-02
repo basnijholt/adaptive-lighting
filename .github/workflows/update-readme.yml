@@ -18,12 +18,14 @@ jobs:
     steps:
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies.yaml
+      - name: Install pandas and tabulate
+        run: |
+          pip install pandas tabulate
       - name: Check out repository
         uses: actions/checkout@v3
         with:
           persist-credentials: false
           fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
