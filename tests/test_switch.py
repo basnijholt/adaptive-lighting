@@ -527,11 +527,18 @@ async def test_manual_control(hass):
         await turn_switch(True, entity_id)
         assert not manual_control[ENTITY_LIGHT]
 
+    # Check that manual control is still enabled if set while bulb is off.
+    # Test issue #37
+    await turn_light(False)
+    await change_manual_control(True)
+    await turn_light(True)
+    assert manual_control[ENTITY_LIGHT]
+
     # Check that when 'adapt_brightness' is off, changing the brightness
     # doesn't mark it as manually controlled but changing color_temp
     # does
-    await turn_light(False)  # reset manually controlled status
-    await turn_light(True)
+    await turn_light(False)
+    await turn_light(True)  # reset manually controlled status
     assert not manual_control[ENTITY_LIGHT]
     await switch.adapt_brightness_switch.async_turn_off()
     await turn_light(True, brightness=increased_brightness())
