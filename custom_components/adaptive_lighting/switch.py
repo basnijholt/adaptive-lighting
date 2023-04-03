@@ -97,6 +97,7 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -239,52 +240,50 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
     return service_datas
 
 
-def _find_switch_with_any_of_lights(
-    hass: HomeAssistant,
-    lights: list[str],
-    service_call: ServiceCall,
-) -> AdaptiveSwitch:
-    """Find the switch that controls the lights in 'lights'."""
+def _get_switches_with_lights(
+    hass: HomeAssistant, lights: list[str]
+) -> list[AdaptiveSwitch]:
+    """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
-    switches = {}
+    switches = []
     for config in config_entries:
-        # this check is necessary as there seems to always be an extra config
-        # entry that doesn't contain any data. I believe this happens when the
-        # integration exists, but is disabled by the user in HASS.
-        if config.entry_id in data:
-            switch = data[config.entry_id]["instance"]
-            all_check_lights = _expand_light_groups(hass, lights)
-            switch._expand_light_groups()
-            if set(switch._lights) & set(all_check_lights):
-                switches[config.entry_id] = switch
+        entry = data.get(config.entry_id)
+        if entry is None:  # entry might be disabled and therefore missing
+            continue
+        switch = data[config.entry_id]["instance"]
+        all_check_lights = _expand_light_groups(hass, lights)
+        switch._expand_light_groups()
+        # Check if any of the lights are in the switch's lights
+        if set(switch._lights) & set(all_check_lights):
+            switches.append(switch)
+    return switches
 
+
+def find_switch_for_lights(
+    hass: HomeAssistant,
+    lights: list[str],
+    is_on: bool = False,
+) -> AdaptiveSwitch:
+    """Find the switch that controls the lights in 'lights'."""
+    switches = _get_switches_with_lights(hass, lights)
     if len(switches) == 1:
-        return next(iter(switches.values()))
-
-    if len(switches) > 1:
-        _LOGGER.error(
-            "Invalid service data: Light(s) %s found in multiple switch configs (%s)."
-            " You must pass a switch under 'entity_id'. See the README for"
-            " details. Got %s",
-            lights,
-            list(switches.keys()),
-            service_call.data,
-        )
+        return switches[0]
+    elif len(switches) > 1:
+        on_switches = [s for s in switches if s.is_on]
+        if len(on_switches) == 1:
+            # Of the multiple switches, only one is on
+            return on_switches[0]
         raise ValueError(
-            "adaptive-lighting: Light(s) %s found in multiple switch configs.",
-            lights,
+            f"find_switch_for_lights: Light(s) {lights} found in multiple switch configs"
+            f" ({[s.entity_id for s in switches]}). You must pass a switch under"
+            f" 'entity_id'."
         )
     else:
-        _LOGGER.error(
-            "Invalid service data: Light was not found in any of your switch's configs."
-            " You must either include the light(s) that is/are in the integration config, or"
-            " pass a switch under 'entity_id'. See the README for details. Got %s",
-            service_call.data,
-        )
         raise ValueError(
-            "adaptive-lighting: Light(s) %s not found in any switch's configuration.",
-            lights,
+            f"find_switch_for_lights: Light(s) {lights} not found in any switch's"
+            f" configuration. You must either include the light(s) that is/are"
+            f" in the integration config, or pass a switch under 'entity_id'."
         )
 
 
@@ -293,38 +292,24 @@ def _find_switch_with_any_of_lights(
 def _get_switches_from_service_call(
     hass: HomeAssistant, service_call: ServiceCall
 ) -> list[AdaptiveSwitch]:
-    _LOGGER.debug(
-        "Function '_get_switches_from_service_call' called with service data:\n'%s'",
-        service_call.data,
-    )
     data = service_call.data
     lights = data[CONF_LIGHTS]
     switch_entity_ids: list[str] | None = data.get("entity_id")
+
     if not lights and not switch_entity_ids:
-        _LOGGER.debug(
-            "If you intended to adapt every single light on every single switch, please inform the"
-            " developers at https://github.com/basnijholt/adaptive-lighting of your use case."
-            " Currently, you must pass either an adaptive-lighting switch or the lights to"
-            " an `adaptive_lighting` service call."
-        )
-        _LOGGER.error(
-            "Invalid service data passed to adaptive-lighting service call -"
-            " you must pass either a switch or a light's entity ID. Service data:\n%s",
-            service_call.data,
-        )
         raise ValueError(
-            "adaptive-lighting: No switch or light was passed to service call."
+            "adaptive-lighting: Neither a switch nor a light was provided in the service call."
+            " If you intend to adapt all lights on all switches, please inform the developers at"
+            " https://github.com/basnijholt/adaptive-lighting about your use case."
+            " Currently, you must pass either an adaptive-lighting switch or the lights to an"
+            " `adaptive_lighting` service call."
         )
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
-            _LOGGER.error(
-                "Invalid service data: cannot pass multiple switch entities while also passing"
-                " lights. Service data received: %s",
-                service_call.data,
-            )
             raise ValueError(
-                "adaptive-lighting: Multiple switches were passed with lights argument"
+                f"adaptive-lighting: Cannot pass multiple switches with lights argument."
+                f" Invalid service data received: {service_call.data}"
             )
         switches = []
         ent_reg = entity_registry.async_get(hass)
@@ -335,25 +320,18 @@ def _get_switches_from_service_call(
         return switches
 
     if lights:
-        switch = _find_switch_with_any_of_lights(hass, lights, service_call)
-        _LOGGER.debug(
-            "Switch '%s' found for lights '%s'",
-            switch.entity_id,
-            lights,
-        )
+        switch = find_switch_for_lights(hass, lights, service_call)
         return [switch]
 
-    _LOGGER.error(
-        "Invalid service data passed to adaptive-lighting service call -"
-        " entities were not found in the integration. Service data:\n%s",
-        service_call.data,
+    raise ValueError(
+        f"adaptive-lighting: Incorrect data provided in service call."
+        f" Entities not found in the integration. Service data: {service_call.data}"
     )
-    raise ValueError("adaptive-lighting: User sent incorrect data to service call")
 
 
 async def handle_change_switch_settings(
     switch: AdaptiveSwitch, service_call: ServiceCall
-):
+) -> None:
     """Allows HASS to change config values via a service call."""
     data = service_call.data
 
@@ -457,24 +435,24 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.apply' service with '%s'",
             data,
         )
-        these_switches = _get_switches_from_service_call(hass, service_call)
+        switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
-        for this_switch in these_switches:
+        for switch in switches:
             if not lights:
-                all_lights = this_switch._lights  # pylint: disable=protected-access
+                all_lights = switch._lights  # pylint: disable=protected-access
             else:
-                all_lights = _expand_light_groups(this_switch.hass, lights)
-            this_switch.turn_on_off_listener.lights.update(all_lights)
+                all_lights = _expand_light_groups(switch.hass, lights)
+            switch.turn_on_off_listener.lights.update(all_lights)
             for light in all_lights:
                 if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    await this_switch._adapt_light(  # pylint: disable=protected-access
+                    await switch._adapt_light(  # pylint: disable=protected-access
                         light,
                         data[CONF_TRANSITION],
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
                         force=True,
-                        context=this_switch.create_context(
+                        context=switch.create_context(
                             "service", parent=service_call.context
                         ),
                     )
@@ -487,26 +465,26 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
             data,
         )
-        these_switches = _get_switches_from_service_call(hass, service_call)
+        switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
-        for this_switch in these_switches:
+        for switch in switches:
             if not lights:
-                all_lights = this_switch._lights  # pylint: disable=protected-access
+                all_lights = switch._lights  # pylint: disable=protected-access
             else:
-                all_lights = _expand_light_groups(this_switch.hass, lights)
+                all_lights = _expand_light_groups(switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    this_switch.turn_on_off_listener.manual_control[light] = True
-                    _fire_manual_control_event(this_switch, light, service_call.context)
+                    switch.turn_on_off_listener.mark_as_manual_control(light)
+                    _fire_manual_control_event(switch, light, service_call.context)
             else:
-                this_switch.turn_on_off_listener.reset(*all_lights)
-                if this_switch.is_on:
+                switch.turn_on_off_listener.reset(*all_lights)
+                if switch.is_on:
                     # pylint: disable=protected-access
-                    await this_switch._update_attrs_and_maybe_adapt_lights(
+                    await switch._update_attrs_and_maybe_adapt_lights(
                         all_lights,
-                        transition=this_switch._initial_transition,
+                        transition=switch._initial_transition,
                         force=True,
-                        context=this_switch.create_context(
+                        context=switch.create_context(
                             "service", parent=service_call.context
                         ),
                     )
@@ -794,16 +772,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set in self._update_attrs_and_maybe_adapt_lights
         self._settings: dict[str, Any] = {}
 
-        self._config: dict[str, Any] = {}
-        if self._include_config_in_attributes:
-            attrdata = deepcopy(data)
-            for k, v in attrdata.items():
-                if isinstance(v, (datetime.date, datetime.datetime)):
-                    attrdata[k] = v.isoformat()
-                if isinstance(v, (datetime.timedelta)):
-                    attrdata[k] = v.total_seconds()
-            self._config.update(attrdata)
-
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners = []
         _LOGGER.debug(
@@ -834,6 +802,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
+        self._config: dict[str, Any] = {}
+        if self._include_config_in_attributes:
+            attrdata = deepcopy(data)
+            for k, v in attrdata.items():
+                if isinstance(v, (datetime.date, datetime.datetime)):
+                    attrdata[k] = v.isoformat()
+                if isinstance(v, (datetime.timedelta)):
+                    attrdata[k] = v.total_seconds()
+            self._config.update(attrdata)
+
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._only_once = data[CONF_ONLY_ONCE]
@@ -843,6 +821,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+        self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
+        self._expand_light_groups()  # updates manual control timers
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -916,6 +896,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def _expand_light_groups(self) -> None:
         all_lights = _expand_light_groups(self.hass, self._lights)
         self.turn_on_off_listener.lights.update(all_lights)
+        self.turn_on_off_listener.set_auto_reset_manual_control_times(
+            all_lights, self._auto_reset_manual_control_time
+        )
         self._lights = list(all_lights)
 
     async def _setup_listeners(self, _=None) -> None:
@@ -1553,6 +1536,10 @@ class TurnOnOffListener:
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
 
+        # Track auto reset of manual_control
+        self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
+        self.auto_reset_manual_control_times: dict[str, float] = {}
+
         # When a state is different `max_cnt_significant_changes` times in a row,
         # mark it as manually_controlled.
         self.max_cnt_significant_changes = 2
@@ -1564,11 +1551,71 @@ class TurnOnOffListener:
             EVENT_STATE_CHANGED, self.state_changed_event_listener
         )
 
+    def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
+        """Set the time after which the lights are automatically reset."""
+        if time == 0:
+            return
+        for light in lights:
+            old_time = self.auto_reset_manual_control_times.get(light)
+            if (old_time is not None) and (old_time != time):
+                _LOGGER.info(
+                    "Setting auto_reset_manual_control for '%s' from %s seconds to %s seconds."
+                    " This might happen because the light is in multiple swiches"
+                    " or because of a config change.",
+                    light,
+                    old_time,
+                    time,
+                )
+            self.auto_reset_manual_control_times[light] = time
+
+    def mark_as_manual_control(self, light: str) -> None:
+        """Mark a light as manually controlled."""
+        _LOGGER.debug("Marking '%s' as manually controlled.", light)
+        self.manual_control[light] = True
+        delay = self.auto_reset_manual_control_times.get(light)
+        timer = self.auto_reset_manual_control_timers.get(light)
+        if timer is not None:
+            if delay is None:  # Timer object exists, but should not anymore
+                timer.cancel()
+                self.auto_reset_manual_control_timers.pop(light)
+            else:  # Timer object already exists, just update the delay and restart it
+                timer.delay = delay
+                timer.start()
+        elif delay is not None:  # Timer object does not exist, create it
+
+            async def reset():
+                self.reset(light)
+                switches = _get_switches_with_lights(self.hass, [light])
+                for switch in switches:
+                    if not switch.is_on:
+                        continue
+                    # pylint: disable=protected-access
+                    await switch._update_attrs_and_maybe_adapt_lights(
+                        [light],
+                        transition=switch._initial_transition,
+                        force=True,
+                        context=switch.create_context("autoreset"),
+                    )
+                _LOGGER.debug(
+                    "Auto resetting 'manual_control' status of '%s' because"
+                    " it was not manually controlled for %s seconds.",
+                    light,
+                    delay,
+                )
+                assert not self.manual_control[light]
+
+            timer = _AsyncSingleShotTimer(delay, reset)
+            self.auto_reset_manual_control_timers[light] = timer
+            timer.start()
+
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
+                timer = self.auto_reset_manual_control_timers.pop(light, None)
+                if timer is not None:
+                    timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cnt_significant_changes[light] = 0
@@ -1626,6 +1673,14 @@ class TurnOnOffListener:
                 if task is not None:
                     task.cancel()
                 self.turn_on_event[eid] = event
+                timer = self.auto_reset_manual_control_timers.get(eid)
+                if (
+                    timer is not None
+                    and timer.is_running()
+                    and event.time_fired > timer.start_time
+                ):
+                    # Restart the auto reset timer
+                    timer.start()
 
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
@@ -1701,7 +1756,7 @@ class TurnOnOffListener:
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = self.manual_control[light] = True
+                manual_control = self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
@@ -1773,7 +1828,7 @@ class TurnOnOffListener:
                 # Only mark a light as significantly changing, if changed==True
                 # N times in a row. We do this because sometimes a state changes
                 # happens only *after* a new update interval has already started.
-                self.manual_control[light] = True
+                self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, context, is_async=False)
         else:
             if n_changes > 1:
@@ -1884,3 +1939,38 @@ class TurnOnOffListener:
         # other 'off' → 'on' state switches resulting from polling. That
         # would mean we 'return True' here.
         return False
+
+
+class _AsyncSingleShotTimer:
+    def __init__(self, delay, callback):
+        """Initialize the timer."""
+        self.delay = delay
+        self.callback = callback
+        self.task = None
+        self.start_time: int | None = None
+
+    async def _run(self):
+        """Run the timer. Don't call this directly, use start() instead."""
+        self.start_time = dt_util.utcnow()
+        await asyncio.sleep(self.delay)
+        if self.callback:
+            if asyncio.iscoroutinefunction(self.callback):
+                await self.callback()
+            else:
+                self.callback()
+
+    def is_running(self):
+        """Return whether the timer is running."""
+        return self.task is not None and not self.task.done()
+
+    def start(self):
+        """Start the timer."""
+        if self.task is not None and not self.task.done():
+            self.task.cancel()
+        self.task = asyncio.create_task(self._run())
+
+    def cancel(self):
+        """Cancel the timer."""
+        if self.task:
+            self.task.cancel()
+            self.callback = None

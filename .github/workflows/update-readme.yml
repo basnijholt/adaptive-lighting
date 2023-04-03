@@ -1,0 +1,51 @@
+name: Update README.md
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "README.md"
+      - "custom_components/adaptive_lighting/const.py"
+      - "github/workflows/update-readme.yml"
+  pull_request:
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3
+
+      - name: Install Home Assistant
+        uses: ./.github/workflows/install_dependencies
+        with:
+          python_version: "3.10"
+
+      - name: Install pandas and tabulate
+        run: |
+          pip install markdown-code-runner pandas tabulate
+
+      - name: Run markdown-code-runner
+        run: markdown-code-runner --debug README.md
+
+      - name: Commit updated README.md
+        id: commit
+        run: |
+          git add README.md
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes in README.md, skipping commit."
+            echo "commit_status=skipped" >> $GITHUB_ENV
+          else
+            git commit -m "Update README.md"
+            echo "commit_status=committed" >> $GITHUB_ENV
+          fi
+
+      - name: Push changes
+        if: env.commit_status == 'committed'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
