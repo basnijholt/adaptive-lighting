@@ -2,184 +2,186 @@ apply:
   description: Applies the current Adaptive Lighting settings to lights.
   fields:
     entity_id:
-      description: "Entity ID of the switch. \U0001F4DD"
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       selector:
         entity:
           integration: adaptive_lighting
           domain: switch
           multiple: false
     lights:
-      description: "List of light entities to be controlled by Adaptive Lighting (may be empty). \U0001F31F"
+      description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       selector:
         entity:
           domain: light
           multiple: true
     transition:
-      description: "Duration of transition when lights change, in seconds. \U0001F551"
+      description: Transition of the lights.
       example: 10
       selector:
-        text: null
+        text:
     adapt_brightness:
-      description: "Whether to adapt the brightness of the light. \U0001F31E"
+      description: "Adapt the 'brightness', default: true"
       example: true
       selector:
-        boolean: null
+        boolean:
     adapt_color:
-      description: "Whether to adapt the color of the light. \U0001F308"
+      description: "Adapt the color_temp/color_rgb, default: true"
       example: true
       selector:
-        boolean: null
+        boolean:
     prefer_rgb_color:
-      description: "Use RGB color adjustment instead of native light color temperature. \U0001F308"
+      description: "Prefer to use color_rgb over color_temp if possible, default: false"
       example: false
       selector:
-        boolean: null
+        boolean:
     turn_on_lights:
-      description: "Whether to turn on lights if they are off. \U0001F506"
+      description: "Turn on the lights that are off, default: false"
       example: false
       selector:
-        boolean: null
+        boolean:
+
 set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:
     entity_id:
-      description: "Entity ID of the switch. \U0001F4DD"
+      description: entity_id of the Adaptive Lighting switch. If not specified, the current Adaptive Lighting switch will be used.
       selector:
         entity:
           integration: adaptive_lighting
           domain: switch
           multiple: false
     lights:
-      description: "List of light entities to be controlled by Adaptive Lighting (may be empty). \U0001F31F"
+      description: entity_id(s) of lights, if not specified, all lights in the switch are selected.
       selector:
         entity:
           domain: light
           multiple: true
     manual_control:
-      description: "Whether to manually control the lights. \U0001F512"
+      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true"
       example: true
       default: true
       selector:
-        boolean: null
+        boolean:
+
 change_switch_settings:
-  description: Change any settings you'd like in the switch. All options here are the same as in the config flow.
+  description: "Change any settings you'd like in the switch. All options here are the same as in the config flow."
   fields:
     entity_id:
-      description: "Entity ID of the switch. \U0001F4DD"
+      description: "entity_id of the Adaptive Lighting switch."
       required: true
       selector:
         entity:
           domain: switch
     use_defaults:
-      description: "Whether to use default settings for the switches. \u2699\uFE0F"
-      example: current
+      description: "(default: 'current' for current settings) You can set this to 'factory', 'configuration', or 'current' to reset the variables not being set with this service call. 'current' leaves them as is, 'configuration' resets to whatever already initializes at startup, 'factory' resets to the default values listed in the documentation."
+      example: "current"
       required: false
-      default: current
+      default: "current"
       selector:
         select:
           options:
-          - current
-          - configuration
-          - factory
+            - "current"
+            - "configuration"
+            - "factory"
     include_config_in_attributes:
-      description: "Show all options as attributes on the switch in Home Assistant when set to `true`. \U0001F4DD"
+      description: "include_config_in_attributes: All config options will be listed as attributes under the adaptive-lighting switch this integration creates. (default: false)"
       required: false
       selector:
-        boolean: null
+        boolean:
     turn_on_lights:
-      description: "Whether to turn on lights if they are off. \U0001F506"
+      description: "Turn on the lights that are off, default: false"
       example: false
       required: false
       selector:
-        boolean: null
+        boolean:
     initial_transition:
-      description: "Duration of the first transition when lights turn from `off` to `on` in seconds. \u23F2\uFE0F"
+      description: "initial_transition: When lights turn 'off' to 'on'. (seconds)"
       example: 1
       required: false
       selector:
-        text: null
+        text:
     sleep_transition:
-      description: "Duration of transition when 'sleep mode' is toggled in seconds. \U0001F634"
+      description: "sleep_transition: When 'sleep_state' changes. (seconds)"
       example: 1
       required: false
       selector:
-        text: null
+        text:
     max_brightness:
-      description: "Maximum brightness percentage. \U0001F4A1"
+      description: "max_brightness: Highest brightness of lights during a cycle. (%)"
       required: false
       example: 100
       selector:
-        text: null
+        text:
     max_color_temp:
-      description: "Coldest color temperature in Kelvin. \u2744\uFE0F"
+      description: "max_color_temp: Coldest hue of the color temperature cycle. (Kelvin)"
       required: false
       example: 5500
       selector:
-        text: null
+        text:
     min_brightness:
-      description: "Minimum brightness percentage. \U0001F4A1"
+      description: "min_brightness: Lowest brightness of lights during a cycle. (%)"
       required: false
       example: 1
       selector:
-        text: null
+        text:
     min_color_temp:
-      description: "Warmest color temperature in Kelvin. \U0001F525"
+      description: "min_color_temp, Warmest hue of the color temperature cycle. (Kelvin)"
       required: false
       example: 2000
       selector:
-        text: null
+        text:
     only_once:
-      description: "Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). \U0001F504"
+      description: "only_once: Only adapt the lights when turning them on."
       example: false
       required: false
       selector:
-        boolean: null
+        boolean:
     prefer_rgb_color:
-      description: "Use RGB color adjustment instead of native light color temperature. \U0001F308"
+      description: "prefer_rgb_color: Use 'rgb_color' rather than 'color_temp' when possible."
       required: false
       example: false
       selector:
-        boolean: null
+        boolean:
     separate_turn_on_commands:
-      description: "Use separate `light.turn_on` calls for color and brightness, needed for some light types. \U0001F500"
+      description: "separate_turn_on_commands: Separate the commands for each attribute (color, brightness, etc.) in 'light.turn_on' (required for some lights)."
       required: false
       example: false
       selector:
-        boolean: null
+        boolean:
     send_split_delay:
-      description: "Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. \u23F2\uFE0F"
+      description: "send_split_delay: wait between commands (milliseconds), when separate_turn_on_commands is used. May ensure that both commands are handled by the bulb correctly."
       required: false
       example: 0
       selector:
-        boolean: null
+        boolean:
     sleep_brightness:
-      description: "Brightness percentage of lights in sleep mode. \U0001F634"
+      description: "sleep_brightness, Brightness setting for Sleep Mode. (%)"
       required: false
       example: 1
       selector:
-        text: null
+        text:
     sleep_rgb_or_color_temp:
-      description: "Use either `'rgb_color'` or `'color_temp'` in sleep mode. \U0001F319"
+      description: "sleep_rgb_or_color_temp, use 'rgb_color' or 'color_temp'"
       required: false
-      example: color_temp
+      example: "color_temp"
       selector:
         select:
           options:
-          - rgb_color
-          - color_temp
+            - "rgb_color"
+            - "color_temp"
     sleep_rgb_color:
-      description: "RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is 'rgb_color'). \U0001F308"
+      description: "sleep_rgb_color, in RGB"
       required: false
       selector:
-        color_rgb: null
+        color_rgb:
     sleep_color_temp:
-      description: "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. \U0001F634"
+      description: "sleep_color_temp: Color temperature setting for Sleep Mode. (Kelvin)"
       required: false
       example: 1000
       selector:
-        text: null
+        text:
     sunrise_offset:
-      description: "Adjust sunrise time with a positive or negative offset in seconds. \u23F0"
+      description: sunrise_offset, in +/- seconds (integer)
       required: false
       example: 0
       selector:
@@ -187,64 +189,64 @@ change_switch_settings:
           min: 0
           max: 86300
     sunrise_time:
-      description: "Set a fixed time (HH:MM:SS) for sunrise. \U0001F305"
+      description: sunrise_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunrise time at your location)
       required: false
-      example: ''
+      example: ""
       selector:
-        time: null
+        time:
     sunset_offset:
-      description: "Adjust sunset time with a positive or negative offset in seconds. \u23F0"
+      description: sunset_offset, in +/- seconds (integer)
       required: false
-      example: ''
+      example: ""
       selector:
         number:
           min: 0
           max: 86300
     sunset_time:
-      description: "Set a fixed time (HH:MM:SS) for sunset. \U0001F307"
-      example: ''
+      description: sunset_time, in 'HH:MM:SS' format (if 'None', it uses the actual sunset time at your location)
+      example: ""
       required: false
       selector:
-        time: null
+        time:
     max_sunrise_time:
-      description: "Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier real sunrises. \U0001F305"
-      example: ''
+      description: "max_sunrise_time: Manual override of the maximum sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)"
+      example: ""
       required: false
       selector:
-        time: null
+        time:
     min_sunset_time:
-      description: "Set the earliest virtual sunset time (HH:MM:SS), allowing for later real sunsets. \U0001F307"
-      example: ''
+      description: "min_sunset_time: Manual override of the minimum sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)"
+      example: ""
       required: false
       selector:
-        time: null
+        time:
     take_over_control:
-      description: "Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! \U0001F512"
+      description: "take_over_control: If anything but Adaptive Lighting calls 'light.turn_on' when a light is already on, stop adapting that light until it (or the switch) toggles off -> on."
       required: false
       example: true
       selector:
-        boolean: null
+        boolean:
     detect_non_ha_changes:
-      description: "Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. \U0001F575\uFE0F"
+      description: "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)"
       required: false
       example: false
       selector:
-        boolean: null
+        boolean:
     transition:
-      description: "Duration of transition when lights change, in seconds. \U0001F551"
+      description: "Transition time when applying a change to the lights (seconds)"
       required: false
       example: 45
       selector:
-        text: null
+        text:
     adapt_delay:
-      description: "Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. \u23F2\uFE0F"
+      description: "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering."
       required: false
       example: 0
       selector:
-        text: null
+        text:
     autoreset_control_seconds:
-      description: "Automatically reset the manual control after a number of seconds. Set to 0 to disable. \u23F2\uFE0F"
+      description: "autoreset_control_seconds: wait time (seconds) before Adaptive Lighting resets `manual_control` status of any light (default: 0)"
       required: false
       example: 0
       selector:
-        text: null
+        text:
