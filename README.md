@@ -195,11 +195,7 @@ adaptive_lighting:
 |:-------------------------|:--------------------------------------------------------------------------------|:-----------|:---------------------|
 | `entity_id`              | Entity ID of the switch. 📝                                                     | ✅         | list of `entity_id`s |
 | `lights`                 | List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟 | ❌         | list of `entity_id`s |
-| `transition`             | Duration of transition when lights change, in seconds. 🕑                       | ❌         | `float` 0-6553       |
-| `adapt_brightness`       | Whether to adapt the brightness of the light. 🌞                                | ❌         | bool                 |
-| `adapt_color`            | Whether to adapt the color of the light. 🌈                                     | ❌         | bool                 |
-| `prefer_rgb_color`       | Use RGB color adjustment instead of native light color temperature. 🌈          | ❌         | bool                 |
-| `turn_on_lights`         | Whether to turn on lights if they are off. 🔆                                   | ❌         | bool                 |
+| `manual_control`         | Whether to manually control the lights. 🔒                                      | ❌         | bool                 |
 
 <!-- END_OUTPUT -->
 #### `adaptive_lighting.change_switch_settings`

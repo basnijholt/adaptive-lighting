@@ -182,6 +182,7 @@ DOCS[ATTR_ADAPT_BRIGHTNESS] = "Whether to adapt the brightness of the light. �
 
 SERVICE_SET_MANUAL_CONTROL = "set_manual_control"
 CONF_MANUAL_CONTROL = "manual_control"
+DOCS[CONF_MANUAL_CONTROL] = "Whether to manually control the lights. 🔒"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights if they are off. 🔆"
