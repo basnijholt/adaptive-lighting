@@ -1,6 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
 
 from homeassistant.components.light import VALID_TRANSITION
+from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -14,7 +15,7 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-DOCS = {"entity_id": "Entity ID of the switch. 📝"}
+DOCS = {CONF_ENTITY_ID: "Entity ID of the switch. 📝"}
 
 
 CONF_NAME, DEFAULT_NAME = "name", "default"
@@ -77,7 +78,7 @@ DOCS[CONF_ONLY_ONCE] = (
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
 DOCS[CONF_PREFER_RGB_COLOR] = (
-    "Use RGB color adjustment instead of native light " "color temperature. 🌈"
+    "Use RGB color adjustment instead of light " "color temperature. 🌈"
 )
 
 CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS = (
@@ -191,12 +192,23 @@ DOCS[CONF_USE_DEFAULTS] = "Whether to use default settings for the switches. ⚙
 TURNING_OFF_DELAY = 5
 
 DOCS_MANUAL_CONTROL = {
-    "entity_id": "The `entity_id` of the switch in which to (un)mark the "
+    CONF_ENTITY_ID: "The `entity_id` of the switch in which to (un)mark the "
     "light as being `manually controlled`. 📝",
-    "lights": "entity_id(s) of lights, if not specified, all lights in the "
+    CONF_LIGHTS: "entity_id(s) of lights, if not specified, all lights in the "
     "switch are selected. 💡",
-    "manual_control": "Whether to add ('true') or remove ('false') the "
+    CONF_MANUAL_CONTROL: "Whether to add ('true') or remove ('false') the "
     "light from the 'manual_control' list. 🔒",
+}
+
+DOCS_APPLY = {
+    CONF_ENTITY_ID: "The `entity_id` of the switch with the settings to apply. 📝",
+    CONF_LIGHTS: "A light (or list of lights) to apply the settings to. 💡",
+    CONF_TRANSITION: "The number of seconds for the transition. 🕑",
+    ATTR_ADAPT_BRIGHTNESS: "Whether to change the brightness of the light or not. 🌞",
+    ATTR_ADAPT_COLOR: "Whether to adapt the color on supporting lights. 🌈",
+    CONF_PREFER_RGB_COLOR: "Whether to prefer RGB color adjustment over of "
+    "native light color temperature when possible. 🌈",
+    CONF_TURN_ON_LIGHTS: "Whether to turn on lights that are currently off. 🔆",
 }
 
 
@@ -306,7 +318,7 @@ def apply_service_schema(initial_transition: int = 1):
     """Return the schema for the apply service."""
     return vol.Schema(
         {
-            vol.Optional("entity_id"): cv.entity_ids,
+            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
             vol.Optional(
                 CONF_TRANSITION,
@@ -322,7 +334,7 @@ def apply_service_schema(initial_transition: int = 1):
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
-        vol.Optional("entity_id"): cv.entity_ids,
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
         vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
     }

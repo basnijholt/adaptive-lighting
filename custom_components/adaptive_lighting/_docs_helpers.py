@@ -7,6 +7,7 @@ import voluptuous as vol
 
 from .const import (
     DOCS,
+    DOCS_APPLY,
     DOCS_MANUAL_CONTROL,
     SET_MANUAL_CONTROL_SCHEMA,
     VALIDATION_TUPLES,
@@ -106,7 +107,7 @@ def _generate_service_markdown_table(
 
 
 def generate_apply_markdown_table():
-    return _generate_service_markdown_table(apply_service_schema())
+    return _generate_service_markdown_table(apply_service_schema(), DOCS_APPLY)
 
 
 def generate_set_manual_control_markdown_table():
