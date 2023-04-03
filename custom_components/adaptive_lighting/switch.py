@@ -97,6 +97,7 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_ALT_DETECT_METHOD,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -379,6 +380,7 @@ def _fire_manual_control_event(
         switch.entity_id,
         light,
     )
+    switch.turn_on_off_listener.mark_as_manual_control(light)
     fire(
         f"{DOMAIN}.manual_control",
         {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
@@ -474,7 +476,6 @@ async def async_setup_entry(
                 all_lights = _expand_light_groups(switch.hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
-                    switch.turn_on_off_listener.mark_as_manual_control(light)
                     _fire_manual_control_event(switch, light, service_call.context)
             else:
                 switch.turn_on_off_listener.reset(*all_lights)
@@ -643,6 +644,15 @@ def color_difference_redmean(
     return math.sqrt(red_term + green_term + blue_term)
 
 
+def check_direction_change(last: int, current: int, last_adapt_value: int) -> bool:
+    _LOGGER.debug("compare direction: current value %s to last value %s", current, last)
+    if last_adapt_value < last:  # Value adapting down
+        return current > last or current < last_adapt_value
+    elif last_adapt_value > last:  # Value adapting up
+        return current < last or current > last_adapt_value
+    return False
+
+
 def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
@@ -650,6 +660,7 @@ def _attributes_have_changed(
     adapt_brightness: bool,
     adapt_color: bool,
     context: Context,
+    last_adapt_attempt=None,
 ) -> bool:
     if (
         adapt_brightness
@@ -659,15 +670,69 @@ def _attributes_have_changed(
         last_brightness = old_attributes[ATTR_BRIGHTNESS]
         current_brightness = new_attributes[ATTR_BRIGHTNESS]
         if abs(current_brightness - last_brightness) > BRIGHTNESS_CHANGE:
-            _LOGGER.debug(
-                "Brightness of '%s' significantly changed from %s to %s with"
-                " context.id='%s'",
-                light,
-                last_brightness,
-                current_brightness,
-                context.id,
-            )
-            return True
+            if last_adapt_attempt:
+                changed = check_direction_change(
+                    last_brightness,
+                    current_brightness,
+                    last_adapt_attempt[ATTR_BRIGHTNESS],
+                )
+                _LOGGER.debug(
+                    "altdetect: Brightness of '%s' changed from %s to %s intended %s with"
+                    " context.id='%s' Significant? %s",
+                    light,
+                    last_brightness,
+                    current_brightness,
+                    last_adapt_attempt[ATTR_BRIGHTNESS],
+                    context.id,
+                    changed,
+                )
+                return changed
+            else:
+                _LOGGER.debug(
+                    "Brightness of '%s' significantly changed from %s to %s with"
+                    " context.id='%s'",
+                    light,
+                    last_brightness,
+                    current_brightness,
+                    context.id,
+                )
+                return True
+
+    if (
+        adapt_color
+        and ATTR_COLOR_TEMP_KELVIN in old_attributes
+        and ATTR_COLOR_TEMP_KELVIN in new_attributes
+    ):
+        last_color_temp = old_attributes[ATTR_COLOR_TEMP_KELVIN]
+        current_color_temp = new_attributes[ATTR_COLOR_TEMP_KELVIN]
+        if abs(current_color_temp - last_color_temp) > COLOR_TEMP_CHANGE:
+            if last_adapt_attempt:
+                changed = check_direction_change(
+                    last_color_temp,
+                    current_color_temp,
+                    last_adapt_attempt[ATTR_COLOR_TEMP_KELVIN],
+                )
+                _LOGGER.debug(
+                    "altdetect: Color temperature of '%s' changed from %s to %s intended %s with"
+                    " context.id='%s' Significant? %s",
+                    light,
+                    last_color_temp,
+                    current_color_temp,
+                    last_adapt_attempt[ATTR_COLOR_TEMP_KELVIN],
+                    context.id,
+                    changed,
+                )
+                return changed
+            else:
+                _LOGGER.debug(
+                    "Color temperature of '%s' significantly changed from %s to %s with"
+                    " context.id='%s'",
+                    light,
+                    last_color_temp,
+                    current_color_temp,
+                    context.id,
+                )
+                return True
 
     if (
         adapt_color
@@ -821,11 +886,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
+        self._alt_detect_method = data[CONF_ALT_DETECT_METHOD]
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
-        if not data[CONF_TAKE_OVER_CONTROL] and (data[CONF_DETECT_NON_HA_CHANGES]):
+        if not data[CONF_TAKE_OVER_CONTROL] and (
+            data[CONF_ALT_DETECT_METHOD] or data[CONF_DETECT_NON_HA_CHANGES]
+        ):
             _LOGGER.warn(
-                "%s: Config mismatch: 'detect_non_ha_changes: true' "
-                " are set in config, however required"
+                "%s: Config mismatch: 'alt_detect_method: true'"
+                " OR 'detect_non_ha_changes: true' are set in config, however required"
                 " variable 'take_over_control' is turned off. Please check your"
                 " configuration to ensure desired functionality. We will now"
                 " enable 'take_over_control' and continue setting up the"
@@ -1190,7 +1258,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                     continue
                 if (
-                    self._detect_non_ha_changes
+                    (self._detect_non_ha_changes or self._alt_detect_method)
                     and not force
                     and await self.turn_on_off_listener.significant_change(
                         self,
@@ -1831,7 +1899,6 @@ class TurnOnOffListener:
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
@@ -1868,6 +1935,46 @@ class TurnOnOffListener:
             adapt_color=adapt_color,
             context=context,
         )
+        if switch._alt_detect_method:
+            old_states: list[State] = self.last_state_change[light]
+            _LOGGER.debug("Total state changes detected: %s", len(old_states))
+            _LOGGER.debug(
+                "%s: 'alt_detect_method: true', check all state changes made to light %s",
+                switch._name,
+                light,
+            )
+            for index, old_state in enumerate(old_states):
+                # The first entry of old_states should always be the
+                # same as last_service_data[light], and can be ignored.
+                if index <= 1:
+                    continue
+                _LOGGER.debug(
+                    "%s: checking for a manual change between index %s and %s...",
+                    switch._name,
+                    index,
+                    index - 1,
+                )
+                prior_state = old_states[index - 1]
+                if compare_to(
+                    old_attributes=prior_state.attributes,
+                    new_attributes=old_state.attributes,
+                    last_adapt_attempt=last_service_data,
+                ):
+                    _LOGGER.info(
+                        "Found unexpected state_change event for %s nr. %s (context.id=%s)"
+                        " old_state=%s\nprior_state=%s",
+                        light,
+                        index,
+                        context.id,
+                        old_state,
+                        prior_state,
+                    )
+                    _LOGGER.info(
+                        "We will now set %s as manually controlled. (context.id=%s)",
+                        light,
+                        context.id,
+                    )
+                    return True
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
@@ -1899,8 +2006,6 @@ class TurnOnOffListener:
                     light,
                     context.id,
                 )
-                self.manual_control[light] = True
-                _fire_manual_control_event(switch, light, context, is_async=False)
                 return True
         _LOGGER.debug(
             "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
