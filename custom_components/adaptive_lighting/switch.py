@@ -97,6 +97,7 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
+    CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -834,6 +835,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sun_light_settings = SunLightSettings(
             name=self._name,
             astral_location=location,
+            adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
             min_brightness=data[CONF_MIN_BRIGHTNESS],
@@ -1325,6 +1327,7 @@ class SunLightSettings:
 
     name: str
     astral_location: astral.Location
+    adapt_until_sleep: bool
     max_brightness: int
     max_color_temp: int
     min_brightness: int
@@ -1474,7 +1477,12 @@ class SunLightSettings:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * percent) + self.min_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
-        return self.min_color_temp
+        if percent == 0 or not self.adapt_until_sleep:
+            return self.min_color_temp
+        if self.adapt_until_sleep and percent < 0:
+            delta = abs(self.min_color_temp - self.sleep_color_temp)
+            ct = (delta * abs(1 + percent)) + self.sleep_color_temp
+            return 5 * round(ct / 5)  # round to nearest 5
 
     def get_settings(
         self, is_sleep, transition

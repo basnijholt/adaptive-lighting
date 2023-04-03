@@ -140,6 +140,15 @@ DOCS[CONF_TAKE_OVER_CONTROL] = (
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 45
 DOCS[CONF_TRANSITION] = "Duration of transition when lights change, in seconds. 🕑"
 
+CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
+    "transition_until_sleep",
+    False,
+)
+DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
+    "When checked, Adaptive Lighting will use the sleep settings as the minimum,"
+    " and transition to these values past the sunset"
+)
+
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
     "Wait time (seconds) between light turn on and Adaptive Lighting applying "
@@ -190,6 +199,7 @@ VALIDATION_TUPLES = [
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
+    (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS, int_between(1, 100)),
     (CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS, int_between(1, 100)),
