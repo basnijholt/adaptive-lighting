@@ -3,7 +3,6 @@ apply:
   fields:
     entity_id:
       description: "Entity ID of the switch. \U0001F4DD"
-      example: switch.adaptive_lighting_default
       selector:
         entity:
           integration: adaptive_lighting
@@ -11,7 +10,6 @@ apply:
           multiple: false
     lights:
       description: "List of light entities to be controlled by Adaptive Lighting (may be empty). \U0001F31F"
-      example: light.bedroom_ceiling
       selector:
         entity:
           domain: light
@@ -46,7 +44,6 @@ set_manual_control:
   fields:
     entity_id:
       description: "Entity ID of the switch. \U0001F4DD"
-      example: switch.adaptive_lighting_default
       selector:
         entity:
           integration: adaptive_lighting
@@ -54,7 +51,6 @@ set_manual_control:
           multiple: false
     lights:
       description: "List of light entities to be controlled by Adaptive Lighting (may be empty). \U0001F31F"
-      example: light.bedroom_ceiling
       selector:
         entity:
           domain: light
