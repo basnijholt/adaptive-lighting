@@ -87,6 +87,11 @@ change_switch_settings:
             - "current"
             - "configuration"
             - "factory"
+    include_config_in_attributes:
+      description: "include_config_in_attributes: All config options will be listed as attributes under the adaptive-lighting switch this integration creates. (default: false)"
+      required: false
+      selector:
+        boolean:
     turn_on_lights:
       description: "Turn on the lights that are off, default: false"
       example: false
@@ -239,6 +244,12 @@ change_switch_settings:
         text:
     adapt_delay:
       description: "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering."
+      required: false
+      example: 0
+      selector:
+        text:
+    autoreset_control_seconds:
+      description: "autoreset_control_seconds: wait time (seconds) before Adaptive Lighting resets `manual_control` status of any light (default: 0)"
       required: false
       example: 0
       selector:

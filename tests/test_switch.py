@@ -10,6 +10,7 @@ from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
@@ -184,7 +185,7 @@ async def setup_lights_and_switch(hass, extra_conf=None):
 
     # Setup switch
     lights = [
-        "light.bed_light",
+        ENTITY_LIGHT,
         "light.ceiling_lights",
     ]
     assert all(hass.states.get(light) is not None for light in lights)
@@ -584,6 +585,50 @@ async def test_manual_control(hass):
     assert all([not manual_control[eid] for eid in switch._lights])
 
 
+async def test_auto_reset_manual_control(hass):
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass, {CONF_AUTORESET_CONTROL: 0.1}
+    )
+    context = switch.create_context("test")  # needs to be passed to update method
+    manual_control = switch.turn_on_off_listener.manual_control
+
+    async def update():
+        await switch._update_attrs_and_maybe_adapt_lights(transition=0, context=context)
+        await hass.async_block_till_done()
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: light.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        await update()
+        _LOGGER.debug(
+            "Turn light %s to state %s, to %s", light.entity_id, state, kwargs
+        )
+
+    _LOGGER.debug("Start test auto reset manual control")
+    await turn_light(True, brightness=1)
+    await turn_light(True, brightness=10)
+    assert manual_control[light.entity_id]
+    await asyncio.sleep(0.3)  # Should be enough time for auto reset
+    await update()
+    assert not manual_control[light.entity_id], (light, manual_control)
+
+    # Do a couple of quick changes and check that light is not reset
+    for i in range(3):
+        _LOGGER.debug("Quick change %s", i)
+        await turn_light(True, brightness=(i + 1) * 20)
+        await asyncio.sleep(0.05)  # Less than 0.1
+        assert manual_control[light.entity_id]
+
+    await asyncio.sleep(0.3)  # Wait the auto reset time
+    await update()
+    assert not manual_control[light.entity_id]
+
+
 async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
@@ -734,6 +779,7 @@ async def test_significant_change(hass):
         assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
     # On next update the light should be marked as manually controlled
     await update(force=False)
+    # TODO: the state should be `bool(manual_control) is True`
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
