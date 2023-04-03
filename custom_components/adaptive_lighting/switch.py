@@ -1769,9 +1769,6 @@ class TurnOnOffListener:
             )
 
         if new_state is not None and new_state.state == STATE_ON:
-            old_state: list[State] | None = self.last_state_change.get(entity_id)
-            if old_state is None:
-                return
             # It is possible to have multiple state change events with the same context.
             # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
             # event leads to an instant state change of
@@ -1783,8 +1780,12 @@ class TurnOnOffListener:
             # called with a color_temp outside of its range (and HA reports the
             # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
+            old_state: list[State] | None = self.last_state_change.get(entity_id)
             if is_our_context(new_state.context):
-                if old_state[0].context.id == new_state.context.id:
+                if (
+                    old_state is not None
+                    and old_state[0].context.id == new_state.context.id
+                ):
                     _LOGGER.debug(
                         "TurnOnOffListener: State change event of '%s' is already"
                         " in 'self.last_state_change' (%s)"
@@ -1801,7 +1802,7 @@ class TurnOnOffListener:
                     )
                     self.last_state_change[entity_id] = [new_state]
                     self.start_transition_timer(entity_id)
-            else:
+            elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
 
     def is_manually_controlled(
