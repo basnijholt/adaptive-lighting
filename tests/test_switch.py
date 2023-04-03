@@ -776,11 +776,7 @@ async def test_significant_change(hass):
         )
         await hass.async_block_till_done()
 
-    async def do_nothing(entity_id):
-        _LOGGER.debug("update entity successfully replaced for %s", entity_id)
-        return None
-
-    switch, (bed_light_instance, *_) = await setup_lights_and_switch(hass)
+    switch, _ = await setup_lights_and_switch(hass)
     _LOGGER.debug("Test detect_non_ha_changes:")
     switch._take_over_control = True
     assert switch._take_over_control
@@ -819,14 +815,18 @@ async def test_significant_change(hass):
     await set_brightness(new_brightness)
     _LOGGER.debug("Test: Brightness set to %s", new_brightness)
 
-    # Override update_entity() to do nothing. Otherwise what happens is
-    # update_entity() refreshes the state to the last call of
-    # light.turn_on().
-    switch.hass.helpers.entity_component.async_update_entity = do_nothing
-    # On next update ENTITY_LIGHT should be marked as manually controlled
-    await update(force=False)
-    assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    # mock homeassistant.core.HomeAssistant.helpers.entity_component.async_update_entity
+    # Otherwise what happens is update_entity() refreshes the state to the last call of
+    # light.turn_on(). This is because we are not using hass.states.async_set() to
+    # set the brightness of the light. We mock `async_update_ha_state` because
+    # `async_update_entity` calls it.
+    with patch("homeassistant.helpers.entity.Entity.async_update_ha_state"):
+        # On next update ENTITY_LIGHT should be marked as manually controlled
+        await update(force=False)
+        assert (
+            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+        )
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():
