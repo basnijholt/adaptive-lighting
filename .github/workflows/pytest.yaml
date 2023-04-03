@@ -31,8 +31,8 @@ jobs:
           echo "::notice::### 4. ERROR:homeassistant.setup:Setup failed for 'component': Unable to import component: No module named ''module'' ###"
           echo "::notice::### 5. add 'component'.'module' (without the '') from the above log into the 'required' list inside of 'test_dependencies.py' ###"
           echo "::notice::### 6. Try again! If more issues persist they should be easily solvable by reading the verbose logs now. ###"
-      - name: Run pytest
-        timeout-minutes: 60
+
+      - name: Link custom_components/adaptive_lighting
         run: |
           cd core
 
@@ -46,6 +46,10 @@ jobs:
           ln -fs ../../../tests adaptive_lighting
           cd -
 
+      - name: Run pytest
+        timeout-minutes: 60
+        run: |
+          cd core
           python3 -X dev -m pytest \
             -qq \
             --timeout=9 \

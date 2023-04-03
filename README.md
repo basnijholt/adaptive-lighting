@@ -82,11 +82,8 @@ All of the configuration options are listed below, along with their default valu
 The YAML and frontend configuration methods support all of the options listed below.
 
 <!-- START_CODE -->
-<!-- import os, sys -->
-<!-- sys.path.append(os.path.abspath(".")) -->
-<!-- from custom_components.adaptive_lighting import const -->
-<!-- markdown_table = const.generate_markdown_table() -->
-<!-- print(markdown_table) -->
+<!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
+<!-- print(_docs_helpers.generate_config_markdown_table()) -->
 <!-- END_CODE -->
 
 <!-- START_OUTPUT -->
@@ -94,27 +91,27 @@ The YAML and frontend configuration methods support all of the options listed be
 | Variable name                  | Description                                                                                                                                                                     | Default        | Type                                 |
 |:-------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:-------------------------------------|
 | `lights`                       | List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟                                                                                                  | `[]`           | list of `entity_id`s                 |
-| `prefer_rgb_color`             | Use RGB color adjustment instead of native light color temperature. 🌈                                                                                                           | `False`        | `bool`                               |
+| `prefer_rgb_color`             | Whether to prefer RGB color adjustment over light color temperature when possible. 🌈                                                                                            | `False`        | `bool`                               |
 | `include_config_in_attributes` | Show all options as attributes on the switch in Home Assistant when set to `true`. 📝                                                                                            | `False`        | `bool`                               |
-| `adapt_until_sleep`            | When `true`, Adaptive Lighting will use the sleep settings as the minimum, and transition to these values past the sunset                                                        | `False`       | `bool`                                |
-| `initial_transition`           | Duration of the first transition when lights turn from `off` to `on`. ⏲️                                                                                                        | `1`            | `float` 0-6553                       |
-| `sleep_transition`             | Duration of transition when 'sleep mode' is toggled. 😴                                                                                                                          | `1`            | `float` 0-6553                       |
+| `initial_transition`           | Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️                                                                                             | `1`            | `float` 0-6553                       |
+| `sleep_transition`             | Duration of transition when 'sleep mode' is toggled in seconds. 😴                                                                                                               | `1`            | `float` 0-6553                       |
 | `transition`                   | Duration of transition when lights change, in seconds. 🕑                                                                                                                        | `45`           | `float` 0-6553                       |
+| `transition_until_sleep`       | When enabled, Adaptive Lighting will treat sleep settings as the minimum, transitioning to these values after sunset. 🌙                                                         | `False`        | `bool`                               |
 | `interval`                     | Frequency to adapt the lights, in seconds. 🔄                                                                                                                                    | `90`           | `int > 0`                            |
 | `min_brightness`               | Minimum brightness percentage. 💡                                                                                                                                                | `1`            | `int` 1-100                          |
 | `max_brightness`               | Maximum brightness percentage. 💡                                                                                                                                                | `100`          | `int` 1-100                          |
 | `min_color_temp`               | Warmest color temperature in Kelvin. 🔥                                                                                                                                          | `2000`         | `int` 1000-10000                     |
 | `max_color_temp`               | Coldest color temperature in Kelvin. ❄️                                                                                                                                         | `5500`         | `int` 1000-10000                     |
-| `sleep_brightness`             | Brightness of lights in sleep mode. 😴                                                                                                                                           | `1`            | `int` 1-100                          |
+| `sleep_brightness`             | Brightness percentage of lights in sleep mode. 😴                                                                                                                                | `1`            | `int` 1-100                          |
 | `sleep_rgb_or_color_temp`      | Use either `'rgb_color'` or `'color_temp'` in sleep mode. 🌙                                                                                                                     | `color_temp`   | one of `['color_temp', 'rgb_color']` |
-| `sleep_color_temp`             | Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`). 😴                                                                                        | `1000`         | `int` 1000-10000                     |
+| `sleep_color_temp`             | Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴                                                                              | `1000`         | `int` 1000-10000                     |
 | `sleep_rgb_color`              | RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is 'rgb_color'). 🌈                                                                                                 | `[255, 56, 0]` | RGB color                            |
-| `sunrise_time`                 | Set a fixed time for sunrise. 🌅                                                                                                                                                 | `None`         | `str`                                |
-| `max_sunrise_time`             | Set the latest virtual sunrise time, allowing for earlier real sunrises. 🌅                                                                                                      | `None`         | `str`                                |
-| `sunrise_offset`               | Adjust sunrise time with a positive or negative offset. ⏰                                                                                                                       | `0`            | `int`                                |
-| `sunset_time`                  | Set a fixed time for sunset. 🌇                                                                                                                                                  | `None`         | `str`                                |
-| `min_sunset_time`              | Set the earliest virtual sunset time, allowing for later real sunsets. 🌇                                                                                                        | `None`         | `str`                                |
-| `sunset_offset`                | Adjust sunset time with a positive or negative offset. ⏰                                                                                                                        | `0`            | `int`                                |
+| `sunrise_time`                 | Set a fixed time (HH:MM:SS) for sunrise. 🌅                                                                                                                                      | `None`         | `str`                                |
+| `max_sunrise_time`             | Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier real sunrises. 🌅                                                                                           | `None`         | `str`                                |
+| `sunrise_offset`               | Adjust sunrise time with a positive or negative offset in seconds. ⏰                                                                                                            | `0`            | `int`                                |
+| `sunset_time`                  | Set a fixed time (HH:MM:SS) for sunset. 🌇                                                                                                                                       | `None`         | `str`                                |
+| `min_sunset_time`              | Set the earliest virtual sunset time (HH:MM:SS), allowing for later real sunsets. 🌇                                                                                             | `None`         | `str`                                |
+| `sunset_offset`                | Adjust sunset time with a positive or negative offset in seconds. ⏰                                                                                                             | `0`            | `int`                                |
 | `only_once`                    | Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄                                                                                           | `False`        | `bool`                               |
 | `take_over_control`            | Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒 | `True`         | `bool`                               |
 | `detect_non_ha_changes`        | Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️                                                                             | `False`        | `bool`                               |
@@ -158,26 +155,42 @@ adaptive_lighting:
 
 `adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
 
-| Service data attribute | Required | Description                                                                                  |
-| ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `entity_id`            | ✅        | The `entity_id` of the switch with the settings to apply.                                    |
-| `lights`               | ❌        | A light (or list of lights) to apply the settings to.                                        |
-| `transition`           | ❌        | The number of seconds for the transition.                                                    |
-| `adapt_brightness`     | ❌        | Whether to change the brightness of the light or not.                                        |
-| `adapt_color`          | ❌        | Whether to adapt the color on supporting lights.                                             |
-| `prefer_rgb_color`     | ❌        | Whether to prefer RGB color adjustment over of native light color temperature when possible. |
-| `turn_on_lights`       | ❌        | Whether to turn on lights that are currently off.                                            |
+<!-- START_CODE -->
+<!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
+<!-- print(_docs_helpers.generate_apply_markdown_table()) -->
+<!-- END_CODE -->
 
+<!-- START_OUTPUT -->
+<!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
+| Service data attribute   | Description                                                                          | Required   | Type                 |
+|:-------------------------|:-------------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | The `entity_id` of the switch with the settings to apply. 📝                          | ✅          | list of `entity_id`s |
+| `lights`                 | A light (or list of lights) to apply the settings to. 💡                              | ❌          | list of `entity_id`s |
+| `transition`             | Duration of transition when lights change, in seconds. 🕑                             | ❌          | `float` 0-6553       |
+| `adapt_brightness`       | Whether to adapt the brightness of the light. 🌞                                      | ❌          | bool                 |
+| `adapt_color`            | Whether to adapt the color on supporting lights. 🌈                                   | ❌          | bool                 |
+| `prefer_rgb_color`       | Whether to prefer RGB color adjustment over light color temperature when possible. 🌈 | ❌          | bool                 |
+| `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                  | ❌          | bool                 |
+
+<!-- END_OUTPUT -->
 #### `adaptive_lighting.set_manual_control`
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
-| Service data attribute | Required | Description                                                                                         |
-| ---------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `entity_id`            | ✅        | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".        |
-| `lights`               | ❌        | entity_id(s) of lights, if not specified, all lights in the switch are selected.                    |
-| `manual_control`       | ❌        | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
+<!-- START_CODE -->
+<!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
+<!-- print(_docs_helpers.generate_set_manual_control_markdown_table()) -->
+<!-- END_CODE -->
 
+<!-- START_OUTPUT -->
+<!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
+| Service data attribute   | Description                                                                                    | Required   | Type                 |
+|:-------------------------|:-----------------------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | The `entity_id` of the switch in which to (un)mark the light as being `manually controlled`. 📝 | ✅          | list of `entity_id`s |
+| `lights`                 | entity_id(s) of lights, if not specified, all lights in the switch are selected. 💡             | ❌          | list of `entity_id`s |
+| `manual_control`         | Whether to add ('true') or remove ('false') the light from the 'manual_control' list. 🔒        | ❌          | bool                 |
+
+<!-- END_OUTPUT -->
 #### `adaptive_lighting.change_switch_settings`
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
