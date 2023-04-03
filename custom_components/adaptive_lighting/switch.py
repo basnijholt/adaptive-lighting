@@ -1868,6 +1868,7 @@ class TurnOnOffListener:
             adapt_color=adapt_color,
             context=context,
         )
+
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
