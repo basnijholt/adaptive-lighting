@@ -52,7 +52,7 @@ DOCS[CONF_INITIAL_TRANSITION] = (
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
 DOCS[CONF_SLEEP_TRANSITION] = (
-    "Duration of transition when 'sleep mode' is toggled " "in seconds. 😴"
+    'Duration of transition when "sleep mode" is toggled ' "in seconds. 😴"
 )
 
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
@@ -102,7 +102,7 @@ DOCS[CONF_SLEEP_COLOR_TEMP] = (
 
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
 DOCS[CONF_SLEEP_RGB_COLOR] = (
-    "RGB color in sleep mode (used when " "`sleep_rgb_or_color_temp` is 'rgb_color'). 🌈"
+    "RGB color in sleep mode (used when " '`sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
 )
 
 CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
@@ -210,8 +210,8 @@ DOCS_MANUAL_CONTROL = {
     "light as being `manually controlled`. 📝",
     CONF_LIGHTS: "entity_id(s) of lights, if not specified, all lights in the "
     "switch are selected. 💡",
-    CONF_MANUAL_CONTROL: "Whether to add ('true') or remove ('false') the "
-    "light from the 'manual_control' list. 🔒",
+    CONF_MANUAL_CONTROL: 'Whether to add ("true") or remove ("false") the '
+    'light from the "manual_control" list. 🔒',
 }
 
 DOCS_APPLY = {

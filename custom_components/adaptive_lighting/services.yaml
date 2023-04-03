@@ -56,7 +56,7 @@ set_manual_control:
           domain: light
           multiple: true
     manual_control:
-      description: 'manual_control: Whether to add (''true'') or remove (''false'') the light from the ''manual_control'' list. 🔒'
+      description: 'manual_control: Whether to add ("true") or remove ("false") the light from the "manual_control" list. 🔒'
       example: true
       default: true
       selector:
@@ -99,7 +99,7 @@ change_switch_settings:
       selector:
         text: null
     sleep_transition:
-      description: 'sleep_transition: Duration of transition when ''sleep mode'' is toggled in seconds. 😴'
+      description: 'sleep_transition: Duration of transition when "sleep mode" is toggled in seconds. 😴'
       example: 1
       required: false
       selector:
@@ -168,7 +168,7 @@ change_switch_settings:
           - rgb_color
           - color_temp
     sleep_rgb_color:
-      description: 'sleep_rgb_color: RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is ''rgb_color''). 🌈'
+      description: 'sleep_rgb_color: RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
       required: false
       selector:
         color_rgb: null
