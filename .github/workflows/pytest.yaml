@@ -36,16 +36,6 @@ jobs:
         run: |
           cd core
 
-          # Link homeassitant.components.adaptive_lighting
-          cd homeassistant/components
-          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
-          cd -
-
-          # Link adaptive_lighting tests
-          cd tests/components/
-          ln -fs ../../../tests adaptive_lighting
-          cd -
-
           python3 -X dev -m pytest \
             -qq \
             --timeout=9 \

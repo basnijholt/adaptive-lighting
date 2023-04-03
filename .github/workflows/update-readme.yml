@@ -22,7 +22,7 @@ jobs:
         with:
           python_version: "3.10"
 
-      - name: Install pandas and tabulate
+      - name: Install markdown-code-runner and README code dependencies
         run: |
           pip install markdown-code-runner pandas tabulate
 

@@ -34,3 +34,16 @@ runs:
         pip install -r core/requirements_test.txt --use-pep517
         pip install -e core/ --use-pep517
         pip install $(python test_dependencies.py) --use-pep517
+    - name: Link custom_components/adaptive_lighting
+      run: |
+        cd core
+
+        # Link homeassitant.components.adaptive_lighting
+        cd homeassistant/components
+        ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
+        cd -
+
+        # Link adaptive_lighting tests
+        cd tests/components/
+        ln -fs ../../../tests adaptive_lighting
+        cd -
