@@ -110,7 +110,7 @@ CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
     "color_temp",
 )
 DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
-    "Use either `'rgb_color'` or `'color_temp'` " "in sleep mode. 🌙"
+    'Use either `"rgb_color"` or `"color_temp"` ' "in sleep mode. 🌙"
 )
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
