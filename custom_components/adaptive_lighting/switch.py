@@ -86,6 +86,7 @@ from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
+    color_xy_to_RGB,
 )
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
@@ -643,6 +644,94 @@ def color_difference_redmean(
     return math.sqrt(red_term + green_term + blue_term)
 
 
+def color_xy_to_cct(
+    x: float,
+    y: float,
+) -> float:
+    n = (x - 0.3320) / (0.1858 - y)
+    return 437 * (n**3) + 3601 * (n**2) + 6861 * n + 5517
+
+
+def color_rgb_to_cct(
+    red: float,
+    green: float,
+    blue: float,
+) -> float:
+    n = ((0.23881) * red + (0.25499) * green + (-0.58291) * blue) / (
+        (0.11109) * red + (-0.85406) * green + (0.52289) * blue
+    )
+    return 449 * (n**3) + 3525 * (n**2) + 6823.3 * n + 5520.33
+
+
+# All comparisons should be done with RGB since
+# converting anything to color temp is inaccurate.
+def fix_missing_attributes(
+    old_attributes: dict[str, Any],
+    new_attributes: dict[str, Any],
+) -> dict[str, Any]:
+    # do nothing if we already have values of the same type.
+    if (
+        ATTR_COLOR_TEMP_KELVIN in old_attributes
+        and ATTR_COLOR_TEMP_KELVIN in new_attributes
+    ):
+        return old_attributes, new_attributes
+    if ATTR_RGB_COLOR in old_attributes and ATTR_RGB_COLOR in new_attributes:
+        return old_attributes, new_attributes
+
+    if ATTR_RGB_COLOR not in old_attributes:
+        rgb = None
+        if ATTR_COLOR_TEMP_KELVIN in old_attributes:
+            rgb: tuple[float, float, float] = color_temperature_to_rgb(
+                old_attributes[ATTR_COLOR_TEMP_KELVIN]
+            )
+            _LOGGER.debug(
+                "Converted old attribute's cct %s to rgb %s",
+                old_attributes[ATTR_COLOR_TEMP_KELVIN],
+                rgb,
+            )
+            old_attributes[ATTR_RGB_COLOR] = rgb
+        elif ATTR_XY_COLOR in old_attributes:
+            rgb: tuple[float, float, float] = color_xy_to_RGB(
+                *old_attributes[ATTR_XY_COLOR]
+            )
+            _LOGGER.debug(
+                "Converted old attribute's color_xy %s to rgb %s",
+                old_attributes[ATTR_XY_COLOR],
+                rgb,
+            )
+        if rgb is not None:
+            old_attributes[ATTR_RGB_COLOR] = rgb
+        else:
+            _LOGGER.debug("Could not find suitable conversion for old_attributes")
+    if ATTR_RGB_COLOR not in new_attributes:
+        rgb = None
+        if ATTR_COLOR_TEMP_KELVIN in new_attributes:
+            rgb: tuple[float, float, float] = color_temperature_to_rgb(
+                new_attributes[ATTR_COLOR_TEMP_KELVIN]
+            )
+            _LOGGER.debug(
+                "Converted new attribute's cct %s to rgb %s",
+                new_attributes[ATTR_COLOR_TEMP_KELVIN],
+                rgb,
+            )
+            new_attributes[ATTR_RGB_COLOR] = rgb
+        elif ATTR_XY_COLOR in new_attributes:
+            rgb: tuple[float, float, float] = color_xy_to_RGB(
+                *new_attributes[ATTR_XY_COLOR]
+            )
+            _LOGGER.debug(
+                "Converted new attribute's color_xy %s to rgb %s",
+                new_attributes[ATTR_XY_COLOR],
+                rgb,
+            )
+        if rgb is not None:
+            new_attributes[ATTR_RGB_COLOR] = rgb
+        else:
+            _LOGGER.debug("Could not find suitable conversion for new_attributes")
+
+    return old_attributes, new_attributes
+
+
 def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
@@ -651,6 +740,11 @@ def _attributes_have_changed(
     adapt_color: bool,
     context: Context,
 ) -> bool:
+    if adapt_color:
+        old_attributes, new_attributes = fix_missing_attributes(
+            old_attributes, new_attributes
+        )
+
     if (
         adapt_brightness
         and ATTR_BRIGHTNESS in old_attributes
@@ -705,21 +799,6 @@ def _attributes_have_changed(
                 context.id,
             )
             return True
-
-    switched_color_temp = (
-        ATTR_RGB_COLOR in old_attributes and ATTR_RGB_COLOR not in new_attributes
-    )
-    switched_to_rgb_color = (
-        ATTR_COLOR_TEMP_KELVIN in old_attributes
-        and ATTR_COLOR_TEMP_KELVIN not in new_attributes
-    )
-    if switched_color_temp or switched_to_rgb_color:
-        # Light switched from RGB mode to color_temp or visa versa
-        _LOGGER.debug(
-            "'%s' switched from RGB mode to color_temp or visa versa",
-            light,
-        )
-        return True
     return False
 
 
