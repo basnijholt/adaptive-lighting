@@ -631,69 +631,35 @@ def color_difference_redmean(
 
 # All comparisons should be done with RGB since
 # converting anything to color temp is inaccurate.
-def fix_missing_attributes(
+def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
+    if ATTR_RGB_COLOR in attributes:
+        return attributes
+
+    rgb = None
+    if ATTR_COLOR_TEMP_KELVIN in attributes:
+        rgb = color_temperature_to_rgb(attributes[ATTR_COLOR_TEMP_KELVIN])
+    elif ATTR_XY_COLOR in attributes:
+        rgb = color_xy_to_RGB(*attributes[ATTR_XY_COLOR])
+
+    if rgb is not None:
+        attributes[ATTR_RGB_COLOR] = rgb
+        _LOGGER.debug(f"Converted {attributes} to rgb {rgb}")
+    else:
+        _LOGGER.debug("No suitable conversion found")
+
+    return attributes
+
+
+def _add_missing_attributes(
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
 ) -> dict[str, Any]:
-    # do nothing if we already have values of the same type.
-    if (
-        ATTR_COLOR_TEMP_KELVIN in old_attributes
-        and ATTR_COLOR_TEMP_KELVIN in new_attributes
+    if not any(
+        attr in old_attributes and attr in new_attributes
+        for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
     ):
-        return old_attributes, new_attributes
-    if ATTR_RGB_COLOR in old_attributes and ATTR_RGB_COLOR in new_attributes:
-        return old_attributes, new_attributes
-
-    if ATTR_RGB_COLOR not in old_attributes:
-        rgb = None
-        if ATTR_COLOR_TEMP_KELVIN in old_attributes:
-            rgb: tuple[float, float, float] = color_temperature_to_rgb(
-                old_attributes[ATTR_COLOR_TEMP_KELVIN]
-            )
-            _LOGGER.debug(
-                "Converted old attribute's cct %s to rgb %s",
-                old_attributes[ATTR_COLOR_TEMP_KELVIN],
-                rgb,
-            )
-            old_attributes[ATTR_RGB_COLOR] = rgb
-        elif ATTR_XY_COLOR in old_attributes:
-            rgb: tuple[float, float, float] = color_xy_to_RGB(
-                *old_attributes[ATTR_XY_COLOR]
-            )
-            _LOGGER.debug(
-                "Converted old attribute's color_xy %s to rgb %s",
-                old_attributes[ATTR_XY_COLOR],
-                rgb,
-            )
-        if rgb is not None:
-            old_attributes[ATTR_RGB_COLOR] = rgb
-        else:
-            _LOGGER.debug("Could not find suitable conversion for old_attributes")
-    if ATTR_RGB_COLOR not in new_attributes:
-        rgb = None
-        if ATTR_COLOR_TEMP_KELVIN in new_attributes:
-            rgb: tuple[float, float, float] = color_temperature_to_rgb(
-                new_attributes[ATTR_COLOR_TEMP_KELVIN]
-            )
-            _LOGGER.debug(
-                "Converted new attribute's cct %s to rgb %s",
-                new_attributes[ATTR_COLOR_TEMP_KELVIN],
-                rgb,
-            )
-            new_attributes[ATTR_RGB_COLOR] = rgb
-        elif ATTR_XY_COLOR in new_attributes:
-            rgb: tuple[float, float, float] = color_xy_to_RGB(
-                *new_attributes[ATTR_XY_COLOR]
-            )
-            _LOGGER.debug(
-                "Converted new attribute's color_xy %s to rgb %s",
-                new_attributes[ATTR_XY_COLOR],
-                rgb,
-            )
-        if rgb is not None:
-            new_attributes[ATTR_RGB_COLOR] = rgb
-        else:
-            _LOGGER.debug("Could not find suitable conversion for new_attributes")
+        old_attributes = _convert_attributes(old_attributes)
+        new_attributes = _convert_attributes(new_attributes)
 
     return old_attributes, new_attributes
 
@@ -707,7 +673,7 @@ def _attributes_have_changed(
     context: Context,
 ) -> bool:
     if adapt_color:
-        old_attributes, new_attributes = fix_missing_attributes(
+        old_attributes, new_attributes = _add_missing_attributes(
             old_attributes, new_attributes
         )
 
