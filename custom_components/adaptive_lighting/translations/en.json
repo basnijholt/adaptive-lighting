@@ -22,6 +22,7 @@
         "data": {
           "lights": "lights: List of light entity_ids to be controlled (may be empty). 🌟",
           "prefer_rgb_color": "prefer_rgb_color: Whether to prefer RGB color adjustment over light color temperature when possible. 🌈",
+          "ignore_turnon_with_custom_data": "ignore_turnon_with_custom_data: Ignores any lights turned off -> on with custom brightness/color data. Only a few lights are supported at this time.",
           "include_config_in_attributes": "include_config_in_attributes: Show all options as attributes on the switch in Home Assistant when set to `true`. 📝",
           "initial_transition": "initial_transition: Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️",
           "sleep_transition": "sleep_transition: Duration of transition when \"sleep mode\" is toggled in seconds. 😴",
