@@ -1598,11 +1598,7 @@ class TurnOnOffListener:
                 timer.delay = delay
                 timer.start()
         elif delay is not None:  # Timer object does not exist, create it
-
-            async def reset_wrapper():
-                await reset_coroutine()
-
-            timer = _AsyncSingleShotTimer(delay, reset_wrapper)
+            timer = _AsyncSingleShotTimer(delay, reset_coroutine)
             timers_dict[light] = timer
             timer.start()
 
