@@ -22,9 +22,7 @@ CONF_NAME, DEFAULT_NAME = "name", "default"
 DOCS[CONF_NAME] = "Display name for this switch. 📝"
 
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
-DOCS[CONF_LIGHTS] = (
-    "List of light entities to be controlled by Adaptive " "Lighting (may be empty). 🌟"
-)
+DOCS[CONF_LIGHTS] = "List of light entity_ids to be controlled (may be empty). 🌟"
 
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
     "detect_non_ha_changes",
@@ -52,7 +50,7 @@ DOCS[CONF_INITIAL_TRANSITION] = (
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
 DOCS[CONF_SLEEP_TRANSITION] = (
-    "Duration of transition when 'sleep mode' is toggled " "in seconds. 😴"
+    'Duration of transition when "sleep mode" is toggled ' "in seconds. 😴"
 )
 
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
@@ -102,7 +100,7 @@ DOCS[CONF_SLEEP_COLOR_TEMP] = (
 
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
 DOCS[CONF_SLEEP_RGB_COLOR] = (
-    "RGB color in sleep mode (used when " "`sleep_rgb_or_color_temp` is 'rgb_color'). 🌈"
+    "RGB color in sleep mode (used when " '`sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
 )
 
 CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
@@ -110,7 +108,7 @@ CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
     "color_temp",
 )
 DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
-    "Use either `'rgb_color'` or `'color_temp'` " "in sleep mode. 🌙"
+    'Use either `"rgb_color"` or `"color_temp"` ' "in sleep mode. 🌙"
 )
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
@@ -163,13 +161,13 @@ DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
     "Wait time (seconds) between light turn on and Adaptive Lighting applying "
-    "changes. Helps avoid flickering. ⏲️"
+    "changes. Might help to avoid flickering. ⏲️"
 )
 
 CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY = "send_split_delay", 0
 DOCS[CONF_SEND_SPLIT_DELAY] = (
-    "Wait time (milliseconds) between commands when using `separate_turn_on_commands`. "
-    "Helps ensure correct handling. ⏲️"
+    "Delay (ms) between `separate_turn_on_commands` for lights that don't support "
+    "simultaneous brightness and color setting. ⏲️"
 )
 
 CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds", 0
@@ -197,7 +195,11 @@ CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
-DOCS[CONF_USE_DEFAULTS] = "Whether to use default settings for the switches. ⚙️"
+DOCS[CONF_USE_DEFAULTS] = (
+    "Sets the default values not specified in this service call. Options: "
+    '"current" (default, retains current values), "factory" (resets to '
+    'documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
+)
 
 TURNING_OFF_DELAY = 5
 
@@ -206,8 +208,8 @@ DOCS_MANUAL_CONTROL = {
     "light as being `manually controlled`. 📝",
     CONF_LIGHTS: "entity_id(s) of lights, if not specified, all lights in the "
     "switch are selected. 💡",
-    CONF_MANUAL_CONTROL: "Whether to add ('true') or remove ('false') the "
-    "light from the 'manual_control' list. 🔒",
+    CONF_MANUAL_CONTROL: 'Whether to add ("true") or remove ("false") the '
+    'light from the "manual_control" list. 🔒',
 }
 
 DOCS_APPLY = {
