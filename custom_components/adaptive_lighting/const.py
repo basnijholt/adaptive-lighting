@@ -145,8 +145,8 @@ CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
     False,
 )
 DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
-    "When true, after Adaptive Lighting reaches its `min_color_temp`,"
-    " it will continue adapting to `sleep_color_temp` until midnight."
+    "When checked, Adaptive Lighting will use the sleep settings as the minimum,"
+    " and transition to these values past the sunset"
 )
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0

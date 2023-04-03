@@ -58,6 +58,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
       - [:sunny: Sun Position](#sunny-sun-position)
       - [:thermometer: Color Temperature](#thermometer-color-temperature)
       - [:high_brightness: Brightness](#high_brightness-brightness)
+      - [While using `adapt_until_sleep: true`](#while-using-adapt_until_sleep-true)
   - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -95,6 +96,7 @@ The YAML and frontend configuration methods support all of the options listed be
 | `lights`                       | List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟                                                                                                  | `[]`           | list of `entity_id`s                 |
 | `prefer_rgb_color`             | Use RGB color adjustment instead of native light color temperature. 🌈                                                                                                           | `False`        | `bool`                               |
 | `include_config_in_attributes` | Show all options as attributes on the switch in Home Assistant when set to `true`. 📝                                                                                            | `False`        | `bool`                               |
+| `adapt_until_sleep`            | When `true`, Adaptive Lighting will use the sleep settings as the minimum, and transition to these values past the sunset                                                        | `False`       | `bool`                                |
 | `initial_transition`           | Duration of the first transition when lights turn from `off` to `on`. ⏲️                                                                                                        | `1`            | `float` 0-6553                       |
 | `sleep_transition`             | Duration of transition when 'sleep mode' is toggled. 😴                                                                                                                          | `1`            | `float` 0-6553                       |
 | `transition`                   | Duration of transition when lights change, in seconds. 🕑                                                                                                                        | `45`           | `float` 0-6553                       |
@@ -363,6 +365,10 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 
 #### :high_brightness: Brightness
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
+
+#### While using `adapt_until_sleep: true`
+![image](https://user-images.githubusercontent.com/2219836/228949675-f9699624-8abc-466c-bb04-250ce0f495b8.png)
+
 
 ## :busts_in_silhouette: Contributors
 
