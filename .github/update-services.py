@@ -12,8 +12,19 @@ with open(services_filename) as f:
     services = yaml.safe_load(f)
 
 for service_name, dct in services.items():
+    if service_name == "set_manual_control":
+        alternative_docs = const.DOCS_MANUAL_CONTROL
+    elif service_name == "apply":
+        alternative_docs = const.DOCS_APPLY
+    else:
+        alternative_docs = const.DOCS
+
     for field_name, field in dct["fields"].items():
-        field["description"] = const.DOCS[field_name]
+        if alternative_docs is not None and field_name in alternative_docs:
+            description = alternative_docs[field_name]
+        else:
+            description = const.DOCS[field_name]
+        field["description"] = description
 
 with open(services_filename, "w") as f:
     yaml.dump(services, f, sort_keys=False, width=1000)

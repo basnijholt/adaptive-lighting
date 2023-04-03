@@ -2,14 +2,14 @@ apply:
   description: Applies the current Adaptive Lighting settings to lights.
   fields:
     entity_id:
-      description: "Entity ID of the switch. \U0001F4DD"
+      description: "The `entity_id` of the switch with the settings to apply. \U0001F4DD"
       selector:
         entity:
           integration: adaptive_lighting
           domain: switch
           multiple: false
     lights:
-      description: "List of light entities to be controlled by Adaptive Lighting (may be empty). \U0001F31F"
+      description: "A light (or list of lights) to apply the settings to. \U0001F4A1"
       selector:
         entity:
           domain: light
@@ -25,17 +25,17 @@ apply:
       selector:
         boolean: null
     adapt_color:
-      description: "Whether to adapt the color of the light. \U0001F308"
+      description: "Whether to adapt the color on supporting lights. \U0001F308"
       example: true
       selector:
         boolean: null
     prefer_rgb_color:
-      description: "Use RGB color adjustment instead of native light color temperature. \U0001F308"
+      description: "Whether to prefer RGB color adjustment over light color temperature when possible. \U0001F308"
       example: false
       selector:
         boolean: null
     turn_on_lights:
-      description: "Whether to turn on lights if they are off. \U0001F506"
+      description: "Whether to turn on lights that are currently off. \U0001F506"
       example: false
       selector:
         boolean: null
@@ -43,20 +43,20 @@ set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:
     entity_id:
-      description: "Entity ID of the switch. \U0001F4DD"
+      description: "The `entity_id` of the switch in which to (un)mark the light as being `manually controlled`. \U0001F4DD"
       selector:
         entity:
           integration: adaptive_lighting
           domain: switch
           multiple: false
     lights:
-      description: "List of light entities to be controlled by Adaptive Lighting (may be empty). \U0001F31F"
+      description: "entity_id(s) of lights, if not specified, all lights in the switch are selected. \U0001F4A1"
       selector:
         entity:
           domain: light
           multiple: true
     manual_control:
-      description: "Whether to manually control the lights. \U0001F512"
+      description: "Whether to add ('true') or remove ('false') the light from the 'manual_control' list. \U0001F512"
       example: true
       default: true
       selector:
@@ -87,7 +87,7 @@ change_switch_settings:
       selector:
         boolean: null
     turn_on_lights:
-      description: "Whether to turn on lights if they are off. \U0001F506"
+      description: "Whether to turn on lights that are currently off. \U0001F506"
       example: false
       required: false
       selector:
@@ -135,7 +135,7 @@ change_switch_settings:
       selector:
         boolean: null
     prefer_rgb_color:
-      description: "Use RGB color adjustment instead of native light color temperature. \U0001F308"
+      description: "Whether to prefer RGB color adjustment over light color temperature when possible. \U0001F308"
       required: false
       example: false
       selector:
