@@ -5,10 +5,9 @@ on:
     branches:
       - master
     paths:
-      - ".github/update-readme.py"
       - "README.md"
-      - ".github/workflows/update-readme.yml"
       - "custom_components/adaptive_lighting/const.py"
+      - "github/workflows/update-readme.yml"
   pull_request:
 
 jobs:
@@ -25,10 +24,10 @@ jobs:
 
       - name: Install pandas and tabulate
         run: |
-          pip install pandas tabulate
+          pip install markdown-code-runner pandas tabulate
 
-      - name: Run update-readme.py
-        run: python ./.github/update-readme.py
+      - name: Run markdown-code-runner
+        run: markdown-code-runner --debug README.md
 
       - name: Commit updated README.md
         run: |

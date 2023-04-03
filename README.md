@@ -82,7 +82,7 @@ The YAML and frontend configuration methods support all of the options listed be
 
 <!-- START_CODE -->
 <!-- import os, sys -->
-<!-- sys.path.append(os.path.join(os.path.dirname(__file__), '..')) -->
+<!-- sys.path.append(os.path.abspath(".")) -->
 <!-- from custom_components.adaptive_lighting import const -->
 <!-- markdown_table = const.generate_markdown_table() -->
 <!-- print(markdown_table) -->
