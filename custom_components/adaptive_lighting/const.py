@@ -199,8 +199,8 @@ SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 DOCS[CONF_USE_DEFAULTS] = (
     "Sets the default values not specified in this service call. Options: "
-    "'current' (default, retains current values), 'factory' (resets to "
-    "documented defaults), or 'configuration' (reverts to switch config defaults). ⚙️"
+    '"current" (default, retains current values), "factory" (resets to '
+    'documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
 )
 
 TURNING_OFF_DELAY = 5
