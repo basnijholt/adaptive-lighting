@@ -169,7 +169,7 @@ DOCS[CONF_ADAPT_DELAY] = (
 CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY = "send_split_delay", 0
 DOCS[CONF_SEND_SPLIT_DELAY] = (
     "Wait time (milliseconds) between commands when using `separate_turn_on_commands`. "
-    "Helps ensure correct handling. ⏲️"
+    "Some lights do not support setting brightness and color simultaneously. ⏲️"
 )
 
 CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds", 0
