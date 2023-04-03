@@ -644,25 +644,6 @@ def color_difference_redmean(
     return math.sqrt(red_term + green_term + blue_term)
 
 
-def color_xy_to_cct(
-    x: float,
-    y: float,
-) -> float:
-    n = (x - 0.3320) / (0.1858 - y)
-    return 437 * (n**3) + 3601 * (n**2) + 6861 * n + 5517
-
-
-def color_rgb_to_cct(
-    red: float,
-    green: float,
-    blue: float,
-) -> float:
-    n = ((0.23881) * red + (0.25499) * green + (-0.58291) * blue) / (
-        (0.11109) * red + (-0.85406) * green + (0.52289) * blue
-    )
-    return 449 * (n**3) + 3525 * (n**2) + 6823.3 * n + 5520.33
-
-
 # All comparisons should be done with RGB since
 # converting anything to color temp is inaccurate.
 def fix_missing_attributes(
