@@ -1142,7 +1142,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         self.async_write_ha_state()
 
-        # Return here if there's no lights to adapt.
         if lights is None:
             lights = self._lights
 
