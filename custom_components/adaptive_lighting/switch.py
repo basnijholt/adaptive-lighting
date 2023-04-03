@@ -1873,6 +1873,7 @@ class TurnOnOffListener:
             transition = None
 
         turn_on_event = self.turn_on_event.get(entity_id)
+
         if turn_on_event is None:
             # This means that the light never got a 'turn_on' call that we
             # registered. I am not 100% sure why this happens, but it does.
