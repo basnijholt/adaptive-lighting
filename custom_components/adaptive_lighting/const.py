@@ -22,9 +22,7 @@ CONF_NAME, DEFAULT_NAME = "name", "default"
 DOCS[CONF_NAME] = "Display name for this switch. 📝"
 
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
-DOCS[CONF_LIGHTS] = (
-    "List of light entities to be controlled by Adaptive " "Lighting (may be empty). 🌟"
-)
+DOCS[CONF_LIGHTS] = "List of light entity_ids to be controlled (may be empty). 🌟"
 
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
     "detect_non_ha_changes",
