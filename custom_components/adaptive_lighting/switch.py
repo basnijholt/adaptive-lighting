@@ -1716,8 +1716,9 @@ class TurnOnOffListener:
                     self._name,
                     entity_id,
                 )
-                self.mark_as_manual_control(entity_ids)
-                _fire_manual_control_event(switch, entity_ids, event.context.id)
+                for eid in entity_ids:
+                    self.mark_as_manual_control(eid)
+                    _fire_manual_control_event(switch, eid, event.context.id)
 
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
