@@ -28,7 +28,7 @@ jobs:
 
       - name: Link custom_components/adaptive_lighting
         run: |
-          cd homeassistant/components
+          cd core/homeassistant/components
           ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
 
       - name: Run markdown-code-runner
