@@ -817,9 +817,6 @@ async def test_significant_change(hass):
     await update(force=True)
     assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
 
-    # this doesn't always update quick enough.
-    # assert switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
-
     # Simulate a transition to 255 where the update() is already using brightness 255.
     await set_brightness(240)
     await set_brightness(244)
@@ -838,7 +835,7 @@ async def test_significant_change(hass):
     switch.hass.helpers.entity_component.async_update_entity = do_nothing
     # On next update ENTITY_LIGHT should be marked as manually controlled
     await update(force=False)
-    assert ENTITY_LIGHT in switch.turn_on_off_listener.last_state_change
+    assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
     assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
