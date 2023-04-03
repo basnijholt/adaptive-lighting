@@ -6,7 +6,6 @@ on:
   pull_request:
 
 jobs:
-
   pytest:
     name: Run pytest
     runs-on: ubuntu-20.04
@@ -16,17 +15,13 @@ jobs:
         python-version: ["3.10"]
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v3.0.2
-      - name: Check out code from GitHub
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v3
+
+      - name: Install Home Assistant
+        uses: ./.github/workflows/install_dependencies
         with:
-          repository: home-assistant/core
-          path: core
-      - name: Set up Python ${{ matrix.python-version }}
-        id: python
-        uses: actions/setup-python@v4.1.0
-        with:
-          python-version: ${{ matrix.python-version }}
+          python_version: ${{ matrix.python-version }}
+
       - name: Click here for troubleshooting steps if tests break again.
         run: |
           echo "::notice::### If tests fail, try these debug steps: ###"
@@ -36,13 +31,6 @@ jobs:
           echo "::notice::### 4. ERROR:homeassistant.setup:Setup failed for 'component': Unable to import component: No module named ''module'' ###"
           echo "::notice::### 5. add 'component'.'module' (without the '') from the above log into the 'required' list inside of 'test_dependencies.py' ###"
           echo "::notice::### 6. Try again! If more issues persist they should be easily solvable by reading the verbose logs now. ###"
-      - name: Install dependencies
-        run: |
-          echo "::warning::### WARNING! Deprecation warnings muted with option '--use-pep517' please address this at some point in pytest.yaml. ###"
-          pip install -r core/requirements.txt --use-pep517
-          pip install -r core/requirements_test.txt --use-pep517
-          pip install -e core/ --use-pep517
-          pip install $(python test_dependencies.py) --use-pep517
       - name: Run pytest
         timeout-minutes: 60
         run: |
