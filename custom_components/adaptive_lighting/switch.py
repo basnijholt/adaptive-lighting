@@ -807,14 +807,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
-        if not data[CONF_TAKE_OVER_CONTROL] and (data[CONF_DETECT_NON_HA_CHANGES]):
-            _LOGGER.warn(
+        if not data[CONF_TAKE_OVER_CONTROL] and data[CONF_DETECT_NON_HA_CHANGES]:
+            _LOGGER.warning(
                 "%s: Config mismatch: 'detect_non_ha_changes: true' "
-                " are set in config, however required"
-                " variable 'take_over_control' is turned off. Please check your"
-                " configuration to ensure desired functionality. We will now"
-                " enable 'take_over_control' and continue setting up the"
-                " adaptive-lighting integration normally.",
+                "requires 'take_over_control' to be enabled. Adjusting config "
+                "and continuing setup with `take_over_control: true`.",
                 self._name,
             )
             self._take_over_control = True
