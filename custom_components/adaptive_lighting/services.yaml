@@ -87,6 +87,11 @@ change_switch_settings:
             - "current"
             - "configuration"
             - "factory"
+    include_config_in_attributes:
+      description: "include_config_in_attributes: All config options will be listed as attributes under the adaptive-lighting switch this integration creates. (default: false)"
+      required: false
+      selector:
+        boolean:
     turn_on_lights:
       description: "Turn on the lights that are off, default: false"
       example: false
