@@ -228,7 +228,7 @@ VALIDATION_TUPLES = [
     (
         CONF_AUTORESET_CONTROL,
         DEFAULT_AUTORESET_CONTROL,
-        int_between(0, 7 * 24 * 60 * 60),  # 7 days max
+        int_between(0, 365 * 24 * 60 * 60),  # 1 year max
     ),
 ]
 
