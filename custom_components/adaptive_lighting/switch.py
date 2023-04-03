@@ -1891,6 +1891,8 @@ class TurnOnOffListener:
                     light,
                     context.id,
                 )
+                self.manual_control[light] = True
+                _fire_manual_control_event(switch, light, context, is_async=False)
                 return True
         _LOGGER.debug(
             "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
