@@ -35,6 +35,18 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Requires `take_over_control`. 🕵️"
 )
 
+(
+    CONF_IGNORE_LIGHT_TURNON_WITH_CUSTOM_DATA,
+    DEFAULT_IGNORE_LIGHT_TURNON_WITH_CUSTOM_DATA,
+) = (
+    "ignore_turnon_with_custom_data",
+    False,
+)
+DOCS[CONF_IGNORE_LIGHT_TURNON_WITH_CUSTOM_DATA] = (
+    "Ignores any lights turned off -> on with custom brightness/color data."
+    " Only a few lights are supported at this time."
+)
+
 CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
     "include_config_in_attributes",
     False,
@@ -224,6 +236,7 @@ def int_between(min_int, max_int):
 VALIDATION_TUPLES = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
+    (CONF_IGNORE_LIGHT_TURNON_WITH_CUSTOM_DATA, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
