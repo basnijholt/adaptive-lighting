@@ -169,7 +169,7 @@ DOCS[CONF_ADAPT_DELAY] = (
 CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY = "send_split_delay", 0
 DOCS[CONF_SEND_SPLIT_DELAY] = (
     "Wait time (milliseconds) between commands when using `separate_turn_on_commands`. "
-    "Helps ensure correct handling. ⏲️"
+    "Some lights do not support setting brightness and color simultaneously. ⏲️"
 )
 
 CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds", 0
@@ -197,7 +197,11 @@ CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
-DOCS[CONF_USE_DEFAULTS] = "Whether to use default settings for the switches. ⚙️"
+DOCS[CONF_USE_DEFAULTS] = (
+    "Sets the default values not specified in this service call. Options: "
+    "'current' (default, retains current values), 'factory' (resets to "
+    "documented defaults), or 'configuration' (reverts to switch config defaults). ⚙️"
+)
 
 TURNING_OFF_DELAY = 5
 

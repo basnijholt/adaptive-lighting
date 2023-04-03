@@ -34,17 +34,23 @@ jobs:
       - name: Run markdown-code-runner
         run: markdown-code-runner --debug README.md
 
-      - name: Commit updated README.md
+      - name: Run update strings.json
+        run: python .github/update-strings.py
+
+      - name: Run update services.yaml
+        run: python .github/update-services.py
+
+      - name: Commit updated README.md, strings.json, and services.yaml
         id: commit
         run: |
-          git add README.md
+          git add -u .
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           if git diff --quiet && git diff --staged --quiet; then
-            echo "No changes in README.md, skipping commit."
+            echo "No changes in README.md, strings.json, and services.yaml, skipping commit."
             echo "commit_status=skipped" >> $GITHUB_ENV
           else
-            git commit -m "Update README.md"
+            git commit -m "Update README.md, strings.json, and services.yaml"
             echo "commit_status=committed" >> $GITHUB_ENV
           fi
 
