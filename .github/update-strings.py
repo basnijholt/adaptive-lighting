@@ -14,4 +14,4 @@ data = {k: f"{k}: {const.DOCS[k]}" for k, _, _ in const.VALIDATION_TUPLES}
 strings["options"]["step"]["init"]["data"] = data
 
 with open(strings_fname, "w") as f:
-    json.dump(strings, f, indent=2)
+    json.dump(strings, f, indent=2, ensure_ascii=False)
