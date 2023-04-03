@@ -800,8 +800,6 @@ async def test_significant_change(hass):
     assert switch._take_over_control
     switch._detect_non_ha_changes = True
     assert switch._detect_non_ha_changes
-    switch._alt_detect_method = False
-    assert not switch._alt_detect_method
 
     # build last service data
     await update(force=False)
@@ -820,7 +818,6 @@ async def test_significant_change(hass):
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
     # Assert last_service_data got filled from update()
-    # Assert last_state_change got filled from update()
     await update(force=True)
     assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
 
