@@ -770,18 +770,6 @@ async def test_significant_change(hass):
         )
         await hass.async_block_till_done()
 
-    async def change_switch_settings(**kwargs):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_CHANGE_SWITCH_SETTINGS,
-            {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
-                **kwargs,
-            },
-            blocking=True,
-        )
-        await hass.async_block_till_done()
-
     async def set_brightness(val: int):
         hass.states.async_set(
             ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: val, ATTR_SUPPORTED_FEATURES: 1}
