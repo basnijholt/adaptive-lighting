@@ -81,7 +81,6 @@ All of the configuration options are listed below, along with their default valu
 The YAML and frontend configuration methods support all of the options listed below.
 
 <!-- START_CODE -->
-<!-- import os, sys; sys.path.append(os.path.abspath(".")) -->
 <!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
 <!-- print(_docs_helpers.generate_config_markdown_table()) -->
 <!-- END_CODE -->
@@ -177,7 +176,6 @@ adaptive_lighting:
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
 <!-- START_CODE -->
-<!-- import os, sys; sys.path.append(os.path.abspath(".")) -->
 <!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
 <!-- print(_docs_helpers.generate_set_manual_control_markdown_table()) -->
 <!-- END_CODE -->
