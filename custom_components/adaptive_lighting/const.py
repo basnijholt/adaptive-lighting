@@ -177,8 +177,6 @@ CONF_USE_DEFAULTS = "use_defaults"
 
 TURNING_OFF_DELAY = 5
 
-CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds", 0
-
 
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""
