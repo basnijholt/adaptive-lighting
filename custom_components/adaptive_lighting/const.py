@@ -1,5 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
 
+from typing import Any
+
 from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
@@ -14,7 +16,7 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-DOCS = {}
+DOCS = {"entity_id": "Entity ID of the switch. 📝"}
 
 
 CONF_NAME, DEFAULT_NAME = "name", "default"
@@ -45,11 +47,14 @@ DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
 
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 DOCS[CONF_INITIAL_TRANSITION] = (
-    "Duration of the first transition when lights turn " "from `off` to `on`. ⏲️"
+    "Duration of the first transition when lights turn "
+    "from `off` to `on` in seconds. ⏲️"
 )
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
-DOCS[CONF_SLEEP_TRANSITION] = "Duration of transition when 'sleep mode' is toggled. 😴"
+DOCS[CONF_SLEEP_TRANSITION] = (
+    "Duration of transition when 'sleep mode' is toggled " "in seconds. 😴"
+)
 
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
 DOCS[CONF_INTERVAL] = "Frequency to adapt the lights, in seconds. 🔄"
@@ -73,9 +78,9 @@ DOCS[CONF_ONLY_ONCE] = (
 )
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
-DOCS[
-    CONF_PREFER_RGB_COLOR
-] = "Use RGB color adjustment instead of native light color temperature. 🌈"
+DOCS[CONF_PREFER_RGB_COLOR] = (
+    "Use RGB color adjustment instead of native light " "color temperature. 🌈"
+)
 
 CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS = (
     "separate_turn_on_commands",
@@ -87,12 +92,12 @@ DOCS[CONF_SEPARATE_TURN_ON_COMMANDS] = (
 )
 
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
-DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness of lights in sleep mode. 😴"
+DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness percentage of lights in sleep mode. 😴"
 
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
 DOCS[CONF_SLEEP_COLOR_TEMP] = (
     "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is "
-    "`color_temp`). 😴"
+    "`color_temp`) in Kelvin. 😴"
 )
 
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
@@ -104,30 +109,36 @@ CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
     "sleep_rgb_or_color_temp",
     "color_temp",
 )
-DOCS[
-    CONF_SLEEP_RGB_OR_COLOR_TEMP
-] = "Use either `'rgb_color'` or `'color_temp'` in sleep mode. 🌙"
+DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
+    "Use either `'rgb_color'` or `'color_temp'` " "in sleep mode. 🌙"
+)
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
-DOCS[CONF_SUNRISE_OFFSET] = "Adjust sunrise time with a positive or negative offset. ⏰"
+DOCS[CONF_SUNRISE_OFFSET] = (
+    "Adjust sunrise time with a positive or negative offset " "in seconds. ⏰"
+)
 
 CONF_SUNRISE_TIME = "sunrise_time"
-DOCS[CONF_SUNRISE_TIME] = "Set a fixed time for sunrise. 🌅"
+DOCS[CONF_SUNRISE_TIME] = "Set a fixed time (HH:MM:SS) for sunrise. 🌅"
 
 CONF_MAX_SUNRISE_TIME = "max_sunrise_time"
 DOCS[CONF_MAX_SUNRISE_TIME] = (
-    "Set the latest virtual sunrise time, allowing" " for earlier real sunrises. 🌅"
+    "Set the latest virtual sunrise time (HH:MM:SS), allowing"
+    " for earlier real sunrises. 🌅"
 )
 
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
-DOCS[CONF_SUNSET_OFFSET] = "Adjust sunset time with a positive or negative offset. ⏰"
+DOCS[
+    CONF_SUNSET_OFFSET
+] = "Adjust sunset time with a positive or negative offset in seconds. ⏰"
 
 CONF_SUNSET_TIME = "sunset_time"
-DOCS[CONF_SUNSET_TIME] = "Set a fixed time for sunset. 🌇"
+DOCS[CONF_SUNSET_TIME] = "Set a fixed time (HH:MM:SS) for sunset. 🌇"
 
 CONF_MIN_SUNSET_TIME = "min_sunset_time"
 DOCS[CONF_MIN_SUNSET_TIME] = (
-    "Set the earliest virtual sunset time, allowing" " for later real sunsets. 🌇"
+    "Set the earliest virtual sunset time (HH:MM:SS), allowing"
+    " for later real sunsets. 🌇"
 )
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
@@ -165,12 +176,16 @@ ATTR_TURN_ON_OFF_LISTENER = "turn_on_off_listener"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 NONE_STR = "None"
 ATTR_ADAPT_COLOR = "adapt_color"
+DOCS[ATTR_ADAPT_COLOR] = "Whether to adapt the color of the light. 🌈"
 ATTR_ADAPT_BRIGHTNESS = "adapt_brightness"
+DOCS[ATTR_ADAPT_BRIGHTNESS] = "Whether to adapt the brightness of the light. 🌞"
 
 SERVICE_SET_MANUAL_CONTROL = "set_manual_control"
 CONF_MANUAL_CONTROL = "manual_control"
+DOCS[CONF_MANUAL_CONTROL] = "Whether to manually control the lights. 🔒"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
+DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights if they are off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 
@@ -280,6 +295,33 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
+def apply_service_schema(initial_transition: int = 1):
+    """Return the schema for the apply service."""
+    return vol.Schema(
+        {
+            vol.Optional("entity_id"): cv.entity_ids,
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+            vol.Optional(
+                CONF_TRANSITION,
+                default=initial_transition,
+            ): VALID_TRANSITION,
+            vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
+            vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
+            vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
+            vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+        }
+    )
+
+
+SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
+    {
+        vol.Optional("entity_id"): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+        vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
+    }
+)
+
+
 def _format_voluptuous_instance(instance):
     coerce_type = None
     min_val = None
@@ -302,33 +344,75 @@ def _format_voluptuous_instance(instance):
         return f"`{coerce_type}`"
 
 
-def generate_markdown_table():
+def _type_to_str(type_: Any) -> str:
+    """Convert a (voluptuous) type to a string."""
+    if type_ == cv.entity_ids:
+        return "list of `entity_id`s"
+    elif type_ in (bool, int, float, str):
+        return f"`{type_.__name__}`"
+    elif type_ == cv.boolean:
+        return "bool"
+    elif isinstance(type_, vol.All):
+        return _format_voluptuous_instance(type_)
+    elif isinstance(type_, vol.In):
+        return f"one of `{type_.container}`"
+    elif isinstance(type_, selector.SelectSelector):
+        return f"one of `{type_.config['options']}`"
+    elif isinstance(type_, selector.ColorRGBSelector):
+        return "RGB color"
+    else:
+        raise ValueError(f"Unknown type: {type_}")
+
+
+def generate_config_markdown_table():
     import pandas as pd
 
     rows = []
     for k, default, type_ in VALIDATION_TUPLES:
         description = DOCS[k]
-        if type_ == cv.entity_ids:
-            type_ = "list of `entity_id`s"
-        elif type_ in (bool, int, float, str):
-            type_ = f"`{type_.__name__}`"
-        elif isinstance(type_, vol.All):
-            type_ = _format_voluptuous_instance(type_)
-        elif isinstance(type_, vol.In):
-            type_ = f"one of `{type_.container}`"
-        elif isinstance(type_, selector.SelectSelector):
-            type_ = f"one of `{type_.config['options']}`"
-        elif isinstance(type_, selector.ColorRGBSelector):
-            type_ = "RGB color"
-        else:
-            raise ValueError(f"Unknown type: {type_}")
         row = {
             "Variable name": f"`{k}`",
             "Description": description,
             "Default": f"`{default}`",
-            "Type": type_,
+            "Type": _type_to_str(type_),
         }
         rows.append(row)
 
     df = pd.DataFrame(rows)
     return df.to_markdown(index=False)
+
+
+def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
+    result = {}
+    for key, value in schema.schema.items():
+        if isinstance(key, vol.Optional):
+            default_value = key.default
+            result[key.schema] = (default_value, value)
+    return result
+
+
+def _generate_service_markdown_table(schema: dict[str, tuple[Any, Any]]):
+    import pandas as pd
+
+    schema = _schema_to_dict(schema)
+    rows = []
+    for k, (default, type_) in schema.items():
+        description = DOCS[k]
+        row = {
+            "Service data attribute": f"`{k}`",
+            "Description": description,
+            "Required": "✅" if default == vol.UNDEFINED else "❌",
+            "Type": _type_to_str(type_),
+        }
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    return df.to_markdown(index=False)
+
+
+def generate_apply_markdown_table():
+    return _generate_service_markdown_table(apply_service_schema())
+
+
+def generate_set_manual_control_markdown_table():
+    return _generate_service_markdown_table(SET_MANUAL_CONTROL_SCHEMA)
