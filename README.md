@@ -181,12 +181,27 @@ adaptive_lighting:
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
-| Service data attribute | Required | Description                                                                                         |
-| ---------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `entity_id`            | ✅        | The `entity_id` of the switch in which to (un)mark the light as being "manually controlled".        |
-| `lights`               | ❌        | entity_id(s) of lights, if not specified, all lights in the switch are selected.                    |
-| `manual_control`       | ❌        | Whether to add ('true') or remove ('false') the light from the 'manual_control' list, default: true |
+<!-- START_CODE -->
+<!-- import os, sys -->
+<!-- sys.path.append(os.path.abspath(".")) -->
+<!-- from custom_components.adaptive_lighting import const -->
+<!-- markdown_table = const.generate_set_manual_control_markdown_table() -->
+<!-- print(markdown_table) -->
+<!-- END_CODE -->
 
+<!-- START_OUTPUT -->
+<!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
+| Service data attribute   | Description                                                                     | Required   | Type                 |
+|:-------------------------|:--------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | Entity ID of the switch. 📝                                                     | ✅         | list of `entity_id`s |
+| `lights`                 | List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟 | ❌         | list of `entity_id`s |
+| `transition`             | Duration of transition when lights change, in seconds. 🕑                       | ❌         | `float` 0-6553       |
+| `adapt_brightness`       | Whether to adapt the brightness of the light. 🌞                                | ❌         | bool                 |
+| `adapt_color`            | Whether to adapt the color of the light. 🌈                                     | ❌         | bool                 |
+| `prefer_rgb_color`       | Use RGB color adjustment instead of native light color temperature. 🌈          | ❌         | bool                 |
+| `turn_on_lights`         | Whether to turn on lights if they are off. 🔆                                   | ❌         | bool                 |
+
+<!-- END_OUTPUT -->
 #### `adaptive_lighting.change_switch_settings`
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.

@@ -312,6 +312,15 @@ def apply_service_schema(initial_transition: int = 1):
     )
 
 
+SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
+    {
+        vol.Optional("entity_id"): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+        vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
+    }
+)
+
+
 def _format_voluptuous_instance(instance):
     coerce_type = None
     min_val = None
@@ -381,10 +390,10 @@ def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
     return result
 
 
-def generate_apply_markdown_table():
+def _generate_service_markdown_table(schema: dict[str, tuple[Any, Any]]):
     import pandas as pd
 
-    schema = _schema_to_dict(apply_service_schema())
+    schema = _schema_to_dict(schema)
     rows = []
     for k, (default, type_) in schema.items():
         description = DOCS[k]
@@ -398,3 +407,11 @@ def generate_apply_markdown_table():
 
     df = pd.DataFrame(rows)
     return df.to_markdown(index=False)
+
+
+def generate_apply_markdown_table():
+    return _generate_service_markdown_table(apply_service_schema())
+
+
+def generate_set_manual_control_markdown_table():
+    return _generate_service_markdown_table(SET_MANUAL_CONTROL_SCHEMA)
