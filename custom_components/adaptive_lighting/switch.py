@@ -1145,8 +1145,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Return here if there's no lights to adapt.
         if lights is None:
             lights = self._lights
-        if not len(lights):
-            return
 
         if not force:
             if self._only_once:
@@ -1155,6 +1153,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # Don't adapt lights that haven't finished prior transitions.
                 if self.turn_on_off_listener.transition_timers.get(light):
                     lights.remove(light)
+
+        if not len(lights):
+            return
 
         await self._adapt_lights(lights, transition, force, context)
 
