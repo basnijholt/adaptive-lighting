@@ -1898,7 +1898,7 @@ class TurnOnOffListener:
                     light,
                     context.id,
                 )
-                self.manual_control[light] = True
+                self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, context, is_async=False)
                 return True
         _LOGGER.debug(
