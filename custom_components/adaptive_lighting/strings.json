@@ -45,8 +45,8 @@
           "take_over_control": "take_over_control: Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒",
           "detect_non_ha_changes": "detect_non_ha_changes: Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️",
           "separate_turn_on_commands": "separate_turn_on_commands: Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀",
-          "send_split_delay": "send_split_delay: Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Some lights do not support setting brightness and color simultaneously. ⏲️",
-          "adapt_delay": "adapt_delay: Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️",
+          "send_split_delay": "send_split_delay: Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
+          "adapt_delay": "adapt_delay: Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️",
           "autoreset_control_seconds": "autoreset_control_seconds: Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️"
         }
       }

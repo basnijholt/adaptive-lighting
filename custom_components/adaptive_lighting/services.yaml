@@ -148,7 +148,7 @@ change_switch_settings:
       selector:
         boolean: null
     send_split_delay:
-      description: 'send_split_delay: Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Some lights do not support setting brightness and color simultaneously. ⏲️'
+      description: 'send_split_delay: Delay (ms) between `separate_turn_on_commands` for lights that don''t support simultaneous brightness and color setting. ⏲️'
       required: false
       example: 0
       selector:
@@ -238,7 +238,7 @@ change_switch_settings:
       selector:
         text: null
     adapt_delay:
-      description: 'adapt_delay: Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️'
+      description: 'adapt_delay: Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️'
       required: false
       example: 0
       selector:
