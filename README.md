@@ -87,19 +87,19 @@ The YAML and frontend configuration methods support all of the options listed be
 
 <!-- START_OUTPUT -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
-| Variable name                  | Description                                                                                                                                                                      | Default        | Type                                 |
-|:-------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:-------------------------------------|
+| Variable name                  | Description                                                                                                                                                                     | Default        | Type                                 |
+|:-------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:-------------------------------------|
 | `lights`                       | List of light entities to be controlled by Adaptive Lighting (may be empty). 🌟                                                                                                  | `[]`           | list of `entity_id`s                 |
 | `prefer_rgb_color`             | Use RGB color adjustment instead of light color temperature. 🌈                                                                                                                  | `False`        | `bool`                               |
 | `include_config_in_attributes` | Show all options as attributes on the switch in Home Assistant when set to `true`. 📝                                                                                            | `False`        | `bool`                               |
-| `initial_transition`           | Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️                                                                                               | `1`            | `float` 0-6553                       |
+| `initial_transition`           | Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️                                                                                             | `1`            | `float` 0-6553                       |
 | `sleep_transition`             | Duration of transition when 'sleep mode' is toggled in seconds. 😴                                                                                                               | `1`            | `float` 0-6553                       |
 | `transition`                   | Duration of transition when lights change, in seconds. 🕑                                                                                                                        | `45`           | `float` 0-6553                       |
 | `interval`                     | Frequency to adapt the lights, in seconds. 🔄                                                                                                                                    | `90`           | `int > 0`                            |
 | `min_brightness`               | Minimum brightness percentage. 💡                                                                                                                                                | `1`            | `int` 1-100                          |
 | `max_brightness`               | Maximum brightness percentage. 💡                                                                                                                                                | `100`          | `int` 1-100                          |
 | `min_color_temp`               | Warmest color temperature in Kelvin. 🔥                                                                                                                                          | `2000`         | `int` 1000-10000                     |
-| `max_color_temp`               | Coldest color temperature in Kelvin. ❄️                                                                                                                                           | `5500`         | `int` 1000-10000                     |
+| `max_color_temp`               | Coldest color temperature in Kelvin. ❄️                                                                                                                                         | `5500`         | `int` 1000-10000                     |
 | `sleep_brightness`             | Brightness percentage of lights in sleep mode. 😴                                                                                                                                | `1`            | `int` 1-100                          |
 | `sleep_rgb_or_color_temp`      | Use either `'rgb_color'` or `'color_temp'` in sleep mode. 🌙                                                                                                                     | `color_temp`   | one of `['color_temp', 'rgb_color']` |
 | `sleep_color_temp`             | Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴                                                                              | `1000`         | `int` 1000-10000                     |
@@ -112,11 +112,11 @@ The YAML and frontend configuration methods support all of the options listed be
 | `sunset_offset`                | Adjust sunset time with a positive or negative offset in seconds. ⏰                                                                                                             | `0`            | `int`                                |
 | `only_once`                    | Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄                                                                                           | `False`        | `bool`                               |
 | `take_over_control`            | Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒 | `True`         | `bool`                               |
-| `detect_non_ha_changes`        | Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️                                                                               | `False`        | `bool`                               |
+| `detect_non_ha_changes`        | Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️                                                                             | `False`        | `bool`                               |
 | `separate_turn_on_commands`    | Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀                                                                                     | `False`        | `bool`                               |
-| `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                               | `0`            | `int` 0-10000                        |
-| `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                      | `0`            | `float > 0`                          |
-| `autoreset_control_seconds`    | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                         | `0`            | `int` 0-31536000                     |
+| `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                             | `0`            | `int` 0-10000                        |
+| `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                    | `0`            | `float > 0`                          |
+| `autoreset_control_seconds`    | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                       | `0`            | `int` 0-31536000                     |
 
 <!-- END_OUTPUT -->
 
@@ -160,15 +160,15 @@ adaptive_lighting:
 
 <!-- START_OUTPUT -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
-| Service data attribute   | Description                                                                                     | Required   | Type                 |
-|:-------------------------|:------------------------------------------------------------------------------------------------|:-----------|:---------------------|
-| `entity_id`              | The `entity_id` of the switch with the settings to apply. 📝                                    | ✅         | list of `entity_id`s |
-| `lights`                 | A light (or list of lights) to apply the settings to. 💡                                        | ❌         | list of `entity_id`s |
-| `transition`             | The number of seconds for the transition. 🕑                                                    | ❌         | `float` 0-6553       |
-| `adapt_brightness`       | Whether to change the brightness of the light or not. 🌞                                        | ❌         | bool                 |
-| `adapt_color`            | Whether to adapt the color on supporting lights. 🌈                                             | ❌         | bool                 |
-| `prefer_rgb_color`       | Whether to prefer RGB color adjustment over of native light color temperature when possible. 🌈 | ❌         | bool                 |
-| `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                            | ❌         | bool                 |
+| Service data attribute   | Description                                                                                    | Required   | Type                 |
+|:-------------------------|:-----------------------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | The `entity_id` of the switch with the settings to apply. 📝                                    | ✅          | list of `entity_id`s |
+| `lights`                 | A light (or list of lights) to apply the settings to. 💡                                        | ❌          | list of `entity_id`s |
+| `transition`             | The number of seconds for the transition. 🕑                                                    | ❌          | `float` 0-6553       |
+| `adapt_brightness`       | Whether to change the brightness of the light or not. 🌞                                        | ❌          | bool                 |
+| `adapt_color`            | Whether to adapt the color on supporting lights. 🌈                                             | ❌          | bool                 |
+| `prefer_rgb_color`       | Whether to prefer RGB color adjustment over of native light color temperature when possible. 🌈 | ❌          | bool                 |
+| `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                            | ❌          | bool                 |
 
 <!-- END_OUTPUT -->
 #### `adaptive_lighting.set_manual_control`
@@ -182,11 +182,11 @@ adaptive_lighting:
 
 <!-- START_OUTPUT -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
-| Service data attribute   | Description                                                                                     | Required   | Type                 |
-|:-------------------------|:------------------------------------------------------------------------------------------------|:-----------|:---------------------|
-| `entity_id`              | The `entity_id` of the switch in which to (un)mark the light as being `manually controlled`. 📝 | ✅         | list of `entity_id`s |
-| `lights`                 | entity_id(s) of lights, if not specified, all lights in the switch are selected. 💡             | ❌         | list of `entity_id`s |
-| `manual_control`         | Whether to add ('true') or remove ('false') the light from the 'manual_control' list. 🔒        | ❌         | bool                 |
+| Service data attribute   | Description                                                                                    | Required   | Type                 |
+|:-------------------------|:-----------------------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | The `entity_id` of the switch in which to (un)mark the light as being `manually controlled`. 📝 | ✅          | list of `entity_id`s |
+| `lights`                 | entity_id(s) of lights, if not specified, all lights in the switch are selected. 💡             | ❌          | list of `entity_id`s |
+| `manual_control`         | Whether to add ('true') or remove ('false') the light from the 'manual_control' list. 🔒        | ❌          | bool                 |
 
 <!-- END_OUTPUT -->
 #### `adaptive_lighting.change_switch_settings`
