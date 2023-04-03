@@ -27,7 +27,7 @@ jobs:
           pip install markdown-code-runner pandas tabulate
 
       - name: Run markdown-code-runner
-        run: markdown-code-runner README.md
+        run: markdown-code-runner --debug README.md
 
       - name: Commit updated README.md
         run: |
