@@ -114,9 +114,15 @@ The YAML and frontend configuration methods support all of the options listed be
 | `take_over_control`            | Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒 | `True`         | `bool`                               |
 | `detect_non_ha_changes`        | Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️                                                                               | `False`        | `bool`                               |
 | `separate_turn_on_commands`    | Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀                                                                                     | `False`        | `bool`                               |
+<<<<<<< HEAD
 | `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                               | `0`            | `int` 0-10000                        |
 | `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                      | `0`            | `float > 0`                          |
 | `autoreset_control_seconds`    | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                         | `0`            | `int` 0-604800                       |
+=======
+| `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                             | `0`            | `int` 0-10000                        |
+| `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                    | `0`            | `float > 0`                          |
+| `autoreset_control_seconds`    | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                       | `0`            | `int` 0-31536000                     |
+>>>>>>> origin/main
 
 <!-- END_OUTPUT -->
 
