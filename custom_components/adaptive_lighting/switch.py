@@ -822,6 +822,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
+        self._expand_light_groups()  # updates manual control timers
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
