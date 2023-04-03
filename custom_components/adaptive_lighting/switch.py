@@ -1150,6 +1150,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force,
             context.id,
         )
+        tasks = []
         for light in lights:
             if not is_on(self.hass, light):
                 continue
@@ -1170,7 +1171,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     context.id,
                 )
                 continue
-            await self._adapt_light(light, transition, force=force, context=context)
+            tasks.append(
+                asyncio.create_task(
+                    self._adapt_light(light, transition, force=force, context=context)
+                )
+            )
+        if len(tasks):
+            await asyncio.gather(*tasks)
+        else:
+            _LOGGER.debug("%s: No lights to adapt", self._name)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
