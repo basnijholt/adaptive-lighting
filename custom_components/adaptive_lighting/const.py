@@ -78,7 +78,8 @@ DOCS[CONF_ONLY_ONCE] = (
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
 DOCS[CONF_PREFER_RGB_COLOR] = (
-    "Use RGB color adjustment instead of light " "color temperature. 🌈"
+    "Whether to prefer RGB color adjustment over "
+    "light color temperature when possible. 🌈"
 )
 
 CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS = (
@@ -175,7 +176,7 @@ ATTR_TURN_ON_OFF_LISTENER = "turn_on_off_listener"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 NONE_STR = "None"
 ATTR_ADAPT_COLOR = "adapt_color"
-DOCS[ATTR_ADAPT_COLOR] = "Whether to adapt the color of the light. 🌈"
+DOCS[ATTR_ADAPT_COLOR] = "Whether to adapt the color on supporting lights. 🌈"
 ATTR_ADAPT_BRIGHTNESS = "adapt_brightness"
 DOCS[ATTR_ADAPT_BRIGHTNESS] = "Whether to adapt the brightness of the light. 🌞"
 
@@ -184,7 +185,7 @@ CONF_MANUAL_CONTROL = "manual_control"
 DOCS[CONF_MANUAL_CONTROL] = "Whether to manually control the lights. 🔒"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
-DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights if they are off. 🔆"
+DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 DOCS[CONF_USE_DEFAULTS] = "Whether to use default settings for the switches. ⚙️"
@@ -203,12 +204,6 @@ DOCS_MANUAL_CONTROL = {
 DOCS_APPLY = {
     CONF_ENTITY_ID: "The `entity_id` of the switch with the settings to apply. 📝",
     CONF_LIGHTS: "A light (or list of lights) to apply the settings to. 💡",
-    CONF_TRANSITION: "The number of seconds for the transition. 🕑",
-    ATTR_ADAPT_BRIGHTNESS: "Whether to change the brightness of the light or not. 🌞",
-    ATTR_ADAPT_COLOR: "Whether to adapt the color on supporting lights. 🌈",
-    CONF_PREFER_RGB_COLOR: "Whether to prefer RGB color adjustment over of "
-    "native light color temperature when possible. 🌈",
-    CONF_TURN_ON_LIGHTS: "Whether to turn on lights that are currently off. 🔆",
 }
 
 
