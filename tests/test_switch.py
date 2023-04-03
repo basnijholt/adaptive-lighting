@@ -695,6 +695,56 @@ async def test_apply_service(hass):
     assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
+async def test_switch_off_on_off(hass):
+    """Test switch rapid off_on_off."""
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    async def update():
+        await switch._update_attrs_and_maybe_adapt_lights(
+            transition=0, context=switch.create_context("test")
+        )
+        await hass.async_block_till_done()
+
+    switch, _ = await setup_lights_and_switch(hass)
+
+    for turn_light_state_at_end in [True, False]:
+        # Turn light on
+        await turn_light(True)
+        # Turn light off with transition
+        await turn_light(False, transition=1)
+
+        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        # Set state to on after a second (like happens IRL)
+        await asyncio.sleep(1e-3)
+        hass.states.async_set(ENTITY_LIGHT, STATE_ON)
+        # Set state to off after a second (like happens IRL)
+        await asyncio.sleep(1e-3)
+        hass.states.async_set(ENTITY_LIGHT, STATE_OFF)
+
+        # Now we test whether the sleep task is there
+        assert ENTITY_LIGHT in switch.turn_on_off_listener.sleep_tasks
+        sleep_task = switch.turn_on_off_listener.sleep_tasks[ENTITY_LIGHT]
+        assert not sleep_task.cancelled()
+
+        # A 'light.turn_on' event should cancel that task
+        await turn_light(turn_light_state_at_end)
+        await update()
+        state = hass.states.get(ENTITY_LIGHT).state
+        if turn_light_state_at_end:
+            assert sleep_task.cancelled()
+            assert state == STATE_ON
+        else:
+            assert state == STATE_OFF
+
+
 async def test_significant_change(hass):
     """Test significant change."""
 
@@ -788,56 +838,6 @@ async def test_significant_change(hass):
     await update(force=False)
     assert ENTITY_LIGHT in switch.turn_on_off_listener.last_state_change
     assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-
-
-async def test_switch_off_on_off(hass):
-    """Test switch rapid off_on_off."""
-
-    async def turn_light(state, **kwargs):
-        await hass.services.async_call(
-            LIGHT_DOMAIN,
-            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
-            blocking=True,
-        )
-        await hass.async_block_till_done()
-
-    async def update():
-        await switch._update_attrs_and_maybe_adapt_lights(
-            transition=0, context=switch.create_context("test")
-        )
-        await hass.async_block_till_done()
-
-    switch, _ = await setup_lights_and_switch(hass)
-
-    for turn_light_state_at_end in [True, False]:
-        # Turn light on
-        await turn_light(True)
-        # Turn light off with transition
-        await turn_light(False, transition=1)
-
-        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-        # Set state to on after a second (like happens IRL)
-        await asyncio.sleep(1e-3)
-        hass.states.async_set(ENTITY_LIGHT, STATE_ON)
-        # Set state to off after a second (like happens IRL)
-        await asyncio.sleep(1e-3)
-        hass.states.async_set(ENTITY_LIGHT, STATE_OFF)
-
-        # Now we test whether the sleep task is there
-        assert ENTITY_LIGHT in switch.turn_on_off_listener.sleep_tasks
-        sleep_task = switch.turn_on_off_listener.sleep_tasks[ENTITY_LIGHT]
-        assert not sleep_task.cancelled()
-
-        # A 'light.turn_on' event should cancel that task
-        await turn_light(turn_light_state_at_end)
-        await update()
-        state = hass.states.get(ENTITY_LIGHT).state
-        if turn_light_state_at_end:
-            assert sleep_task.cancelled()
-            assert state == STATE_ON
-        else:
-            assert state == STATE_OFF
 
 
 def test_color_difference_redmean():
