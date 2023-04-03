@@ -32,7 +32,7 @@
           "min_color_temp": "min_color_temp: Warmest color temperature in Kelvin. 🔥",
           "max_color_temp": "max_color_temp: Coldest color temperature in Kelvin. ❄️",
           "sleep_brightness": "sleep_brightness: Brightness percentage of lights in sleep mode. 😴",
-          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp: Use either `'rgb_color'` or `'color_temp'` in sleep mode. 🌙",
+          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp: Use either `\"rgb_color\"` or `\"color_temp\"` in sleep mode. 🌙",
           "sleep_color_temp": "sleep_color_temp: Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴",
           "sleep_rgb_color": "sleep_rgb_color: RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is 'rgb_color'). 🌈",
           "sunrise_time": "sunrise_time: Set a fixed time (HH:MM:SS) for sunrise. 🌅",

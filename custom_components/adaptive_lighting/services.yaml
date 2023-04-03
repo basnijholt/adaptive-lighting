@@ -159,7 +159,7 @@ change_switch_settings:
       selector:
         text: null
     sleep_rgb_or_color_temp:
-      description: 'sleep_rgb_or_color_temp: Use either `''rgb_color''` or `''color_temp''` in sleep mode. 🌙'
+      description: 'sleep_rgb_or_color_temp: Use either `"rgb_color"` or `"color_temp"` in sleep mode. 🌙'
       required: false
       example: color_temp
       selector:
