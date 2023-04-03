@@ -161,13 +161,13 @@ DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
     "Wait time (seconds) between light turn on and Adaptive Lighting applying "
-    "changes. Helps avoid flickering. ⏲️"
+    "changes. Might help to avoid flickering. ⏲️"
 )
 
 CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY = "send_split_delay", 0
 DOCS[CONF_SEND_SPLIT_DELAY] = (
-    "Wait time (milliseconds) between commands when using `separate_turn_on_commands`. "
-    "Some lights do not support setting brightness and color simultaneously. ⏲️"
+    "Delay (ms) between `separate_turn_on_commands` for lights that don't support "
+    "simultaneous brightness and color setting. ⏲️"
 )
 
 CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds", 0
