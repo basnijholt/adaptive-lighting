@@ -81,11 +81,9 @@ All of the configuration options are listed below, along with their default valu
 The YAML and frontend configuration methods support all of the options listed below.
 
 <!-- START_CODE -->
-<!-- import os, sys -->
-<!-- sys.path.append(os.path.abspath(".")) -->
-<!-- from custom_components.adaptive_lighting import const -->
-<!-- markdown_table = const.generate_config_markdown_table() -->
-<!-- print(markdown_table) -->
+<!-- import os, sys; sys.path.append(os.path.abspath(".")) -->
+<!-- from custom_components.adaptive_lighting import _docs_helpers_ -->
+<!-- print(_docs_helpers_.generate_config_markdown_table()) -->
 <!-- END_CODE -->
 
 <!-- START_OUTPUT -->
@@ -157,11 +155,9 @@ adaptive_lighting:
 `adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
 
 <!-- START_CODE -->
-<!-- import os, sys -->
-<!-- sys.path.append(os.path.abspath(".")) -->
-<!-- from custom_components.adaptive_lighting import const -->
-<!-- markdown_table = const.generate_apply_markdown_table() -->
-<!-- print(markdown_table) -->
+<!-- import os, sys; sys.path.append(os.path.abspath(".")) -->
+<!-- from custom_components.adaptive_lighting import _docs_helpers_ -->
+<!-- print(_docs_helpers_.generate_apply_markdown_table()) -->
 <!-- END_CODE -->
 
 <!-- START_OUTPUT -->
@@ -182,11 +178,9 @@ adaptive_lighting:
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
 <!-- START_CODE -->
-<!-- import os, sys -->
-<!-- sys.path.append(os.path.abspath(".")) -->
-<!-- from custom_components.adaptive_lighting import const -->
-<!-- markdown_table = const.generate_set_manual_control_markdown_table() -->
-<!-- print(markdown_table) -->
+<!-- import os, sys; sys.path.append(os.path.abspath(".")) -->
+<!-- from custom_components.adaptive_lighting import _docs_helpers_ -->
+<!-- print(_docs_helpers_.generate_set_manual_control_markdown_table()) -->
 <!-- END_CODE -->
 
 <!-- START_OUTPUT -->
