@@ -1143,6 +1143,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 if self.turn_on_off_listener.transition_timers.get(light):
                     lights.remove(light)
 
+        await self._adapt_lights(lights, transition, force, context)
+
+        if not force:
+            if self._only_once:
+                return
+            for light in lights:
+                # Don't adapt lights that haven't finished prior transitions.
+                if self.turn_on_off_listener.transition_timers.get(light):
+                    lights.remove(light)
+
         await self._update_manual_control_and_maybe_adapt(
             lights, transition, force, context
         )
@@ -1568,6 +1578,9 @@ class TurnOnOffListener:
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
         self.auto_reset_manual_control_times: dict[str, float] = {}
 
+        # Track light transitions
+        self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
+
         # When a state is different `max_cnt_significant_changes` times in a row,
         # mark it as manually_controlled.
         self.max_cnt_significant_changes = 2
@@ -1898,6 +1911,8 @@ class TurnOnOffListener:
                     light,
                     context.id,
                 )
+                self.manual_control[light] = True
+                _fire_manual_control_event(switch, light, context, is_async=False)
                 return True
         _LOGGER.debug(
             "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
