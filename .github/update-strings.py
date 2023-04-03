@@ -15,3 +15,4 @@ strings["options"]["step"]["init"]["data"] = data
 
 with open(strings_fname, "w") as f:
     json.dump(strings, f, indent=2, ensure_ascii=False)
+    f.write("\n")
