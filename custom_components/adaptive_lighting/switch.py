@@ -5,6 +5,7 @@ import asyncio
 import base64
 import bisect
 from collections import defaultdict
+from collections.abc import Callable, Coroutine
 from copy import deepcopy
 from dataclasses import dataclass
 import datetime
@@ -1144,18 +1145,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lights is None:
             lights = self._lights
 
-        if not force:
-            if self._only_once:
-                return
-            for light in lights:
-                # Don't adapt lights that haven't finished prior transitions.
-                if self.turn_on_off_listener.transition_timers.get(light):
-                    lights.remove(light)
-
-        if not len(lights):
+        if not force and self._only_once:
             return
 
-        await self._adapt_lights(lights, transition, force, context)
+        filtered_lights = []
+        for light in lights:
+            # Don't adapt lights that haven't finished prior transitions.
+            if force or not self.turn_on_off_listener.transition_timers.get(light):
+                filtered_lights.append(light)
+
+        if not filtered_lights:
+            return
+
+        await self._adapt_lights(filtered_lights, transition, force, context)
 
     async def _adapt_lights(
         self,
@@ -1580,6 +1582,30 @@ class TurnOnOffListener:
             EVENT_STATE_CHANGED, self.state_changed_event_listener
         )
 
+    def _handle_timer(
+        self,
+        light: str,
+        timers_dict: dict[str, _AsyncSingleShotTimer],
+        delay: float | None,
+        reset_coroutine: Callable[[], Coroutine[Any, Any, None]],
+    ) -> None:
+        timer = timers_dict.get(light)
+        if timer is not None:
+            if delay is None:  # Timer object exists, but should not anymore
+                timer.cancel()
+                timers_dict.pop(light)
+            else:  # Timer object already exists, just update the delay and restart it
+                timer.delay = delay
+                timer.start()
+        elif delay is not None:  # Timer object does not exist, create it
+
+            async def reset_wrapper():
+                await reset_coroutine()
+
+            timer = _AsyncSingleShotTimer(delay, reset_wrapper)
+            timers_dict[light] = timer
+            timer.start()
+
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
         _LOGGER.debug("Start transition timer for %s", light)
@@ -1589,39 +1615,26 @@ class TurnOnOffListener:
             or light not in last_service_data
             or ATTR_TRANSITION not in last_service_data[light]
         ):
-            return False
+            return
 
         delay = last_service_data[light][ATTR_TRANSITION]
-        timer = self.transition_timers.get(light)
-        if timer is not None:
-            if delay is None:  # Timer object exists, but should not anymore
-                timer.cancel()
-                self.transition_timers.pop(light)
-            else:  # Timer object already exists, just update the delay and restart it
-                timer.delay = delay
-                timer.start()
-        elif delay is not None:  # Timer object does not exist, create it
 
-            async def reset():
-                _LOGGER.debug(
-                    "Transition finished for light %s",
-                    light,
+        async def reset():
+            _LOGGER.debug(
+                "Transition finished for light %s",
+                light,
+            )
+            switches = _get_switches_with_lights(self.hass, [light])
+            for switch in switches:
+                if not switch.is_on:
+                    continue
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    [light],
+                    force=False,
+                    context=switch.create_context("transit"),
                 )
-                # This part is optional, we could just wait for the next interval.
-                switches = _get_switches_with_lights(self.hass, [light])
-                for switch in switches:
-                    if not switch.is_on:
-                        continue
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        [light],
-                        force=False,
-                        context=switch.create_context("transit"),
-                    )
 
-            timer = _AsyncSingleShotTimer(delay, reset)
-            self.transition_timers[light] = timer
-            timer.start()
+        self._handle_timer(light, self.transition_timers, delay, reset)
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
@@ -1645,40 +1658,28 @@ class TurnOnOffListener:
         _LOGGER.debug("Marking '%s' as manually controlled.", light)
         self.manual_control[light] = True
         delay = self.auto_reset_manual_control_times.get(light)
-        timer = self.auto_reset_manual_control_timers.get(light)
-        if timer is not None:
-            if delay is None:  # Timer object exists, but should not anymore
-                timer.cancel()
-                self.auto_reset_manual_control_timers.pop(light)
-            else:  # Timer object already exists, just update the delay and restart it
-                timer.delay = delay
-                timer.start()
-        elif delay is not None:  # Timer object does not exist, create it
 
-            async def reset():
-                self.reset(light)
-                switches = _get_switches_with_lights(self.hass, [light])
-                for switch in switches:
-                    if not switch.is_on:
-                        continue
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        [light],
-                        transition=switch._initial_transition,
-                        force=True,
-                        context=switch.create_context("autoreset"),
-                    )
-                _LOGGER.debug(
-                    "Auto resetting 'manual_control' status of '%s' because"
-                    " it was not manually controlled for %s seconds.",
-                    light,
-                    delay,
+        async def reset():
+            self.reset(light)
+            switches = _get_switches_with_lights(self.hass, [light])
+            for switch in switches:
+                if not switch.is_on:
+                    continue
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    [light],
+                    transition=switch._initial_transition,
+                    force=True,
+                    context=switch.create_context("autoreset"),
                 )
-                assert not self.manual_control[light]
+            _LOGGER.debug(
+                "Auto resetting 'manual_control' status of '%s' because"
+                " it was not manually controlled for %s seconds.",
+                light,
+                delay,
+            )
+            assert not self.manual_control[light]
 
-            timer = _AsyncSingleShotTimer(delay, reset)
-            self.auto_reset_manual_control_timers[light] = timer
-            timer.start()
+        self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
