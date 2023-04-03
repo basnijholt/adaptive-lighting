@@ -16,7 +16,7 @@ for service_name, dct in services.items():
     alternative_docs = _docs.get(service_name, const.DOCS)
     for field_name, field in dct["fields"].items():
         description = alternative_docs.get(field_name, const.DOCS[field_name])
-        field["description"] = description
+        field["description"] = f"{field_name}: {description}"
 
 with open(services_filename, "w") as f:
     yaml.dump(services, f, sort_keys=False, width=1000, allow_unicode=True)
