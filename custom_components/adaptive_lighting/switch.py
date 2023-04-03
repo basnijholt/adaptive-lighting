@@ -1558,6 +1558,9 @@ class TurnOnOffListener:
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
         self.auto_reset_manual_control_times: dict[str, float] = {}
 
+        # Track light transitions
+        self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
+
         # When a state is different `max_cnt_significant_changes` times in a row,
         # mark it as manually_controlled.
         self.max_cnt_significant_changes = 2
