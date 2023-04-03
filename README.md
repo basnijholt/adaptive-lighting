@@ -29,7 +29,7 @@ Adaptive Lighting provides four switches (using "living_room" as an example comp
 
 Adaptive Lighting is designed to automatically detect when you or another source (e.g., automation) manually changes light settings 🕹️.
 When this occurs, the affected light is marked as "manually controlled," and Adaptive Lighting will not make further adjustments until the light is turned off and back on or reset using the `adaptive_lighting.set_manual_control` service call.
-This feature is available when take_over_control is enabled.
+This feature is available when `take_over_control` is enabled.
 
 Additionally, enabling detect_non_ha_changes allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
 The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
@@ -47,7 +47,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
       - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
   - [:robot: Automation examples](#robot-automation-examples)
 - [Additional Information](#additional-information)
-- [Troubleshooting](#troubleshooting)
+- [:sos: Troubleshooting](#sos-troubleshooting)
   - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
       - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
@@ -119,6 +119,7 @@ The YAML and frontend configuration methods support all of the options listed be
 | `separate_turn_on_commands`    | Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀                                                                                     | `False`        | `bool`                               |
 | `send_split_delay`             | Wait time (milliseconds) between commands when using `separate_turn_on_commands`. Helps ensure correct handling. ⏲️                                                             | `0`            | `int` 0-10000                        |
 | `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Helps avoid flickering. ⏲️                                                                    | `0`            | `float > 0`                          |
+| `autoreset_control_seconds`    | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                       | `0`            | `int` 0-604800                       |
 
 <!-- END_OUTPUT -->
 
@@ -298,7 +299,7 @@ For more details on adding the integration and setting options, refer to the [do
 
 Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
-# Troubleshooting
+# :sos: Troubleshooting
 
 Encountering issues? Enable debug logging in your `configuration.yaml`:
 

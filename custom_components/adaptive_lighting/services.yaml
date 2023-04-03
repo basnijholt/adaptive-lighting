@@ -248,3 +248,9 @@ change_switch_settings:
       example: 0
       selector:
         text:
+    autoreset_control_seconds:
+      description: "autoreset_control_seconds: wait time (seconds) before Adaptive Lighting resets `manual_control` status of any light (default: 0)"
+      required: false
+      example: 0
+      selector:
+        text:

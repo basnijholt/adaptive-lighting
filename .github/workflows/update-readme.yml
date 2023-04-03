@@ -30,13 +30,21 @@ jobs:
         run: markdown-code-runner --debug README.md
 
       - name: Commit updated README.md
+        id: commit
         run: |
           git add README.md
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update README.md"
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes in README.md, skipping commit."
+            echo "commit_status=skipped" >> $GITHUB_ENV
+          else
+            git commit -m "Update README.md"
+            echo "commit_status=committed" >> $GITHUB_ENV
+          fi
 
       - name: Push changes
+        if: env.commit_status == 'committed'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
