@@ -1156,9 +1156,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 if self.turn_on_off_listener.transition_timers.get(light):
                     lights.remove(light)
 
-        await self._update_manual_control_and_maybe_adapt(
-            lights, transition, force, context
-        )
+        await self._adapt_lights(lights, transition, force, context)
 
     async def _adapt_lights(
         self,
