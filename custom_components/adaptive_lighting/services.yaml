@@ -71,7 +71,7 @@ change_switch_settings:
         entity:
           domain: switch
     use_defaults:
-      description: 'use_defaults: Sets the default values not specified in this service call. Options: ''current'' (default, retains current values), ''factory'' (resets to documented defaults), or ''configuration'' (reverts to switch config defaults). ⚙️'
+      description: 'use_defaults: Sets the default values not specified in this service call. Options: "current" (default, retains current values), "factory" (resets to documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
       example: current
       required: false
       default: current
