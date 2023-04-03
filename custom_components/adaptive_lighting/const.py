@@ -186,7 +186,15 @@ CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights if they are off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
-
+DOCS[CONF_USE_DEFAULTS] = "Whether to use default settings for the switches. ⚙️"
+DOCS_MANUAL_CONTROL = {
+    "entity_id": "The `entity_id` of the switch in which to (un)mark the "
+    "light as being `manually controlled`. 📝",
+    "lights": "entity_id(s) of lights, if not specified, all lights in the "
+    "switch are selected. 💡",
+    "manual_control": "Whether to add ('true') or remove ('false') the "
+    "light from the 'manual_control' list. 🔒",
+}
 
 TURNING_OFF_DELAY = 5
 

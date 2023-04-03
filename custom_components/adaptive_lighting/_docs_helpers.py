@@ -7,6 +7,7 @@ import voluptuous as vol
 
 from .const import (
     DOCS,
+    DOCS_MANUAL_CONTROL,
     SET_MANUAL_CONTROL_SCHEMA,
     VALIDATION_TUPLES,
     apply_service_schema,
@@ -82,11 +83,16 @@ def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
     return result
 
 
-def _generate_service_markdown_table(schema: dict[str, tuple[Any, Any]]):
+def _generate_service_markdown_table(
+    schema: dict[str, tuple[Any, Any]], alternative_docs: dict[str, str] = None
+):
     schema = _schema_to_dict(schema)
     rows = []
     for k, (default, type_) in schema.items():
-        description = DOCS[k]
+        if alternative_docs is not None and k in alternative_docs:
+            description = alternative_docs[k]
+        else:
+            description = DOCS[k]
         row = {
             "Service data attribute": f"`{k}`",
             "Description": description,
@@ -104,4 +110,6 @@ def generate_apply_markdown_table():
 
 
 def generate_set_manual_control_markdown_table():
-    return _generate_service_markdown_table(SET_MANUAL_CONTROL_SCHEMA)
+    return _generate_service_markdown_table(
+        SET_MANUAL_CONTROL_SCHEMA, DOCS_MANUAL_CONTROL
+    )
