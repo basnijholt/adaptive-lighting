@@ -19,4 +19,4 @@ for service_name, dct in services.items():
         field["description"] = description
 
 with open(services_filename, "w") as f:
-    yaml.dump(services, f, sort_keys=False, width=1000)
+    yaml.dump(services, f, sort_keys=False, width=1000, allow_unicode=True)
