@@ -1,5 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
 
+from typing import Any
+
 from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
@@ -14,7 +16,7 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-DOCS = {}
+DOCS = {"entity_id": "Entity ID of the switch. 📝"}
 
 
 CONF_NAME, DEFAULT_NAME = "name", "default"
@@ -174,12 +176,15 @@ ATTR_TURN_ON_OFF_LISTENER = "turn_on_off_listener"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 NONE_STR = "None"
 ATTR_ADAPT_COLOR = "adapt_color"
+DOCS[ATTR_ADAPT_COLOR] = "Whether to adapt the color of the light. 🌈"
 ATTR_ADAPT_BRIGHTNESS = "adapt_brightness"
+DOCS[ATTR_ADAPT_BRIGHTNESS] = "Whether to adapt the brightness of the light. 🌞"
 
 SERVICE_SET_MANUAL_CONTROL = "set_manual_control"
 CONF_MANUAL_CONTROL = "manual_control"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
+DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights if they are off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 
@@ -289,6 +294,24 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
+def apply_service_schema(initial_transition: int = 1):
+    """Return the schema for the apply service."""
+    return vol.Schema(
+        {
+            vol.Optional("entity_id"): cv.entity_ids,
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+            vol.Optional(
+                CONF_TRANSITION,
+                default=initial_transition,
+            ): VALID_TRANSITION,
+            vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
+            vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
+            vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
+            vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+        }
+    )
+
+
 def _format_voluptuous_instance(instance):
     coerce_type = None
     min_val = None
@@ -311,31 +334,65 @@ def _format_voluptuous_instance(instance):
         return f"`{coerce_type}`"
 
 
-def generate_markdown_table():
+def _type_to_str(type_: Any) -> str:
+    """Convert a (voluptuous) type to a string."""
+    if type_ == cv.entity_ids:
+        return "list of `entity_id`s"
+    elif type_ in (bool, int, float, str):
+        return f"`{type_.__name__}`"
+    elif type_ == cv.boolean:
+        return "bool"
+    elif isinstance(type_, vol.All):
+        return _format_voluptuous_instance(type_)
+    elif isinstance(type_, vol.In):
+        return f"one of `{type_.container}`"
+    elif isinstance(type_, selector.SelectSelector):
+        return f"one of `{type_.config['options']}`"
+    elif isinstance(type_, selector.ColorRGBSelector):
+        return "RGB color"
+    else:
+        raise ValueError(f"Unknown type: {type_}")
+
+
+def generate_config_markdown_table():
     import pandas as pd
 
     rows = []
     for k, default, type_ in VALIDATION_TUPLES:
         description = DOCS[k]
-        if type_ == cv.entity_ids:
-            type_ = "list of `entity_id`s"
-        elif type_ in (bool, int, float, str):
-            type_ = f"`{type_.__name__}`"
-        elif isinstance(type_, vol.All):
-            type_ = _format_voluptuous_instance(type_)
-        elif isinstance(type_, vol.In):
-            type_ = f"one of `{type_.container}`"
-        elif isinstance(type_, selector.SelectSelector):
-            type_ = f"one of `{type_.config['options']}`"
-        elif isinstance(type_, selector.ColorRGBSelector):
-            type_ = "RGB color"
-        else:
-            raise ValueError(f"Unknown type: {type_}")
         row = {
             "Variable name": f"`{k}`",
             "Description": description,
             "Default": f"`{default}`",
-            "Type": type_,
+            "Type": _type_to_str(type_),
+        }
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    return df.to_markdown(index=False)
+
+
+def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
+    result = {}
+    for key, value in schema.schema.items():
+        if isinstance(key, vol.Optional):
+            default_value = key.default
+            result[key.schema] = (default_value, value)
+    return result
+
+
+def generate_apply_markdown_table():
+    import pandas as pd
+
+    schema = _schema_to_dict(apply_service_schema())
+    rows = []
+    for k, (default, type_) in schema.items():
+        description = DOCS[k]
+        row = {
+            "Service data attribute": f"`{k}`",
+            "Description": description,
+            "Required": "✅" if default == vol.UNDEFINED else "❌",
+            "Type": _type_to_str(type_),
         }
         rows.append(row)
 

@@ -39,7 +39,6 @@ from homeassistant.components.light import (
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
     SUPPORT_TRANSITION,
-    VALID_TRANSITION,
     is_on,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -141,6 +140,7 @@ from .const import (
     SUN_EVENT_NOON,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
+    apply_service_schema,
     replace_none_str,
 )
 
@@ -494,20 +494,9 @@ async def async_setup_entry(
         domain=DOMAIN,
         service=SERVICE_APPLY,
         service_func=handle_apply,
-        schema=vol.Schema(
-            {
-                vol.Optional("entity_id"): cv.entity_ids,
-                vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
-                vol.Optional(
-                    CONF_TRANSITION,
-                    default=switch._initial_transition,  # pylint: disable=protected-access
-                ): VALID_TRANSITION,
-                vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
-                vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
-                vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
-                vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
-            }
-        ),
+        schema=apply_service_schema(
+            switch._initial_transition
+        ),  # pylint: disable=protected-access
     )
 
     # Register `set_manual_control` service
