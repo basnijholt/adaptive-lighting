@@ -22,9 +22,14 @@ jobs:
         with:
           python_version: "3.10"
 
-      - name: Install pandas and tabulate
+      - name: Install markdown-code-runner and README code dependencies
         run: |
           pip install markdown-code-runner pandas tabulate
+
+      - name: Link custom_components/adaptive_lighting
+        run: |
+          cd core/homeassistant/components
+          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
 
       - name: Run markdown-code-runner
         run: markdown-code-runner --debug README.md
