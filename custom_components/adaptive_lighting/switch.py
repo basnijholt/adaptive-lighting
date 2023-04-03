@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import bisect
-from collections import defaultdict
 from collections.abc import Callable, Coroutine
 from copy import deepcopy
 from dataclasses import dataclass
@@ -1557,8 +1556,6 @@ class TurnOnOffListener:
         self.sleep_tasks: dict[str, asyncio.Task] = {}
         # Tracks which lights are manually controlled
         self.manual_control: dict[str, bool] = {}
-        # Counts the number of times (in a row) a light had a changed state.
-        self.cnt_significant_changes: dict[str, int] = defaultdict(int)
         # Track 'state_changed' events of self.lights resulting from this integration
         self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -1570,10 +1567,6 @@ class TurnOnOffListener:
 
         # Track light transitions
         self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
-
-        # When a state is different `max_cnt_significant_changes` times in a row,
-        # mark it as manually_controlled.
-        self.max_cnt_significant_changes = 2
 
         self.remove_listener = self.hass.bus.async_listen(
             EVENT_CALL_SERVICE, self.turn_on_off_event_listener
