@@ -1142,17 +1142,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # Don't adapt lights that haven't finished prior transitions.
                 if self.turn_on_off_listener.transition_timers.get(light):
                     lights.remove(light)
-
-        await self._adapt_lights(lights, transition, force, context)
-
-        if not force:
-            if self._only_once:
-                return
-            for light in lights:
-                # Don't adapt lights that haven't finished prior transitions.
-                if self.turn_on_off_listener.transition_timers.get(light):
-                    lights.remove(light)
-
         await self._update_manual_control_and_maybe_adapt(
             lights, transition, force, context
         )
@@ -1192,7 +1181,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     force,
                     adapt_brightness,
                     adapt_color,
-                    context,
                 ):
                     _LOGGER.debug(
                         "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
@@ -1202,7 +1190,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                     continue
                 if (
-                    (self._detect_non_ha_changes or self._alt_detect_method)
+                    self._detect_non_ha_changes
                     and not force
                     and await self.turn_on_off_listener.significant_change(
                         self,
