@@ -58,7 +58,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
       - [:sunny: Sun Position](#sunny-sun-position)
       - [:thermometer: Color Temperature](#thermometer-color-temperature)
       - [:high_brightness: Brightness](#high_brightness-brightness)
-      - [While using `adapt_until_sleep: true`](#while-using-adapt_until_sleep-true)
+      - [While using `transition_until_sleep: true`](#while-using-transition_until_sleep-true)
   - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
