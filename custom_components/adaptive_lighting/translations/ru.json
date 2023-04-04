@@ -1,0 +1,52 @@
+{
+  "title": "Adaptive Lighting",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Выберите имя для экземпляра Adaptive Lighting",
+        "description": "Выберите имя для этого экземпляра. Вы можете запустить несколько экземпляров Adaptive Lighting, каждый из которых может содержать несколько источников света!",
+        "data": {
+          "name": "Имя"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Это устройство уже настроено"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Настройки Adaptive Lighting",
+        "description": "Все настройки компонента Adaptive Lighting. Названия опций соответствуют настройкам в YAML. Параметры не отображаются, если в конфигурации YAML определена запись adaptive_lighting.",
+        "data": {
+          "lights": "Осветительные приборы",
+          "initial_transition": "initial_transition: Начальный переход, когда свет переключается с 'off' на 'on'. (секунды)",
+          "sleep_transition": "sleep_transition: Когда прибор переходит в Режима Сна (Sleep Mode) и 'sleep_state' изменяется. (секунды)",
+          "interval": "interval: Интервал между обновлениями переключателя. (секунды)",
+          "max_brightness": "max_brightness: Максимальная яркость света во время цикла. (%)",
+          "max_color_temp": "max_color_temp: Самый холодный оттенок цветовой температуры во время цикла. (Kelvin)",
+          "min_brightness": "min_brightness: Минимальная яркость света во время цикла. (%)",
+          "min_color_temp": "min_color_temp: Самый теплый оттенок цветовой температуры во время цикла. (Kelvin)",
+          "only_once": "only_once: Адаптировать свет только при включении.",
+          "prefer_rgb_color": "prefer_rgb_color: По возможности использовать 'rgb_color' вместо 'color_temp'.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Раздельные команды для каждого атрибута (цвет, яркость и т.д.) в 'light.turn_on' (требуется для некоторых источников света).",
+          "sleep_brightness": "sleep_brightness: Настройка яркости для Режима Сна (Sleep Mode). (%)",
+          "sleep_color_temp": "sleep_color_temp: Настройка цветовой температуры для Режима Сна (Sleep Mode). (Kelvin)",
+          "sunrise_offset": "sunrise_offset: За сколько времени до (-) или после (+) переопределить время восхода во время цикла. (+/- секунды)",
+          "sunrise_time": "sunrise_time: Ручное изменение времени восхода солнца, если указано 'None', используется фактическое время восхода в Вашем местоположении. (ЧЧ:ММ:СС)",
+          "sunset_offset": "sunset_offset: За сколько времени до (-) или после (+) переопределить время заката во время цикла. (+/- секунды)",
+          "sunset_time": "sunset_time: Ручное изменение времени заката солнца,  если указано 'None', используется фактическое время заката в Вашем местоположении. (ЧЧ:ММ:СС)",
+          "take_over_control": "take_over_control: Если что-либо, кроме Adaptive Lighting, вызывает службу 'light.turn_on', когда свет уже включен, прекратить адаптацию этого осветительного прибора, пока он (или переключатель) не переключится off -> on.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Обнаруживает все изменения на >10% примененные к освещению (также и из-за пределов Home Assistant), требует включения 'take_over_control' (вызывает 'homeassistant.update_entity' каждый 'interval'!)",
+          "transition": "Время перехода при применении изменения к источникам света. (секунды)",
+          "adapt_delay": "Время ожидания между включением света и применением адаптации. Может помочь избежать мерцания. (секунды)"
+        }
+      }
+    },
+    "error": {
+      "option_error": "Ошибка в настройках!",
+      "entity_missing": "Выбранный индикатор не найден"
+    }
+  }
+}

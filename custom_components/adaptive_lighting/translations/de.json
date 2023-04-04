@@ -22,6 +22,7 @@
         "data": {
           "lights": "Lichter",
           "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt",
+	  "sleep_transition": "sleep_transition: Wenn 'sleep_state' sich ändert. (Sekunden)",
           "interval": "interval, Zeit zwischen Updates des Switches",
           "max_brightness": "max_brightness, maximale Helligkeit in %",
           "max_color_temp": "max_color_temp, maximale Farbtemperatur in Kelvin",
@@ -29,21 +30,28 @@
           "min_color_temp": "min_color_temp, minimale Farbtemperatur in Kelvin",
           "only_once": "only_once, passe die Lichter nur beim Einschalten an",
           "prefer_rgb_color": "prefer_rgb_color, nutze 'rgb_color' vor 'color_temp', wenn möglich",
-          "separate_turn_on_commands": "separate_turn_on_commands, for each attribute (color, brightness, etc.) in 'light.turn_on', required for some lights.",
+          "separate_turn_on_commands": "separate_turn_on_commands, für jedes Attribut (Farbe, Helligkeit usw.) in 'light.turn_on' werden separate Befehle gesendet. Wird für manche Leuchtmittel benötigt.",
+          "send_split_delay": "send_split_delay: Wartezeit zwischen dem Senden der Befehle (Millisekunden), wenn separate_turn_on_commands genutzt wird. Kann helfen, wenn die Leuchtmittel die separaten Befehle nicht korrekt umsetzen.",
           "sleep_brightness": "sleep_brightness, Schlafhelligkeit in %",
-          "sleep_color_temp": "sleep_color_temp, Schlaffarbtemperaturin Kelvin",
-          "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- seconds",
+	  "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, nutze 'rgb_color' oder 'color_temp'",
+	  "sleep_rgb_color": "sleep_rgb_color, in RGB",
+          "sleep_color_temp": "sleep_color_temp, Schlaffarbtemperatur in Kelvin",
+          "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- Sekunden",
           "sunrise_time": "sunrise_time, Sonnenaufgangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenaufgangs an deiner Position verwendet)",
-          "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- seconds",
+	  "max_sunrise_time": "max_sunrise_time: Manuelles Überschreiben der max. sunrise_time. Falls 'None', wird die tatsächliche sunrise_time an deiner Position verwendet (HH:MM:SS)",
+          "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- Sekunden",
           "sunset_time": "sunset_time, Sonnenuntergangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenuntergangs an deiner Position verwendet)",
-          "take_over_control": "take_over_control, wenn irgendetwas während ein Licht an ist außer Adaptive Lighting den Service 'light.turn_on' aufruft, stoppe die Anpassung des Lichtes (oder des Schalters) bis dieser wieder von off -> on geschaltet wird.",
+          "min_sunset_time": "min_sunset_time: Manuelles Überschreiben der min. sunset_time. Falls 'None', wird die tatsächliche sunset_time an deiner Position verwendet (HH:MM:SS)",
+	  "take_over_control": "take_over_control, wenn irgendetwas während ein Licht an ist außer Adaptive Lighting den Service 'light.turn_on' aufruft, stoppe die Anpassung des Lichtes (oder des Schalters) bis dieser wieder von off -> on geschaltet wird.",
           "detect_non_ha_changes": "detect_non_ha_changes, entdeckt alle Änderungen über 10% am Licht (auch außerhalb von HA gemacht), 'take_over_control' muss aktiviert sein (ruft 'homeassistant.update_entity' jede 'interval' auf!)",
-          "transition": "transition, Wechselzeit in Sekunden"
+          "transition": "transition, Wechselzeit in Sekunden",
+	  "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden."
         }
       }
     },
     "error": {
-      "option_error": "Fehlerhafte Option"
+      "option_error": "Fehlerhafte Option",
+      "entity_missing": "Ein ausgewähltes Licht wurde nicht gefunden"
     }
   }
 }

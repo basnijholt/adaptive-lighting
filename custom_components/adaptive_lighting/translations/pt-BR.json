@@ -44,7 +44,8 @@
       }
     },
     "error": {
-      "option_error": "Opção inválida"
+      "option_error": "Opção inválida",
+      "entity_missing": "Uma luz selecionada não foi encontrada"
     }
   }
 }

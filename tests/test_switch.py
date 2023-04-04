@@ -10,9 +10,11 @@ from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
+    CONF_MAX_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_PREFER_RGB_COLOR,
     CONF_SEPARATE_TURN_ON_COMMANDS,
@@ -21,12 +23,14 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
+    CONF_USE_DEFAULTS,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
     DEFAULT_SLEEP_COLOR_TEMP,
     DOMAIN,
     SERVICE_APPLY,
+    SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
@@ -43,7 +47,7 @@ from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
-    ATTR_COLOR_TEMP,
+    ATTR_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -52,7 +56,9 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
+    ATTR_AREA_ID,
     ATTR_ENTITY_ID,
+    ATTR_SUPPORTED_FEATURES,
     CONF_LIGHTS,
     CONF_NAME,
     CONF_PLATFORM,
@@ -61,11 +67,14 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import Context, State
+from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
+from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
+import voluptuous.error
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, mock_area_registry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
@@ -179,7 +188,7 @@ async def setup_lights_and_switch(hass, extra_conf=None):
 
     # Setup switch
     lights = [
-        "light.bed_light",
+        ENTITY_LIGHT,
         "light.ceiling_lights",
     ]
     assert all(hass.states.get(light) is not None for light in lights)
@@ -222,7 +231,9 @@ async def test_adaptive_lighting_switches(hass):
     assert ADAPT_COLOR_SWITCH in data
     assert ADAPT_BRIGHTNESS_SWITCH in data
     assert UNDO_UPDATE_LISTENER in data
-    assert len(data.keys()) == 5
+    assert "instance" in data
+
+    assert len(data.keys()) == 6
 
 
 @pytest.mark.parametrize("lat,long,timezone", LAT_LONG_TZS)
@@ -338,7 +349,10 @@ async def test_light_settings(hass):
             state.entity_id
         ]
         assert state.attributes[ATTR_BRIGHTNESS] == last_service_data[ATTR_BRIGHTNESS]
-        assert state.attributes[ATTR_COLOR_TEMP] == last_service_data[ATTR_COLOR_TEMP]
+        assert (
+            state.attributes[ATTR_COLOR_TEMP_KELVIN]
+            == last_service_data[ATTR_COLOR_TEMP_KELVIN]
+        )
 
     # Turn off "sleep mode"
     await hass.services.async_call(
@@ -371,7 +385,10 @@ async def test_light_settings(hass):
         last_service_data = switch.turn_on_off_listener.last_service_data[
             state.entity_id
         ]
-        assert state.attributes[ATTR_COLOR_TEMP] == last_service_data[ATTR_COLOR_TEMP]
+        assert (
+            state.attributes[ATTR_COLOR_TEMP_KELVIN]
+            == last_service_data[ATTR_COLOR_TEMP_KELVIN]
+        )
 
     # At sunset the brightness should be max and color_temp at the smallest value
     light_states = await patch_time_and_get_updated_states(sunset)
@@ -481,7 +498,9 @@ async def test_manual_control(hass):
         return (light._brightness + 100) % 255
 
     def increased_color_temp():
-        return max((light._ct + 100) % light.max_mireds, light.min_mireds)
+        return max(
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+        )
 
     # Nothing is manually controlled
     await update()
@@ -511,16 +530,29 @@ async def test_manual_control(hass):
         await turn_switch(True, entity_id)
         assert not manual_control[ENTITY_LIGHT]
 
+    # Check that manual control is still enabled if set while bulb is off.
+    # Test issue #37
+    await turn_light(False)
+    await change_manual_control(True)
+    await turn_light(True)
+    assert manual_control[ENTITY_LIGHT]
+
     # Check that when 'adapt_brightness' is off, changing the brightness
     # doesn't mark it as manually controlled but changing color_temp
     # does
-    await turn_light(False)  # reset manually controlled status
-    await turn_light(True)
+    await turn_light(False)
+    await turn_light(True)  # reset manually controlled status
     assert not manual_control[ENTITY_LIGHT]
     await switch.adapt_brightness_switch.async_turn_off()
     await turn_light(True, brightness=increased_brightness())
     assert not manual_control[ENTITY_LIGHT]
-    await turn_light(True, color_temp=(light._ct + 100) % 500)
+    mired_range = (light.min_color_temp_kelvin, light.max_color_temp_kelvin)
+    kelvin_range = (
+        color_temperature_mired_to_kelvin(mired_range[1]),
+        color_temperature_mired_to_kelvin(mired_range[0]),
+    )
+    ptp_kelvin = kelvin_range[1] - kelvin_range[0]
+    await turn_light(True, color_temp_kelvin=(light._ct + 100) % ptp_kelvin)
     assert manual_control[ENTITY_LIGHT]
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
@@ -563,6 +595,50 @@ async def test_manual_control(hass):
     assert all([not manual_control[eid] for eid in switch._lights])
 
 
+async def test_auto_reset_manual_control(hass):
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass, {CONF_AUTORESET_CONTROL: 0.1}
+    )
+    context = switch.create_context("test")  # needs to be passed to update method
+    manual_control = switch.turn_on_off_listener.manual_control
+
+    async def update():
+        await switch._update_attrs_and_maybe_adapt_lights(transition=0, context=context)
+        await hass.async_block_till_done()
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: light.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        await update()
+        _LOGGER.debug(
+            "Turn light %s to state %s, to %s", light.entity_id, state, kwargs
+        )
+
+    _LOGGER.debug("Start test auto reset manual control")
+    await turn_light(True, brightness=1)
+    await turn_light(True, brightness=10)
+    assert manual_control[light.entity_id]
+    await asyncio.sleep(0.3)  # Should be enough time for auto reset
+    await update()
+    assert not manual_control[light.entity_id], (light, manual_control)
+
+    # Do a couple of quick changes and check that light is not reset
+    for i in range(3):
+        _LOGGER.debug("Quick change %s", i)
+        await turn_light(True, brightness=(i + 1) * 20)
+        await asyncio.sleep(0.05)  # Less than 0.1
+        assert manual_control[light.entity_id]
+
+    await asyncio.sleep(0.3)  # Wait the auto reset time
+    await update()
+    assert not manual_control[light.entity_id]
+
+
 async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
@@ -573,7 +649,9 @@ async def test_apply_service(hass):
         return (light._brightness + 100) % 255
 
     def increased_color_temp():
-        return max((light._ct + 100) % light.max_mireds, light.min_mireds)
+        return max(
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+        )
 
     async def change_light():
         await hass.services.async_call(
@@ -582,7 +660,7 @@ async def test_apply_service(hass):
             {
                 ATTR_ENTITY_ID: entity_id,
                 ATTR_BRIGHTNESS: increased_brightness(),
-                ATTR_COLOR_TEMP: increased_color_temp(),
+                ATTR_COLOR_TEMP_KELVIN: increased_color_temp(),
             },
             blocking=True,
         )
@@ -613,7 +691,7 @@ async def test_apply_service(hass):
     await apply(adapt_color=True, adapt_brightness=False)
     new_state = hass.states.get(entity_id).attributes
     assert old_state[ATTR_BRIGHTNESS] == new_state[ATTR_BRIGHTNESS]
-    assert old_state[ATTR_COLOR_TEMP] != new_state[ATTR_COLOR_TEMP]
+    assert old_state[ATTR_COLOR_TEMP_KELVIN] != new_state[ATTR_COLOR_TEMP_KELVIN]
 
     # Test only changing brightness
     await change_light()
@@ -621,7 +699,7 @@ async def test_apply_service(hass):
     await apply(adapt_color=False, adapt_brightness=True)
     new_state = hass.states.get(entity_id).attributes
     assert old_state[ATTR_BRIGHTNESS] != new_state[ATTR_BRIGHTNESS]
-    assert old_state[ATTR_COLOR_TEMP] == new_state[ATTR_COLOR_TEMP]
+    assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
 async def test_switch_off_on_off(hass):
@@ -694,24 +772,63 @@ async def test_significant_change(hass):
         )
         await hass.async_block_till_done()
 
-    switch, (bed_light_instance, *_) = await setup_lights_and_switch(hass)
+    async def set_brightness(val: int):
+        hass.states.async_set(
+            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: val, ATTR_SUPPORTED_FEATURES: 1}
+        )
+        await hass.async_block_till_done()
+
+    switch, _ = await setup_lights_and_switch(hass)
+    _LOGGER.debug("Test detect_non_ha_changes:")
+    switch._take_over_control = True
+    assert switch._take_over_control
+    switch._detect_non_ha_changes = True
+    assert switch._detect_non_ha_changes
+
+    # build last service data
+    await update(force=False)
+
+    # force=True should not reset manual control.
+    await turn_light(True, brightness=40)
+    await turn_light(True, brightness=20)
+    await update(force=False)
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    await update(force=True)
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+
+    # turn light off then on should reset manual control.
+    await turn_light(False)
     await turn_light(True)
-    await update(force=True)  # removes manual control
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
-    # Change brightness by setting state (not using 'light.turn_on')
-    attributes = hass.states.get(ENTITY_LIGHT).attributes
-    new_attributes = attributes.copy()
-    new_brightness = (attributes[ATTR_BRIGHTNESS] + 100) % 255
-    new_attributes[ATTR_BRIGHTNESS] = new_brightness
-    bed_light_instance._brightness = new_brightness
+    # Assert last_service_data got filled from update()
+    await update(force=True)
     assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-    for _ in range(switch.turn_on_off_listener.max_cnt_significant_changes):
+
+    # Simulate a transition to 255 where the update() is already using brightness 255.
+    await set_brightness(240)
+    await set_brightness(244)
+    await set_brightness(247)
+    await set_brightness(250)
+
+    # last_state_change should have our state changes.
+    # Change brightness by async_set (not using 'light.turn_on')
+    new_brightness = 50
+    await set_brightness(new_brightness)
+    _LOGGER.debug("Test: Brightness set to %s", new_brightness)
+
+    # mock homeassistant.core.HomeAssistant.helpers.entity_component.async_update_entity
+    # Otherwise what happens is update_entity() refreshes the state to the last call of
+    # light.turn_on(). This is because we are not using hass.states.async_set() to
+    # set the brightness of the light. We mock `async_update_ha_state` because
+    # `async_update_entity` calls it.
+    with patch("homeassistant.helpers.entity.Entity.async_update_ha_state"):
+        # On next update ENTITY_LIGHT should be marked as manually controlled
         await update(force=False)
-        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    # On next update the light should be marked as manually controlled
-    await update(force=False)
-    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        assert (
+            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+        )
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():
@@ -733,11 +850,15 @@ def test_is_our_context():
 
 def test_attributes_have_changed():
     """Test _attributes_have_changed function."""
-    attributes_1 = {ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0), ATTR_COLOR_TEMP: 100}
+    attributes_1 = {
+        ATTR_BRIGHTNESS: 1,
+        ATTR_RGB_COLOR: (0, 0, 0),
+        ATTR_COLOR_TEMP_KELVIN: 100,
+    }
     attributes_2 = {
         ATTR_BRIGHTNESS: 100,
         ATTR_RGB_COLOR: (255, 0, 0),
-        ATTR_COLOR_TEMP: 300,
+        ATTR_COLOR_TEMP_KELVIN: 300,
     }
     kwargs = dict(
         light="light.test",
@@ -756,7 +877,7 @@ def test_attributes_have_changed():
         )
     # Switch from rgb_color to color_temp
     assert _attributes_have_changed(
-        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP: 100},
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 100},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0)},
         **kwargs,
     )
@@ -891,3 +1012,91 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
+
+
+async def test_area(hass):
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+
+    area_registry = mock_area_registry(hass)
+    area_registry.async_create("test_area")
+
+    entity = entity_registry.async_get(hass).async_get_or_create(
+        LIGHT_DOMAIN, "demo", light.unique_id
+    )
+    entity = entity_registry.async_get(hass).async_update_entity(
+        entity.entity_id, area_id="test_area"
+    )
+    _LOGGER.debug("test_area entity: %s", entity)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_AREA_ID: entity.area_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert light.entity_id in switch.turn_on_off_listener.last_service_data
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_AREA_ID: entity.area_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    _LOGGER.debug(
+        "switch.turn_on_off_listener.last_service_data: %s",
+        switch.turn_on_off_listener.last_service_data,
+    )
+    assert light.entity_id not in switch.turn_on_off_listener.last_service_data
+
+
+async def test_change_switch_settings_service(hass):
+    """Test adaptive_lighting.change_switch_settings service."""
+    switch, (_, _, light) = await setup_lights_and_switch(hass)
+    entity_id = light.entity_id
+    assert entity_id not in switch._lights
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                **kwargs,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    # Test changing sunrise offset
+    assert switch._sun_light_settings.sunrise_offset.total_seconds() == 0
+    await change_switch_settings(**{CONF_SUNRISE_OFFSET: 10})
+    assert switch._sun_light_settings.sunrise_offset.total_seconds() == 10
+
+    # Test changing max brightness
+    assert switch._sun_light_settings.max_brightness == 100
+    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 50})
+    assert switch._sun_light_settings.max_brightness == 50
+
+    # Test changing to illegal max brightness
+    with pytest.raises(
+        voluptuous.error.MultipleInvalid,
+        match="value must be at most 100 for dictionary",
+    ):
+        await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
+
+    # Change CONF_MIN_COLOR_TEMP, the factory default is 2000, but setup_lights_and_switch
+    # sets it to 2500
+    assert switch._sun_light_settings.min_color_temp == 2500
+
+    # testing with "factory" should change it to 2000
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    assert switch._sun_light_settings.min_color_temp == 2000
+
+    # testing with "current" should not change things
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "current"})
+    assert switch._sun_light_settings.min_color_temp == 2000
+
+    # testing with "configuration" should revert back to 2500
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
+    assert switch._sun_light_settings.min_color_temp == 2500

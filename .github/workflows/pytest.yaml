@@ -1,0 +1,61 @@
+name: pytest
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  pytest:
+    name: Run pytest
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3
+
+      - name: Install Home Assistant
+        uses: ./.github/workflows/install_dependencies
+        with:
+          python_version: ${{ matrix.python-version }}
+
+      - name: Click here for troubleshooting steps if tests break again.
+        run: |
+          echo "::notice::### If tests fail, try these debug steps: ###"
+          echo "::notice::### 1. Replace '-qq' from .github/workflow/pytest.yaml. with '-v' for extra verbosity. ###"
+          echo "::notice::### 2. Push or run action again. ###"
+          echo "::notice::### 3. Check for any log messages in github actions resembling the following using CTRL+F ###
+          echo "::notice::### 4. ERROR:homeassistant.setup:Setup failed for 'component': Unable to import component: No module named ''module'' ###"
+          echo "::notice::### 5. add 'component'.'module' (without the '') from the above log into the 'required' list inside of 'test_dependencies.py' ###"
+          echo "::notice::### 6. Try again! If more issues persist they should be easily solvable by reading the verbose logs now. ###"
+
+      - name: Link custom_components/adaptive_lighting
+        run: |
+          cd core
+
+          # Link homeassitant.components.adaptive_lighting
+          cd homeassistant/components
+          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
+          cd -
+
+          # Link adaptive_lighting tests
+          cd tests/components/
+          ln -fs ../../../tests adaptive_lighting
+          cd -
+
+      - name: Run pytest
+        timeout-minutes: 60
+        run: |
+          cd core
+          python3 -X dev -m pytest \
+            -qq \
+            --timeout=9 \
+            --durations=10 \
+            --cov="homeassistant" \
+            --cov-report=xml \
+            -o console_output_style=count \
+            -p no:sugar \
+            tests/components/adaptive_lighting

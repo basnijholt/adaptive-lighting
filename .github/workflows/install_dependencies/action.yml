@@ -1,0 +1,36 @@
+name: 'Install Dependencies'
+description: 'Install Home Assistant and test dependencies'
+inputs:
+  python_version:
+    description: 'Python version'
+    required: true
+    default: '3.10'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out code from GitHub
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.ref }}
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Check out code from GitHub
+      uses: actions/checkout@v3
+      with:
+        repository: home-assistant/core
+        path: core
+    - name: Set up Python ${{ inputs.python_version }}
+      id: python
+      uses: actions/setup-python@v4.1.0
+      with:
+        python-version: ${{ inputs.python_version }}
+    - name: Install dependencies
+      shell: bash
+      run: |
+        echo "::warning::### WARNING! Deprecation warnings muted with option '--use-pep517' please address this at some point in pytest.yaml. ###"
+        pip install -r core/requirements.txt --use-pep517
+        pip install -r core/requirements_test.txt --use-pep517
+        pip install -e core/ --use-pep517
+        pip install $(python test_dependencies.py) --use-pep517

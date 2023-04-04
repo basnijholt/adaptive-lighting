@@ -43,7 +43,8 @@
          }
       },
       "error":{
-         "option_error":"En eller flere valgte innstillinger er ugyldige"
+         "option_error":"En eller flere valgte innstillinger er ugyldige",
+         "entity_missing": "Et utvalgt lys ble ikke funnet"
       }
    }
 }
