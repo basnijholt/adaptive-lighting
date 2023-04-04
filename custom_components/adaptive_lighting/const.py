@@ -42,24 +42,24 @@ DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
     "Home Assistant when set to `true`. 📝"
 )
 
-CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
+CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 120
 DOCS[CONF_INITIAL_TRANSITION] = (
     "Duration of the first transition when lights turn "
     "from `off` to `on` in seconds. ⏲️"
 )
 
-CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
+CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 15
 DOCS[CONF_SLEEP_TRANSITION] = (
     'Duration of transition when "sleep mode" is toggled ' "in seconds. 😴"
 )
 
-CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
+CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 5
 DOCS[CONF_INTERVAL] = "Frequency to adapt the lights, in seconds. 🔄"
 
 CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS = "max_brightness", 100
 DOCS[CONF_MAX_BRIGHTNESS] = "Maximum brightness percentage. 💡"
 
-CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP = "max_color_temp", 5500
+CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP = "max_color_temp", 6500
 DOCS[CONF_MAX_COLOR_TEMP] = "Coldest color temperature in Kelvin. ❄️"
 
 CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS = "min_brightness", 1
