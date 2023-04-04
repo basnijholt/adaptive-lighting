@@ -59,3 +59,18 @@ jobs:
             -o console_output_style=count \
             -p no:sugar \
             tests/components/adaptive_lighting
+
+      - name: Run Tests with Coverage
+        run: |
+          cd core
+          pytest --cov=homeassistant --cov-report=html tests/components/adaptive_lighting
+
+      - name: Push Coverage Report to Branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -B coverage-report
+          mv core/htmlcov coverage-report
+          git add coverage-report
+          git commit -m "Update coverage report"
+          git push -f origin coverage-report
