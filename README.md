@@ -379,7 +379,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 #### :high_brightness: Brightness
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
 
-#### While using `adapt_until_sleep: true`
+#### While using `transition_until_sleep: true`
 ![image](https://user-images.githubusercontent.com/2219836/228949675-f9699624-8abc-466c-bb04-250ce0f495b8.png)
 
 
@@ -421,7 +421,6 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="http://medium.com/@hudsonbrendon"><img src="https://avatars.githubusercontent.com/u/5201888?v=4?s=100" width="100px;" alt="Hudson Brendon"/><br /><sub><b>Hudson Brendon</b></sub></a><br /><a href="#translation-hudsonbrendon" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/gvssr"><img src="https://avatars.githubusercontent.com/u/61377476?v=4?s=100" width="100px;" alt="Gabriel Visser"/><br /><sub><b>Gabriel Visser</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=gvssr" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/glebsterx"><img src="https://avatars.githubusercontent.com/u/8779304?v=4?s=100" width="100px;" alt="Gleb"/><br /><sub><b>Gleb</b></sub></a><br /><a href="#translation-glebsterx" title="Translation">🌍</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ghost"><img src="https://avatars.githubusercontent.com/u/10137?v=4?s=100" width="100px;" alt="Deleted user"/><br /><sub><b>Deleted user</b></sub></a><br /><a href="#translation-ghost" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://omg.dje.li/"><img src="https://avatars.githubusercontent.com/u/103232?v=4?s=100" width="100px;" alt="Avi Miller"/><br /><sub><b>Avi Miller</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Djelibeybi" title="Documentation">📖</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Djelibeybi" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/denysdovhan"><img src="https://avatars.githubusercontent.com/u/3459374?v=4?s=100" width="100px;" alt="Denys Dovhan"/><br /><sub><b>Denys Dovhan</b></sub></a><br /><a href="#translation-denysdovhan" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://davidstenbeck.com/"><img src="https://avatars.githubusercontent.com/u/3330933?v=4?s=100" width="100px;" alt="David Stenbeck"/><br /><sub><b>David Stenbeck</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Davst" title="Documentation">📖</a></td>
