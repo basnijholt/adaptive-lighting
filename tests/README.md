@@ -5,8 +5,16 @@ Alternatively, you can use the provided Docker image to run the tests locally.
 
 To run the tests using the Docker image, navigate to the `adaptive-lighting` repo folder and execute the following command:
 
+Linux or MacOS:
+
 ```bash
 docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
+```
+
+Windows:
+
+```bash
+docker run -v %cd%:/app basnijholt/adaptive-lighting:latest
 ```
 
 This command will download the Docker image from [the adaptive-lighting Docker Hub repo](https://hub.docker.com/r/basnijholt/adaptive-lighting) and run the tests.
