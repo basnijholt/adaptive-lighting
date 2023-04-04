@@ -56,6 +56,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_ENTITY_ID,
+    ATTR_SUPPORTED_FEATURES,
     CONF_LIGHTS,
     CONF_NAME,
     CONF_PLATFORM,
@@ -769,25 +770,63 @@ async def test_significant_change(hass):
         )
         await hass.async_block_till_done()
 
-    switch, (bed_light_instance, *_) = await setup_lights_and_switch(hass)
+    async def set_brightness(val: int):
+        hass.states.async_set(
+            ENTITY_LIGHT, "on", {ATTR_BRIGHTNESS: val, ATTR_SUPPORTED_FEATURES: 1}
+        )
+        await hass.async_block_till_done()
+
+    switch, _ = await setup_lights_and_switch(hass)
+    _LOGGER.debug("Test detect_non_ha_changes:")
+    switch._take_over_control = True
+    assert switch._take_over_control
+    switch._detect_non_ha_changes = True
+    assert switch._detect_non_ha_changes
+
+    # build last service data
+    await update(force=False)
+
+    # force=True should not reset manual control.
+    await turn_light(True, brightness=40)
+    await turn_light(True, brightness=20)
+    await update(force=False)
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    await update(force=True)
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+
+    # turn light off then on should reset manual control.
+    await turn_light(False)
     await turn_light(True)
-    await update(force=True)  # removes manual control
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
-    # Change brightness by setting state (not using 'light.turn_on')
-    attributes = hass.states.get(ENTITY_LIGHT).attributes
-    new_attributes = attributes.copy()
-    new_brightness = (attributes[ATTR_BRIGHTNESS] + 100) % 255
-    new_attributes[ATTR_BRIGHTNESS] = new_brightness
-    bed_light_instance._brightness = new_brightness
+    # Assert last_service_data got filled from update()
+    await update(force=True)
     assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-    for _ in range(switch.turn_on_off_listener.max_cnt_significant_changes):
+
+    # Simulate a transition to 255 where the update() is already using brightness 255.
+    await set_brightness(240)
+    await set_brightness(244)
+    await set_brightness(247)
+    await set_brightness(250)
+
+    # last_state_change should have our state changes.
+    # Change brightness by async_set (not using 'light.turn_on')
+    new_brightness = 50
+    await set_brightness(new_brightness)
+    _LOGGER.debug("Test: Brightness set to %s", new_brightness)
+
+    # mock homeassistant.core.HomeAssistant.helpers.entity_component.async_update_entity
+    # Otherwise what happens is update_entity() refreshes the state to the last call of
+    # light.turn_on(). This is because we are not using hass.states.async_set() to
+    # set the brightness of the light. We mock `async_update_ha_state` because
+    # `async_update_entity` calls it.
+    with patch("homeassistant.helpers.entity.Entity.async_update_ha_state"):
+        # On next update ENTITY_LIGHT should be marked as manually controlled
         await update(force=False)
-        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    # On next update the light should be marked as manually controlled
-    await update(force=False)
-    # TODO: the state should be `bool(manual_control) is True`
-    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        assert (
+            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+        )
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 def test_color_difference_redmean():

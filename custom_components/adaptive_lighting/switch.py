@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import bisect
-from collections import defaultdict
+from collections.abc import Callable, Coroutine
 from copy import deepcopy
 from dataclasses import dataclass
 import datetime
@@ -802,10 +802,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
-        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
+        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
+        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        if not data[CONF_TAKE_OVER_CONTROL] and data[CONF_DETECT_NON_HA_CHANGES]:
+            _LOGGER.warning(
+                "%s: Config mismatch: 'detect_non_ha_changes: true' "
+                "requires 'take_over_control' to be enabled. Adjusting config "
+                "and continuing setup with `take_over_control: true`.",
+                self._name,
+            )
+            self._take_over_control = True
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._expand_light_groups()  # updates manual control timers
         _loc = get_astral_location(self.hass)
@@ -1128,11 +1137,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         )
         self.async_write_ha_state()
+
         if lights is None:
             lights = self._lights
-        if (self._only_once and not force) or not lights:
+
+        if not force and self._only_once:
             return
-        await self._adapt_lights(lights, transition, force, context)
+
+        filtered_lights = []
+        for light in lights:
+            # Don't adapt lights that haven't finished prior transitions.
+            if force or not self.turn_on_off_listener.transition_timers.get(light):
+                filtered_lights.append(light)
+
+        if not filtered_lights:
+            return
+
+        await self._adapt_lights(filtered_lights, transition, force, context)
 
     async def _adapt_lights(
         self,
@@ -1532,8 +1553,6 @@ class TurnOnOffListener:
         self.sleep_tasks: dict[str, asyncio.Task] = {}
         # Tracks which lights are manually controlled
         self.manual_control: dict[str, bool] = {}
-        # Counts the number of times (in a row) a light had a changed state.
-        self.cnt_significant_changes: dict[str, int] = defaultdict(int)
         # Track 'state_changed' events of self.lights resulting from this integration
         self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -1543,9 +1562,8 @@ class TurnOnOffListener:
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
         self.auto_reset_manual_control_times: dict[str, float] = {}
 
-        # When a state is different `max_cnt_significant_changes` times in a row,
-        # mark it as manually_controlled.
-        self.max_cnt_significant_changes = 2
+        # Track light transitions
+        self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
 
         self.remove_listener = self.hass.bus.async_listen(
             EVENT_CALL_SERVICE, self.turn_on_off_event_listener
@@ -1553,6 +1571,56 @@ class TurnOnOffListener:
         self.remove_listener2 = self.hass.bus.async_listen(
             EVENT_STATE_CHANGED, self.state_changed_event_listener
         )
+
+    def _handle_timer(
+        self,
+        light: str,
+        timers_dict: dict[str, _AsyncSingleShotTimer],
+        delay: float | None,
+        reset_coroutine: Callable[[], Coroutine[Any, Any, None]],
+    ) -> None:
+        timer = timers_dict.get(light)
+        if timer is not None:
+            if delay is None:  # Timer object exists, but should not anymore
+                timer.cancel()
+                timers_dict.pop(light)
+            else:  # Timer object already exists, just update the delay and restart it
+                timer.delay = delay
+                timer.start()
+        elif delay is not None:  # Timer object does not exist, create it
+            timer = _AsyncSingleShotTimer(delay, reset_coroutine)
+            timers_dict[light] = timer
+            timer.start()
+
+    def start_transition_timer(self, light: str) -> None:
+        """Mark a light as manually controlled."""
+        _LOGGER.debug("Start transition timer for %s", light)
+        last_service_data = self.last_service_data
+        if (
+            not last_service_data
+            or light not in last_service_data
+            or ATTR_TRANSITION not in last_service_data[light]
+        ):
+            return
+
+        delay = last_service_data[light][ATTR_TRANSITION]
+
+        async def reset():
+            _LOGGER.debug(
+                "Transition finished for light %s",
+                light,
+            )
+            switches = _get_switches_with_lights(self.hass, [light])
+            for switch in switches:
+                if not switch.is_on:
+                    continue
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    [light],
+                    force=False,
+                    context=switch.create_context("transit"),
+                )
+
+        self._handle_timer(light, self.transition_timers, delay, reset)
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
@@ -1576,40 +1644,28 @@ class TurnOnOffListener:
         _LOGGER.debug("Marking '%s' as manually controlled.", light)
         self.manual_control[light] = True
         delay = self.auto_reset_manual_control_times.get(light)
-        timer = self.auto_reset_manual_control_timers.get(light)
-        if timer is not None:
-            if delay is None:  # Timer object exists, but should not anymore
-                timer.cancel()
-                self.auto_reset_manual_control_timers.pop(light)
-            else:  # Timer object already exists, just update the delay and restart it
-                timer.delay = delay
-                timer.start()
-        elif delay is not None:  # Timer object does not exist, create it
 
-            async def reset():
-                self.reset(light)
-                switches = _get_switches_with_lights(self.hass, [light])
-                for switch in switches:
-                    if not switch.is_on:
-                        continue
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        [light],
-                        transition=switch._initial_transition,
-                        force=True,
-                        context=switch.create_context("autoreset"),
-                    )
-                _LOGGER.debug(
-                    "Auto resetting 'manual_control' status of '%s' because"
-                    " it was not manually controlled for %s seconds.",
-                    light,
-                    delay,
+        async def reset():
+            self.reset(light)
+            switches = _get_switches_with_lights(self.hass, [light])
+            for switch in switches:
+                if not switch.is_on:
+                    continue
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    [light],
+                    transition=switch._initial_transition,
+                    force=True,
+                    context=switch.create_context("autoreset"),
                 )
-                assert not self.manual_control[light]
+            _LOGGER.debug(
+                "Auto resetting 'manual_control' status of '%s' because"
+                " it was not manually controlled for %s seconds.",
+                light,
+                delay,
+            )
+            assert not self.manual_control[light]
 
-            timer = _AsyncSingleShotTimer(delay, reset)
-            self.auto_reset_manual_control_timers[light] = timer
-            timer.start()
+        self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
@@ -1621,7 +1677,6 @@ class TurnOnOffListener:
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
-            self.cnt_significant_changes[light] = 0
 
     async def turn_on_off_event_listener(self, event: Event) -> None:
         """Track 'light.turn_off' and 'light.turn_on' service calls."""
@@ -1700,11 +1755,7 @@ class TurnOnOffListener:
                 new_state.context.id,
             )
 
-        if (
-            new_state is not None
-            and new_state.state == STATE_ON
-            and is_our_context(new_state.context)
-        ):
+        if new_state is not None and new_state.state == STATE_ON:
             # It is possible to have multiple state change events with the same context.
             # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
             # event leads to an instant state change of
@@ -1717,21 +1768,29 @@ class TurnOnOffListener:
             # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
             # Philips Hue White GU10 Bluetooth lights).
             old_state: list[State] | None = self.last_state_change.get(entity_id)
-            if (
-                old_state is not None
-                and old_state[0].context.id == new_state.context.id
-            ):
-                # If there is already a state change event from this event (with this
-                # context) then append it to the already existing list.
-                _LOGGER.debug(
-                    "State change event of '%s' is already in 'self.last_state_change' (%s)"
-                    " adding this state also",
-                    entity_id,
-                    new_state.context.id,
-                )
+            if is_our_context(new_state.context):
+                if (
+                    old_state is not None
+                    and old_state[0].context.id == new_state.context.id
+                ):
+                    _LOGGER.debug(
+                        "TurnOnOffListener: State change event of '%s' is already"
+                        " in 'self.last_state_change' (%s)"
+                        " adding this state also",
+                        entity_id,
+                        new_state.context.id,
+                    )
+                    self.last_state_change[entity_id].append(new_state)
+                else:
+                    _LOGGER.debug(
+                        "TurnOnOffListener: New adapt '%s' found for %s",
+                        new_state,
+                        entity_id,
+                    )
+                    self.last_state_change[entity_id] = [new_state]
+                    self.start_transition_timer(entity_id)
+            elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
-            else:
-                self.last_state_change[entity_id] = [new_state]
 
     def is_manually_controlled(
         self,
@@ -1786,64 +1845,58 @@ class TurnOnOffListener:
         detected, we mark the light as 'manually controlled' until the light
         or switch is turned 'off' and 'on' again.
         """
-        if light not in self.last_state_change:
-            return False
-        old_states: list[State] = self.last_state_change[light]
-        await self.hass.helpers.entity_component.async_update_entity(light)
-        new_state = self.hass.states.get(light)
+        last_service_data = self.last_service_data.get(light)
+        if last_service_data is None:
+            return
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
-            new_attributes=new_state.attributes,
             adapt_brightness=adapt_brightness,
             adapt_color=adapt_color,
             context=context,
         )
-        for index, old_state in enumerate(old_states):
-            changed = compare_to(old_attributes=old_state.attributes)
-            if not changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt change event nr. %s (context.id=%s)",
-                    light,
-                    index,
-                    context.id,
-                )
-                break
-
-        last_service_data = self.last_service_data.get(light)
-        if changed and last_service_data is not None:
-            # It can happen that the state change events that are associated
-            # with the last 'light.turn_on' call by this integration were not
-            # final states. Possibly a later EVENT_STATE_CHANGED happened, where
-            # the correct target brightness/color was reached.
-            changed = compare_to(old_attributes=last_service_data)
-            if not changed:
+        # Update state and check for a manual change not done in HA.
+        # Ensure HASS is correctly updating your light's state with
+        # light.turn_on calls if any problems arise. This
+        # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
+        if switch._detect_non_ha_changes:
+            _LOGGER.debug(
+                "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
+                " and check if it's last adapt succeeded.",
+                switch._name,
+                light,
+            )
+            # This update_entity probably isn't necessary now that we're checking
+            # if transitions finished from our last adapt.
+            await self.hass.helpers.entity_component.async_update_entity(light)
+            refreshed_state = self.hass.states.get(light)
+            _LOGGER.debug(
+                "%s: Current state of %s: %s",
+                switch._name,
+                light,
+                refreshed_state,
+            )
+            changed = compare_to(
+                old_attributes=last_service_data,
+                new_attributes=refreshed_state.attributes,
+            )
+            if changed:
                 _LOGGER.debug(
                     "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
                     light,
                     context.id,
                 )
-
-        n_changes = self.cnt_significant_changes[light]
-        if changed:
-            self.cnt_significant_changes[light] += 1
-            if n_changes >= self.max_cnt_significant_changes:
-                # Only mark a light as significantly changing, if changed==True
-                # N times in a row. We do this because sometimes a state changes
-                # happens only *after* a new update interval has already started.
                 self.mark_as_manual_control(light)
                 _fire_manual_control_event(switch, light, context, is_async=False)
-        else:
-            if n_changes > 1:
-                _LOGGER.debug(
-                    "State of '%s' had 'cnt_significant_changes=%s' but the state"
-                    " changed to the expected settings now",
-                    light,
-                    n_changes,
-                )
-            self.cnt_significant_changes[light] = 0
-
-        return changed
+                return True
+        _LOGGER.debug(
+            "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
+            " context.id=%s.",
+            switch._name,
+            light,
+            context.id,
+        )
+        return False
 
     async def maybe_cancel_adjusting(
         self, entity_id: str, off_to_on_event: Event, on_to_off_event: Event | None
