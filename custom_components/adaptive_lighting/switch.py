@@ -629,9 +629,9 @@ def color_difference_redmean(
     return math.sqrt(red_term + green_term + blue_term)
 
 
+# All comparisons should be done with RGB since
+# converting anything to color temp is inaccurate.
 def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
-    # All comparisons should be done with RGB since
-    # converting anything to color temp is inaccurate.
     if ATTR_RGB_COLOR in attributes:
         return attributes
 
@@ -654,16 +654,11 @@ def _add_missing_attributes(
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
 ) -> dict[str, Any]:
-    should_convert_old = not any(
-        attr in old_attributes for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
-    )
-    should_convert_new = not any(
-        attr in new_attributes for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
-    )
-
-    if should_convert_old:
+    if not any(
+        attr in old_attributes and attr in new_attributes
+        for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
+    ):
         old_attributes = _convert_attributes(old_attributes)
-    if should_convert_new:
         new_attributes = _convert_attributes(new_attributes)
 
     return old_attributes, new_attributes
