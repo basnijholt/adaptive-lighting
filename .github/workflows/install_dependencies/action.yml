@@ -34,3 +34,4 @@ runs:
         pip install -r core/requirements_test.txt --use-pep517
         pip install -e core/ --use-pep517
         pip install $(python test_dependencies.py) --use-pep517
+        pip install jaraco.functools
