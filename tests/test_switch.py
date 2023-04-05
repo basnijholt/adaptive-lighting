@@ -47,6 +47,7 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
+    ATTR_XY_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF
@@ -873,10 +874,28 @@ def test_attributes_have_changed():
         assert _attributes_have_changed(
             old_attributes=attributes_1, new_attributes=attrs, **kwargs
         )
-    # Switch from rgb_color to color_temp
-    assert _attributes_have_changed(
-        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 100},
-        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (0, 0, 0)},
+    _LOGGER.debug("Test switch from color_temp to rgb_color")
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
+        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (255, 166, 87)},
+        **kwargs,
+    )
+    _LOGGER.debug("Test switch from rgb_color to color_temp")
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (255, 166, 87)},
+        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
+        **kwargs,
+    )
+    _LOGGER.debug("Test switch from color_temp to color_xy")
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
+        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_XY_COLOR: (0.526, 0.387)},
+        **kwargs,
+    )
+    _LOGGER.debug("Test switch from color_xy to color_temp")
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 1, ATTR_XY_COLOR: (0.526, 0.387)},
+        new_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         **kwargs,
     )
 
