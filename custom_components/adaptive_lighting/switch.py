@@ -1633,33 +1633,28 @@ class TurnOnOffListener:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        _LOGGER.debug("Start transition timer for %s", light)
-        last_service_data = self.last_service_data
-        if (
-            not last_service_data
-            or light not in last_service_data
-            or ATTR_TRANSITION not in last_service_data[light]
-        ):
+        last_service_data = self.last_service_data.get(light)
+        if not last_service_data:
+            _LOGGER.debug("This should not ever happen. Please report to the devs.")
             return
-
-        delay = last_service_data[light][ATTR_TRANSITION]
+        last_transition = last_service_data.get(ATTR_TRANSITION)
+        if not last_transition:
+            _LOGGER.debug(
+                "No transition in last adapt for light %s, continuing...", light
+            )
+            return
+        _LOGGER.debug(
+            "Start transition timer of %s seconds for light %s", last_transition, light
+        )
 
         async def reset():
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
             )
-            switches = _get_switches_with_lights(self.hass, [light])
-            for switch in switches:
-                if not switch.is_on:
-                    continue
-                await switch._update_attrs_and_maybe_adapt_lights(
-                    [light],
-                    force=False,
-                    context=switch.create_context("transit"),
-                )
+            self.transition_timers.pop(light, None)
 
-        self._handle_timer(light, self.transition_timers, delay, reset)
+        self._handle_timer(light, self.transition_timers, last_transition, reset)
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
