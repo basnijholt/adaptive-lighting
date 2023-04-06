@@ -26,7 +26,6 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNSET_TIME,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
-    CONF_ULID_MAX_LENGTH,
     CONF_USE_DEFAULTS,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
@@ -221,11 +220,10 @@ async def setup_lights_and_switch(hass, extra_conf=None):
 
 
 def create_random_context() -> str:
+    ulid_max_length = 26  # changed from 36->26 in core2023.4.0
     return Context(
         id="".join(
-            random_choices(
-                string.ascii_uppercase + string.digits, k=CONF_ULID_MAX_LENGTH
-            )
+            random_choices(string.ascii_uppercase + string.digits, k=ulid_max_length)
         ),
         parent_id=None,
     )

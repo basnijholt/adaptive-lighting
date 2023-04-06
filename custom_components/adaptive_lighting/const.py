@@ -12,7 +12,6 @@ ICON_COLOR_TEMP = "mdi:sun-thermometer"
 ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
-CONF_ULID_MAX_LENGTH = 26  # changed from 36->26 in core2023.4.0
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
