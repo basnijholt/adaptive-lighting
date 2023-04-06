@@ -7,6 +7,7 @@ import logging
 from random import randint
 from unittest.mock import patch
 
+import homeassistant
 from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
@@ -73,6 +74,7 @@ from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
+from packaging.version import parse
 import pytest
 import ulid_transform
 import voluptuous.error
@@ -81,6 +83,8 @@ from tests.common import MockConfigEntry, mock_area_registry
 from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
+HA_VERSION = parse(homeassistant.__version__)
+
 
 SUNRISE = datetime.datetime(
     year=2020,
@@ -888,6 +892,10 @@ def test_attributes_have_changed():
     )
 
 
+@pytest.mark.skipif(
+    HA_VERSION < parse("2023.4.0"),
+    reason="Only applicable for homeassistant >= 2023.4.0",
+)
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_state_change_handlers(hass):
     """
