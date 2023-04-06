@@ -638,6 +638,25 @@ async def test_auto_reset_manual_control(hass):
     assert not manual_control[light.entity_id]
 
 
+async def test_transition_timers(hass):
+    switch, (light, *_) = await setup_lights_and_switch()
+
+    async def update(force):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            transition=1,
+            context=switch.create_context("test"),
+            force=force,
+        )
+        await hass.async_block_till_done()
+
+    _LOGGER.debug("Start test of transition timers")
+    await update(True)
+    await asyncio.sleep(0.5)
+    assert switch.turn_on_off_listener.transition_timers.get(light)
+    await asyncio.sleep(2)
+    assert not switch.turn_on_off_listener.transition_timers.get(light)
+
+
 async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
