@@ -1102,7 +1102,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         # See #80. Doesn't check if transitions differ but it does the job.
         last_service_data = self.turn_on_off_listener.last_service_data
-        if last_service_data.get(light) == service_data:
+        if not force and last_service_data.get(light) == service_data:
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
@@ -1167,14 +1167,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lights is None:
             lights = self._lights
 
-        if not force and self._only_once:
-            return
-
         filtered_lights = []
-        for light in lights:
-            # Don't adapt lights that haven't finished prior transitions.
-            if force or not self.turn_on_off_listener.transition_timers.get(light):
-                filtered_lights.append(light)
+        if not force:
+            if self._only_once:
+                return
+            for light in lights:
+                # Don't adapt lights that haven't finished prior transitions.
+                timer = self.turn_on_off_listener.transition_timers.get(light)
+                if timer is not None and timer.is_running():
+                    _LOGGER.debug(
+                        "%s: Light '%s' is still transitioning",
+                        self._name,
+                        light,
+                    )
+                else:
+                    filtered_lights.append(light)
+        else:
+            filtered_lights = lights
 
         if not filtered_lights:
             return
@@ -1620,33 +1629,28 @@ class TurnOnOffListener:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        _LOGGER.debug("Start transition timer for %s", light)
-        last_service_data = self.last_service_data
-        if (
-            not last_service_data
-            or light not in last_service_data
-            or ATTR_TRANSITION not in last_service_data[light]
-        ):
+        last_service_data = self.last_service_data.get(light)
+        if not last_service_data:
+            _LOGGER.debug("This should not ever happen. Please report to the devs.")
             return
-
-        delay = last_service_data[light][ATTR_TRANSITION]
+        last_transition = last_service_data.get(ATTR_TRANSITION)
+        if not last_transition:
+            _LOGGER.debug(
+                "No transition in last adapt for light %s, continuing...", light
+            )
+            return
+        _LOGGER.debug(
+            "Start transition timer of %s seconds for light %s", last_transition, light
+        )
 
         async def reset():
+            ValueError("TEST")
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
             )
-            switches = _get_switches_with_lights(self.hass, [light])
-            for switch in switches:
-                if not switch.is_on:
-                    continue
-                await switch._update_attrs_and_maybe_adapt_lights(
-                    [light],
-                    force=False,
-                    context=switch.create_context("transit"),
-                )
 
-        self._handle_timer(light, self.transition_timers, delay, reset)
+        self._handle_timer(light, self.transition_timers, last_transition, reset)
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
@@ -1769,7 +1773,7 @@ class TurnOnOffListener:
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
         entity_id = event.data.get(ATTR_ENTITY_ID, "")
-        if entity_id not in self.lights or entity_id.split(".")[0] != LIGHT_DOMAIN:
+        if entity_id not in self.lights:
             return
 
         new_state = event.data.get("new_state")
@@ -1814,6 +1818,10 @@ class TurnOnOffListener:
                         entity_id,
                     )
                     self.last_state_change[entity_id] = [new_state]
+                    _LOGGER.debug(
+                        "Last transition: %s",
+                        self.last_service_data[entity_id].get(ATTR_TRANSITION),
+                    )
                     self.start_transition_timer(entity_id)
             elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
