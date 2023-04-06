@@ -284,7 +284,6 @@ def create_transition_events(
     return all_events
 
 
-@pytest.mark.dependency()
 async def test_adaptive_lighting_switches(hass):
     """Test switches created for adaptive_lighting integration."""
     entry, _ = await setup_switch(hass, {})
@@ -845,7 +844,6 @@ def test_color_difference_redmean():
     color_difference_redmean((0, 0, 0), (255, 255, 255))
 
 
-@pytest.mark.dependency()
 def test_attributes_have_changed():
     """Test _attributes_have_changed function."""
     attributes_1 = {
