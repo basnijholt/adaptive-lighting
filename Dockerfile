@@ -21,7 +21,8 @@ RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
 # Install home-assistant/core dependencies
 RUN pip3 install -r /core/requirements.txt --use-pep517 && \
     pip3 install -r /core/requirements_test.txt --use-pep517 && \
-    pip3 install -e /core/ --use-pep517
+    pip3 install -e /core/ --use-pep517 && \
+    pip3 install jaraco.functools --use-pep517
 
 # Clone the Adaptive Lighting repository
 RUN git clone https://github.com/basnijholt/adaptive-lighting.git /app

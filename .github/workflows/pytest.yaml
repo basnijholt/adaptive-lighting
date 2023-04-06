@@ -58,4 +58,5 @@ jobs:
             --cov-report=xml \
             -o console_output_style=count \
             -p no:sugar \
+            -W ignore::UserWarning \
             tests/components/adaptive_lighting
