@@ -88,6 +88,7 @@ from homeassistant.util.color import (
     color_xy_to_RGB,
 )
 import homeassistant.util.dt as dt_util
+import ulid_transform
 import voluptuous as vol
 
 from .const import (
@@ -182,21 +183,58 @@ BRIGHTNESS_ATTRS = {
 }
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
-_DOMAIN_SHORT = "adapt_lgt"
+_DOMAIN_SHORT = "al"
 
 
-def _int_to_bytes(i: int, signed: bool = False) -> bytes:
-    bits = i.bit_length()
-    if signed:
-        # Make room for the sign bit.
-        bits += 1
-    return i.to_bytes((bits + 7) // 8, "little", signed=signed)
+def _int_to_base36(num: int) -> str:
+    """
+    Convert an integer to its base-36 representation using numbers and uppercase letters.
+
+    Base-36 encoding uses digits 0-9 and uppercase letters A-Z, providing a case-insensitive
+    alphanumeric representation. The function takes an integer `num` as input and returns
+    its base-36 representation as a string.
+
+    Parameters
+    ----------
+    num
+        The integer to convert to base-36.
+
+    Returns
+    -------
+    str
+        The base-36 representation of the input integer.
+
+    Examples
+    --------
+    >>> num = 123456
+    >>> base36_num = int_to_base36(num)
+    >>> print(base36_num)
+    '2N9'
+    """
+    ALPHANUMERIC_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    if num == 0:
+        return ALPHANUMERIC_CHARS[0]
+
+    base36_str = ""
+    base = len(ALPHANUMERIC_CHARS)
+
+    while num:
+        num, remainder = divmod(num, base)
+        base36_str = ALPHANUMERIC_CHARS[remainder] + base36_str
+
+    return base36_str
 
 
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
-    str_hash_bytes = _int_to_bytes(hash(string), signed=True)
-    return base64.b85encode(str_hash_bytes)[:length]
+    return base64.b32encode(string.encode()).decode("utf-8").zfill(length)[:length]
+
+
+def _remove_vowels(input_str: str, length: int = 4) -> str:
+    vowels = "aeiouAEIOU"
+    output_str = "".join([char for char in input_str if char not in vowels])
+    return output_str.zfill(length)[:length]
 
 
 def create_context(
@@ -204,12 +242,16 @@ def create_context(
 ) -> Context:
     """Create a context that can identify this integration."""
     # Use a hash for the name because otherwise the context might become
-    # too long (max len == 36) to fit in the database.
-    name_hash = _short_hash(name)
+    # too long (max len == 26) to fit in the database.
     # Pack index with base85 to maximize the number of contexts we can create
-    # before we exceed the 36-character limit and are forced to wrap.
-    index_packed = base64.b85encode(_int_to_bytes(index, signed=False))
-    context_id = f"{_DOMAIN_SHORT}:{name_hash}:{which}:{index_packed}"[:36]
+    # before we exceed the 26-character limit and are forced to wrap.
+    time_stamp = ulid_transform.ulid_now()[:10]  # time part of a ULID
+    name_hash = _short_hash(name)
+    which_short = _remove_vowels(which)
+    context_id_start = f"{time_stamp}:{_DOMAIN_SHORT}:{name_hash}:{which_short}:"
+    chars_left = 26 - len(context_id_start)
+    index_packed = _int_to_base36(index).zfill(chars_left)[-chars_left:]
+    context_id = context_id_start + index_packed
     parent_id = parent.id if parent else None
     return Context(id=context_id, parent_id=parent_id)
 
@@ -218,7 +260,7 @@ def is_our_context(context: Context | None) -> bool:
     """Check whether this integration created 'context'."""
     if context is None:
         return False
-    return context.id.startswith(_DOMAIN_SHORT)
+    return f":{_DOMAIN_SHORT}:" in context.id
 
 
 def _split_service_data(service_data, adapt_brightness, adapt_color):
