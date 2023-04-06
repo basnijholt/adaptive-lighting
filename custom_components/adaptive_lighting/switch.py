@@ -239,7 +239,6 @@ def _split_service_data(service_data, adapt_brightness, adapt_color):
         service_data_brightness.pop(ATTR_RGB_COLOR, None)
         service_data_brightness.pop(ATTR_COLOR_TEMP_KELVIN, None)
         service_datas.append(service_data_brightness)
-
     if not service_datas:  # neither adapt_brightness nor adapt_color
         return [service_data]
     return service_datas
@@ -2208,3 +2207,38 @@ class TurnOnOffListener:
         # other 'off' → 'on' state switches resulting from polling. That
         # would mean we 'return True' here.
         return False
+
+
+class _AsyncSingleShotTimer:
+    def __init__(self, delay, callback):
+        """Initialize the timer."""
+        self.delay = delay
+        self.callback = callback
+        self.task = None
+        self.start_time: int | None = None
+
+    async def _run(self):
+        """Run the timer. Don't call this directly, use start() instead."""
+        self.start_time = dt_util.utcnow()
+        await asyncio.sleep(self.delay)
+        if self.callback:
+            if asyncio.iscoroutinefunction(self.callback):
+                await self.callback()
+            else:
+                self.callback()
+
+    def is_running(self):
+        """Return whether the timer is running."""
+        return self.task is not None and not self.task.done()
+
+    def start(self):
+        """Start the timer."""
+        if self.task is not None and not self.task.done():
+            self.task.cancel()
+        self.task = asyncio.create_task(self._run())
+
+    def cancel(self):
+        """Cancel the timer."""
+        if self.task:
+            self.task.cancel()
+            self.callback = None
