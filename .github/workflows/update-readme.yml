@@ -24,7 +24,7 @@ jobs:
 
       - name: Install markdown-code-runner and README code dependencies
         run: |
-          pip install markdown-code-runner pandas tabulate
+          pip install markdown-code-runner==1.0.0 pandas tabulate
 
       - name: Link custom_components/adaptive_lighting
         run: |
