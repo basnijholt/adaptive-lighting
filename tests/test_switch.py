@@ -915,7 +915,7 @@ async def test_state_change_handlers(hass):
     context = switch.create_context("test")  # needs to be passed to update method
 
     # [Config options]:
-    transition_used = 0.5
+    transition_used = 2
     total_events = 5
 
     async def set_brightness(val: int):
@@ -1030,28 +1030,28 @@ async def test_state_change_handlers(hass):
             await hass.async_block_till_done()
             # On real systems HA fires transition state changes every ~3 seconds.
             # asyncio.sleep(3)
-    # 4. Assert everything succeeded.
+    # 4. Assert the transition timer started and everything was filled.
     listener = switch.turn_on_off_listener
     assert listener.last_state_change.get(light)
     assert len(listener.last_state_change[light]) == total_events
+    assert listener.transition_timers.get(light)
 
-    # Wait a bit of time for transition:
+    # 5. Execute some checks during a transition
     asyncio.sleep(transition_used / 2)
     # Ensure the timer still exists
     assert listener.transition_timers.get(light)
     last_service_data = deepcopy(current_service_data)
     await update()
-    # If you remove the update() and sleep the correct time, the error still happens
-    # Everything below this point is untested as the update() directly above fails.
-    # Ensure the timer still exists
     assert listener.transition_timers.get(light)
     # Ensure the light did not adapt during a transition.
-    assert last_service_data != current_service_data
+    assert last_service_data == current_service_data
     # 4. Assert everything succeeded.
     listener = switch.turn_on_off_listener
     assert listener.last_state_change.get(light)
     assert len(listener.last_state_change[light]) == total_events
+    asyncio.sleep(transition_used)
     # Timer should be done and reset now.
+    # This is the assert that I can't fix.
     assert not listener.transition_timers.get(light)
 
     _LOGGER.debug("Test detect_non_ha_changes:")

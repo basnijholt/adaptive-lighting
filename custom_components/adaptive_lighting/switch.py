@@ -1175,7 +1175,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # Don't adapt lights that haven't finished prior transitions.
                 if self.turn_on_off_listener.transition_timers.get(light):
                     _LOGGER.debug(
-                        "%s: Light '%s' is still transitioning for %s more seconds",
+                        "%s: Light '%s' is still transitioning",
                         self._name,
                         light,
                     )
