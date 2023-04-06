@@ -1032,9 +1032,9 @@ async def test_state_change_handlers(hass):
             # asyncio.sleep(3)
     # 4. Assert the transition timer started and everything was filled.
     listener = switch.turn_on_off_listener
-    assert listener.last_state_change.get(light)
-    assert len(listener.last_state_change[light]) == total_events
-    assert listener.transition_timers.get(light)
+    assert listener.last_state_change.get(ENTITY_LIGHT)
+    assert len(listener.last_state_change[ENTITY_LIGHT]) == total_events
+    assert listener.transition_timers.get(ENTITY_LIGHT)
 
     # 5. Execute some checks during a transition
     _LOGGER.debug("Test detect_non_ha_changes:")
@@ -1044,25 +1044,25 @@ async def test_state_change_handlers(hass):
     assert switch._detect_non_ha_changes
     await asyncio.sleep(transition_used / 3)
     # Ensure the timer still exists
-    timer = listener.transition_timers.get(light)
+    timer = listener.transition_timers.get(ENTITY_LIGHT)
     assert timer and timer.is_running()
     last_service_data = deepcopy(current_service_data)
     await update()
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
     await update()
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    timer = listener.transition_timers.get(light)
+    timer = listener.transition_timers.get(ENTITY_LIGHT)
     assert timer and timer.is_running()
     # Ensure the light did not adapt during the transition.
     assert last_service_data == current_service_data
 
     # 6. Assert everything after the transition finishes.
     await asyncio.sleep(transition_used)
-    assert listener.last_state_change.get(light)
-    assert len(listener.last_state_change[light]) == total_events
+    assert listener.last_state_change.get(ENTITY_LIGHT)
+    assert len(listener.last_state_change[ENTITY_LIGHT]) == total_events
     # Timer should be done and reset now.
     # This is the assert that I can't fix.
-    timer = listener.transition_timers.get(light)
+    timer = listener.transition_timers.get(ENTITY_LIGHT)
     assert not timer or not timer.is_running()
 
     # build last service data
