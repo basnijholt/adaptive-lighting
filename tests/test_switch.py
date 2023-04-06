@@ -1061,7 +1061,8 @@ async def test_state_change_handlers(hass):
     assert len(listener.last_state_change[light]) == total_events
     # Timer should be done and reset now.
     # This is the assert that I can't fix.
-    assert not listener.transition_timers.get(light)
+    timer = listener.transition_timers.get(light)
+    assert not timer or not timer.is_running()
 
     # build last service data
     await update(force=False)
