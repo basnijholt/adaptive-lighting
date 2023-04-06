@@ -46,8 +46,7 @@
           "detect_non_ha_changes": "detect_non_ha_changes: detects all >10% changes made to the lights (also outside of HA), requires 'take_over_control' to be enabled (calls 'homeassistant.update_entity' every 'interval'!)",
           "alt_detect_method": "alt_detect_method: When true, will check for any significant changes in the opposite direction of where adaptive-lighting tried to adapt last. This is an alternative to 'detect_non_ha_changes' (default: false)",
           "transition": "Transition time when applying a change to the lights (seconds)",
-          "adapt_delay": "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering.",
-          "autoreset_control_seconds": "autoreset_control_seconds: wait time (seconds) before Adaptive Lighting resets `manual_control` status of any light (default: 0)"
+          "adapt_delay": "adapt_delay: wait time between light turn on (seconds), and Adaptive Lights applying changes to the light state. May avoid flickering."
         }
       }
     },
