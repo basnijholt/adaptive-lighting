@@ -818,6 +818,7 @@ async def test_switch_off_on_off(hass):
         else:
             assert state == STATE_OFF
 
+
 def test_color_difference_redmean():
     """Test color_difference_redmean function."""
     for _ in range(10):

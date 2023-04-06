@@ -98,8 +98,8 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
-    CONF_ALT_DETECT_METHOD,
     CONF_ADAPT_UNTIL_SLEEP,
+    CONF_ALT_DETECT_METHOD,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -630,6 +630,7 @@ def color_difference_redmean(
     green_term = 4 * delta_g**2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
     return math.sqrt(red_term + green_term + blue_term)
+
 
 # All of these are very inaccurate
 # due to home assistant or light bulb firmware or w/e
