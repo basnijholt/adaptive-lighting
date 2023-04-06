@@ -639,7 +639,7 @@ async def test_auto_reset_manual_control(hass):
 
 
 async def test_transition_timers(hass):
-    switch, (light, *_) = await setup_lights_and_switch()
+    switch, (light, *_) = await setup_lights_and_switch(hass)
 
     async def update(force):
         await switch._update_attrs_and_maybe_adapt_lights(
