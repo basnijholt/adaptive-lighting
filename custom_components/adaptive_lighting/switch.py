@@ -1173,14 +1173,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 return
             for light in lights:
                 # Don't adapt lights that haven't finished prior transitions.
-                if self.turn_on_off_listener.transition_timers.get(light):
+                timer = self.turn_on_off_listener.transition_timers.get(light)
+                if timer is not None and timer.is_running():
                     _LOGGER.debug(
                         "%s: Light '%s' is still transitioning",
                         self._name,
                         light,
                     )
-                    continue
-                filtered_lights.append(light)
+                else:
+                    filtered_lights.append(light)
         else:
             filtered_lights = lights
 
@@ -1647,7 +1648,6 @@ class TurnOnOffListener:
                 "Transition finished for light %s",
                 light,
             )
-            self.transition_timers[light] = None
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
 
