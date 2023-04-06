@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import bisect
-from collections import defaultdict
+from collections.abc import Callable, Coroutine
 from copy import deepcopy
 from dataclasses import dataclass
 import datetime
@@ -40,7 +40,6 @@ from homeassistant.components.light import (
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
     SUPPORT_TRANSITION,
-    VALID_TRANSITION,
     is_on,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -100,6 +99,8 @@ from .const import (
     ATTR_TURN_ON_OFF_LISTENER,
     CONF_ADAPT_DELAY,
     CONF_ALT_DETECT_METHOD,
+    CONF_ADAPT_UNTIL_SLEEP,
+    CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -138,11 +139,13 @@ from .const import (
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
+    SET_MANUAL_CONTROL_SCHEMA,
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
+    apply_service_schema,
     replace_none_str,
 )
 
@@ -497,20 +500,9 @@ async def async_setup_entry(
         domain=DOMAIN,
         service=SERVICE_APPLY,
         service_func=handle_apply,
-        schema=vol.Schema(
-            {
-                vol.Optional("entity_id"): cv.entity_ids,
-                vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
-                vol.Optional(
-                    CONF_TRANSITION,
-                    default=switch._initial_transition,  # pylint: disable=protected-access
-                ): VALID_TRANSITION,
-                vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
-                vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
-                vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
-                vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
-            }
-        ),
+        schema=apply_service_schema(
+            switch._initial_transition
+        ),  # pylint: disable=protected-access
     )
 
     # Register `set_manual_control` service
@@ -518,13 +510,7 @@ async def async_setup_entry(
         domain=DOMAIN,
         service=SERVICE_SET_MANUAL_CONTROL,
         service_func=handle_set_manual_control,
-        schema=vol.Schema(
-            {
-                vol.Optional("entity_id"): cv.entity_ids,
-                vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
-                vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
-            }
-        ),
+        schema=SET_MANUAL_CONTROL_SCHEMA,
     )
 
     args = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
@@ -600,7 +586,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
-    supported_features = state.attributes[ATTR_SUPPORTED_FEATURES]
+    supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
     supported = {
         key for key, value in _SUPPORT_OPTS.items() if supported_features & value
     }
@@ -644,7 +630,6 @@ def color_difference_redmean(
     green_term = 4 * delta_g**2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
     return math.sqrt(red_term + green_term + blue_term)
-
 
 # All of these are very inaccurate
 # due to home assistant or light bulb firmware or w/e
@@ -968,7 +953,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._name,
             )
             self._take_over_control = True
-
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._expand_light_groups()  # updates manual control timers
 
@@ -983,6 +967,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sun_light_settings = SunLightSettings(
             name=self._name,
             astral_location=location,
+            adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
             min_brightness=data[CONF_MIN_BRIGHTNESS],
@@ -1215,7 +1200,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # If there is a transition, mark the time we started adapting this light
         # then the next time we start adapting, compare to the last timestamp.
         # used only when strict_adapting==False
-        if "transition" in features:
+        if "transition" in features and transition > 0:
             service_data[ATTR_TRANSITION] = transition
             self._transition_timer = perf_counter()
             _LOGGER.debug(
@@ -1229,6 +1214,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._transition_timer = 0
 
         self.turn_on_off_listener.last_service_data[light] = service_data
+
+        # See #80. Doesn't check if transitions differ but it does the job.
+        last_service_data = self.turn_on_off_listener.last_service_data
+        if last_service_data.get(light) == service_data:
+            _LOGGER.debug(
+                "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
+                self._name,
+                light,
+                context.id,
+            )
+            return
+        else:
+            self.turn_on_off_listener.last_service_data[light] = service_data
 
         async def turn_on(service_data):
             _LOGGER.debug(
@@ -1557,6 +1555,7 @@ class SunLightSettings:
 
     name: str
     astral_location: astral.Location
+    adapt_until_sleep: bool
     max_brightness: int
     max_color_temp: int
     min_brightness: int
@@ -1706,7 +1705,12 @@ class SunLightSettings:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * percent) + self.min_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
-        return self.min_color_temp
+        if percent == 0 or not self.adapt_until_sleep:
+            return self.min_color_temp
+        if self.adapt_until_sleep and percent < 0:
+            delta = abs(self.min_color_temp - self.sleep_color_temp)
+            ct = (delta * abs(1 + percent)) + self.sleep_color_temp
+            return 5 * round(ct / 5)  # round to nearest 5
 
     def get_settings(
         self, is_sleep, transition
@@ -1729,11 +1733,14 @@ class SunLightSettings:
             rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
                 color_temp_kelvin
             )
+        # backwards compatibility for versions < 1.3.1 - see #403
+        color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
+            "color_temp_mired": color_temp_mired,
             "rgb_color": rgb_color,
             "xy_color": xy_color,
             "hs_color": hs_color,
@@ -1764,12 +1771,81 @@ class TurnOnOffListener:
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
 
+        # Track auto reset of manual_control
+        self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
+        self.auto_reset_manual_control_times: dict[str, float] = {}
+
         self.remove_listener = self.hass.bus.async_listen(
             EVENT_CALL_SERVICE, self.turn_on_off_event_listener
         )
         self.remove_listener2 = self.hass.bus.async_listen(
             EVENT_STATE_CHANGED, self.state_changed_event_listener
         )
+
+    def _handle_timer(
+        self,
+        light: str,
+        timers_dict: dict[str, _AsyncSingleShotTimer],
+        delay: float | None,
+        reset_coroutine: Callable[[], Coroutine[Any, Any, None]],
+    ) -> None:
+        timer = timers_dict.get(light)
+        if timer is not None:
+            if delay is None:  # Timer object exists, but should not anymore
+                timer.cancel()
+                timers_dict.pop(light)
+            else:  # Timer object already exists, just update the delay and restart it
+                timer.delay = delay
+                timer.start()
+        elif delay is not None:  # Timer object does not exist, create it
+            timer = _AsyncSingleShotTimer(delay, reset_coroutine)
+            timers_dict[light] = timer
+            timer.start()
+
+    def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
+        """Set the time after which the lights are automatically reset."""
+        if time == 0:
+            return
+        for light in lights:
+            old_time = self.auto_reset_manual_control_times.get(light)
+            if (old_time is not None) and (old_time != time):
+                _LOGGER.info(
+                    "Setting auto_reset_manual_control for '%s' from %s seconds to %s seconds."
+                    " This might happen because the light is in multiple swiches"
+                    " or because of a config change.",
+                    light,
+                    old_time,
+                    time,
+                )
+            self.auto_reset_manual_control_times[light] = time
+
+    def mark_as_manual_control(self, light: str) -> None:
+        """Mark a light as manually controlled."""
+        _LOGGER.debug("Marking '%s' as manually controlled.", light)
+        self.manual_control[light] = True
+        delay = self.auto_reset_manual_control_times.get(light)
+
+        async def reset():
+            self.reset(light)
+            switches = _get_switches_with_lights(self.hass, [light])
+            for switch in switches:
+                if not switch.is_on:
+                    continue
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    [light],
+                    transition=switch._initial_transition,
+                    force=True,
+                    context=switch.create_context("autoreset"),
+                )
+            _LOGGER.debug(
+                "Auto resetting 'manual_control' status of '%s' because"
+                " it was not manually controlled for %s seconds.",
+                light,
+                delay,
+            )
+            assert not self.manual_control[light]
+
+        self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
@@ -1849,6 +1925,18 @@ class TurnOnOffListener:
                 new_state.context.id,
             )
 
+        if new_state is not None and new_state.state == STATE_ON:
+            # It is possible to have multiple state change events with the same context.
+            # This can happen because a `turn_on.light(brightness_pct=100, transition=30)`
+            # event leads to an instant state change of
+            # `new_state=dict(brightness=100, ...)`. However, after polling the light
+            # could still only be `new_state=dict(brightness=50, ...)`.
+            # We save all events because the first event change might indicate at what
+            # settings the light will be later *or* the second event might indicate a
+            # final state. The latter case happens for example when a light was
+            # called with a color_temp outside of its range (and HA reports the
+            # incorrect 'min_kelvin' and 'max_kelvin', which happens e.g., for
+            # Philips Hue White GU10 Bluetooth lights).
             old_state: list[State] | None = self.last_state_change.get(entity_id)
             if is_our_context(new_state.context):
                 if (
@@ -1982,6 +2070,7 @@ class TurnOnOffListener:
                         context.id,
                     )
                     return True
+
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
@@ -2013,6 +2102,8 @@ class TurnOnOffListener:
                     light,
                     context.id,
                 )
+                self.mark_as_manual_control(light)
+                _fire_manual_control_event(switch, light, context, is_async=False)
                 return True
         _LOGGER.debug(
             "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
