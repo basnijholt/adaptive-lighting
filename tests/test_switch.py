@@ -1070,27 +1070,14 @@ async def test_state_change_handlers(hass):
     await turn_light(True)
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
-    # last_state_change should have our state changes.
-    # Change brightness by async_set (not using 'light.turn_on')
-    new_brightness = 50
-    await set_brightness(new_brightness)
-    _LOGGER.debug("Test: Brightness set to %s", new_brightness)
+    await turn_light(True, brightness=50)
+    _LOGGER.debug("Test: Brightness set to %s", 50)
 
-    # mock homeassistant.core.HomeAssistant.helpers.entity_component.async_update_entity
-    # Otherwise what happens is update_entity() refreshes the state to the last call of
-    # light.turn_on(). This is because we are not using hass.states.async_set() to
-    # set the brightness of the light. We mock `async_update_ha_state` because
-    # `async_update_entity` calls it.
-    with patch("homeassistant.helpers.entity.Entity.async_update_ha_state"):
-        # On next update ENTITY_LIGHT should be marked as manually controlled
-        await update(force=False)
-        assert (
-            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-        )
-        assert (
-            switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
-        )
-        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    # On next update ENTITY_LIGHT should be marked as manually controlled
+    await update(force=False)
+    assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+    assert switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 @pytest.mark.dependency(
