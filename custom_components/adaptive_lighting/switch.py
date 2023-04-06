@@ -1035,6 +1035,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         prefer_rgb_color: bool | None = None,
         force: bool = False,
         context: Context | None = None,
+        debug_force_transition: bool = False,
     ) -> None:
         lock = self._locks.get(light)
         if lock is not None and lock.locked():
@@ -1053,7 +1054,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = self._prefer_rgb_color
 
         # Check transition == 0 to fix #378
-        if "transition" in features and transition > 0:
+        if transition > 0:
             service_data[ATTR_TRANSITION] = transition
 
         # The switch might be off and not have _settings set.
@@ -1102,7 +1103,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         # See #80. Doesn't check if transitions differ but it does the job.
         last_service_data = self.turn_on_off_listener.last_service_data
-        if last_service_data.get(light) == service_data:
+        if not force and last_service_data.get(light) == service_data:
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
@@ -1149,6 +1150,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         transition: int | None = None,
         force: bool = False,
         context: Context | None = None,
+        debug_force_transition: bool = False,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
@@ -1187,7 +1189,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not filtered_lights:
             return
 
-        await self._adapt_lights(filtered_lights, transition, force, context)
+        await self._adapt_lights(
+            filtered_lights, transition, force, context, debug_force_transition
+        )
 
     async def _adapt_lights(
         self,
@@ -1195,6 +1199,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         transition: int | None,
         force: bool,
         context: Context | None,
+        debug_force_transition: bool = False,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
