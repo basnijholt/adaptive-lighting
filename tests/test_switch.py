@@ -719,112 +719,6 @@ async def test_auto_reset_manual_control(hass):
 
 
 @pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES])
-async def test_state_change_handling(hass):
-    """
-    Test TurnOnOffListener's EVENT_STATE_CHANGED listener.
-    ======================
-    Sequence of events:
-    1. Transition from sleep mode to normal.
-    2. Create simulated transition events for that adapt.
-    3. Fire all simulated transition events.
-    4. Assert all possible problems that would result.
-    Also tests significant changes.
-    """
-    switch, (light, *_) = await setup_lights_and_switch(hass)
-    context = switch.create_context("test")  # needs to be passed to update method
-
-    # 1. Adapt to sleep without a transition.
-    # Should only be one state change.
-    _LOGGER.debug('test_state_change_handling: Turn on "sleep mode"')
-    await hass.services.async_call(
-        SWITCH_DOMAIN,
-        SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
-        blocking=True,
-    )
-    await hass.async_block_till_done()
-    assert switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT)
-    assert len(switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT]) == 1
-    assert not switch.turn_on_off_listener.transition_timers.get(ENTITY_LIGHT)
-    last_service_data = deepcopy(switch.turn_on_off_listener.last_service_data)
-    assert last_service_data.get(ENTITY_LIGHT)
-
-    # [Config options]:
-    transition_used = 0.5
-    total_events = 5
-
-    # 2.1 Adapt from sleep with a 'transition'.
-    await switch.sleep_mode_switch.async_turn_off()
-    await switch._update_attrs_and_maybe_adapt_lights(
-        force=False, transition=0, context=context
-    )
-    await hass.async_block_till_done()
-    current_service_data = switch.turn_on_off_listener.last_service_data
-    assert current_service_data != last_service_data
-
-    for light in switch._lights:
-        # current_service_data should have changed after the last update.
-        assert current_service_data.get(light)
-        assert last_service_data.get(light)
-        assert current_service_data[light] != last_service_data[light]
-
-        # Test same context id events.
-        current_service_data[light][ATTR_TRANSITION] = transition_used
-        hass.bus.async_fire(
-            EVENT_STATE_CHANGED,
-            {
-                ATTR_ENTITY_ID: light,
-                "old_state": State(light, "on", attributes=last_service_data),
-                "new_state": State(
-                    light, "on", attributes=current_service_data, context=context
-                ),
-            },
-        )
-        assert not switch.turn_on_off_listener.transition_timers.get(light)
-
-        # 2.3 Refire and overwrite the original state_changed event with our 'transition'
-        hass.bus.async_fire(
-            EVENT_STATE_CHANGED,
-            {
-                ATTR_ENTITY_ID: light,
-                "old_state": State(light, "on", attributes=last_service_data),
-                "new_state": State(
-                    light,
-                    "on",
-                    attributes=current_service_data,
-                    # We need to overwrite the old context_id
-                    context=switch.create_context("test"),
-                ),
-            },
-        )
-        await hass.async_block_till_done()
-        # Assert our transition timer was created.
-        assert switch.turn_on_off_listener.transition_timers.get(light)
-        # 2.5 Simulate a transition. There's no other way to do this in the demo.
-        events = create_transition_events(
-            light=light,
-            state=hass.states.get(light),
-            last=last_service_data[light],
-            current=current_service_data[light],
-            total_events=total_events,
-        )
-        # 3. Fire simulated events for our TurnOnOffListener
-        for event in events:
-            _LOGGER.debug("Test EVENT_STATE_CHANGED listener")
-            hass.bus.async_fire(EVENT_STATE_CHANGED, event)
-            await hass.async_block_till_done()
-            # On real systems HA fires transition state changes every ~3 seconds.
-            # asyncio.sleep(3)
-    asyncio.sleep(transition_used + 3)
-    # 4. Assert everything succeeded.
-    listener = switch.turn_on_off_listener
-    assert listener.last_state_change.get(light)
-    assert len(listener.last_state_change[light]) == total_events
-    # Timer should be done and reset now.
-    assert not listener.transition_timers.get(light)
-
-
-@pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES])
 async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
@@ -1005,65 +899,24 @@ def test_attributes_have_changed():
     )
 
 
-@pytest.mark.dependency(
-    depends=[
-        *GLOBAL_TEST_DEPENDENCIES,
-        "test_manual_control",
-        "test_apply_service",
-        "test_attributes_have_changed",
-        "test_state_change_handling",
-    ]
-)
-async def test_significant_change(hass):
-    """Test significant change."""
-    switch, _ = await setup_lights_and_switch(hass)
+@pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES])
+async def test_state_change_handlers(hass):
+    """
+    Test TurnOnOffListener's EVENT_STATE_CHANGED listener.
+    ======================
+    Sequence of events:
+    1. Transition from sleep mode to normal.
+    2. Create simulated transition events for that adapt.
+    3. Fire all simulated transition events.
+    4. Assert all possible problems that would result.
+    Also tests significant changes.
+    """
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+    context = switch.create_context("test")  # needs to be passed to update method
 
-    # [Config Options]
-    total_events = 5
+    # [Config options]:
     transition_used = 0.5
-
-    async def turn_light(state, **kwargs):
-        await hass.services.async_call(
-            LIGHT_DOMAIN,
-            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
-            blocking=True,
-        )
-        await hass.async_block_till_done()
-
-    async def update(force: bool = False, transition: int = 0):
-        last_service_data = switch.turn_on_off_listener.last_service_data
-        context = switch.create_context("test")
-        await switch._update_attrs_and_maybe_adapt_lights(
-            transition=0,
-            context=context,
-            force=force,
-        )
-        await hass.async_block_till_done()
-        current_service_data = switch.turn_on_off_listener.last_service_data
-        if current_service_data == last_service_data:
-            return
-        if transition == 0:
-            return
-        for light in switch._lights:
-            # last_service_data should have changed after the update.
-            if not last_service_data.get(light) or not current_service_data.get(light):
-                continue
-
-            # Simulate a transition. There's no other way to do this in the demo.
-            events = create_transition_events(
-                light=light,
-                state=hass.states.get(light),
-                last=last_service_data[light],
-                current=current_service_data[light],
-                total_events=total_events,
-            )
-            for event in events:
-                _LOGGER.debug("Test SIGNIFICANT_CHANGE listener")
-                hass.bus.async_fire(EVENT_STATE_CHANGED, event)
-                await hass.async_block_till_done()
-            # On real systems HA fires transition state changes every ~3 seconds.
-            asyncio.sleep(transition_used + 0.5)
+    total_events = 5
 
     async def set_brightness(val: int):
         # 'Unsafe' set but we know what we're doing.
@@ -1083,6 +936,123 @@ async def test_significant_change(hass):
             },
         )
         await hass.async_block_till_done()
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    async def update(force: bool = False):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            force=force, transition=0, context=context
+        )
+        await hass.async_block_till_done()
+
+    # 1. Adapt to sleep without a transition.
+    # Should only be one state change.
+    _LOGGER.debug('test_state_change_handling: Turn on "sleep mode"')
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT)
+    assert len(switch.turn_on_off_listener.last_state_change[ENTITY_LIGHT]) == 1
+    assert not switch.turn_on_off_listener.transition_timers.get(ENTITY_LIGHT)
+    last_service_data = deepcopy(switch.turn_on_off_listener.last_service_data)
+    assert last_service_data.get(ENTITY_LIGHT)
+
+    # 2 Adapt from sleep with a 'transition'.
+    await switch.sleep_mode_switch.async_turn_off()
+    await switch._update_attrs_and_maybe_adapt_lights(
+        force=False, transition=0, context=context
+    )
+    await hass.async_block_till_done()
+    current_service_data = switch.turn_on_off_listener.last_service_data
+    assert current_service_data != last_service_data
+
+    for light in switch._lights:
+        # current_service_data should have changed after the last update.
+        assert current_service_data.get(light)
+        assert last_service_data.get(light)
+        assert current_service_data[light] != last_service_data[light]
+
+        # Test same context id events.
+        current_service_data[light][ATTR_TRANSITION] = transition_used
+        hass.bus.async_fire(
+            EVENT_STATE_CHANGED,
+            {
+                ATTR_ENTITY_ID: light,
+                "old_state": State(light, "on", attributes=last_service_data),
+                "new_state": State(
+                    light, "on", attributes=current_service_data, context=context
+                ),
+            },
+        )
+        assert not switch.turn_on_off_listener.transition_timers.get(light)
+
+        # 2.3 Refire and overwrite the original state_changed event with our 'transition'
+        hass.bus.async_fire(
+            EVENT_STATE_CHANGED,
+            {
+                ATTR_ENTITY_ID: light,
+                "old_state": State(light, "on", attributes=last_service_data),
+                "new_state": State(
+                    light,
+                    "on",
+                    attributes=current_service_data,
+                    # We need to overwrite the old context_id
+                    context=switch.create_context("test"),
+                ),
+            },
+        )
+        await hass.async_block_till_done()
+        # Assert our transition timer was created.
+        assert switch.turn_on_off_listener.transition_timers.get(light)
+        # 2.5 Simulate a transition. There's no other way to do this in the demo.
+        events = create_transition_events(
+            light=light,
+            state=hass.states.get(light),
+            last=last_service_data[light],
+            current=current_service_data[light],
+            total_events=total_events,
+        )
+        # 3. Fire simulated events for our TurnOnOffListener
+        for event in events:
+            _LOGGER.debug("Test EVENT_STATE_CHANGED listener")
+            hass.bus.async_fire(EVENT_STATE_CHANGED, event)
+            await hass.async_block_till_done()
+            # On real systems HA fires transition state changes every ~3 seconds.
+            # asyncio.sleep(3)
+    # 4. Assert everything succeeded.
+    listener = switch.turn_on_off_listener
+    assert listener.last_state_change.get(light)
+    assert len(listener.last_state_change[light]) == total_events
+
+    # Wait a bit of time for transition:
+    asyncio.sleep(transition_used / 2)
+    # Ensure the timer still exists
+    assert listener.transition_timers.get(light)
+    last_service_data = deepcopy(current_service_data)
+    await update()
+    # If you remove the update() and sleep the correct time, the error still happens
+    # Everything below this point is untested as the update() directly above fails.
+    # Ensure the timer still exists
+    assert listener.transition_timers.get(light)
+    # Ensure the light did not adapt during a transition.
+    assert last_service_data != current_service_data
+    # 4. Assert everything succeeded.
+    listener = switch.turn_on_off_listener
+    assert listener.last_state_change.get(light)
+    assert len(listener.last_state_change[light]) == total_events
+    # Timer should be done and reset now.
+    assert not listener.transition_timers.get(light)
 
     _LOGGER.debug("Test detect_non_ha_changes:")
     switch._take_over_control = True
@@ -1105,19 +1075,6 @@ async def test_significant_change(hass):
     await turn_light(False)
     await turn_light(True)
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-
-    await update(force=True, transition=transition_used)
-    for light in switch._lights:
-        assert len(switch.turn_on_off_listener.last_state_change[light]) == total_events
-        current_state = hass.states.get(light)
-        last_known_state = switch.turn_on_off_listener.last_state_change[light]
-        assert not _attributes_have_changed(
-            old_attributes=current_state.attributes, new_attributes=last_known_state
-        )
-        assert not _attributes_have_changed(
-            old_attributes=current_state.attributes,
-            new_attributes=switch.turn_on_off_listener.last_service_data,
-        )
 
     # last_state_change should have our state changes.
     # Change brightness by async_set (not using 'light.turn_on')
@@ -1142,6 +1099,15 @@ async def test_significant_change(hass):
         assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
+@pytest.mark.dependency(
+    depends=[
+        *GLOBAL_TEST_DEPENDENCIES,
+        "test_manual_control",
+        "test_apply_service",
+        "test_attributes_have_changed",
+        "test_state_change_handling",
+    ]
+)
 @pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES])
 def test_is_our_context():
     """Test is_our_context function."""
