@@ -1647,7 +1647,7 @@ class TurnOnOffListener:
                 "Transition finished for light %s",
                 light,
             )
-            self.transition_timers.pop(light, None)
+            self.transition_timers[light] = None
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
 
