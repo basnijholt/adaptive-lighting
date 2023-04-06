@@ -1772,7 +1772,7 @@ class TurnOnOffListener:
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
         entity_id = event.data.get(ATTR_ENTITY_ID, "")
-        if entity_id not in self.lights or entity_id.split(".")[0] != LIGHT_DOMAIN:
+        if entity_id not in self.lights:
             return
 
         new_state = event.data.get("new_state")
@@ -1817,6 +1817,10 @@ class TurnOnOffListener:
                         entity_id,
                     )
                     self.last_state_change[entity_id] = [new_state]
+                    _LOGGER.debug(
+                        "Last transition: %s",
+                        self.last_service_data[entity_id].get(ATTR_TRANSITION),
+                    )
                     self.start_transition_timer(entity_id)
             elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
