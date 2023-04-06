@@ -1045,11 +1045,11 @@ async def test_state_change_handlers(hass):
     assert listener.transition_timers.get(light)
     # Ensure the light did not adapt during a transition.
     assert last_service_data == current_service_data
-    # 4. Assert everything succeeded.
+    # 6. Assert everything succeeded.
+    asyncio.sleep(transition_used)
     listener = switch.turn_on_off_listener
     assert listener.last_state_change.get(light)
     assert len(listener.last_state_change[light]) == total_events
-    asyncio.sleep(transition_used)
     # Timer should be done and reset now.
     # This is the assert that I can't fix.
     assert not listener.transition_timers.get(light)
