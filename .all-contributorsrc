@@ -440,6 +440,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "command",
+      "name": "Command",
+      "avatar_url": "https://avatars.githubusercontent.com/u/49002148?v=4",
+      "profile": "https://oncommand.io",
+      "contributions": [
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
