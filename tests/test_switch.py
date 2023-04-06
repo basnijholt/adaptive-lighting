@@ -4,9 +4,7 @@ import asyncio
 from copy import deepcopy
 import datetime
 import logging
-from random import choices as random_choices
 from random import randint
-import string
 from unittest.mock import patch
 
 from homeassistant.components.adaptive_lighting.const import (
@@ -76,6 +74,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
+import ulid_transform
 import voluptuous.error
 
 from tests.common import MockConfigEntry, mock_area_registry
@@ -116,6 +115,10 @@ GLOBAL_TEST_DEPENDENCIES = [
     "test_adaptive_lighting_switches",
     "test_light_settings",
 ]
+
+
+def create_random_context() -> str:
+    return Context(id=ulid_transform.ulid_now(), parent_id=None)
 
 
 @pytest.fixture
@@ -217,16 +220,6 @@ async def setup_lights_and_switch(hass, extra_conf=None):
     )
     await hass.async_block_till_done()
     return switch, lights_instances
-
-
-def create_random_context() -> str:
-    ulid_max_length = 26  # changed from 36->26 in core2023.4.0
-    return Context(
-        id="".join(
-            random_choices(string.ascii_uppercase + string.digits, k=ulid_max_length)
-        ),
-        parent_id=None,
-    )
 
 
 # see https://github.com/home-assistant/core/blob/dev/homeassistant/scripts/benchmark/__init__.py
