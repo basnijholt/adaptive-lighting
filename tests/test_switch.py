@@ -1044,19 +1044,20 @@ async def test_state_change_handlers(hass):
     assert switch._detect_non_ha_changes
     asyncio.sleep(transition_used / 3)
     # Ensure the timer still exists
-    assert listener.transition_timers.get(light)
+    timer = listener.transition_timers.get(light)
+    assert timer and timer.is_running()
     last_service_data = deepcopy(current_service_data)
     await update()
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
     await update()
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    assert listener.transition_timers.get(light)
+    timer = listener.transition_timers.get(light)
+    assert timer and timer.is_running()
     # Ensure the light did not adapt during the transition.
     assert last_service_data == current_service_data
 
     # 6. Assert everything after the transition finishes.
     asyncio.sleep(transition_used)
-    listener = switch.turn_on_off_listener
     assert listener.last_state_change.get(light)
     assert len(listener.last_state_change[light]) == total_events
     # Timer should be done and reset now.
