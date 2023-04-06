@@ -211,7 +211,7 @@ def create_context(
     # Pack index with base85 to maximize the number of contexts we can create
     # before we exceed the 36-character limit and are forced to wrap.
     index_packed = base64.b85encode(_int_to_bytes(index, signed=False))
-    context_id = f"{_DOMAIN_SHORT}:{name_hash}:{which}:{index_packed}"[:36]
+    context_id = f"{_DOMAIN_SHORT}:{name_hash}:{which}:{index_packed}"[:26]
     parent_id = parent.id if parent else None
     return Context(id=context_id, parent_id=parent_id)
 
