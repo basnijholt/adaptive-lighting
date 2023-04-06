@@ -1213,8 +1213,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         else:
             self._transition_timer = 0
 
-        self.turn_on_off_listener.last_service_data[light] = service_data
-
         # See #80. Doesn't check if transitions differ but it does the job.
         last_service_data = self.turn_on_off_listener.last_service_data
         if last_service_data.get(light) == service_data:
@@ -1764,8 +1762,6 @@ class TurnOnOffListener:
         self.sleep_tasks: dict[str, asyncio.Task] = {}
         # Tracks which lights are manually controlled
         self.manual_control: dict[str, bool] = {}
-        # Counts the number of times (in a row) a light had a changed state.
-        self.cnt_significant_changes: dict[str, int] = defaultdict(int)
         # Track 'state_changed' events of self.lights from any source.
         self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
