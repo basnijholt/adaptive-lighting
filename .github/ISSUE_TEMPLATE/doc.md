@@ -1,7 +1,10 @@
 ---
-name: 'Documentation Issue'
-about: 'Report missing, erroneous docs, broken links or propose new docs'
+name: Documentation Issue
+about: Report missing, erroneous docs, broken links or propose new docs
+title: ''
 labels: kind/docs_issue, need/triage
+assignees: ''
+
 ---
 
 #### Location
