@@ -44,7 +44,6 @@ Please include the following information in your issue.
 3.  (If using Zigbee2MQTT), provide your configuration files (**remove all personal information before posting**):
     - `devices.yaml`
     - `groups.yaml`
-    - `configuration.yaml`
     - `configuration.yaml` ⚠️; **Warning** _**REMOVE ALL of the PERSONAL INFORMATION BELOW before posting**_ ⚠️;
       - mqtt: `server`:
       - mqtt: `user`:
