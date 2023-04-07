@@ -20,12 +20,14 @@ Please confirm that you have completed the following steps:
 - [ ] I have updated to the [latest Adaptive Lighting version](https://github.com/basnijholt/adaptive-lighting/releases) available in [HACS](https://hacs.xyz/).
 - [ ] I have reviewed the [Troubleshooting Section](https://github.com/basnijholt/adaptive-lighting#troubleshooting) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
 - [ ] (If using Zigbee2MQTT) I have read the [Zigbee2MQTT troubleshooting guide](https://github.com/basnijholt/adaptive-lighting#zigbee2mqtt) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
-- [ ] I have checked the [V2 Roadmap](https://github.com/basnijholt/adaptive-lighting/discussions/291) to ensure my issue isn't a duplicate.
+- [ ] I have checked the [V2 Roadmap](https://github.com/basnijholt/adaptive-lighting/discussions/291) and [open issues](https://github.com/basnijholt/adaptive-lighting/issues) to ensure my issue isn't a duplicate.
 
 
 ### Required information for bug reports:
 
-Please include the following information in your issue. Issues missing this information may not be addressed.
+Please include the following information in your issue.
+
+*Issues missing this information may not be addressed.*
 
 1.  **Debug logs** captured while the issue occurred. [See here for instructions on enabling debug logging](https://github.com/basnijholt/adaptive-lighting#troubleshooting):
 
