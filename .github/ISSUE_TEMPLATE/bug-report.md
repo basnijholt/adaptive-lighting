@@ -45,8 +45,14 @@ Please include the following information in your issue.
     - `devices.yaml`
     - `groups.yaml`
     - `configuration.yaml`
-    - Brand and model number of problematic light(s):
-
+    - `configuration.yaml` ⚠️; **Warning** _**REMOVE ALL of the PERSONAL INFORMATION BELOW before posting**_ ⚠️;
+      - mqtt: `server`:
+      - mqtt: `user`:
+      - mqtt: `password`:
+      - advanced: `pan_id`:
+      - advanced: `network_key`:
+      - anything in `log_syslog` if you use this
+    - Brand and model number of problematic light(s)
 ```
 
 ```
