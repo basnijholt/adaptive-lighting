@@ -484,15 +484,15 @@ async def async_setup_entry(
             data,
         )
         switches = _get_switches_from_service_call(hass, service_call)
-        these_switches = []  # CONF_WHICH_SWITCH == "main" is default
         if data[CONF_WHICH_SWITCH] == "sleep":
-            these_switches = [s.sleep_mode_switch for s in switches]
+            switches = [s.sleep_mode_switch for s in switches]
         elif data[CONF_WHICH_SWITCH] == "brightness":
-            these_switches = [s.adapt_brightness_switch for s in switches]
+            switches = [s.adapt_brightness_switch for s in switches]
         elif data[CONF_WHICH_SWITCH] == "color":
-            these_switches = [s.adapt_color_switch for s in switches]
-        _LOGGER.debug("Turning on switches [%s]", these_switches)
-        for switch in these_switches:
+            switches = [s.adapt_color_switch for s in switches]
+
+        _LOGGER.debug("Turning on switches [%s]", switches)
+        for switch in switches:
             await switch.async_turn_on()
 
     @callback
@@ -504,15 +504,14 @@ async def async_setup_entry(
             data,
         )
         switches = _get_switches_from_service_call(hass, service_call)
-        these_switches = []  # CONF_WHICH_SWITCH == "main" is default
         if data[CONF_WHICH_SWITCH] == "sleep":
-            these_switches = [s.sleep_mode_switch for s in switches]
+            switches = [s.sleep_mode_switch for s in switches]
         elif data[CONF_WHICH_SWITCH] == "brightness":
-            these_switches = [s.adapt_brightness_switch for s in switches]
+            switches = [s.adapt_brightness_switch for s in switches]
         elif data[CONF_WHICH_SWITCH] == "color":
-            these_switches = [s.adapt_color_switch for s in switches]
-        _LOGGER.debug("Turning off switches [%s]", these_switches)
-        for switch in these_switches:
+            switches = [s.adapt_color_switch for s in switches]
+        _LOGGER.debug("Turning off switches [%s]", switches)
+        for switch in switches:
             await switch.async_turn_off()
 
     @callback
@@ -524,15 +523,14 @@ async def async_setup_entry(
             data,
         )
         switches = _get_switches_from_service_call(hass, service_call)
-        these_switches = []  # CONF_WHICH_SWITCH == "main" is default
         if data[CONF_WHICH_SWITCH] == "sleep":
-            these_switches = [s.sleep_mode_switch for s in switches]
+            switches = [s.sleep_mode_switch for s in switches]
         elif data[CONF_WHICH_SWITCH] == "brightness":
-            these_switches = [s.adapt_brightness_switch for s in switches]
+            switches = [s.adapt_brightness_switch for s in switches]
         elif data[CONF_WHICH_SWITCH] == "color":
-            these_switches = [s.adapt_color_switch for s in switches]
-        _LOGGER.debug("Toggling switches [%s]", these_switches)
-        for switch in these_switches:
+            switches = [s.adapt_color_switch for s in switches]
+        _LOGGER.debug("Toggling switches [%s]", switches)
+        for switch in switches:
             if switch.is_on:
                 await switch.async_turn_off()
             else:
