@@ -595,7 +595,7 @@ async def test_manual_control(hass):
 
 async def test_auto_reset_manual_control(hass):
     switch, (light, *_) = await setup_lights_and_switch(
-        hass, {CONF_AUTORESET_CONTROL: 0.2}
+        hass, {CONF_AUTORESET_CONTROL: 0.1}
     )
     context = switch.create_context("test")  # needs to be passed to update method
     manual_control = switch.turn_on_off_listener.manual_control
