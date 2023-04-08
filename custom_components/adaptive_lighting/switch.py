@@ -1225,7 +1225,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         await self._update_manual_control_and_maybe_adapt(
-            lights, transition, force, context
+            filtered_lights, transition, force, context
         )
 
     async def _update_manual_control_and_maybe_adapt(
@@ -1247,43 +1247,45 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.id,
         )
 
-        if adapt_brightness is None:
-            adapt_brightness = self.adapt_brightness_switch.is_on
-        if adapt_color is None:
-            adapt_color = self.adapt_color_switch.is_on
+        adapt_brightness = adapt_brightness or self.adapt_brightness_switch.is_on
+        adapt_color = adapt_color or self.adapt_color_switch.is_on
 
         for light in lights:
             if not is_on(self.hass, light):
                 continue
 
-            if self._take_over_control:
-                if self.turn_on_off_listener.is_manually_controlled(
+            manually_controlled = self.turn_on_off_listener.is_manually_controlled(
+                self,
+                light,
+                force,
+                adapt_brightness,
+                adapt_color,
+            )
+
+            significant_change = (
+                self._detect_non_ha_changes
+                and not force
+                and await self.turn_on_off_listener.significant_change(
                     self,
                     light,
-                    force,
                     adapt_brightness,
                     adapt_color,
-                ):
+                    context,
+                )
+            )
+
+            if self._take_over_control and (manually_controlled or significant_change):
+                if manually_controlled:
                     _LOGGER.debug(
                         "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
                         self._name,
                         light,
                         context.id,
                     )
-                    continue
-                if (
-                    self._detect_non_ha_changes
-                    and not force
-                    and await self.turn_on_off_listener.significant_change(
-                        self,
-                        light,
-                        adapt_brightness,
-                        adapt_color,
-                        context,
-                    )
-                ):
+                else:
                     _fire_manual_control_event(self, light, context, is_async=False)
-                    continue
+                continue
+
             await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
