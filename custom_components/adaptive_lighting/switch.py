@@ -1702,8 +1702,8 @@ class TurnOnOffListener:
             "Start transition timer of %s seconds for light %s", last_transition, light
         )
 
-        def reset():
-            raise ValueError("TEST")
+        async def reset():
+            ValueError("TEST")
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
