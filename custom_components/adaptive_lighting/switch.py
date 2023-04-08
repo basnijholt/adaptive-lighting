@@ -1234,6 +1234,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         transition: int | None,
         force: bool,
         context: Context | None,
+        adapt_brightness: bool | None = None,
+        adapt_color: bool | None = None,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
@@ -1245,8 +1247,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.id,
         )
 
-        adapt_brightness = self.adapt_brightness_switch.is_on
-        adapt_color = self.adapt_color_switch.is_on
+        if adapt_brightness is None:
+            adapt_brightness = self.adapt_brightness_switch.is_on
+        if adapt_color is None:
+            adapt_color = self.adapt_color_switch.is_on
 
         for light in lights:
             if not is_on(self.hass, light):
@@ -1278,7 +1282,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context,
                     )
                 ):
-                    _fire_manual_control_event(self, light, context)
+                    _fire_manual_control_event(self, light, context, is_async=False)
                     continue
             await self._adapt_light(light, transition, force=force, context=context)
 
