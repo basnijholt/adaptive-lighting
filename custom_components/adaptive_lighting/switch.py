@@ -1014,6 +1014,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if self.turn_on_off_listener.manual_control.get(light)
         ]
         extra_state_attributes.update(self._settings)
+        timers = self.turn_on_off_listener.auto_reset_manual_control_timers
+        extra_state_attributes["autoreset_time_remaining"] = {
+            light: time
+            for light in self._lights
+            if (timer := timers.get(light)) and (time := timer.remaining_time()) > 0
+        }
         return extra_state_attributes
 
     def create_context(
@@ -2106,3 +2112,10 @@ class _AsyncSingleShotTimer:
         if self.task:
             self.task.cancel()
             self.callback = None
+
+    def remaining_time(self):
+        """Return the remaining time before the timer expires."""
+        if self.start_time is not None:
+            elapsed_time = (dt_util.utcnow() - self.start_time).total_seconds()
+            return max(0, self.delay - elapsed_time)
+        return 0
