@@ -1692,7 +1692,7 @@ class TurnOnOffListener:
         )
 
         async def reset():
-            ValueError("TEST")
+            raise ValueError("THIS SHOULD BE CALLED")
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,

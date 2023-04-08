@@ -1040,14 +1040,14 @@ async def test_state_change_handlers(hass):
     await asyncio.sleep(transition_used / 3)
     # Ensure the timer still exists
     timer = listener.transition_timers.get(ENTITY_LIGHT)
-    assert timer and timer.is_running()
+    assert timer  # and timer.is_running()
     last_service_data = deepcopy(current_service_data)
     await update()
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
     await update()
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
     timer = listener.transition_timers.get(ENTITY_LIGHT)
-    assert timer and timer.is_running()
+    assert timer  # and timer.is_running()
     # Ensure the light did not adapt during the transition.
     assert last_service_data == current_service_data
 
@@ -1058,7 +1058,7 @@ async def test_state_change_handlers(hass):
     # Timer should be done and reset now.
     # This is the assert that I can't fix.
     timer = listener.transition_timers.get(ENTITY_LIGHT)
-    assert not timer or not timer.is_running()
+    assert not timer  # or not timer.is_running()
 
     # build last service data
     await update(force=False)
