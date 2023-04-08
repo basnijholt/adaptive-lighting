@@ -1014,11 +1014,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if self.turn_on_off_listener.manual_control.get(light)
         ]
         extra_state_attributes.update(self._settings)
-        extra_state_attributes["auto_reset_time_remaining"] = {
+        timers = self.turn_on_off_listener.auto_reset_manual_control_timers
+        extra_state_attributes["autoreset_time_remaining"] = {
             light: time
             for light in self._lights
-            if (timer := self.turn_on_off_listener.auto_reset_times.get(light))
-            and (time := timer.remaining_time()) > 0
+            if (timer := timers.get(light)) and (time := timer.remaining_time()) > 0
         }
         return extra_state_attributes
 
