@@ -1278,7 +1278,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             tasks.append(
                 self._adapt_light(light, transition, force=force, context=context)
             )
-        if len(tasks):
+        if tasks:
             await asyncio.gather(*tasks)
         else:
             _LOGGER.debug("%s: No lights to adapt", self._name)
