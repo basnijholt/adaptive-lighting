@@ -298,7 +298,6 @@ def _get_switches_with_lights(
             continue
         switch = data[config.entry_id]["instance"]
         all_check_lights = _expand_light_groups(hass, lights)
-        switch._expand_light_groups()
         # Check if any of the lights are in the switch's lights
         if set(switch._lights) & set(all_check_lights):
             switches.append(switch)
@@ -613,8 +612,8 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
         if state is None:
             _LOGGER.debug("State of %s is None", light)
             all_lights.add(light)
-        elif "entity_id" in state.attributes:  # it's a light group
-            group = state.attributes["entity_id"]
+        elif ATTR_ENTITY_ID in state.attributes:  # it's a light group
+            group = state.attributes[ATTR_ENTITY_ID]
             turn_on_off_listener.lights.discard(light)
             all_lights.update(group)
             _LOGGER.debug("Expanded %s to %s", light, group)
@@ -838,6 +837,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             data,
         )
 
+    def __getattribute__(self, name):
+        if name == "_lights":
+            self._expand_light_groups()
+        return object.__getattribute__(self, name)
+
     def _set_changeable_settings(
         self,
         data: dict,
@@ -957,12 +961,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
 
     def _expand_light_groups(self) -> None:
-        all_lights = _expand_light_groups(self.hass, self._lights)
+        all_lights = _expand_light_groups(
+            self.hass, object.__getattribute__(self, "_lights")
+        )
         self.turn_on_off_listener.lights.update(all_lights)
         self.turn_on_off_listener.set_auto_reset_manual_control_times(
             all_lights, self._auto_reset_manual_control_time
         )
-        self._lights = list(all_lights)
+        object.__setattr__(self, "_lights", list(all_lights))
 
     async def _setup_listeners(self, _=None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
@@ -984,7 +990,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.remove_listeners.extend([remove_interval, remove_sleep])
 
         if self._lights:
-            self._expand_light_groups()
             remove_state = async_track_state_change_event(
                 self.hass, self._lights, self._light_event
             )
