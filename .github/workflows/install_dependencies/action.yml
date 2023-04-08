@@ -1,10 +1,14 @@
 name: 'Install Dependencies'
 description: 'Install Home Assistant and test dependencies'
 inputs:
-  python_version:
+  python-version:
     description: 'Python version'
     required: true
     default: '3.10'
+  core-version:
+    description: 'Home Assistant core version'
+    required: false
+    default: 'dev'
 
 runs:
   using: "composite"
@@ -21,11 +25,12 @@ runs:
       with:
         repository: home-assistant/core
         path: core
-    - name: Set up Python ${{ inputs.python_version }}
+        ref: ${{ inputs.core-version }}
+    - name: Set up Python ${{ inputs.python-version }}
       id: python
       uses: actions/setup-python@v4.1.0
       with:
-        python-version: ${{ inputs.python_version }}
+        python-version: ${{ inputs.python-version }}
     - name: Install dependencies
       shell: bash
       run: |
@@ -33,4 +38,5 @@ runs:
         pip install -r core/requirements.txt --use-pep517
         pip install -r core/requirements_test.txt --use-pep517
         pip install -e core/ --use-pep517
+        pip install ulid-transform # this is in Adaptive-lighting's manifest.json
         pip install $(python test_dependencies.py) --use-pep517
