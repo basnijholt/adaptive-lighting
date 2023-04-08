@@ -85,8 +85,10 @@ from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
+    color_xy_to_RGB,
 )
 import homeassistant.util.dt as dt_util
+import ulid_transform
 import voluptuous as vol
 
 from .const import (
@@ -181,21 +183,58 @@ BRIGHTNESS_ATTRS = {
 }
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
-_DOMAIN_SHORT = "adapt_lgt"
+_DOMAIN_SHORT = "al"
 
 
-def _int_to_bytes(i: int, signed: bool = False) -> bytes:
-    bits = i.bit_length()
-    if signed:
-        # Make room for the sign bit.
-        bits += 1
-    return i.to_bytes((bits + 7) // 8, "little", signed=signed)
+def _int_to_base36(num: int) -> str:
+    """
+    Convert an integer to its base-36 representation using numbers and uppercase letters.
+
+    Base-36 encoding uses digits 0-9 and uppercase letters A-Z, providing a case-insensitive
+    alphanumeric representation. The function takes an integer `num` as input and returns
+    its base-36 representation as a string.
+
+    Parameters
+    ----------
+    num
+        The integer to convert to base-36.
+
+    Returns
+    -------
+    str
+        The base-36 representation of the input integer.
+
+    Examples
+    --------
+    >>> num = 123456
+    >>> base36_num = int_to_base36(num)
+    >>> print(base36_num)
+    '2N9'
+    """
+    ALPHANUMERIC_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    if num == 0:
+        return ALPHANUMERIC_CHARS[0]
+
+    base36_str = ""
+    base = len(ALPHANUMERIC_CHARS)
+
+    while num:
+        num, remainder = divmod(num, base)
+        base36_str = ALPHANUMERIC_CHARS[remainder] + base36_str
+
+    return base36_str
 
 
 def _short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
-    str_hash_bytes = _int_to_bytes(hash(string), signed=True)
-    return base64.b85encode(str_hash_bytes)[:length]
+    return base64.b32encode(string.encode()).decode("utf-8").zfill(length)[:length]
+
+
+def _remove_vowels(input_str: str, length: int = 4) -> str:
+    vowels = "aeiouAEIOU"
+    output_str = "".join([char for char in input_str if char not in vowels])
+    return output_str.zfill(length)[:length]
 
 
 def create_context(
@@ -203,12 +242,16 @@ def create_context(
 ) -> Context:
     """Create a context that can identify this integration."""
     # Use a hash for the name because otherwise the context might become
-    # too long (max len == 36) to fit in the database.
-    name_hash = _short_hash(name)
+    # too long (max len == 26) to fit in the database.
     # Pack index with base85 to maximize the number of contexts we can create
-    # before we exceed the 36-character limit and are forced to wrap.
-    index_packed = base64.b85encode(_int_to_bytes(index, signed=False))
-    context_id = f"{_DOMAIN_SHORT}:{name_hash}:{which}:{index_packed}"[:36]
+    # before we exceed the 26-character limit and are forced to wrap.
+    time_stamp = ulid_transform.ulid_now()[:10]  # time part of a ULID
+    name_hash = _short_hash(name)
+    which_short = _remove_vowels(which)
+    context_id_start = f"{time_stamp}:{_DOMAIN_SHORT}:{name_hash}:{which_short}:"
+    chars_left = 26 - len(context_id_start)
+    index_packed = _int_to_base36(index).zfill(chars_left)[-chars_left:]
+    context_id = context_id_start + index_packed
     parent_id = parent.id if parent else None
     return Context(id=context_id, parent_id=parent_id)
 
@@ -217,7 +260,7 @@ def is_our_context(context: Context | None) -> bool:
     """Check whether this integration created 'context'."""
     if context is None:
         return False
-    return context.id.startswith(_DOMAIN_SHORT)
+    return f":{_DOMAIN_SHORT}:" in context.id
 
 
 def _split_service_data(service_data, adapt_brightness, adapt_color):
@@ -628,6 +671,41 @@ def color_difference_redmean(
     return math.sqrt(red_term + green_term + blue_term)
 
 
+# All comparisons should be done with RGB since
+# converting anything to color temp is inaccurate.
+def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
+    if ATTR_RGB_COLOR in attributes:
+        return attributes
+
+    rgb = None
+    if ATTR_COLOR_TEMP_KELVIN in attributes:
+        rgb = color_temperature_to_rgb(attributes[ATTR_COLOR_TEMP_KELVIN])
+    elif ATTR_XY_COLOR in attributes:
+        rgb = color_xy_to_RGB(*attributes[ATTR_XY_COLOR])
+
+    if rgb is not None:
+        attributes[ATTR_RGB_COLOR] = rgb
+        _LOGGER.debug(f"Converted {attributes} to rgb {rgb}")
+    else:
+        _LOGGER.debug("No suitable conversion found")
+
+    return attributes
+
+
+def _add_missing_attributes(
+    old_attributes: dict[str, Any],
+    new_attributes: dict[str, Any],
+) -> dict[str, Any]:
+    if not any(
+        attr in old_attributes and attr in new_attributes
+        for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
+    ):
+        old_attributes = _convert_attributes(old_attributes)
+        new_attributes = _convert_attributes(new_attributes)
+
+    return old_attributes, new_attributes
+
+
 def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
@@ -636,6 +714,11 @@ def _attributes_have_changed(
     adapt_color: bool,
     context: Context,
 ) -> bool:
+    if adapt_color:
+        old_attributes, new_attributes = _add_missing_attributes(
+            old_attributes, new_attributes
+        )
+
     if (
         adapt_brightness
         and ATTR_BRIGHTNESS in old_attributes
@@ -690,21 +773,6 @@ def _attributes_have_changed(
                 context.id,
             )
             return True
-
-    switched_color_temp = (
-        ATTR_RGB_COLOR in old_attributes and ATTR_RGB_COLOR not in new_attributes
-    )
-    switched_to_rgb_color = (
-        ATTR_COLOR_TEMP_KELVIN in old_attributes
-        and ATTR_COLOR_TEMP_KELVIN not in new_attributes
-    )
-    if switched_color_temp or switched_to_rgb_color:
-        # Light switched from RGB mode to color_temp or visa versa
-        _LOGGER.debug(
-            "'%s' switched from RGB mode to color_temp or visa versa",
-            light,
-        )
-        return True
     return False
 
 
@@ -946,6 +1014,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if self.turn_on_off_listener.manual_control.get(light)
         ]
         extra_state_attributes.update(self._settings)
+        timers = self.turn_on_off_listener.auto_reset_manual_control_timers
+        extra_state_attributes["autoreset_time_remaining"] = {
+            light: time
+            for light in self._lights
+            if (timer := timers.get(light)) and (time := timer.remaining_time()) > 0
+        }
         return extra_state_attributes
 
     def create_context(
@@ -1076,7 +1150,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         # See #80. Doesn't check if transitions differ but it does the job.
         last_service_data = self.turn_on_off_listener.last_service_data
-        if last_service_data.get(light) == service_data:
+        if not force and last_service_data.get(light) == service_data:
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
@@ -1141,14 +1215,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lights is None:
             lights = self._lights
 
-        if not force and self._only_once:
-            return
-
         filtered_lights = []
-        for light in lights:
-            # Don't adapt lights that haven't finished prior transitions.
-            if force or not self.turn_on_off_listener.transition_timers.get(light):
-                filtered_lights.append(light)
+        if not force:
+            if self._only_once:
+                return
+            for light in lights:
+                # Don't adapt lights that haven't finished prior transitions.
+                timer = self.turn_on_off_listener.transition_timers.get(light)
+                if timer is not None and timer.is_running():
+                    _LOGGER.debug(
+                        "%s: Light '%s' is still transitioning",
+                        self._name,
+                        light,
+                    )
+                else:
+                    filtered_lights.append(light)
+        else:
+            filtered_lights = lights
 
         if not filtered_lights:
             return
@@ -1603,33 +1686,28 @@ class TurnOnOffListener:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        _LOGGER.debug("Start transition timer for %s", light)
-        last_service_data = self.last_service_data
-        if (
-            not last_service_data
-            or light not in last_service_data
-            or ATTR_TRANSITION not in last_service_data[light]
-        ):
+        last_service_data = self.last_service_data.get(light)
+        if not last_service_data:
+            _LOGGER.debug("This should not ever happen. Please report to the devs.")
             return
-
-        delay = last_service_data[light][ATTR_TRANSITION]
+        last_transition = last_service_data.get(ATTR_TRANSITION)
+        if not last_transition:
+            _LOGGER.debug(
+                "No transition in last adapt for light %s, continuing...", light
+            )
+            return
+        _LOGGER.debug(
+            "Start transition timer of %s seconds for light %s", last_transition, light
+        )
 
         async def reset():
+            ValueError("TEST")
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
             )
-            switches = _get_switches_with_lights(self.hass, [light])
-            for switch in switches:
-                if not switch.is_on:
-                    continue
-                await switch._update_attrs_and_maybe_adapt_lights(
-                    [light],
-                    force=False,
-                    context=switch.create_context("transit"),
-                )
 
-        self._handle_timer(light, self.transition_timers, delay, reset)
+        self._handle_timer(light, self.transition_timers, last_transition, reset)
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
@@ -1752,7 +1830,7 @@ class TurnOnOffListener:
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
         entity_id = event.data.get(ATTR_ENTITY_ID, "")
-        if entity_id not in self.lights or entity_id.split(".")[0] != LIGHT_DOMAIN:
+        if entity_id not in self.lights:
             return
 
         new_state = event.data.get("new_state")
@@ -1797,6 +1875,10 @@ class TurnOnOffListener:
                         entity_id,
                     )
                     self.last_state_change[entity_id] = [new_state]
+                    _LOGGER.debug(
+                        "Last transition: %s",
+                        self.last_service_data[entity_id].get(ATTR_TRANSITION),
+                    )
                     self.start_transition_timer(entity_id)
             elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
@@ -2039,3 +2121,10 @@ class _AsyncSingleShotTimer:
         if self.task:
             self.task.cancel()
             self.callback = None
+
+    def remaining_time(self):
+        """Return the remaining time before the timer expires."""
+        if self.start_time is not None:
+            elapsed_time = (dt_util.utcnow() - self.start_time).total_seconds()
+            return max(0, self.delay - elapsed_time)
+        return 0
