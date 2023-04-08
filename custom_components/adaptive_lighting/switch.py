@@ -299,7 +299,9 @@ def _get_switches_with_lights(
         switch = data[config.entry_id]["instance"]
         all_check_lights = _expand_light_groups(hass, lights)
         # Check if any of the lights are in the switch's lights
-        if set(switch._lights) & set(all_check_lights):
+        if set(switch._lights) & set(
+            all_check_lights
+        ):  # pylint: disable=protected-access
             switches.append(switch)
     return switches
 
@@ -483,7 +485,9 @@ async def async_setup_entry(
         lights = data[CONF_LIGHTS]
         for switch in switches:
             if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
+                all_lights = (
+                    lights or switch._lights
+                )  # pylint: disable=protected-access
             else:
                 all_lights = _expand_light_groups(switch.hass, lights)
             switch.turn_on_off_listener.lights.update(all_lights)
@@ -989,9 +993,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self.remove_listeners.extend([remove_interval, remove_sleep])
 
-        if self._lights:
+        lights = self._lights
+        if lights:
             remove_state = async_track_state_change_event(
-                self.hass, self._lights, self._light_event
+                self.hass, lights, self._light_event
             )
             self.remove_listeners.append(remove_state)
 
@@ -1013,16 +1018,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             for key in self._settings:
                 extra_state_attributes[key] = None
             return extra_state_attributes
+        lights = self._lights
         extra_state_attributes["manual_control"] = [
             light
-            for light in self._lights
+            for light in lights
             if self.turn_on_off_listener.manual_control.get(light)
         ]
         extra_state_attributes.update(self._settings)
         timers = self.turn_on_off_listener.auto_reset_manual_control_timers
         extra_state_attributes["autoreset_time_remaining"] = {
             light: time
-            for light in self._lights
+            for light in lights
             if (timer := timers.get(light)) and (time := timer.remaining_time()) > 0
         }
         return extra_state_attributes
@@ -1673,7 +1679,7 @@ class TurnOnOffListener:
                 timer.cancel()
                 timers_dict.pop(light)
             else:  # Timer object already exists, just update the delay and restart it
-                timer.delay = delay
+                timer.delay = delay  # pylint: disable=protected-access
                 timer.start()
         elif delay is not None:  # Timer object does not exist, create it
             timer = _AsyncSingleShotTimer(delay, reset_coroutine)
@@ -1696,8 +1702,8 @@ class TurnOnOffListener:
             "Start transition timer of %s seconds for light %s", last_transition, light
         )
 
-        async def reset():
-            ValueError("TEST")
+        def reset():
+            raise ValueError("TEST")
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
