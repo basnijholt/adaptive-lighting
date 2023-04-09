@@ -1230,6 +1230,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
+
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on, transition
