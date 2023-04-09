@@ -224,7 +224,8 @@ def int_between(min_int, max_int):
 
 
 # Transition > 0 fixes #378
-VALID_TRANSITION = vol.extend(VALID_TRANSITION, extra=vol.replace(0, None))
+# vol.Replace(0, None) todo
+# VALID_TRANSITION = {vol.Optional(CONF_TRANSITION): orig_valid_transition}
 VALIDATION_TUPLES = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),

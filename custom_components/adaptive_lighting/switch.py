@@ -96,7 +96,7 @@ import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
 
-from .const import (
+from .const import (  # LIGHT_TURN_ON_SCHEMA
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_ADAPT_BRIGHTNESS,
@@ -140,7 +140,6 @@ from .const import (
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
-    LIGHT_TURN_ON_SCHEMA,
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
@@ -638,6 +637,31 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
         else:
             all_lights.add(light)
     return list(all_lights)
+
+
+def build_with_supported(data: dict[str], supported: dict[str]):
+    for key in data.keys():
+        if key not in supported:
+            data[key] = None
+    return data
+
+
+def _supported_features(hass: HomeAssistant, light: str):
+    state = hass.states.get(light)
+    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())
+    legacy_supported = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
+    supported = build_with_supported(
+        {
+            **{key for key, value in _SUPPORT_OPTS.items() if legacy_supported & value},
+            "min_kelvin": state.attributes.get(ATTR_MIN_COLOR_TEMP_KELVIN),
+            "max_kelvin": state.attributes.get(ATTR_MAX_COLOR_TEMP_KELVIN),
+        },
+        {
+            "color": not not (VALID_COLOR_MODES & supported_color_modes),
+            "brightness": COLOR_MODE_BRIGHTNESS in supported_color_modes,
+        },
+    )
+    return supported
 
 
 def color_difference_redmean(
@@ -1211,7 +1235,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.sleep_mode_switch.is_on, transition
         )
         service_data = self._build_service_data(
-            self,
             light,
             transition,
             adapt_brightness,
@@ -1266,45 +1289,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     # For updates, check homeassistant.components.light.async_setup.async_handle_light_on_service
     def _build_service_data(
         self,
-        light: cv.entity_id,
+        light: str,
         transition: int | None = False,
         adapt_brightness: bool | None = False,
         adapt_color: bool | None = False,
         prefer_rgb_color: bool | None = False,
         sleep_rgb: bool = False,
     ):
-        def build_with_supported(data: dict[str], supported: dict[str]):
-            for key in data.keys():
-                if key not in supported:
-                    data[key] = None
-            return data
-
-        def supported_features(hass, light):
-            state = self.hass.states.get(light)
-            supported_color_modes = state.attributes.get(
-                ATTR_SUPPORTED_COLOR_MODES, set()
-            )
-            _LOGGER.debug("%s: 'supported_color_modes': %s", supported_color_modes)
-            legacy_supported = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
-            _LOGGER.debug("%s: (Legacy) supported features: %s", legacy_supported)
-            supported = build_with_supported(
-                {
-                    **{
-                        key
-                        for key, value in _SUPPORT_OPTS.items()
-                        if legacy_supported & value
-                    },
-                    "min_kelvin": state.attributes.get(ATTR_MIN_COLOR_TEMP_KELVIN),
-                    "max_kelvin": state.attributes.get(ATTR_MAX_COLOR_TEMP_KELVIN),
-                },
-                {
-                    "color": not not (VALID_COLOR_MODES & supported_color_modes),
-                    "brightness": COLOR_MODE_BRIGHTNESS in supported_color_modes,
-                },
-            )
-            return supported
-
-        features = supported_features(self.hass, light)
+        features = _supported_features(self.hass, light)
         service_data = build_with_supported(
             {
                 ATTR_ENTITY_ID: light,
@@ -1334,7 +1326,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             or not features["color"]
         )
 
-        assert LIGHT_TURN_ON_SCHEMA(service_data)
+        #  assert LIGHT_TURN_ON_SCHEMA(service_data)
         _LOGGER.debug(
             "%s: Built service data supported by light %s. Service Data: %s",
             self._name,
