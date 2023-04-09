@@ -1282,9 +1282,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                 else:
                     _fire_manual_control_event(self, light, context)
-                continue
-
-            await self._adapt_light(light, transition, force=force, context=context)
+            else:
+                await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
