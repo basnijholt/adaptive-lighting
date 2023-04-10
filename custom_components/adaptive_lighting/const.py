@@ -154,6 +154,7 @@ CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
     False,
 )
 DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
+    "This option ignores the current state of the sleep switch. "
     "When enabled, Adaptive Lighting will treat sleep settings as the minimum, "
     "transitioning color temperature to these values after sunset. 🌙"
 )
