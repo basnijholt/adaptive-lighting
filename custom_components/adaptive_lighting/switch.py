@@ -1180,25 +1180,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         for light in lights:
             if not is_on(self.hass, light):
                 continue
-            if force:
-                await self._adapt_light(
-                    light,
-                    transition,
-                    adapt_brightness,
-                    adapt_color,
-                    force,
-                    context=context,
-                )
-                continue
 
-            manually_controlled = (
-                self._take_over_control
-                and self.turn_on_off_listener.is_manually_controlled(
-                    self,
-                    light,
-                    adapt_brightness,
-                    adapt_color,
-                )
+            manually_controlled = self.turn_on_off_listener.is_manually_controlled(
+                self,
+                light,
+                force,
+                adapt_brightness,
+                adapt_color,
             )
 
             significant_change = (
@@ -1223,10 +1211,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                 else:
                     _fire_manual_control_event(self, light, context)
-                continue
-            await self._adapt_light(
-                light, transition, adapt_brightness, adapt_color, force, context=context
-            )
+            else:
+                await self._adapt_light(light, transition, force=force, context=context)
 
     async def _adapt_light(
         self,
@@ -1238,6 +1224,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         force: bool = False,
         context: Context | None = None,
     ) -> None:
+        assert context
         _LOGGER.debug("%s: Precheck before adapting lights", self._name)
         lock = self._locks.get(light)
         if lock is not None and lock.locked():
@@ -1260,16 +1247,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             {
                 ATTR_TRANSITION: transition or self._transition,
                 ATTR_BRIGHTNESS: (
-                    adapt_brightness
-                    and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
-                    or None
+                    round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
+                    if not adapt_brightness
+                    else None
                 ),
-                ATTR_COLOR_TEMP_KELVIN: adapt_color
-                and self._settings[ATTR_COLOR_TEMP_KELVIN]
-                or None,
-                ATTR_RGB_COLOR: adapt_color
-                and list(self._settings[ATTR_RGB_COLOR])
-                or None,
+                ATTR_COLOR_TEMP_KELVIN: self._settings[ATTR_COLOR_TEMP_KELVIN]
+                if not adapt_color
+                else None,
+                ATTR_RGB_COLOR: list(self._settings[ATTR_RGB_COLOR])
+                if not adapt_color
+                else None,
             },
             prefer_rgb_color,
         )
@@ -1341,13 +1328,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         def remove_color_attributes(data):
             for attr in COLOR_ATTRS:
-                if attr in service_data:
-                    _LOGGER.debug("Remove color attr %s", attr)
+                if attr in service_data and attr != ATTR_COLOR_TEMP_KELVIN:
+                    _LOGGER.debug("Remove color attr %s from service data", attr)
                     service_data[attr] = None
 
         def build_with_supported(data, features):
             if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
-                remove_color_attributes(data)
+                if ATTR_COLOR_TEMP_KELVIN in data:
+                    remove_color_attributes(data)
             elif prefer_rgb_color is False:
                 _LOGGER.debug(
                     "%s: 'prefer_rgb_color: false' but light %s does not support color_temp."
@@ -1355,16 +1343,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self._name,
                     light,
                 )
-                remove_color_attributes(data)
-            if prefer_rgb_color:
-                if supports_colors:
+                service_data.pop(ATTR_COLOR_TEMP_KELVIN)
+            elif prefer_rgb_color:
+                color_attrs_in_data = {k for k, _ in COLOR_ATTRS.keys() ^ data.keys()}
+                if supports_colors and color_attrs_in_data:
                     _LOGGER.debug(
                         "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
                         self._name,
                         light,
                     )
                     service_data.pop(ATTR_COLOR_TEMP_KELVIN)
-                else:
+                elif ATTR_COLOR_TEMP_KELVIN in data:
                     _LOGGER.debug(
                         "%s: 'prefer_rgb_color: true' but light %s does not support rgb."
                         " Using color temp to build service data instead...",
@@ -1372,6 +1361,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                     )
                     remove_color_attributes(data)
+                else:
+                    _LOGGER.error(ATTR_COLOR_TEMP_KELVIN + " not in service data")
             for attr, val in data.items():
                 if attr not in COLOR_ATTRS and attr not in features:
                     _LOGGER.debug("pop unsupported %s val %s", attr, val)
@@ -2013,6 +2004,7 @@ class TurnOnOffListener:
         self,
         switch: AdaptiveSwitch,
         light: str,
+        force: bool,
         adapt_brightness: bool,
         adapt_color: bool,
     ) -> bool:
