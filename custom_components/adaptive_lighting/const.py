@@ -1,8 +1,9 @@
 """Constants for the Adaptive Lighting integration."""
 
-from homeassistant.components.light import (  # VALID_TRANSITION
+from homeassistant.components.light import (
     ATTR_TRANSITION,
     LIGHT_TURN_ON_SCHEMA,
+    VALID_TRANSITION,
 )
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import selector
@@ -277,6 +278,8 @@ VALIDATION_TUPLES = [
         int_between(0, 365 * 24 * 60 * 60),  # 1 year max
     ),
 ]
+
+CONST_COLOR = "color"
 
 
 def timedelta_as_int(value):

@@ -172,6 +172,16 @@ VALID_COLOR_MODES = {
     COLOR_MODE_XY: ATTR_XY_COLOR,
 }
 
+VALID_COLOR_MODES = {
+    COLOR_MODE_BRIGHTNESS: ATTR_BRIGHTNESS,
+    COLOR_MODE_COLOR_TEMP: ATTR_COLOR_TEMP_KELVIN,
+    COLOR_MODE_HS: ATTR_HS_COLOR,
+    COLOR_MODE_RGB: ATTR_RGB_COLOR,
+    COLOR_MODE_RGBW: ATTR_RGBW_COLOR,
+    COLOR_MODE_RGBWW: ATTR_RGBWW_COLOR,
+    COLOR_MODE_XY: ATTR_XY_COLOR,
+}
+
 _ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
@@ -1244,6 +1254,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             },
             prefer_rgb_color,
         )
+
         # Check if service data differs from the last. See #80.
         listener = self.turn_on_off_listener
         last_service_data = listener.last_service_data.get(light)
