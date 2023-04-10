@@ -1303,13 +1303,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
 
-        for light in lights:
-            if not is_on(self.hass, light):
+        all_lights = {k: k for k in lights}
+        all_lights.update(self._watched_lights)
+
+        for wlight, mlight in all_lights:
+            if not is_on(self.hass, mlight):
                 continue
 
             manually_controlled = self.turn_on_off_listener.is_manually_controlled(
                 self,
-                light,
+                wlight,
+                mlight,
                 force,
                 adapt_brightness,
                 adapt_color,
@@ -1320,7 +1324,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 and not force
                 and await self.turn_on_off_listener.significant_change(
                     self,
-                    light,
+                    wlight,
+                    mlight,
                     adapt_brightness,
                     adapt_color,
                     context,
@@ -1332,13 +1337,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     _LOGGER.debug(
                         "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
                         self._name,
-                        light,
+                        mlight,
                         context.id,
                     )
                 else:
-                    _fire_manual_control_event(self, light, context)
+                    _fire_manual_control_event(self, mlight, context)
             else:
-                await self._adapt_light(light, transition, force=force, context=context)
+                await self._adapt_light(
+                    wlight, transition, force=force, context=context
+                )
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
@@ -1941,18 +1948,19 @@ class TurnOnOffListener:
     def is_manually_controlled(
         self,
         switch: AdaptiveSwitch,
-        light: str,
+        wlight: str,
+        mlight: str,
         force: bool,
         adapt_brightness: bool,
         adapt_color: bool,
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
-        manual_control = self.manual_control.setdefault(light, False)
+        manual_control = self.manual_control.setdefault(wlight, False)
         if manual_control:
             # Manually controlled until light is turned on and off
             return True
 
-        turn_on_event = self.turn_on_event.get(light)
+        turn_on_event = self.turn_on_event.get(wlight)
         if (
             turn_on_event is not None
             and not is_our_context(turn_on_event.context)
@@ -1965,13 +1973,13 @@ class TurnOnOffListener:
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
                 manual_control = True
-                _fire_manual_control_event(switch, light, turn_on_event.context)
+                _fire_manual_control_event(switch, wlight, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
                     " adaptive_lighting integration (context.id='%s'), the Adaptive"
                     " Lighting will stop adapting the light until the switch or the"
                     " light turns off and then on again.",
-                    light,
+                    mlight,
                     turn_on_event.context.id,
                 )
         return manual_control
@@ -1979,7 +1987,8 @@ class TurnOnOffListener:
     async def significant_change(
         self,
         switch: AdaptiveSwitch,
-        light: str,
+        wlight: str,
+        mlight: str,
         adapt_brightness: bool,
         adapt_color: bool,
         context: Context,
@@ -1991,23 +2000,23 @@ class TurnOnOffListener:
         detected, we mark the light as 'manually controlled' until the light
         or switch is turned 'off' and 'on' again.
         """
-        last_service_data = self.last_service_data.get(light)
+        last_service_data = self.last_service_data.get(wlight)
         if last_service_data is None:
             return
         compare_to = functools.partial(
             _attributes_have_changed,
-            light=light,
+            light=wlight,
             adapt_brightness=adapt_brightness,
             adapt_color=adapt_color,
             context=context,
         )
-        if switch._alt_detect_method:
-            old_states: list[State] = self.last_state_change[light]
+        if switch._alt_detect_method or wlight != mlight:
+            old_states: list[State] = self.last_state_change[wlight]
             _LOGGER.debug("Total state changes detected: %s", len(old_states))
             _LOGGER.debug(
                 "%s: 'alt_detect_method: true', check all state changes made to light %s",
                 switch._name,
-                light,
+                wlight,
             )
             for index, old_state in enumerate(old_states):
                 # The first entry of old_states should always be the
@@ -2029,7 +2038,7 @@ class TurnOnOffListener:
                     _LOGGER.info(
                         "Found unexpected state_change event for %s nr. %s (context.id=%s)"
                         " old_state=%s\nprior_state=%s",
-                        light,
+                        wlight,
                         index,
                         context.id,
                         old_state,
@@ -2037,7 +2046,7 @@ class TurnOnOffListener:
                     )
                     _LOGGER.info(
                         "We will now set %s as manually controlled. (context.id=%s)",
-                        light,
+                        wlight,
                         context.id,
                     )
                     return True
@@ -2046,20 +2055,22 @@ class TurnOnOffListener:
         # light.turn_on calls if any problems arise. This
         # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
         if switch._detect_non_ha_changes:
+            if wlight != mlight:
+                return  # only supported with alt_detect_method
             _LOGGER.debug(
                 "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
                 " and check if it's last adapt succeeded.",
                 switch._name,
-                light,
+                wlight,
             )
             # This update_entity probably isn't necessary now that we're checking
             # if transitions finished from our last adapt.
-            await self.hass.helpers.entity_component.async_update_entity(light)
-            refreshed_state = self.hass.states.get(light)
+            await self.hass.helpers.entity_component.async_update_entity(wlight)
+            refreshed_state = self.hass.states.get(wlight)
             _LOGGER.debug(
                 "%s: Current state of %s: %s",
                 switch._name,
-                light,
+                wlight,
                 refreshed_state,
             )
             changed = compare_to(
@@ -2069,7 +2080,7 @@ class TurnOnOffListener:
             if changed:
                 _LOGGER.debug(
                     "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
-                    light,
+                    wlight,
                     context.id,
                 )
                 return True
@@ -2077,7 +2088,7 @@ class TurnOnOffListener:
             "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
             " context.id=%s.",
             switch._name,
-            light,
+            wlight,
             context.id,
         )
         return False
