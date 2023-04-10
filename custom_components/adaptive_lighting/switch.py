@@ -113,9 +113,9 @@ from .const import (
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
-    CONF_FLAT_LIMITS,
     CONF_DIM_TO_WARM,
     CONF_DIM_TO_WARM_BRIGHTNESS_CHECK,
+    CONF_FLAT_LIMITS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -1352,7 +1352,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data,
         )
         return service_data
-
 
     def calc_dim_to_warm_values(
         self,
