@@ -1323,7 +1323,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Ensure no key: None pair exists.
         service_data = pop_keys_with_none(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
-            # Ensure supported max/min color temp is respected.
             min_kelvin = features[ATTR_MIN_COLOR_TEMP_KELVIN]
             max_kelvin = features[ATTR_MAX_COLOR_TEMP_KELVIN]
             color_temp_kelvin = service_data[ATTR_COLOR_TEMP_KELVIN]
@@ -1344,6 +1343,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 )
                 median = (dimmed_ct + color_temp_kelvin) / 2
                 color_temp_kelvin = median
+            # Ensure supported max/min color temp is respected.
             service_data[ATTR_COLOR_TEMP_KELVIN] = max(
                 min(
                     color_temp_kelvin,
