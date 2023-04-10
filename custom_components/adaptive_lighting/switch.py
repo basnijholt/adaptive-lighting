@@ -1326,52 +1326,86 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         transition: int | None = None,
         adapt_brightness: bool = False,
         adapt_color: bool = False,
-        prefer_rgb_color: bool = False,
+        prefer_rgb_color: bool | None = None,
     ):
         features, supports_colors = _supported_features(self.hass, light)
         _LOGGER.debug(
             "%s: Light %s supports the features: %s", self._name, light, features
         )
-        service_data = {
-            ATTR_ENTITY_ID: light,
-            ATTR_TRANSITION: transition or self._transition,
-            ATTR_BRIGHTNESS: (
-                adapt_brightness
-                and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
-                or None
-            ),
-            ATTR_COLOR_TEMP_KELVIN: adapt_color
-            and self._settings[ATTR_COLOR_TEMP_KELVIN]
-            or None,
-            ATTR_RGB_COLOR: adapt_color
-            and list(self._settings[ATTR_RGB_COLOR])
-            or None,
-        }
-        if prefer_rgb_color and supports_colors:
-            service_data = _convert_attributes(service_data)
-            service_data.pop(ATTR_COLOR_TEMP_KELVIN)
-        else:
-            # Could just check ATTR_RGB_COLOR but this'll support future updates.
-            for key in service_data.keys():
+
+        def build_with_supported(data):
+            for attr, val in data:
+                if attr not in features:
+                    data.pop(attr)
+            return data
+
+        service_data = build_with_supported(
+            {
+                ATTR_ENTITY_ID: light,
+                ATTR_TRANSITION: transition or self._transition,
+                ATTR_BRIGHTNESS: (
+                    adapt_brightness
+                    and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
+                    or None
+                ),
+                ATTR_COLOR_TEMP_KELVIN: adapt_color
+                and self._settings[ATTR_COLOR_TEMP_KELVIN]
+                or None,
+                ATTR_RGB_COLOR: adapt_color
+                and list(self._settings[ATTR_RGB_COLOR])
+                or None,
+            }
+        )
+
+        def remove_color_attributes(data):
+            for mode, attr in VALID_COLOR_MODES:
                 if (
-                    key != ATTR_COLOR_TEMP_KELVIN
-                    and key != ATTR_BRIGHTNESS
-                    and key != ATTR_TRANSITION
-                    and key not in features
+                    attr != ATTR_COLOR_TEMP_KELVIN
+                    and attr != ATTR_BRIGHTNESS
+                    and attr != ATTR_TRANSITION
+                    and attr in service_data
                 ):
-                    service_data = _convert_attributes(service_data)
+                    service_data[attr] = None
+
+        def remove_unneeded_attributes(data):
+            if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
+                remove_color_attributes(data)
+            elif prefer_rgb_color is False:
+                _LOGGER.debug(
+                    "%s: 'prefer_rgb_color: false' but light %s does not support color_temp."
+                    " Using rgb_color to build service data instead...",
+                    self._name,
+                    light,
+                )
+                service_data.pop(ATTR_COLOR_TEMP_KELVIN)
+            if prefer_rgb_color:
+                if supports_colors:
+                    _LOGGER.debug(
+                        "%s: 'prefer_rgb_color: true', using rgb_color in service data",
+                        self._name,
+                        light,
+                    )
                     service_data.pop(ATTR_COLOR_TEMP_KELVIN)
-                    break
+                else:
+                    _LOGGER.debug(
+                        "%s: 'prefer_rgb_color: true' but light %s does not support rgb."
+                        " Using color temp to build service data instead...",
+                        self._name,
+                        light,
+                    )
+                    remove_color_attributes(data)
+            return data
+
+        # Remove duplicate attributes:
+        service_data = remove_unneeded_attributes(service_data)
         # Validate with hass's own schema.
         service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
 
         # Ensure no key: None pair exists.
         def pop_keys_with_none(data):
-            new_data = {}
             for key, val in data.items():
-                if data[key] is not None:
-                    new_data[key] = val
-            return new_data
+                if data[key] is None:
+                    data.pop(key)
 
         service_data = pop_keys_with_none(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
