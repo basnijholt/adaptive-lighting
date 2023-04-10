@@ -53,7 +53,6 @@ from homeassistant.components.light import (
     ATTR_XY_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import SERVICE_TURN_OFF
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.config_entries import ConfigEntryState
