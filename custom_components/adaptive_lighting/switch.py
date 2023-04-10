@@ -645,14 +645,15 @@ def _supported_to_attributes(supported):
     supported_attributes = set()
     supports_colors = False
     for mode, attr in VALID_COLOR_MODES.items():
-        if mode in supported:
-            supported_attributes.add(attr)
-            if (
-                not supports_colors
-                and mode != COLOR_MODE_BRIGHTNESS
-                and mode != COLOR_MODE_COLOR_TEMP
-            ):
-                supports_colors = True
+        if mode not in supported:
+            continue
+        supported_attributes.add(attr)
+        if (
+            not supports_colors
+            and mode != COLOR_MODE_BRIGHTNESS
+            and mode != COLOR_MODE_COLOR_TEMP
+        ):
+            supports_colors = True
     return supported_attributes, supports_colors
 
 
