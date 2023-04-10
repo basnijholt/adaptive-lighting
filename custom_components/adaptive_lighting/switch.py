@@ -114,6 +114,8 @@ from .const import (
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_FLAT_LIMITS,
+    CONF_DIM_TO_WARM,
+    CONF_DIM_TO_WARM_BRIGHTNESS_CHECK,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -1032,6 +1034,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
+        self._dim_to_warm = data[CONF_DIM_TO_WARM]
+        self._dim_to_warm_brightness_check = data[CONF_DIM_TO_WARM_BRIGHTNESS_CHECK]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
@@ -1312,13 +1316,32 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         service_data = pop_keys_with_none(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
             # Ensure supported max/min color temp is respected.
-            service_data[ATTR_COLOR_TEMP_KELVIN] = max(
+            color_temp_kelvin = max(
                 min(
                     service_data[ATTR_COLOR_TEMP_KELVIN],
                     features[ATTR_MAX_COLOR_TEMP_KELVIN],
                 ),
                 features[ATTR_MIN_COLOR_TEMP_KELVIN],
             )
+            if self._dim_to_warm and "brightness" in features:
+                cur_state = None
+                if self._dim_to_warm_brightness_check:
+                    await self.hass.helpers.entity_component.update_entity(light)
+                    cur_state = self.hass.states.get(light)
+                if cur_state:
+                    brightness = cur_state.attributes[ATTR_BRIGHTNESS]
+                else:
+                    brightness = service_data[ATTR_BRIGHTNESS]
+                dimmed_ct = self.calc_dim_to_warm_values(
+                    light,
+                    brightness,
+                    color_temp_kelvin,
+                    min_kelvin,
+                    max_kelvin,
+                )
+                median = (dimmed_ct + color_temp_kelvin) / 2
+                color_temp_kelvin = median
+            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         # Validate with hass's own schema.
         service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
         service_data.update({ATTR_ENTITY_ID: light})
@@ -1329,6 +1352,55 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data,
         )
         return service_data
+
+
+    def calc_dim_to_warm_values(
+        self,
+        light: str,
+        brightness: float,
+        color_temp_kelvin: float,
+        min_kelvin: int,
+        max_kelvin: int,
+    ):
+        min_ct = (
+            self._sun_light_settings.min_color_temp
+        )  # pylint: disable=protected-access
+        min_ct = (
+            self._sun_light_settings.min_color_temp
+        )  # pylint: disable=protected-access
+        max_ct = max_kelvin
+        max_brightness = (
+            self._sun_light_settings.max_brightness
+        )  # pylint: disable=protected-access
+        min_brightness = (
+            self._sun_light_settings.min_brightness
+        )  # pylint: disable=protected-access
+        max_brightness = max((max_brightness * 2.55), brightness)
+        min_brightness = min((min_brightness * 2.55), brightness)
+        _LOGGER.debug(
+            "Setting dim_to_warm color temp using the following values in eq:"
+            " max_brightness: %s, min_brightness: %s, max_ct: %s,"
+            " min_ct: %s, brightness: %s",
+            max_brightness,
+            min_brightness,
+            max_ct,
+            min_ct,
+            brightness,
+        )
+        # y = a(x-h)**2+k where h,k is the vertex (255,6500) or (max_brightness,max_ct)
+        # a = (min_ct-max_ct)/(min_brightness-max_brightness)**2
+        # check: y = (1000-6500)/((1-h)**2)*(x-255)**2+6500 if x=2 then y=1043.221836
+        # ^ when 1=min_brightness,255=max_brightness,6500=max_ct,1000=min_ct ^
+        color_temp_kelvin2 = (
+            (min_ct - max_ct) / (min_brightness - max_brightness) ** 2
+        ) * (brightness - max_brightness) ** 2 + max_ct
+        color_temp_kelvin = max(
+            min(
+                color_temp_kelvin + (color_temp_kelvin2 - color_temp_kelvin),
+                max_ct,
+            ),
+            min_ct,
+        )
 
     async def _adapt_light(
         self,
@@ -2201,6 +2273,8 @@ class TurnOnOffListener:
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return
+        if switch._dim_to_warm_brightness_check:
+            adapt_brightness = False
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
