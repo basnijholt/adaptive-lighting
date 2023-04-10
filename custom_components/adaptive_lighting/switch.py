@@ -1258,7 +1258,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_kelvin = features[ATTR_MIN_COLOR_TEMP_KELVIN]
             max_kelvin = features[ATTR_MAX_COLOR_TEMP_KELVIN]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
-            color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
             if self._dim_to_warm and "brightness" in features:
                 cur_state = None
                 if self._dim_to_warm_brightness_check:
