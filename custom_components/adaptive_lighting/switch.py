@@ -1334,8 +1334,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         service_data = {
             ATTR_ENTITY_ID: light,
             ATTR_TRANSITION: transition or self._transition,
-            ATTR_BRIGHTNESS_PCT: adapt_brightness
-            and self._settings[ATTR_BRIGHTNESS_PCT],
+            ATTR_BRIGHTNESS: (
+                adapt_brightness
+                and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
+            ),
             ATTR_COLOR_TEMP_KELVIN: adapt_color
             and self._settings[ATTR_COLOR_TEMP_KELVIN],
             ATTR_RGB_COLOR: adapt_color and list(self._settings[ATTR_RGB_COLOR]),
