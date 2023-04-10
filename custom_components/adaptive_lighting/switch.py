@@ -134,6 +134,7 @@ from .const import (  # LIGHT_TURN_ON_SCHEMA
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONST_COLOR,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -154,19 +155,20 @@ from .const import (  # LIGHT_TURN_ON_SCHEMA
 )
 
 _SUPPORT_OPTS = {
-    ATTR_BRIGHTNESS: SUPPORT_BRIGHTNESS,
-    ATTR_COLOR_TEMP_KELVIN: SUPPORT_COLOR_TEMP,
-    "color": SUPPORT_COLOR,
+    COLOR_MODE_BRIGHTNESS: SUPPORT_BRIGHTNESS,
+    COLOR_MODE_COLOR_TEMP: SUPPORT_COLOR_TEMP,
+    CONST_COLOR: SUPPORT_COLOR,
     ATTR_TRANSITION: SUPPORT_TRANSITION,
 }
 
 VALID_COLOR_MODES = {
-    COLOR_MODE_COLOR_TEMP,
-    COLOR_MODE_HS,
-    COLOR_MODE_RGB,
-    COLOR_MODE_RGBW,
-    COLOR_MODE_RGBWW,
-    COLOR_MODE_XY,
+    COLOR_MODE_BRIGHTNESS: ATTR_BRIGHTNESS,
+    COLOR_MODE_COLOR_TEMP: ATTR_COLOR_TEMP_KELVIN,
+    COLOR_MODE_HS: ATTR_HS_COLOR,
+    COLOR_MODE_RGB: ATTR_RGB_COLOR,
+    COLOR_MODE_RGBW: ATTR_RGBW_COLOR,
+    COLOR_MODE_RGBWW: ATTR_RGBWW_COLOR,
+    COLOR_MODE_XY: ATTR_XY_COLOR,
 }
 
 _ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
@@ -639,29 +641,48 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
     return list(all_lights)
 
 
-def build_with_supported(data: dict[str], supported: dict[str]):
-    for key in data.keys():
-        if key not in supported:
-            data[key] = None
-    return data
+def _supported_to_attributes(supported):
+    supported_attributes = set()
+    supports_colors = False
+    for mode, attr in VALID_COLOR_MODES.items():
+        if mode in supported:
+            supported_attributes.add(attr)
+            if (
+                not supports_colors
+                and mode != COLOR_MODE_BRIGHTNESS
+                and mode != COLOR_MODE_COLOR_TEMP
+            ):
+                supports_colors = True
+    return supported_attributes, supports_colors
 
 
 def _supported_features(hass: HomeAssistant, light: str):
     state = hass.states.get(light)
+    legacy_supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
+    legacy_supported = {
+        key for key, value in _SUPPORT_OPTS.items() if legacy_supported_features & value
+    }
     supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())
-    legacy_supported = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
-    supported = build_with_supported(
-        {
-            **{key for key, value in _SUPPORT_OPTS.items() if legacy_supported & value},
-            "min_kelvin": state.attributes.get(ATTR_MIN_COLOR_TEMP_KELVIN),
-            "max_kelvin": state.attributes.get(ATTR_MAX_COLOR_TEMP_KELVIN),
-        },
-        {
-            "color": not not (VALID_COLOR_MODES & supported_color_modes),
-            "brightness": COLOR_MODE_BRIGHTNESS in supported_color_modes,
-        },
+    supported, supports_colors = _supported_to_attributes(
+        legacy_supported.union(supported_color_modes)
     )
-    return supported
+    supported.update(
+        {
+            ATTR_MIN_COLOR_TEMP_KELVIN: state.attributes.get(
+                ATTR_MIN_COLOR_TEMP_KELVIN, 6500
+            ),
+            ATTR_MAX_COLOR_TEMP_KELVIN: state.attributes.get(
+                ATTR_MAX_COLOR_TEMP_KELVIN, 1000
+            ),
+        }
+    )
+    if supports_colors and CONST_COLOR not in legacy_supported:
+        # supports_colors = False
+        _LOGGER.debug(
+            "'supported_color_modes' supports color but the legacy 'supported_features'"
+            " bitfield says we do not. Despite this we'll assume light '%s' supports colors",
+        )
+    return supported, supports_colors
 
 
 def color_difference_redmean(
@@ -700,17 +721,21 @@ def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
         _LOGGER.debug(f"Converted {attributes} to rgb {rgb}")
     else:
         _LOGGER.debug("No suitable conversion found")
-
+    _LOGGER.debug("Converted attributes to RGB color: %s", attributes)
     return attributes
 
 
 def _add_missing_attributes(
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
+    prefer_rgb_color: bool | None = None,
 ) -> dict[str, Any]:
-    if not any(
-        attr in old_attributes and attr in new_attributes
-        for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
+    if (
+        not any(
+            attr in old_attributes and attr in new_attributes
+            for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
+        )
+        or prefer_rgb_color is True
     ):
         old_attributes = _convert_attributes(old_attributes)
         new_attributes = _convert_attributes(new_attributes)
@@ -1228,8 +1253,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color = (
                 self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
             )
-        if prefer_rgb_color is None:
-            prefer_rgb_color = self._prefer_rgb_color
+        prefer_rgb_color = self._prefer_rgb_color or None
 
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
@@ -1287,49 +1311,62 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
 
-    # For updates, check homeassistant.components.light.async_setup.async_handle_light_on_service
+    # For breaking changes, check out
+    # homeassistant.components.light.async_setup.async_handle_light_on_service
+    # Todo: convert into schema at some point.
     def _build_service_data(
         self,
         light: str,
         transition: int | None = False,
         adapt_brightness: bool | None = False,
         adapt_color: bool | None = False,
-        prefer_rgb_color: bool | None = False,
-        sleep_rgb: bool = False,
+        prefer_rgb_color: bool | None = None,
     ):
-        features = _supported_features(self.hass, light)
-        service_data = build_with_supported(
-            {
-                ATTR_ENTITY_ID: light,
-                ATTR_TRANSITION: transition or self._settings[ATTR_TRANSITION],
-                ATTR_BRIGHTNESS_PCT: adapt_brightness
-                and self._settings[ATTR_BRIGHTNESS_PCT],
-                ATTR_COLOR_TEMP_KELVIN: adapt_color
-                and self._settings[ATTR_COLOR_TEMP_KELVIN],
-                ATTR_RGB_COLOR: adapt_color and self._settings[ATTR_RGB_COLOR],
-            },
-            features,
-        )
-        service_data = _add_missing_attributes(
-            old_attributes=features,
-            new_attributes=service_data,
-            which=prefer_rgb_color,  # todo
-        )
-        service_data[ATTR_COLOR_TEMP_KELVIN] = service_data[
-            ATTR_COLOR_TEMP_KELVIN
-        ] and max(
-            min(service_data[ATTR_COLOR_TEMP_KELVIN], features["max_kelvin"]),
-            features["min_kelvin"],
-        )
-        assert (
-            service_data[ATTR_COLOR_TEMP_KELVIN]
-            or service_data[ATTR_RGB_COLOR]
-            or not features["color"]
-        )
-
-        #  assert LIGHT_TURN_ON_SCHEMA(service_data)
+        features, supports_colors = _supported_features(self.hass, light)
         _LOGGER.debug(
-            "%s: Built service data supported by light %s. Service Data: %s",
+            "%s: Light %s supports the features: %s", self._name, light, features
+        )
+        service_data = {
+            ATTR_ENTITY_ID: light,
+            ATTR_TRANSITION: transition or self._transition,
+            ATTR_BRIGHTNESS_PCT: adapt_brightness
+            and self._settings[ATTR_BRIGHTNESS_PCT],
+            ATTR_COLOR_TEMP_KELVIN: adapt_color
+            and self._settings[ATTR_COLOR_TEMP_KELVIN],
+            ATTR_RGB_COLOR: adapt_color and self._settings[ATTR_RGB_COLOR],
+        }
+        if prefer_rgb_color and supports_colors:
+            service_data = _convert_attributes(service_data)
+            service_data.pop(ATTR_COLOR_TEMP_KELVIN)
+        else:
+            for key in service_data.keys():
+                if (
+                    key != ATTR_COLOR_TEMP_KELVIN
+                    and key != ATTR_BRIGHTNESS
+                    and key != ATTR_TRANSITION
+                    and key not in features
+                ):
+                    service_data = _convert_attributes(service_data)
+                    service_data.pop(ATTR_COLOR_TEMP_KELVIN)
+                    break
+        new_service_data = {}
+        for key, val in service_data.items():
+            if key in features and service_data[key] is not None:
+                new_service_data[key] = val
+        if ATTR_COLOR_TEMP_KELVIN in new_service_data:
+            service_data[ATTR_COLOR_TEMP_KELVIN] = max(
+                min(
+                    service_data[ATTR_COLOR_TEMP_KELVIN],
+                    features[ATTR_MAX_COLOR_TEMP_KELVIN],
+                ),
+                features[ATTR_MIN_COLOR_TEMP_KELVIN],
+            )
+        if service_data.get(ATTR_TRANSITION) == 0:
+            service_data.pop(ATTR_TRANSITION)
+        #  assert LIGHT_TURN_ON_SCHEMA(service_data)  # maybe
+
+        _LOGGER.debug(
+            "%s: Built service_data supported by light %s. service_data: %s",
             self._name,
             light,
             service_data,

@@ -202,6 +202,7 @@ DOCS[CONF_USE_DEFAULTS] = (
 )
 
 TURNING_OFF_DELAY = 5
+CONST_COLOR = "color"
 
 DOCS_MANUAL_CONTROL = {
     CONF_ENTITY_ID: "The `entity_id` of the switch in which to (un)mark the "
