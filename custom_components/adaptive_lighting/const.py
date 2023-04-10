@@ -234,11 +234,13 @@ def replace_zero_with_none(val: int) -> None:
     return val
 
 
+# Fixes an issue I can't find on github at this moment.
+# Ensure no transition of 0 exists.
 VALID_TRANSITION = vol.All(
     vol.Coerce(float), vol.Clamp(min=0, max=6553), replace_zero_with_none
 )
-# ATTR_ENTITY_ID exists in a different schema in hass.
 ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
+# ATTR_ENTITY_ID exists in a different schema in hass.
 ENTITY_LIGHT_TURN_ON_SCHEMA.update(
     {ATTR_ENTITY_ID: cv.entity_id, ATTR_TRANSITION: VALID_TRANSITION}
 )

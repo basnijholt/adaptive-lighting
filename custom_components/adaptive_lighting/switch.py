@@ -1360,13 +1360,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     service_data = _convert_attributes(service_data)
                     service_data.pop(ATTR_COLOR_TEMP_KELVIN)
                     break
+        # Validate with hass's own schema.
+        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
+
         # Ensure no key: None pair exists.
-        new_service_data = {ATTR_ENTITY_ID: light}
-        for key, val in service_data.items():
-            if key in features and service_data[key] is not None:
-                new_service_data[key] = val
-        service_data = new_service_data
-        if ATTR_COLOR_TEMP_KELVIN in new_service_data:
+        def pop_keys_with_none(data):
+            new_data = {}
+            for key, val in data.items():
+                if data[key] is not None:
+                    new_data[key] = val
+            return new_data
+
+        service_data = pop_keys_with_none(service_data)
+        if ATTR_COLOR_TEMP_KELVIN in service_data:
             # Ensure supported max/min color temp is respected.
             service_data[ATTR_COLOR_TEMP_KELVIN] = max(
                 min(
@@ -1382,7 +1388,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             light,
             service_data,
         )
-        return vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
+        return
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
