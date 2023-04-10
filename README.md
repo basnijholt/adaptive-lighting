@@ -6,6 +6,8 @@
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
 
+### This branch contains all of the bleeding-edge features we haven't properly tested enough to be included in the release. Use if you live on the edge. Please ensure you include that you're using this branch in an issue thread should one happen. Users should only use if they desire a new feature we haven't released yet.
+
 ![](https://github.com/home-assistant/brands/raw/b4a168b9af282ef916e120d31091ecd5e3c35e66/core_integrations/adaptive_lighting/icon.png)
 
 Adaptive Lighting is a custom component for [Home Assistant](https://www.home-assistant.io/) that intelligently adjusts the brightness and color of your lights 💡 based on the sun's position, while still allowing for manual control.
