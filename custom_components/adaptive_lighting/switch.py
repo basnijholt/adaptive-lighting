@@ -70,6 +70,7 @@ from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
     State,
+    async_get_hass,
     callback,
 )
 from homeassistant.helpers import entity_platform, entity_registry
@@ -416,6 +417,139 @@ async def handle_change_switch_settings(
 
 
 @callback
+async def handle_turn_on(service_call: ServiceCall):
+    """Toggles the specified switch."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.turn_on' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    if data[CONF_WHICH_SWITCH] == "sleep":
+        switches = [s.sleep_mode_switch for s in switches]
+    elif data[CONF_WHICH_SWITCH] == "brightness":
+        switches = [s.adapt_brightness_switch for s in switches]
+    elif data[CONF_WHICH_SWITCH] == "color":
+        switches = [s.adapt_color_switch for s in switches]
+
+    _LOGGER.debug("Turning on switches [%s]", switches)
+    for switch in switches:
+        await switch.async_turn_on()
+
+
+@callback
+async def handle_turn_off(service_call: ServiceCall):
+    """Toggles the specified switch."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.turn_off' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    if data[CONF_WHICH_SWITCH] == "sleep":
+        switches = [s.sleep_mode_switch for s in switches]
+    elif data[CONF_WHICH_SWITCH] == "brightness":
+        switches = [s.adapt_brightness_switch for s in switches]
+    elif data[CONF_WHICH_SWITCH] == "color":
+        switches = [s.adapt_color_switch for s in switches]
+    _LOGGER.debug("Turning off switches [%s]", switches)
+    for switch in switches:
+        await switch.async_turn_off()
+
+
+@callback
+async def handle_toggle(service_call: ServiceCall):
+    """Toggles the specified switch."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.toggle' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    if data[CONF_WHICH_SWITCH] == "sleep":
+        switches = [s.sleep_mode_switch for s in switches]
+    elif data[CONF_WHICH_SWITCH] == "brightness":
+        switches = [s.adapt_brightness_switch for s in switches]
+    elif data[CONF_WHICH_SWITCH] == "color":
+        switches = [s.adapt_color_switch for s in switches]
+    _LOGGER.debug("Toggling switches [%s]", switches)
+    for switch in switches:
+        if switch.is_on:
+            await switch.async_turn_off()
+        else:
+            await switch.async_turn_on()
+
+
+@callback
+async def handle_apply(service_call: ServiceCall):
+    """Handle the entity service apply."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.apply' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        if not lights:
+            all_lights = switch._lights  # pylint: disable=protected-access
+        else:
+            all_lights = _expand_light_groups(switch.hass, lights)
+        switch.turn_on_off_listener.lights.update(all_lights)
+        for light in all_lights:
+            if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
+                await switch._adapt_light(  # pylint: disable=protected-access
+                    light,
+                    data[CONF_TRANSITION],
+                    data[ATTR_ADAPT_BRIGHTNESS],
+                    data[ATTR_ADAPT_COLOR],
+                    data[CONF_PREFER_RGB_COLOR],
+                    force=True,
+                    context=switch.create_context(
+                        "service", parent=service_call.context
+                    ),
+                )
+
+
+@callback
+async def handle_set_manual_control(service_call: ServiceCall):
+    """Set or unset lights as 'manually controlled'."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.set_manual_control' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        if not lights:
+            all_lights = switch._lights  # pylint: disable=protected-access
+        else:
+            all_lights = _expand_light_groups(switch.hass, lights)
+        if service_call.data[CONF_MANUAL_CONTROL]:
+            for light in all_lights:
+                switch.turn_on_off_listener.mark_as_manual_control(light)
+                _fire_manual_control_event(switch, light, service_call.context)
+        else:
+            switch.turn_on_off_listener.reset(*all_lights)
+            if switch.is_on:
+                # pylint: disable=protected-access
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    all_lights,
+                    transition=switch._initial_transition,
+                    force=True,
+                    context=switch.create_context(
+                        "service", parent=service_call.context
+                    ),
+                )
+
+
+@callback
 def _fire_manual_control_event(
     switch: AdaptiveSwitch, light: str, context: Context, is_async=True
 ):
@@ -474,129 +608,6 @@ async def async_setup_entry(
         [switch, sleep_mode_switch, adapt_color_switch, adapt_brightness_switch],
         update_before_add=True,
     )
-
-    @callback
-    async def handle_turn_on(service_call: ServiceCall):
-        """Toggles the specified switch."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.turn_on' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        if data[CONF_WHICH_SWITCH] == "sleep":
-            switches = [s.sleep_mode_switch for s in switches]
-        elif data[CONF_WHICH_SWITCH] == "brightness":
-            switches = [s.adapt_brightness_switch for s in switches]
-        elif data[CONF_WHICH_SWITCH] == "color":
-            switches = [s.adapt_color_switch for s in switches]
-
-        _LOGGER.debug("Turning on switches [%s]", switches)
-        for switch in switches:
-            await switch.async_turn_on()
-
-    @callback
-    async def handle_turn_off(service_call: ServiceCall):
-        """Toggles the specified switch."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.turn_off' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        if data[CONF_WHICH_SWITCH] == "sleep":
-            switches = [s.sleep_mode_switch for s in switches]
-        elif data[CONF_WHICH_SWITCH] == "brightness":
-            switches = [s.adapt_brightness_switch for s in switches]
-        elif data[CONF_WHICH_SWITCH] == "color":
-            switches = [s.adapt_color_switch for s in switches]
-        _LOGGER.debug("Turning off switches [%s]", switches)
-        for switch in switches:
-            await switch.async_turn_off()
-
-    @callback
-    async def handle_toggle(service_call: ServiceCall):
-        """Toggles the specified switch."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.toggle' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        if data[CONF_WHICH_SWITCH] == "sleep":
-            switches = [s.sleep_mode_switch for s in switches]
-        elif data[CONF_WHICH_SWITCH] == "brightness":
-            switches = [s.adapt_brightness_switch for s in switches]
-        elif data[CONF_WHICH_SWITCH] == "color":
-            switches = [s.adapt_color_switch for s in switches]
-        _LOGGER.debug("Toggling switches [%s]", switches)
-        for switch in switches:
-            if switch.is_on:
-                await switch.async_turn_off()
-            else:
-                await switch.async_turn_on()
-
-    @callback
-    async def handle_apply(service_call: ServiceCall):
-        """Handle the entity service apply."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.apply' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
-            else:
-                all_lights = _expand_light_groups(switch.hass, lights)
-            switch.turn_on_off_listener.lights.update(all_lights)
-            for light in all_lights:
-                if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    await switch._adapt_light(  # pylint: disable=protected-access
-                        light,
-                        data[CONF_TRANSITION],
-                        data[ATTR_ADAPT_BRIGHTNESS],
-                        data[ATTR_ADAPT_COLOR],
-                        data[CONF_PREFER_RGB_COLOR],
-                        force=True,
-                        context=switch.create_context(
-                            "service", parent=service_call.context
-                        ),
-                    )
-
-    @callback
-    async def handle_set_manual_control(service_call: ServiceCall):
-        """Set or unset lights as 'manually controlled'."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.set_manual_control' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
-            else:
-                all_lights = _expand_light_groups(switch.hass, lights)
-            if service_call.data[CONF_MANUAL_CONTROL]:
-                for light in all_lights:
-                    switch.turn_on_off_listener.mark_as_manual_control(light)
-                    _fire_manual_control_event(switch, light, service_call.context)
-            else:
-                switch.turn_on_off_listener.reset(*all_lights)
-                if switch.is_on:
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        all_lights,
-                        transition=switch._initial_transition,
-                        force=True,
-                        context=switch.create_context(
-                            "service", parent=service_call.context
-                        ),
-                    )
 
     # Register `apply` service
     hass.services.async_register(
