@@ -166,7 +166,7 @@ DOCS[
 ] = "Only active when `transition_until_sleep` is true."
 CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP, DEFAULT_ADAPT_BRIGHTNESS_UNTIL_SLEEP = (
     "adapt_brightness_until_sleep",
-    True,
+    False,
 )
 DOCS[
     CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP
