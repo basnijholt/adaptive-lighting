@@ -313,7 +313,6 @@ def replace_none_str(value, replace_with=None):
     return value if value != NONE_STR else replace_with
 
 
-
 def replace_zero_with_none(val: int) -> None:
     if val == 0:
         return None
@@ -322,9 +321,7 @@ def replace_zero_with_none(val: int) -> None:
 
 # Fixes an issue I can't find on github at this moment.
 # Ensure no transition of 0 exists.
-VALID_TRANSITION = vol.All(
-    VALID_TRANSITION, replace_zero_with_none
-)
+VALID_TRANSITION = vol.All(VALID_TRANSITION, replace_zero_with_none)
 ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
 # ATTR_ENTITY_ID exists in a different schema in hass.
 ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
