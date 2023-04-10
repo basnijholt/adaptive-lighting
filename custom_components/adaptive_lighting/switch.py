@@ -324,9 +324,9 @@ def _get_switches_with_lights(
         switch = data[config.entry_id]["instance"]
         if lights:
             all_check_lights = _expand_light_groups(hass, lights)
-            switch._expand_light_groups()
+            switch._expand_light_groups()  # pylint: disable=protected-access
             # Check if any of the lights are in the switch's lights
-            if set(switch._lights) & set(all_check_lights):
+            if set(switch._lights) & set(all_check_lights):  # pylint: disable=protected-access
                 switches.append(switch)
         else:
             switches.append(switch)
@@ -469,7 +469,9 @@ async def async_setup_entry(
         lights = data[CONF_LIGHTS]
         for switch in switches:
             if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
+                all_lights = (
+                    lights or switch._lights
+                )  # pylint: disable=protected-access
             else:
                 all_lights = _expand_light_groups(switch.hass, lights)
             switch.turn_on_off_listener.lights.update(all_lights)
@@ -642,8 +644,8 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
         if state is None:
             _LOGGER.debug("State of %s is None", light)
             all_lights.add(light)
-        elif "entity_id" in state.attributes:  # it's a light group
-            group = state.attributes["entity_id"]
+        elif ATTR_ENTITY_ID in state.attributes:  # it's a light group
+            group = state.attributes[ATTR_ENTITY_ID]
             turn_on_off_listener.lights.discard(light)
             all_lights.update(group)
             _LOGGER.debug("Expanded %s to %s", light, group)
@@ -931,6 +933,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             data,
         )
 
+    def __getattribute__(self, name):
+        if name == "_lights":
+            self._expand_light_groups()
+        return object.__getattribute__(self, name)
+
     def _set_changeable_settings(
         self,
         data: dict,
@@ -1060,12 +1067,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
 
     def _expand_light_groups(self) -> None:
-        all_lights = _expand_light_groups(self.hass, self._lights)
+        all_lights = _expand_light_groups(
+            self.hass, object.__getattribute__(self, "_lights")
+        )
         self.turn_on_off_listener.lights.update(all_lights)
         self.turn_on_off_listener.set_auto_reset_manual_control_times(
             all_lights, self._auto_reset_manual_control_time
         )
-        self._lights = list(all_lights)
+        object.__setattr__(self, "_lights", list(all_lights))
 
     async def _setup_listeners(self, _=None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
@@ -1086,10 +1095,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self.remove_listeners.extend([remove_interval, remove_sleep])
 
-        if self._lights:
-            self._expand_light_groups()
+        lights = self._lights
+        if lights:
             remove_state = async_track_state_change_event(
-                self.hass, self._lights, self._light_event
+                self.hass, lights, self._light_event
             )
             self.remove_listeners.append(remove_state)
 
@@ -1111,16 +1120,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             for key in self._settings:
                 extra_state_attributes[key] = None
             return extra_state_attributes
+        lights = self._lights
         extra_state_attributes["manual_control"] = [
             light
-            for light in self._lights
+            for light in lights
             if self.turn_on_off_listener.manual_control.get(light)
         ]
         extra_state_attributes.update(self._settings)
         timers = self.turn_on_off_listener.auto_reset_manual_control_timers
         extra_state_attributes["autoreset_time_remaining"] = {
             light: time
-            for light in self._lights
+            for light in lights
             if (timer := timers.get(light)) and (time := timer.remaining_time()) > 0
         }
         return extra_state_attributes
@@ -1882,7 +1892,7 @@ class TurnOnOffListener:
                 timer.cancel()
                 timers_dict.pop(light)
             else:  # Timer object already exists, just update the delay and restart it
-                timer.delay = delay
+                timer.delay = delay  # pylint: disable=protected-access
                 timer.start()
         elif delay is not None:  # Timer object does not exist, create it
             timer = _AsyncSingleShotTimer(delay, reset_coroutine)
