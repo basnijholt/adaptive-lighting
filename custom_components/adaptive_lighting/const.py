@@ -1,6 +1,10 @@
 """Constants for the Adaptive Lighting integration."""
 
-from homeassistant.components.light import VALID_TRANSITION
+from homeassistant.components.light import (
+    ATTR_TRANSITION,
+    LIGHT_TURN_ON_SCHEMA,
+    VALID_TRANSITION,
+)
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
@@ -202,6 +206,7 @@ DOCS[CONF_USE_DEFAULTS] = (
 )
 
 TURNING_OFF_DELAY = 5
+CONST_COLOR = "color"
 
 DOCS_MANUAL_CONTROL = {
     CONF_ENTITY_ID: "The `entity_id` of the switch in which to (un)mark the "
@@ -218,6 +223,7 @@ DOCS_APPLY = {
 }
 
 
+# Here we modify existing home assistant schemas for our purposes.
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
@@ -308,6 +314,20 @@ def maybe_coerce(key, validation):
 def replace_none_str(value, replace_with=None):
     """Replace "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
+
+
+def replace_zero_with_none(val: int) -> None:
+    if val == 0:
+        return None
+    return val
+
+
+# Fixes an issue I can't find on github at this moment.
+# Ensure no transition of 0 exists.
+VALID_TRANSITION = vol.All(VALID_TRANSITION, replace_zero_with_none)
+ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
+# ATTR_ENTITY_ID exists in a different schema in hass.
+ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
 
 
 _yaml_validation_tuples = [
