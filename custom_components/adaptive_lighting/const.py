@@ -68,6 +68,14 @@ DOCS[CONF_MIN_BRIGHTNESS] = "Minimum brightness percentage. 💡"
 CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP = "min_color_temp", 2000
 DOCS[CONF_MIN_COLOR_TEMP] = "Warmest color temperature in Kelvin. 🔥"
 
+CONF_FLAT_LIMITS, DEFAULT_FLAT_LIMITS = "flat_limits", False
+DOCS[CONF_FLAT_LIMITS] = (
+    "When True, will not calculate between the"
+    " max/min supported limits of your light. Example: when adapting brightness to 50% while "
+    + CONF_MAX_BRIGHTNESS
+    + " is set to 80%, Adaptive Lighting will use 80% instead of 90%"
+)
+
 CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE = "only_once", False
 DOCS[CONF_ONLY_ONCE] = (
     "Adapt lights only when they are turned on (`true`) or keep adapting them "
@@ -261,6 +269,7 @@ VALIDATION_TUPLES = [
     (CONF_MIN_SUNSET_TIME, NONE_STR, str),
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
+    (CONF_FLAT_LIMITS, DEFAULT_FLAT_LIMITS, bool),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
