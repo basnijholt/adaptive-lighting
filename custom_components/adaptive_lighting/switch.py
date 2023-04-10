@@ -666,14 +666,12 @@ def _supported_features(hass: HomeAssistant, light: str):
     supported, supports_colors = _supported_to_attributes(
         legacy_supported.union(supported_color_modes)
     )
+    min_kelvin = state.attributes.get(ATTR_MIN_COLOR_TEMP_KELVIN)
+    max_kelvin = state.attributes.get(ATTR_MAX_COLOR_TEMP_KELVIN)
     supported.update(
         {
-            ATTR_MIN_COLOR_TEMP_KELVIN: state.attributes.get(
-                ATTR_MIN_COLOR_TEMP_KELVIN, 6500
-            ),
-            ATTR_MAX_COLOR_TEMP_KELVIN: state.attributes.get(
-                ATTR_MAX_COLOR_TEMP_KELVIN, 1000
-            ),
+            ATTR_MIN_COLOR_TEMP_KELVIN: min_kelvin,
+            ATTR_MAX_COLOR_TEMP_KELVIN: max_kelvin,
         }
     )
     if supports_colors and CONST_COLOR not in legacy_supported:
