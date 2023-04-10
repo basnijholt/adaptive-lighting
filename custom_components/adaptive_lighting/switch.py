@@ -675,12 +675,16 @@ def _supported_features(hass: HomeAssistant, light: str):
             ATTR_MAX_COLOR_TEMP_KELVIN: max_kelvin,
         }
     )
-    if supports_colors and CONST_COLOR not in legacy_supported:
-        # supports_colors = False
-        _LOGGER.debug(
-            "'supported_color_modes' supports color but the legacy 'supported_features'"
-            " bitfield says we do not. Despite this we'll assume light '%s' supports colors",
-        )
+    if supports_colors:
+        if CONST_COLOR not in legacy_supported:
+            # supports_colors = False
+            _LOGGER.debug(
+                "'supported_color_modes' supports color but the legacy 'supported_features'"
+                " bitfield says we do not. Despite this we'll assume light '%s' supports colors",
+            )
+        # Adding brightness here, see
+        # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
+        supported.add(ATTR_BRIGHTNESS)
     return supported, supports_colors
 
 
@@ -1242,35 +1246,33 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lock is not None and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
-        if transition is None:
-            transition = self._transition
-        if adapt_brightness is None:
-            adapt_brightness = self.adapt_brightness_switch.is_on
-        if adapt_color is None:
-            adapt_color = self.adapt_color_switch.is_on
-        if self.sleep_mode_switch.is_on:
-            prefer_rgb_color = (
-                self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
-            )
-        prefer_rgb_color = self._prefer_rgb_color or None
 
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on, transition
         )
+        if prefer_rgb_color is None:
+            if self.sleep_mode_switch.is_on:
+                prefer_rgb_color = (
+                    self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
+                )
+            else:
+                prefer_rgb_color = self._prefer_rgb_color
         service_data = self._build_service_data(
             light,
-            transition,
-            adapt_brightness,
-            adapt_color,
+            transition or self._transition,
+            adapt_brightness if not None else self.adapt_brightness_switch.is_on,
+            adapt_color if not None else self.adapt_color_switch.is_on,
             prefer_rgb_color,
         )
-        context = context or self.create_context("adapt_lights")
-        assert context
-
-        # Check if service data differs from the last. See #80. Doesn't check if transitions differ.
+        # Check if service data differs from the last. See #80.
         listener = self.turn_on_off_listener
-        if not force and listener.last_service_data.get(light) == service_data:
+        last_service_data = listener.last_service_data.get(light)
+        ignore_fields = {ATTR_TRANSITION}
+        differing_fields = {
+            k for k, _ in last_service_data.items() ^ service_data.items()
+        }
+        if not force and last_service_data and differing_fields == ignore_fields:
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
@@ -1279,6 +1281,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             return
         listener.last_service_data[light] = service_data
+
+        context = context or self.create_context("adapt_lights")
 
         async def turn_on(service_data):
             _LOGGER.debug(
@@ -1316,10 +1320,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def _build_service_data(
         self,
         light: str,
-        transition: int | None = False,
-        adapt_brightness: bool | None = False,
-        adapt_color: bool | None = False,
-        prefer_rgb_color: bool | None = None,
+        transition: int | None = None,
+        adapt_brightness: bool = False,
+        adapt_color: bool = False,
+        prefer_rgb_color: bool = False,
     ):
         features, supports_colors = _supported_features(self.hass, light)
         _LOGGER.debug(
@@ -1332,7 +1336,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and self._settings[ATTR_BRIGHTNESS_PCT],
             ATTR_COLOR_TEMP_KELVIN: adapt_color
             and self._settings[ATTR_COLOR_TEMP_KELVIN],
-            ATTR_RGB_COLOR: adapt_color and self._settings[ATTR_RGB_COLOR],
+            ATTR_RGB_COLOR: adapt_color and list(self._settings[ATTR_RGB_COLOR]),
         }
         if prefer_rgb_color and supports_colors:
             service_data = _convert_attributes(service_data)
@@ -1360,6 +1364,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 ),
                 features[ATTR_MIN_COLOR_TEMP_KELVIN],
             )
+        # Transition > 0 fixes #378
         if service_data.get(ATTR_TRANSITION) == 0:
             service_data.pop(ATTR_TRANSITION)
         #  assert LIGHT_TURN_ON_SCHEMA(service_data)  # maybe
