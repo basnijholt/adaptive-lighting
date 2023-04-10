@@ -15,6 +15,20 @@ DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
+API_EVENT_SEND = "call"
+API_EVENT_GET = "return"
+API_RETRIEVE = "retrieve"
+API_SINGLESHOT_EVENT = "event"
+API_EVENT_CALC_PERCENT = "on_percent_calc"
+API_EVENT_ADAPT = "on_adapt_end"
+API_EVENT_CALC_BRIGHTNESS = "on_brightness_calc"
+API_EVENT_CALC_COLOR_TEMP = "on_colortemp_calc"
+API_EVENT_CALC_SUN_EVENTS = "on_sunevents_calc"
+API_REQUEST_SETTINGS = "settings"
+API_REQUEST_LAST_ADAPT = "last_service_data"
+API_REQUEST_LIGHT_INFO = "light_info"
+API_REQUEST_SWITCH_INFO = "switch_info"
+
 DOCS = {CONF_ENTITY_ID: "Entity ID of the switch. 📝"}
 
 
