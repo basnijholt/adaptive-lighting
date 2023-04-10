@@ -33,12 +33,6 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Requires `take_over_control`. 🕵️"
 )
 
-CONF_ALT_DETECT_METHOD, DEFAULT_ALT_DETECT_METHOD = "alt_detect_method", False
-DOCS[CONF_ALT_DETECT_METHOD] = (
-    "alt_detect_method: When true, will check for any significant changes in the opposite direction"
-    " of where adaptive-lighting tried to adapt last."
-    " This is an alternative to 'detect_non_ha_changes' (default: false)"
-)
 CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
     "include_config_in_attributes",
     False,
@@ -182,6 +176,14 @@ DOCS[CONF_AUTORESET_CONTROL] = (
     "Set to 0 to disable. ⏲️"
 )
 
+CONF_WATCHED_LIGHTS, DEFAULT_WATCHED_LIGHTS = "watched_lights", {}
+DOCS[CONF_WATCHED_LIGHTS] = (
+    "Use this dictionary of lights to check for manually controlled events "
+    " in addition to the main lights 🌟"
+    " Example: {light.watch_light: light.main_light} will fire manually controlled events to "
+    " light.main_light"
+)
+
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
@@ -231,6 +233,7 @@ def int_between(min_int, max_int):
 
 VALIDATION_TUPLES = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
+    (CONF_WATCHED_LIGHTS, DEFAULT_WATCHED_LIGHTS, cv.entity_ids),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
@@ -268,7 +271,6 @@ VALIDATION_TUPLES = [
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
-    (CONF_ALT_DETECT_METHOD, DEFAULT_ALT_DETECT_METHOD, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
