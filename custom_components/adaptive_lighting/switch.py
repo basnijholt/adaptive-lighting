@@ -1112,7 +1112,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
-    async def calc_dim_to_warm_values(
+    def calc_dim_to_warm_values(
         self,
         light: str,
         brightness: float,
@@ -1214,8 +1214,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             max_kelvin = features[ATTR_MAX_COLOR_TEMP_KELVIN]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
-            cur_state = None
             if self._dim_to_warm and "brightness" in features:
+                cur_state = None
                 if self._dim_to_warm_brightness_check:
                     await self.hass.helpers.entity_component.async_update_entity(light)
                     cur_state = self.hass.states.get(light)
@@ -1223,14 +1223,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     brightness = cur_state.attributes[ATTR_BRIGHTNESS]
                 else:
                     brightness = service_data[ATTR_BRIGHTNESS]
-                color_temp_kelvin = self.calc_dim_to_warm_values(
+                dimmed_ct = self.calc_dim_to_warm_values(
                     light,
                     brightness,
                     color_temp_kelvin,
                     min_kelvin,
                     max_kelvin,
                 )
-            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
+                median = (dimmed_ct + color_temp_kelvin) / 2
+            service_data[ATTR_COLOR_TEMP_KELVIN] = median
         elif supports_colors and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
