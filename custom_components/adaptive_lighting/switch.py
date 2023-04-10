@@ -688,6 +688,62 @@ def _supported_features(hass: HomeAssistant, light: str):
     return supported, supports_colors
 
 
+def pop_keys_with_none(data):
+    new_data = {}
+    for key, val in data.items():
+        if val is not None:
+            new_data[key] = val
+    return new_data
+
+
+def remove_color_attributes(data):
+    for attr in COLOR_ATTRS:
+        if attr in data and attr != ATTR_COLOR_TEMP_KELVIN:
+            _LOGGER.debug("Remove color attr %s from service data", attr)
+            data[attr] = None
+    return data
+
+
+def build_with_supported(
+    switch: AdaptiveSwitch, light, data, features, prefer_rgb_color, supports_colors
+):
+    if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
+        if ATTR_COLOR_TEMP_KELVIN in data:
+            remove_color_attributes(data)
+    elif prefer_rgb_color is False:
+        _LOGGER.debug(
+            "%s: 'prefer_rgb_color: false' but light %s does not support color_temp."
+            " Using rgb_color to build service data instead...",
+            switch._name,
+            light,
+        )
+        data.pop(ATTR_COLOR_TEMP_KELVIN)
+    elif prefer_rgb_color:
+        color_attrs_in_data = {k for k, _ in COLOR_ATTRS.keys() ^ data.keys()}
+        if supports_colors and color_attrs_in_data:
+            _LOGGER.debug(
+                "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
+                switch._name,
+                light,
+            )
+            data.pop(ATTR_COLOR_TEMP_KELVIN)
+        elif ATTR_COLOR_TEMP_KELVIN in data:
+            _LOGGER.debug(
+                "%s: 'prefer_rgb_color: true' but light %s does not support rgb."
+                " Using color temp to build service data instead...",
+                switch._name,
+                light,
+            )
+            remove_color_attributes(data)
+        else:
+            _LOGGER.error(ATTR_COLOR_TEMP_KELVIN + " not in service data")
+    for attr, val in data.items():
+        if attr not in COLOR_ATTRS and attr not in features:
+            _LOGGER.debug("pop unsupported %s val %s", attr, val)
+            data[attr] = None
+    return data
+
+
 def color_difference_redmean(
     rgb1: tuple[float, float, float], rgb2: tuple[float, float, float]
 ) -> float:
@@ -1112,7 +1168,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
-    def calc_dim_to_warm_values(
+    def calc_dim_to_warm_ct(
         self,
         light: str,
         brightness: float,
@@ -1149,16 +1205,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # a = (min_ct-max_ct)/(min_brightness-max_brightness)**2
         # check: y = (1000-6500)/((1-h)**2)*(x-255)**2+6500 if x=2 then y=1043.221836
         # ^ when 1=min_brightness,255=max_brightness,6500=max_ct,1000=min_ct ^
-        color_temp_kelvin2 = (
-            (min_ct - max_ct) / (min_brightness - max_brightness) ** 2
-        ) * (brightness - max_brightness) ** 2 + max_ct
-        color_temp_kelvin = max(
-            min(
-                color_temp_kelvin + (color_temp_kelvin2 - color_temp_kelvin),
-                max_ct,
-            ),
-            min_ct,
-        )
+        return ((min_ct - max_ct) / (min_brightness - max_brightness) ** 2) * (
+            brightness - max_brightness
+        ) ** 2 + max_ct
 
     async def _adapt_light(
         self,
