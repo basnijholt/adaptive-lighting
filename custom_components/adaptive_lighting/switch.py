@@ -1334,28 +1334,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
         def build_with_supported(data):
-            for attr, val in data:
+            for attr, val in data.items():
                 if attr not in features:
-                    data.pop(attr)
+                    data[attr] = None
             return data
 
-        service_data = build_with_supported(
-            {
-                ATTR_ENTITY_ID: light,
-                ATTR_TRANSITION: transition or self._transition,
-                ATTR_BRIGHTNESS: (
-                    adapt_brightness
-                    and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
-                    or None
-                ),
-                ATTR_COLOR_TEMP_KELVIN: adapt_color
-                and self._settings[ATTR_COLOR_TEMP_KELVIN]
-                or None,
-                ATTR_RGB_COLOR: adapt_color
-                and list(self._settings[ATTR_RGB_COLOR])
-                or None,
-            }
-        )
+        def pop_keys_with_none(data):
+            new_data = {}
+            for key, val in data.items():
+                if val is not None:
+                    new_data[key] = val
+            return new_data
 
         def remove_color_attributes(data):
             for mode, attr in VALID_COLOR_MODES:
@@ -1381,7 +1370,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if prefer_rgb_color:
                 if supports_colors:
                     _LOGGER.debug(
-                        "%s: 'prefer_rgb_color: true', using rgb_color in service data",
+                        "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
                         self._name,
                         light,
                     )
@@ -1396,18 +1385,31 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     remove_color_attributes(data)
             return data
 
+        service_data = build_with_supported(
+            {
+                ATTR_ENTITY_ID: light,
+                ATTR_TRANSITION: transition or self._transition,
+                ATTR_BRIGHTNESS: (
+                    adapt_brightness
+                    and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
+                    or None
+                ),
+                ATTR_COLOR_TEMP_KELVIN: adapt_color
+                and self._settings[ATTR_COLOR_TEMP_KELVIN]
+                or None,
+                ATTR_RGB_COLOR: adapt_color
+                and list(self._settings[ATTR_RGB_COLOR])
+                or None,
+            }
+        )
+
         # Remove duplicate attributes:
         service_data = remove_unneeded_attributes(service_data)
-        # Validate with hass's own schema.
-        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
-
         # Ensure no key: None pair exists.
-        def pop_keys_with_none(data):
-            for key, val in data.items():
-                if data[key] is None:
-                    data.pop(key)
 
         service_data = pop_keys_with_none(service_data)
+        # Validate with hass's own schema.
+        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
             # Ensure supported max/min color temp is respected.
             service_data[ATTR_COLOR_TEMP_KELVIN] = max(
