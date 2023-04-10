@@ -168,9 +168,24 @@ CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
     False,
 )
 DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
+    "This option ignores the current state of the sleep switch. "
     "When enabled, Adaptive Lighting will treat sleep settings as the minimum, "
-    "transitioning to these values after sunset. 🌙"
+    "transitioning color temperature to these values after sunset. 🌙"
 )
+CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP, DEFAULT_ADAPT_COLOR_TEMP_UNTIL_SLEEP = (
+    "adapt_color_temp_until_sleep",
+    True,
+)
+DOCS[
+    CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP
+] = "Only active when `transition_until_sleep` is true."
+CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP, DEFAULT_ADAPT_BRIGHTNESS_UNTIL_SLEEP = (
+    "adapt_brightness_until_sleep",
+    False,
+)
+DOCS[
+    CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP
+] = "Only active when `transition_until_sleep` is true."
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
@@ -255,6 +270,8 @@ VALIDATION_TUPLES = [
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
     (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
+    (CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP, DEFAULT_ADAPT_BRIGHTNESS_UNTIL_SLEEP, bool),
+    (CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP, DEFAULT_ADAPT_COLOR_TEMP_UNTIL_SLEEP, bool),
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS, int_between(1, 100)),
     (CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS, int_between(1, 100)),
