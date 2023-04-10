@@ -1248,14 +1248,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 ATTR_TRANSITION: transition or self._transition,
                 ATTR_BRIGHTNESS: (
                     round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
-                    if not adapt_brightness
+                    if adapt_brightness is not False
                     else None
                 ),
                 ATTR_COLOR_TEMP_KELVIN: self._settings[ATTR_COLOR_TEMP_KELVIN]
-                if not adapt_color
+                if adapt_color is not False
                 else None,
                 ATTR_RGB_COLOR: list(self._settings[ATTR_RGB_COLOR])
-                if not adapt_color
+                if adapt_color is not False
                 else None,
             },
             prefer_rgb_color,
@@ -2015,7 +2015,11 @@ class TurnOnOffListener:
             return True
 
         turn_on_event = self.turn_on_event.get(light)
-        if turn_on_event is not None and not is_our_context(turn_on_event.context):
+        if (
+            turn_on_event is not None
+            and not is_our_context(turn_on_event.context)
+            and not force
+        ):
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
             if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
                 adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
