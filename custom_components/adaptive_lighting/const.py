@@ -273,6 +273,8 @@ VALIDATION_TUPLES = [
     ),
 ]
 
+CONST_COLOR = "color"
+
 
 def timedelta_as_int(value):
     """Convert a `datetime.timedelta` object to an integer.
