@@ -1,6 +1,10 @@
 """Constants for the Adaptive Lighting integration."""
 
-from homeassistant.components.light import VALID_TRANSITION
+from homeassistant.components.light import (
+    ATTR_TRANSITION,
+    LIGHT_TURN_ON_SCHEMA,
+    VALID_TRANSITION,
+)
 from homeassistant.const import (
     CONF_ENTITY_ID,
     SERVICE_TOGGLE,
