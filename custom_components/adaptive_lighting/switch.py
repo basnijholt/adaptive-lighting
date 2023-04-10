@@ -1332,13 +1332,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         service_data: dict[str],
         prefer_rgb_color: bool | None = None,
     ) -> dict[str]:
-        def build_with_supported(data, features):
-            for attr, val in data.items():
-                if attr not in features:
-                    _LOGGER.debug("pop unsupported %s val %s", attr, val)
-                    data[attr] = None
-            return data
-
         def pop_keys_with_none(data):
             new_data = {}
             for key, val in data.items():
@@ -1347,16 +1340,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return new_data
 
         def remove_color_attributes(data):
-            for mode, attr in VALID_COLOR_MODES:
-                if (
-                    attr != ATTR_COLOR_TEMP_KELVIN
-                    and attr != ATTR_BRIGHTNESS
-                    and attr != ATTR_TRANSITION
-                    and attr in service_data
-                ):
+            for attr in COLOR_ATTRS:
+                if attr in service_data:
+                    _LOGGER.debug("Remove color attr %s", attr)
                     service_data[attr] = None
 
-        def remove_unneeded_attributes(data):
+        def build_with_supported(data, features):
             if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
                 remove_color_attributes(data)
             elif prefer_rgb_color is False:
@@ -1383,6 +1372,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                     )
                     remove_color_attributes(data)
+            for attr, val in data.items():
+                if attr not in COLOR_ATTRS and attr not in features:
+                    _LOGGER.debug("pop unsupported %s val %s", attr, val)
+                    data[attr] = None
             return data
 
         _LOGGER.debug("%s: Parsing service data from %s", self._name, service_data)
@@ -1392,8 +1385,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         # Remove unsupported features
         service_data = build_with_supported(service_data, features)
-        # Remove duplicate attributes:
-        service_data = remove_unneeded_attributes(service_data)
         # Ensure no key: None pair exists.
         service_data = pop_keys_with_none(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
