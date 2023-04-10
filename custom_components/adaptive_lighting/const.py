@@ -228,22 +228,6 @@ def int_between(min_int, max_int):
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
 
-def replace_zero_with_none(val: int) -> None:
-    if val == 0:
-        return None
-    return val
-
-
-# Fixes an issue I can't find on github at this moment.
-# Ensure no transition of 0 exists.
-VALID_TRANSITION = vol.All(
-    vol.Coerce(float), vol.Clamp(min=0, max=6553), replace_zero_with_none
-)
-ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
-# ATTR_ENTITY_ID exists in a different schema in hass.
-ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
-
-
 VALIDATION_TUPLES = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
@@ -327,6 +311,23 @@ def maybe_coerce(key, validation):
 def replace_none_str(value, replace_with=None):
     """Replace "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
+
+
+
+def replace_zero_with_none(val: int) -> None:
+    if val == 0:
+        return None
+    return val
+
+
+# Fixes an issue I can't find on github at this moment.
+# Ensure no transition of 0 exists.
+VALID_TRANSITION = vol.All(
+    VALID_TRANSITION, replace_zero_with_none
+)
+ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
+# ATTR_ENTITY_ID exists in a different schema in hass.
+ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
 
 
 _yaml_validation_tuples = [
