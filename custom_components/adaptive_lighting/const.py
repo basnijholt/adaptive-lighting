@@ -161,12 +161,16 @@ CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP, DEFAULT_ADAPT_COLOR_TEMP_UNTIL_SLEEP = (
     "adapt_color_temp_until_sleep",
     True,
 )
-DOCS[CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP] = "See " + CONF_ADAPT_UNTIL_SLEEP + "."
+DOCS[
+    CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP
+] = "Only active when `transition_until_sleep` is true."
 CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP, DEFAULT_ADAPT_BRIGHTNESS_UNTIL_SLEEP = (
     "adapt_brightness_until_sleep",
     True,
 )
-DOCS[CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP] = "See " + CONF_ADAPT_UNTIL_SLEEP + "."
+DOCS[
+    CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP
+] = "Only active when `transition_until_sleep` is true."
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
