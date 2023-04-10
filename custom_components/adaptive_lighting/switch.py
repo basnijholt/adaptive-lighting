@@ -1806,6 +1806,7 @@ class TurnOnOffListener:
                 delay,
             )
             assert not self.manual_control[light]
+
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def reset(self, *lights, reset_manual_control=True) -> None:
