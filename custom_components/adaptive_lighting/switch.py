@@ -61,6 +61,7 @@ from homeassistant.const import (
     EVENT_CALL_SERVICE,
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_STATE_CHANGED,
+    SERVICE_TOGGLE,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
     STATE_OFF,
@@ -138,6 +139,7 @@ from .const import (
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
     CONST_COLOR,
+    CONF_WHICH_SWITCH,
     DOMAIN,
     ENTITY_LIGHT_TURN_ON_SCHEMA,
     EXTRA_VALIDATION,
@@ -151,6 +153,8 @@ from .const import (
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
+    SERVICE_TOGGLE_SCHEMA,
+    SET_MANUAL_CONTROL_SCHEMA,
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
@@ -458,6 +462,67 @@ async def async_setup_entry(
     )
 
     @callback
+    async def handle_turn_on(service_call: ServiceCall):
+        """Toggles the specified switch."""
+        data = service_call.data
+        _LOGGER.debug(
+            "Called 'adaptive_lighting.turn_on' service with '%s'",
+            data,
+        )
+        switches = _get_switches_from_service_call(hass, service_call)
+        if data[CONF_WHICH_SWITCH] == "sleep":
+            switches = [s.sleep_mode_switch for s in switches]
+        elif data[CONF_WHICH_SWITCH] == "brightness":
+            switches = [s.adapt_brightness_switch for s in switches]
+        elif data[CONF_WHICH_SWITCH] == "color":
+            switches = [s.adapt_color_switch for s in switches]
+
+        _LOGGER.debug("Turning on switches [%s]", switches)
+        for switch in switches:
+            await switch.async_turn_on()
+
+    @callback
+    async def handle_turn_off(service_call: ServiceCall):
+        """Toggles the specified switch."""
+        data = service_call.data
+        _LOGGER.debug(
+            "Called 'adaptive_lighting.turn_off' service with '%s'",
+            data,
+        )
+        switches = _get_switches_from_service_call(hass, service_call)
+        if data[CONF_WHICH_SWITCH] == "sleep":
+            switches = [s.sleep_mode_switch for s in switches]
+        elif data[CONF_WHICH_SWITCH] == "brightness":
+            switches = [s.adapt_brightness_switch for s in switches]
+        elif data[CONF_WHICH_SWITCH] == "color":
+            switches = [s.adapt_color_switch for s in switches]
+        _LOGGER.debug("Turning off switches [%s]", switches)
+        for switch in switches:
+            await switch.async_turn_off()
+
+    @callback
+    async def handle_toggle(service_call: ServiceCall):
+        """Toggles the specified switch."""
+        data = service_call.data
+        _LOGGER.debug(
+            "Called 'adaptive_lighting.toggle' service with '%s'",
+            data,
+        )
+        switches = _get_switches_from_service_call(hass, service_call)
+        if data[CONF_WHICH_SWITCH] == "sleep":
+            switches = [s.sleep_mode_switch for s in switches]
+        elif data[CONF_WHICH_SWITCH] == "brightness":
+            switches = [s.adapt_brightness_switch for s in switches]
+        elif data[CONF_WHICH_SWITCH] == "color":
+            switches = [s.adapt_color_switch for s in switches]
+        _LOGGER.debug("Toggling switches [%s]", switches)
+        for switch in switches:
+            if switch.is_on:
+                await switch.async_turn_off()
+            else:
+                await switch.async_turn_on()
+
+    @callback
     async def handle_apply(service_call: ServiceCall):
         """Handle the entity service apply."""
         data = service_call.data
@@ -579,6 +644,30 @@ async def async_setup_entry(
         service=SERVICE_APPLY,
         service_func=handle_apply,
         schema=SCHEMA_APPLY,
+    )
+
+    # Register `turn_on` service
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=SERVICE_TURN_ON,
+        service_func=handle_turn_on,
+        schema=SERVICE_TOGGLE_SCHEMA,
+    )
+
+    # Register `turn_off` service
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=SERVICE_TURN_OFF,
+        service_func=handle_turn_off,
+        schema=SERVICE_TOGGLE_SCHEMA,
+    )
+
+    # Register `toggle` service
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=SERVICE_TOGGLE,
+        service_func=handle_toggle,
+        schema=SERVICE_TOGGLE_SCHEMA,
     )
 
     # Register `set_manual_control` service

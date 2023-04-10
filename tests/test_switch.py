@@ -25,6 +25,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONF_WHICH_SWITCH,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
@@ -64,6 +65,8 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_PLATFORM,
     EVENT_STATE_CHANGED,
+    SERVICE_TOGGLE,
+    SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
@@ -1250,6 +1253,82 @@ async def test_area(hass):
         switch.turn_on_off_listener.last_service_data,
     )
     assert light.entity_id not in switch.turn_on_off_listener.last_service_data
+
+
+@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
+async def test_switch_turn_on_off_toggle(hass):
+    """Test adaptive_lighting.change_switch_settings service."""
+    switch, (_, _, light) = await setup_lights_and_switch(hass)
+    entity_id = switch.entity_id
+    assert entity_id not in switch._lights
+
+    async def turn_on(which: str, **kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_TURN_ON,
+            {
+                ATTR_ENTITY_ID: entity_id,
+                CONF_WHICH_SWITCH: which,
+                **kwargs,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    async def turn_off(which: str, **kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_TURN_OFF,
+            {
+                ATTR_ENTITY_ID: entity_id,
+                CONF_WHICH_SWITCH: which,
+                **kwargs,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    async def toggle(which: str, **kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_TOGGLE,
+            {
+                ATTR_ENTITY_ID: entity_id,
+                CONF_WHICH_SWITCH: which,
+                **kwargs,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    # Test sleep
+    await turn_on("sleep")
+    assert switch.sleep_mode_switch.is_on
+    await turn_off("sleep")
+    assert not switch.sleep_mode_switch.is_on
+    await toggle("sleep")
+    assert switch.sleep_mode_switch.is_on
+    # Test brightness
+    await turn_on("brightness")
+    assert switch.adapt_brightness_switch.is_on
+    await turn_off("brightness")
+    assert not switch.adapt_brightness_switch.is_on
+    await toggle("brightness")
+    assert switch.adapt_brightness_switch.is_on
+    # Test color
+    await turn_on("color")
+    assert switch.adapt_color_switch.is_on
+    await turn_off("color")
+    assert not switch.adapt_color_switch.is_on
+    await toggle("color")
+    assert switch.adapt_color_switch.is_on
+    # Test main
+    await turn_on("main")
+    assert switch.is_on
+    await turn_off("main")
+    assert not switch.is_on
+    await toggle("main")
+    assert switch.is_on
 
 
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
