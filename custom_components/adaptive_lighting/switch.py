@@ -1137,10 +1137,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         listener = self.turn_on_off_listener
         last_service_data = listener.last_service_data.get(light)
         ignore_fields = {ATTR_TRANSITION}
-        differing_fields = {
-            k for k, _ in last_service_data.items() ^ service_data.items()
-        }
-        if not force and last_service_data and differing_fields == ignore_fields:
+        if (
+            not force
+            and last_service_data
+            and {k for k, _ in last_service_data.items() ^ service_data.items()}
+            == ignore_fields
+        ):
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
