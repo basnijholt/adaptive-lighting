@@ -155,8 +155,13 @@ CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
 )
 DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
     "When enabled, Adaptive Lighting will treat sleep settings as the minimum, "
-    "transitioning to these values after sunset. 🌙"
+    "transitioning color temperature to these values after sunset. 🌙"
 )
+CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP, DEFAULT_ADAPT_BRIGHTNESS_UNTIL_SLEEP = (
+    "transition_brightness_until_sleep",
+    False,
+)
+DOCS[CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP] = "See " + CONF_ADAPT_UNTIL_SLEEP + "."
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
