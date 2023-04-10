@@ -1333,6 +1333,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             "%s: Light %s supports the features: %s", self._name, light, features
         )
         service_data = {
+            ATTR_ENTITY_ID: light,
             ATTR_TRANSITION: transition or self._transition,
             ATTR_BRIGHTNESS: (
                 adapt_brightness
@@ -1350,6 +1351,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data = _convert_attributes(service_data)
             service_data.pop(ATTR_COLOR_TEMP_KELVIN)
         else:
+            # Could just check ATTR_RGB_COLOR but this'll support future updates.
             for key in service_data.keys():
                 if (
                     key != ATTR_COLOR_TEMP_KELVIN
@@ -1388,7 +1390,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             light,
             service_data,
         )
-        return
+        return service_data
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
