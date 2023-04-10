@@ -408,7 +408,7 @@ SERVICE_TOGGLE_SCHEMA = vol.Schema(
     }
 )
 
-SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
+SCHEMA_SET_MANUAL_CONTROL = vol.Schema(
     {
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
