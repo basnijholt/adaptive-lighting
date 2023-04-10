@@ -94,6 +94,7 @@ from homeassistant.util.color import (
 )
 import homeassistant.util.dt as dt_util
 import ulid_transform
+import voluptuous as vol
 
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
