@@ -1,7 +1,10 @@
 """Constants for the Adaptive Lighting integration."""
 
-from homeassistant.components.light import VALID_TRANSITION
-from homeassistant.const import CONF_ENTITY_ID
+from homeassistant.components.light import (  # VALID_TRANSITION
+    ATTR_TRANSITION,
+    LIGHT_TURN_ON_SCHEMA,
+)
+from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -219,9 +222,26 @@ DOCS_APPLY = {
 }
 
 
+# Here we modify existing home assistant schemas for our purposes.
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
+
+
+def replace_zero_with_none(val: int) -> None:
+    if val == 0:
+        return None
+    return val
+
+
+VALID_TRANSITION = vol.All(
+    vol.Coerce(float), vol.Clamp(min=0, max=6553), replace_zero_with_none
+)
+# ATTR_ENTITY_ID exists in a different schema in hass.
+ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
+ENTITY_LIGHT_TURN_ON_SCHEMA.update(
+    {ATTR_ENTITY_ID: cv.entity_id, ATTR_TRANSITION: VALID_TRANSITION}
+)
 
 
 VALIDATION_TUPLES = [
