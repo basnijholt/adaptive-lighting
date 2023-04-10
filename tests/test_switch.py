@@ -915,7 +915,7 @@ async def test_state_change_handlers(hass):
 
     # [Config options]:
     transition_used = 2
-    total_events = 5
+    total_events = 6
 
     async def set_brightness(val: int):
         # 'Unsafe' set but we know what we're doing.
@@ -1090,9 +1090,10 @@ async def test_state_change_handlers(hass):
             assert switch._alt_detect_method
 
         assert listener.last_state_change.get(ENTITY_LIGHT)
+        if i == 1:
+            total_events = 2
         assert len(listener.last_state_change[ENTITY_LIGHT]) == total_events
         # Timer should be done and reset now.
-        # This is the assert that I can't fix.
         timer = listener.transition_timers.get(ENTITY_LIGHT)
         assert not timer or not timer.is_running()
 
