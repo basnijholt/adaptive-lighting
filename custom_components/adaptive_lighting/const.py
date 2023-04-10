@@ -270,6 +270,14 @@ DOCS_APPLY = {
 }
 
 
+def pop_keys_with_none(data):
+    new_data = {}
+    for key, val in data.items():
+        if val is not None:
+            new_data[key] = val
+    return new_data
+
+
 # Here we modify existing home assistant schemas for our purposes.
 def int_between(min_int, max_int):
     """Return an integer between 'min_int' and 'max_int'."""

@@ -113,9 +113,9 @@ from .const import (
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
-    CONF_FLAT_LIMITS,
     CONF_DIM_TO_WARM,
     CONF_DIM_TO_WARM_BRIGHTNESS_CHECK,
+    CONF_FLAT_LIMITS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -812,6 +812,62 @@ def _supported_features(hass: HomeAssistant, light: str):
     return supported, supports_colors
 
 
+def pop_keys_with_none(data):
+    new_data = {}
+    for key, val in data.items():
+        if val is not None:
+            new_data[key] = val
+    return new_data
+
+
+def remove_color_attributes(data):
+    for attr in COLOR_ATTRS:
+        if attr in data and attr != ATTR_COLOR_TEMP_KELVIN:
+            _LOGGER.debug("Remove color attr %s from service data", attr)
+            data[attr] = None
+    return data
+
+
+def build_with_supported(
+    switch: AdaptiveSwitch, light, data, features, prefer_rgb_color, supports_colors
+):
+    if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
+        if ATTR_COLOR_TEMP_KELVIN in data:
+            remove_color_attributes(data)
+    elif prefer_rgb_color is False:
+        _LOGGER.debug(
+            "%s: 'prefer_rgb_color: false' but light %s does not support color_temp."
+            " Using rgb_color to build service data instead...",
+            switch._name,
+            light,
+        )
+        data.pop(ATTR_COLOR_TEMP_KELVIN)
+    elif prefer_rgb_color:
+        color_attrs_in_data = {k for k, _ in COLOR_ATTRS.keys() ^ data.keys()}
+        if supports_colors and color_attrs_in_data:
+            _LOGGER.debug(
+                "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
+                switch._name,
+                light,
+            )
+            data.pop(ATTR_COLOR_TEMP_KELVIN)
+        elif ATTR_COLOR_TEMP_KELVIN in data:
+            _LOGGER.debug(
+                "%s: 'prefer_rgb_color: true' but light %s does not support rgb."
+                " Using color temp to build service data instead...",
+                switch._name,
+                light,
+            )
+            remove_color_attributes(data)
+        else:
+            _LOGGER.error(ATTR_COLOR_TEMP_KELVIN + " not in service data")
+    for attr, val in data.items():
+        if attr not in COLOR_ATTRS and attr not in features:
+            _LOGGER.debug("pop unsupported %s val %s", attr, val)
+            data[attr] = None
+    return data
+
+
 def color_difference_redmean(
     rgb1: tuple[float, float, float], rgb2: tuple[float, float, float]
 ) -> float:
@@ -1249,80 +1305,28 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     # For breaking changes, check out
     # homeassistant.components.light.async_setup.async_handle_light_on_service
-    def _parse_service_data(
+    async def _parse_service_data(
         self,
         light: str,
         service_data: dict[str],
         prefer_rgb_color: bool | None = None,
     ) -> dict[str]:
-        def pop_keys_with_none(data):
-            new_data = {}
-            for key, val in data.items():
-                if val is not None:
-                    new_data[key] = val
-            return new_data
-
-        def remove_color_attributes(data):
-            for attr in COLOR_ATTRS:
-                if attr in service_data and attr != ATTR_COLOR_TEMP_KELVIN:
-                    _LOGGER.debug("Remove color attr %s from service data", attr)
-                    service_data[attr] = None
-
-        def build_with_supported(data, features):
-            if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
-                if ATTR_COLOR_TEMP_KELVIN in data:
-                    remove_color_attributes(data)
-            elif prefer_rgb_color is False:
-                _LOGGER.debug(
-                    "%s: 'prefer_rgb_color: false' but light %s does not support color_temp."
-                    " Using rgb_color to build service data instead...",
-                    self._name,
-                    light,
-                )
-                service_data.pop(ATTR_COLOR_TEMP_KELVIN)
-            elif prefer_rgb_color:
-                color_attrs_in_data = {k for k, _ in COLOR_ATTRS.keys() ^ data.keys()}
-                if supports_colors and color_attrs_in_data:
-                    _LOGGER.debug(
-                        "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
-                        self._name,
-                        light,
-                    )
-                    service_data.pop(ATTR_COLOR_TEMP_KELVIN)
-                elif ATTR_COLOR_TEMP_KELVIN in data:
-                    _LOGGER.debug(
-                        "%s: 'prefer_rgb_color: true' but light %s does not support rgb."
-                        " Using color temp to build service data instead...",
-                        self._name,
-                        light,
-                    )
-                    remove_color_attributes(data)
-                else:
-                    _LOGGER.error(ATTR_COLOR_TEMP_KELVIN + " not in service data")
-            for attr, val in data.items():
-                if attr not in COLOR_ATTRS and attr not in features:
-                    _LOGGER.debug("pop unsupported %s val %s", attr, val)
-                    data[attr] = None
-            return data
-
         _LOGGER.debug("%s: Parsing service data from %s", self._name, service_data)
         features, supports_colors = _supported_features(self.hass, light)
         _LOGGER.debug(
             "%s: Light %s supports the features: %s", self._name, light, features
         )
         # Remove unsupported features
-        service_data = build_with_supported(service_data, features)
+        service_data = build_with_supported(
+            self, light, service_data, features, prefer_rgb_color, supports_colors
+        )
         # Ensure no key: None pair exists.
         service_data = pop_keys_with_none(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
             # Ensure supported max/min color temp is respected.
-            color_temp_kelvin = max(
-                min(
-                    service_data[ATTR_COLOR_TEMP_KELVIN],
-                    features[ATTR_MAX_COLOR_TEMP_KELVIN],
-                ),
-                features[ATTR_MIN_COLOR_TEMP_KELVIN],
-            )
+            min_kelvin = features[ATTR_MIN_COLOR_TEMP_KELVIN]
+            max_kelvin = features[ATTR_MAX_COLOR_TEMP_KELVIN]
+            color_temp_kelvin = service_data[ATTR_COLOR_TEMP_KELVIN]
             if self._dim_to_warm and "brightness" in features:
                 cur_state = None
                 if self._dim_to_warm_brightness_check:
@@ -1332,16 +1336,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     brightness = cur_state.attributes[ATTR_BRIGHTNESS]
                 else:
                     brightness = service_data[ATTR_BRIGHTNESS]
-                dimmed_ct = self.calc_dim_to_warm_values(
+                dimmed_ct = self.calc_dim_to_warm_ct(
                     light,
                     brightness,
-                    color_temp_kelvin,
                     min_kelvin,
                     max_kelvin,
                 )
                 median = (dimmed_ct + color_temp_kelvin) / 2
                 color_temp_kelvin = median
-            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
+            service_data[ATTR_COLOR_TEMP_KELVIN] = max(
+                min(
+                    color_temp_kelvin,
+                    max_kelvin,
+                ),
+                min_kelvin,
+            )
         # Validate with hass's own schema.
         service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
         service_data.update({ATTR_ENTITY_ID: light})
@@ -1353,8 +1362,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         return service_data
 
-
-    def calc_dim_to_warm_values(
+    def calc_dim_to_warm_ct(
         self,
         light: str,
         brightness: float,
@@ -1391,16 +1399,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # a = (min_ct-max_ct)/(min_brightness-max_brightness)**2
         # check: y = (1000-6500)/((1-h)**2)*(x-255)**2+6500 if x=2 then y=1043.221836
         # ^ when 1=min_brightness,255=max_brightness,6500=max_ct,1000=min_ct ^
-        color_temp_kelvin2 = (
-            (min_ct - max_ct) / (min_brightness - max_brightness) ** 2
-        ) * (brightness - max_brightness) ** 2 + max_ct
-        color_temp_kelvin = max(
-            min(
-                color_temp_kelvin + (color_temp_kelvin2 - color_temp_kelvin),
-                max_ct,
-            ),
-            min_ct,
-        )
+        return ((min_ct - max_ct) / (min_brightness - max_brightness) ** 2) * (
+            brightness - max_brightness
+        ) ** 2 + max_ct
 
     async def _adapt_light(
         self,
@@ -1430,7 +1431,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 )
             else:
                 prefer_rgb_color = self._prefer_rgb_color
-        service_data = self._parse_service_data(
+        service_data = await self._parse_service_data(
             light,
             {
                 ATTR_TRANSITION: transition or self._transition,
