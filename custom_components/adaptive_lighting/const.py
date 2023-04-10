@@ -182,7 +182,7 @@ DOCS[CONF_AUTORESET_CONTROL] = (
     "Set to 0 to disable. ⏲️"
 )
 
-CONF_WATCHED_LIGHTS, DEFAULT_WATCHED_LIGHTS = "watched_lights", {}
+CONF_WATCHED_LIGHTS, DEFAULT_WATCHED_LIGHTS = "watched_lights", []
 DOCS[CONF_WATCHED_LIGHTS] = (
     "Use this dictionary of lights to check for manually controlled events"
     " in addition to the main lights 🌟"
