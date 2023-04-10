@@ -642,12 +642,12 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 
 
 def _supported_to_attributes(supported):
-    supported_attributes = set()
+    supported_attributes = {}
     supports_colors = False
     for mode, attr in VALID_COLOR_MODES.items():
         if mode not in supported:
             continue
-        supported_attributes.add(attr)
+        supported_attributes[attr] = True
         if (
             not supports_colors
             and mode != COLOR_MODE_BRIGHTNESS
@@ -684,7 +684,7 @@ def _supported_features(hass: HomeAssistant, light: str):
             )
         # Adding brightness here, see
         # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
-        supported.add(ATTR_BRIGHTNESS)
+        supported[ATTR_BRIGHTNESS] = True
     return supported, supports_colors
 
 
