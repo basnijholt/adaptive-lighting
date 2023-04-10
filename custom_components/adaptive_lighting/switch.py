@@ -1308,7 +1308,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         all_lights = {k: k for k in lights}
         all_lights.update(self._watched_lights)
 
-        for wlight, mlight in all_lights:
+        for wlight, mlight in all_lights.items():
             if not is_on(self.hass, mlight):
                 continue
 
