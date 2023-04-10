@@ -1267,7 +1267,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     brightness = cur_state.attributes[ATTR_BRIGHTNESS]
                 else:
                     brightness = service_data[ATTR_BRIGHTNESS]
-                dimmed_ct = self.calc_dim_to_warm_values(
+                dimmed_ct = self.calc_dim_to_warm_ct(
                     light,
                     brightness,
                 )
