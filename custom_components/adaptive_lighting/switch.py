@@ -1172,25 +1172,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self,
         light: str,
         brightness: float,
-        color_temp_kelvin: float,
-        min_kelvin: int,
-        max_kelvin: int,
     ):
         min_ct = (
             self._sun_light_settings.min_color_temp
         )  # pylint: disable=protected-access
-        min_ct = (
-            self._sun_light_settings.min_color_temp
-        )  # pylint: disable=protected-access
-        max_ct = max_kelvin
-        max_brightness = (
-            self._sun_light_settings.max_brightness
+        max_ct = (
+            self._sun_light_settings.max_color_temp
         )  # pylint: disable=protected-access
         min_brightness = (
             self._sun_light_settings.min_brightness
         )  # pylint: disable=protected-access
-        max_brightness = max((max_brightness * 2.55), brightness)
+        max_brightness = (
+            self._sun_light_settings.max_brightness
+        )  # pylint: disable=protected-access
         min_brightness = min((min_brightness * 2.55), brightness)
+        max_brightness = max((max_brightness * 2.55), brightness)
         _LOGGER.debug(
             "Setting dim_to_warm color temp using the following values in eq:"
             " max_brightness: %s, min_brightness: %s, max_ct: %s,"
@@ -1275,13 +1271,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 dimmed_ct = self.calc_dim_to_warm_values(
                     light,
                     brightness,
-                    color_temp_kelvin,
-                    min_kelvin,
-                    max_kelvin,
                 )
                 median = (dimmed_ct + color_temp_kelvin) / 2
                 color_temp_kelvin = median
-            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
+            service_data[ATTR_COLOR_TEMP_KELVIN] = max(
+                min(color_temp_kelvin, max_kelvin), min_kelvin
+            )
         elif supports_colors and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
