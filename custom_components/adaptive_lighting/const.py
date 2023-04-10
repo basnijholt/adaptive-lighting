@@ -184,10 +184,11 @@ DOCS[CONF_AUTORESET_CONTROL] = (
 
 CONF_WATCHED_LIGHTS, DEFAULT_WATCHED_LIGHTS = "watched_lights", {}
 DOCS[CONF_WATCHED_LIGHTS] = (
-    "Use this dictionary of lights to check for manually controlled events "
+    "Use this dictionary of lights to check for manually controlled events"
     " in addition to the main lights 🌟"
-    " Example: {light.watch_light: light.main_light} will fire manually controlled events to "
-    " light.main_light"
+    " Requires `alt_detect_method` to be True."
+    " Example: `watched_lights: {light.watch_light: light.main_light}` will fire"
+    " manually controlled events to `light.main_light`"
 )
 
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
