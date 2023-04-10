@@ -725,21 +725,17 @@ def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
         _LOGGER.debug(f"Converted {attributes} to rgb {rgb}")
     else:
         _LOGGER.debug("No suitable conversion found")
-    _LOGGER.debug("Converted attributes to RGB color: %s", attributes)
+
     return attributes
 
 
 def _add_missing_attributes(
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
-    prefer_rgb_color: bool | None = None,
 ) -> dict[str, Any]:
-    if (
-        not any(
-            attr in old_attributes and attr in new_attributes
-            for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
-        )
-        or prefer_rgb_color is True
+    if not any(
+        attr in old_attributes and attr in new_attributes
+        for attr in [ATTR_COLOR_TEMP_KELVIN, ATTR_RGB_COLOR]
     ):
         old_attributes = _convert_attributes(old_attributes)
         new_attributes = _convert_attributes(new_attributes)
@@ -1259,11 +1255,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 )
             else:
                 prefer_rgb_color = self._prefer_rgb_color
-        service_data = self._build_service_data(
+        service_data = self._parse_service_data(
             light,
-            transition or self._transition,
-            adapt_brightness if not None else self.adapt_brightness_switch.is_on,
-            adapt_color if not None else self.adapt_color_switch.is_on,
+            {
+                ATTR_TRANSITION: transition or self._transition,
+                ATTR_BRIGHTNESS: (
+                    adapt_brightness
+                    and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
+                    or None
+                ),
+                ATTR_COLOR_TEMP_KELVIN: adapt_color
+                and self._settings[ATTR_COLOR_TEMP_KELVIN]
+                or None,
+                ATTR_RGB_COLOR: adapt_color
+                and list(self._settings[ATTR_RGB_COLOR])
+                or None,
+            },
             prefer_rgb_color,
         )
         # Check if service data differs from the last. See #80.
@@ -1319,23 +1326,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     # For breaking changes, check out
     # homeassistant.components.light.async_setup.async_handle_light_on_service
-    # Todo: convert into schema at some point.
-    def _build_service_data(
+    def _parse_service_data(
         self,
         light: str,
-        transition: int | None = None,
-        adapt_brightness: bool = False,
-        adapt_color: bool = False,
+        service_data: dict[str],
         prefer_rgb_color: bool | None = None,
-    ):
-        features, supports_colors = _supported_features(self.hass, light)
-        _LOGGER.debug(
-            "%s: Light %s supports the features: %s", self._name, light, features
-        )
-
-        def build_with_supported(data):
+    ) -> dict[str]:
+        def build_with_supported(data, features):
             for attr, val in data.items():
                 if attr not in features:
+                    _LOGGER.debug("pop unsupported %s val %s", attr, val)
                     data[attr] = None
             return data
 
@@ -1366,7 +1366,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self._name,
                     light,
                 )
-                service_data.pop(ATTR_COLOR_TEMP_KELVIN)
+                remove_color_attributes(data)
             if prefer_rgb_color:
                 if supports_colors:
                     _LOGGER.debug(
@@ -1385,23 +1385,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     remove_color_attributes(data)
             return data
 
-        service_data = build_with_supported(
-            {
-                ATTR_TRANSITION: transition or self._transition,
-                ATTR_BRIGHTNESS: (
-                    adapt_brightness
-                    and round(255 * self._settings[ATTR_BRIGHTNESS_PCT] / 100)
-                    or None
-                ),
-                ATTR_COLOR_TEMP_KELVIN: adapt_color
-                and self._settings[ATTR_COLOR_TEMP_KELVIN]
-                or None,
-                ATTR_RGB_COLOR: adapt_color
-                and list(self._settings[ATTR_RGB_COLOR])
-                or None,
-            }
+        _LOGGER.debug("%s: Parsing service data from %s", self._name, service_data)
+        features, supports_colors = _supported_features(self.hass, light)
+        _LOGGER.debug(
+            "%s: Light %s supports the features: %s", self._name, light, features
         )
-
+        # Remove unsupported features
+        service_data = build_with_supported(service_data, features)
         # Remove duplicate attributes:
         service_data = remove_unneeded_attributes(service_data)
         # Ensure no key: None pair exists.
@@ -1415,15 +1405,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 ),
                 features[ATTR_MIN_COLOR_TEMP_KELVIN],
             )
+        # Validate with hass's own schema.
+        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
+        service_data.update({ATTR_ENTITY_ID: light})
         _LOGGER.debug(
             "%s: Built service_data supported by light %s. service_data: %s",
             self._name,
             light,
             service_data,
         )
-        # Validate with hass's own schema.
-        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
-        service_data.update({ATTR_ENTITY_ID: light})
         return service_data
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
