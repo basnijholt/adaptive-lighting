@@ -676,15 +676,15 @@ def _supported_features(hass: HomeAssistant, light: str):
         }
     )
     if supports_colors:
+        # Adding brightness here, see
+        # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
+        supported[ATTR_BRIGHTNESS] = True
         if CONST_COLOR not in legacy_supported:
             # supports_colors = False
             _LOGGER.debug(
                 "'supported_color_modes' supports color but the legacy 'supported_features'"
                 " bitfield says we do not. Despite this we'll assume light '%s' supports colors",
             )
-        # Adding brightness here, see
-        # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
-        supported[ATTR_BRIGHTNESS] = True
     return supported, supports_colors
 
 
