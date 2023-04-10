@@ -326,7 +326,9 @@ def _get_switches_with_lights(
             all_check_lights = _expand_light_groups(hass, lights)
             switch._expand_light_groups()  # pylint: disable=protected-access
             # Check if any of the lights are in the switch's lights
-            if set(switch._lights) & set(all_check_lights):  # pylint: disable=protected-access
+            if set(switch._lights) & set(
+                all_check_lights
+            ):  # pylint: disable=protected-access
                 switches.append(switch)
         else:
             switches.append(switch)
