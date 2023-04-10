@@ -1112,6 +1112,54 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
+    async def calc_dim_to_warm_values(
+        self,
+        light: str,
+        brightness: float,
+        color_temp_kelvin: float,
+        min_kelvin: int,
+        max_kelvin: int,
+    ):
+        min_ct = (
+            self._sun_light_settings.min_color_temp
+        )  # pylint: disable=protected-access
+        min_ct = (
+            self._sun_light_settings.min_color_temp
+        )  # pylint: disable=protected-access
+        max_ct = max_kelvin
+        max_brightness = (
+            self._sun_light_settings.max_brightness
+        )  # pylint: disable=protected-access
+        min_brightness = (
+            self._sun_light_settings.min_brightness
+        )  # pylint: disable=protected-access
+        max_brightness = max((max_brightness * 2.55), brightness)
+        min_brightness = min((min_brightness * 2.55), brightness)
+        _LOGGER.debug(
+            "Setting dim_to_warm color temp using the following values in eq:"
+            " max_brightness: %s, min_brightness: %s, max_ct: %s,"
+            " min_ct: %s, brightness: %s",
+            max_brightness,
+            min_brightness,
+            max_ct,
+            min_ct,
+            brightness,
+        )
+        # y = a(x-h)**2+k where h,k is the vertex (255,6500) or (max_brightness,max_ct)
+        # a = (min_ct-max_ct)/(min_brightness-max_brightness)**2
+        # check: y = (1000-6500)/((1-h)**2)*(x-255)**2+6500 if x=2 then y=1043.221836
+        # ^ when 1=min_brightness,255=max_brightness,6500=max_ct,1000=min_ct ^
+        color_temp_kelvin2 = (
+            (min_ct - max_ct) / (min_brightness - max_brightness) ** 2
+        ) * (brightness - max_brightness) ** 2 + max_ct
+        color_temp_kelvin = max(
+            min(
+                color_temp_kelvin + (color_temp_kelvin2 - color_temp_kelvin),
+                max_ct,
+            ),
+            min_ct,
+        )
+
     async def _adapt_light(
         self,
         light: str,
@@ -1166,56 +1214,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             max_kelvin = features[ATTR_MAX_COLOR_TEMP_KELVIN]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
             color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
+            cur_state = None
             if self._dim_to_warm and "brightness" in features:
-                # remove update_entity after testing completes!
-                cur_state = None
                 if self._dim_to_warm_brightness_check:
                     await self.hass.helpers.entity_component.async_update_entity(light)
                     cur_state = self.hass.states.get(light)
                 if cur_state:
                     brightness = cur_state.attributes[ATTR_BRIGHTNESS]
                 else:
-                    service_data[ATTR_BRIGHTNESS]
-                min_ct = (
-                    self._sun_light_settings.min_color_temp
-                )  # pylint: disable=protected-access
-                min_ct = (
-                    self._sun_light_settings.min_color_temp
-                )  # pylint: disable=protected-access
-                max_ct = max_kelvin
-                max_brightness = (
-                    self._sun_light_settings.max_brightness
-                )  # pylint: disable=protected-access
-                min_brightness = (
-                    self._sun_light_settings.min_brightness
-                )  # pylint: disable=protected-access
-                max_brightness = max((max_brightness * 2.55), brightness)
-                min_brightness = min((min_brightness * 2.55), brightness)
-                # min_brightness = attributes["min_brightness"]
-                # max_brightness = attributes["max_brightness"]
-                _LOGGER.debug(
-                    "Setting color temp using the following values in eq:"
-                    " max_brightness: %s, min_brightness: %s, max_ct: %s,"
-                    " min_ct: %s, brightness: %s",
-                    max_brightness,
-                    min_brightness,
-                    max_ct,
-                    min_ct,
+                    brightness = service_data[ATTR_BRIGHTNESS]
+                color_temp_kelvin = self.calc_dim_to_warm_values(
+                    light,
                     brightness,
-                )
-                # y = a(x-h)^2+k where h,k is the vertex (255,6500) or (max_brightness,max_ct)
-                # a = (min_ct-max_ct)/(min_brightness-max_brightness)^2
-                # check: y = (1000-6500)/((1-h)^2)*(x-255)^2+6500 if x=2 then y=1043.221836
-                # ^ when min_brightness=1,max_brightness(h)=255,max_ct=6500,min_ct=1000 ^
-                color_temp_kelvin2 = (
-                    (min_ct - max_ct) / (min_brightness - max_brightness) ** 2
-                ) * (brightness - max_brightness) ** 2 + max_ct
-                color_temp_kelvin = max(
-                    min(
-                        color_temp_kelvin + (color_temp_kelvin2 - color_temp_kelvin),
-                        max_ct,
-                    ),
-                    min_ct,
+                    color_temp_kelvin,
+                    min_kelvin,
+                    max_kelvin,
                 )
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif supports_colors and adapt_color:
