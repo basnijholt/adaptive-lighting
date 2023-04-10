@@ -97,6 +97,8 @@ from .const import (
     ATTR_ADAPT_BRIGHTNESS,
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
+    CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP,
+    CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP,
     CONF_ADAPT_DELAY,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
@@ -896,6 +898,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sun_light_settings = SunLightSettings(
             name=self._name,
             astral_location=location,
+            adapt_brightness_until_sleep=data[CONF_ADAPT_BRIGHTNESS_UNTIL_SLEEP],
+            adapt_color_temp_until_sleep=data[CONF_ADAPT_COLOR_TEMP_UNTIL_SLEEP],
             adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
@@ -1436,6 +1440,8 @@ class SunLightSettings:
 
     name: str
     astral_location: astral.Location
+    adapt_brightness_until_sleep: bool
+    adapt_color_temp_until_sleep: bool
     adapt_until_sleep: bool
     max_brightness: int
     max_color_temp: int
@@ -1576,6 +1582,9 @@ class SunLightSettings:
             return self.sleep_brightness
         if percent > 0:
             return self.max_brightness
+        if self.adapt_until_sleep and self.adapt_brightness_until_sleep and percent < 0:
+            delta_brightness = abs(self.min_brightness - self.sleep_brightness)
+            return (delta_brightness * abs(1 + percent)) + self.sleep_brightness
         delta_brightness = self.max_brightness - self.min_brightness
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
@@ -1588,7 +1597,7 @@ class SunLightSettings:
             return 5 * round(ct / 5)  # round to nearest 5
         if percent == 0 or not self.adapt_until_sleep:
             return self.min_color_temp
-        if self.adapt_until_sleep and percent < 0:
+        if self.adapt_until_sleep and self.adapt_color_temp_until_sleep and percent < 0:
             delta = abs(self.min_color_temp - self.sleep_color_temp)
             ct = (delta * abs(1 + percent)) + self.sleep_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
