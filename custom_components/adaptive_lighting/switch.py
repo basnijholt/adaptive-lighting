@@ -69,6 +69,7 @@ from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
     State,
+    async_get_hass,
     callback,
 )
 from homeassistant.helpers import entity_registry
@@ -372,6 +373,122 @@ def _get_switches_from_service_call(
 
 
 @callback
+async def handle_apply(service_call: ServiceCall):
+    """Handle the entity service apply."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.apply' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        if not lights:
+            all_lights = switch._lights  # pylint: disable=protected-access
+        else:
+            all_lights = _expand_light_groups(switch.hass, lights)
+        switch.turn_on_off_listener.lights.update(all_lights)
+        for light in all_lights:
+            transition = data.get(CONF_TRANSITION)
+            if not data[CONF_TURN_ON_LIGHTS]:
+                if not is_on(hass, light):
+                    continue
+                if not transition:
+                    transition = switch._transition  # pylint: disable=protected-access
+            elif not transition:
+                transition = (
+                    switch._initial_transition
+                )  # pylint: disable=protected-access
+            await switch._adapt_light(  # pylint: disable=protected-access
+                light,
+                transition,
+                data[ATTR_ADAPT_BRIGHTNESS],
+                data[ATTR_ADAPT_COLOR],
+                data[CONF_PREFER_RGB_COLOR],
+                force=True,
+                context=switch.create_context("service", parent=service_call.context),
+            )
+
+
+@callback
+async def handle_set_manual_control(service_call: ServiceCall):
+    """Set or unset lights as 'manually controlled'."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.set_manual_control' service with '%s'",
+        data,
+    )
+    switches = _get_switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        if not lights:
+            all_lights = switch._lights  # pylint: disable=protected-access
+        else:
+            all_lights = _expand_light_groups(switch.hass, lights)
+        if service_call.data[CONF_MANUAL_CONTROL]:
+            for light in all_lights:
+                _fire_manual_control_event(switch, light, service_call.context)
+        else:
+            switch.turn_on_off_listener.reset(*all_lights)
+            if switch.is_on:
+                # pylint: disable=protected-access
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    all_lights,
+                    transition=switch._initial_transition,
+                    force=True,
+                    context=switch.create_context(
+                        "service", parent=service_call.context
+                    ),
+                )
+
+
+@callback
+async def handle_change_switch_settings(service_call: ServiceCall) -> None:
+    """Allows HASS to change config values via a service call."""
+    hass = async_get_hass()
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
+        data,
+    )
+
+    switches = _get_switches_from_service_call(hass, service_call)
+    for switch in switches:
+        # which denotes where to autofill blank config options.
+        which = data.get(CONF_USE_DEFAULTS, "current")
+        if which == "current":
+            # use whatever we're already using.
+            defaults = switch._current_settings  # pylint: disable=protected-access
+        elif which == "factory":
+            # use actual defaults listed in the documentation
+            defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+        elif which == "configuration":
+            # use whatever's in the config flow or configuration.yaml
+            defaults = switch._config_backup  # pylint: disable=protected-access
+        else:
+            defaults = None
+
+        switch._set_changeable_settings(
+            data=data,
+            defaults=defaults,
+        )
+
+        all_lights = switch._lights  # pylint: disable=protected-access
+        switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
+
+        if not switch.is_on:
+            continue
+        await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
+            all_lights,
+            transition=switch._transition,
+            force=True,
+            context=switch.create_context("service", parent=service_call.context),
+        )
+
+
+@callback
 def _fire_manual_control_event(
     switch: AdaptiveSwitch, light: str, context: Context, is_async=True
 ):
@@ -431,120 +548,6 @@ async def async_setup_entry(
         [switch, sleep_mode_switch, adapt_color_switch, adapt_brightness_switch],
         update_before_add=True,
     )
-
-    @callback
-    async def handle_apply(service_call: ServiceCall):
-        """Handle the entity service apply."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.apply' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
-            else:
-                all_lights = _expand_light_groups(switch.hass, lights)
-            switch.turn_on_off_listener.lights.update(all_lights)
-            for light in all_lights:
-                transition = data.get(CONF_TRANSITION)
-                if not data[CONF_TURN_ON_LIGHTS]:
-                    if not is_on(hass, light):
-                        continue
-                    if not transition:
-                        transition = (
-                            switch._transition
-                        )  # pylint: disable=protected-access
-                elif not transition:
-                    transition = (
-                        switch._initial_transition
-                    )  # pylint: disable=protected-access
-                await switch._adapt_light(  # pylint: disable=protected-access
-                    light,
-                    transition,
-                    data[ATTR_ADAPT_BRIGHTNESS],
-                    data[ATTR_ADAPT_COLOR],
-                    data[CONF_PREFER_RGB_COLOR],
-                    force=True,
-                    context=switch.create_context(
-                        "service", parent=service_call.context
-                    ),
-                )
-
-    @callback
-    async def handle_set_manual_control(service_call: ServiceCall):
-        """Set or unset lights as 'manually controlled'."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.set_manual_control' service with '%s'",
-            data,
-        )
-        switches = _get_switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
-            else:
-                all_lights = _expand_light_groups(switch.hass, lights)
-            if service_call.data[CONF_MANUAL_CONTROL]:
-                for light in all_lights:
-                    _fire_manual_control_event(switch, light, service_call.context)
-            else:
-                switch.turn_on_off_listener.reset(*all_lights)
-                if switch.is_on:
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        all_lights,
-                        transition=switch._initial_transition,
-                        force=True,
-                        context=switch.create_context(
-                            "service", parent=service_call.context
-                        ),
-                    )
-
-    @callback
-    async def handle_change_switch_settings(service_call: ServiceCall) -> None:
-        """Allows HASS to change config values via a service call."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
-            data,
-        )
-
-        switches = _get_switches_from_service_call(hass, service_call)
-        for switch in switches:
-            # which denotes where to autofill blank config options.
-            which = data.get(CONF_USE_DEFAULTS, "current")
-            if which == "current":
-                # use whatever we're already using.
-                defaults = switch._current_settings  # pylint: disable=protected-access
-            elif which == "factory":
-                # use actual defaults listed in the documentation
-                defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
-            elif which == "configuration":
-                # use whatever's in the config flow or configuration.yaml
-                defaults = switch._config_backup  # pylint: disable=protected-access
-            else:
-                defaults = None
-
-            switch._set_changeable_settings(
-                data=data,
-                defaults=defaults,
-            )
-
-            all_lights = switch._lights  # pylint: disable=protected-access
-            switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
-
-            if not switch.is_on:
-                continue
-            await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
-                all_lights,
-                transition=switch._transition,
-                force=True,
-                context=switch.create_context("service", parent=service_call.context),
-            )
 
     # Register `apply` service
     hass.services.async_register(
