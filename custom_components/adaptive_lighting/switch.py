@@ -1576,6 +1576,9 @@ class SunLightSettings:
             return self.sleep_brightness
         if percent > 0:
             return self.max_brightness
+        if self.adapt_until_sleep and percent < 0:
+            delta_brightness = abs(self.min_brightness - self.sleep_brightness)
+            return (delta_brightness * abs(1 + percent)) + self.sleep_brightness
         delta_brightness = self.max_brightness - self.min_brightness
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
