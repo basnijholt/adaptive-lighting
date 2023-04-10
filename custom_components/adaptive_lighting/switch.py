@@ -1231,7 +1231,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     max_kelvin,
                 )
                 median = (dimmed_ct + color_temp_kelvin) / 2
-            service_data[ATTR_COLOR_TEMP_KELVIN] = median
+                color_temp_kelvin = median
+            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif supports_colors and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
