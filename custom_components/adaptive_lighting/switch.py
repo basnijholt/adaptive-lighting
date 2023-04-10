@@ -1387,7 +1387,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         service_data = build_with_supported(
             {
-                ATTR_ENTITY_ID: light,
                 ATTR_TRANSITION: transition or self._transition,
                 ATTR_BRIGHTNESS: (
                     adapt_brightness
@@ -1406,10 +1405,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Remove duplicate attributes:
         service_data = remove_unneeded_attributes(service_data)
         # Ensure no key: None pair exists.
-
         service_data = pop_keys_with_none(service_data)
-        # Validate with hass's own schema.
-        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
             # Ensure supported max/min color temp is respected.
             service_data[ATTR_COLOR_TEMP_KELVIN] = max(
@@ -1419,13 +1415,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 ),
                 features[ATTR_MIN_COLOR_TEMP_KELVIN],
             )
-
         _LOGGER.debug(
             "%s: Built service_data supported by light %s. service_data: %s",
             self._name,
             light,
             service_data,
         )
+        # Validate with hass's own schema.
+        service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
+        service_data.update({ATTR_ENTITY_ID: light})
         return service_data
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:

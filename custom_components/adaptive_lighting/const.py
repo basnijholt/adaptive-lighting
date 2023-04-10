@@ -4,7 +4,7 @@ from homeassistant.components.light import (  # VALID_TRANSITION
     ATTR_TRANSITION,
     LIGHT_TURN_ON_SCHEMA,
 )
-from homeassistant.const import ATTR_ENTITY_ID, CONF_ENTITY_ID
+from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -241,9 +241,7 @@ VALID_TRANSITION = vol.All(
 )
 ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
 # ATTR_ENTITY_ID exists in a different schema in hass.
-ENTITY_LIGHT_TURN_ON_SCHEMA.update(
-    {ATTR_ENTITY_ID: cv.entity_id, ATTR_TRANSITION: VALID_TRANSITION}
-)
+ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
 
 
 VALIDATION_TUPLES = [
