@@ -297,9 +297,11 @@ def _get_switches_with_lights(
         if entry is None:  # entry might be disabled and therefore missing
             continue
         switch = data[config.entry_id]["instance"]
-        all_check_lights = _expand_light_groups(hass, lights)
+        all_check_lights = switch.get_lights(
+            hass, lights
+        )  # pylint: disable=protected-access
         # Check if any of the lights are in the switch's lights
-        if set(switch._lights) & set(
+        if set(switch.get_lights()) & set(
             all_check_lights
         ):  # pylint: disable=protected-access
             switches.append(switch)
@@ -402,7 +404,7 @@ async def handle_change_switch_settings(
         data,
     )
 
-    all_lights = switch._lights  # pylint: disable=protected-access
+    all_lights = switch.get_lights()  # pylint: disable=protected-access
     switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
     if switch.is_on:
         await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
@@ -485,12 +487,9 @@ async def async_setup_entry(
         switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
         for switch in switches:
-            if not lights:
-                all_lights = (
-                    lights or switch._lights
-                )  # pylint: disable=protected-access
-            else:
-                all_lights = _expand_light_groups(switch.hass, lights)
+            all_lights = (
+                lights or switch.get_lights()
+            )  # pylint: disable=protected-access
             switch.turn_on_off_listener.lights.update(all_lights)
             for light in all_lights:
                 if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
@@ -517,10 +516,9 @@ async def async_setup_entry(
         switches = _get_switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
         for switch in switches:
-            if not lights:
-                all_lights = switch._lights  # pylint: disable=protected-access
-            else:
-                all_lights = _expand_light_groups(switch.hass, lights)
+            all_lights = (
+                lights or switch.get_lights()
+            )  # pylint: disable=protected-access
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
                     _fire_manual_control_event(switch, light, service_call.context)
@@ -841,11 +839,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             data,
         )
 
-    def __getattribute__(self, name):
-        if name == "_lights":
-            self._expand_light_groups()
-        return object.__getattribute__(self, name)
-
     def _set_changeable_settings(
         self,
         data: dict,
@@ -892,7 +885,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._take_over_control = True
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
-        self._expand_light_groups()  # updates manual control timers
+        self._update_lights()  # updates manual control timers
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
             # Astral v2.2
@@ -944,6 +937,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Return true if adaptive lighting is on."""
         return self._state
 
+    @property
+    def get_lights(self):
+        self._update_lights()
+        return self._lights
+
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
         if self.hass.is_running:
@@ -964,15 +962,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Remove the listeners upon removing the component."""
         self._remove_listeners()
 
-    def _expand_light_groups(self) -> None:
-        all_lights = _expand_light_groups(
-            self.hass, object.__getattribute__(self, "_lights")
-        )
+    def _update_lights(self) -> None:
+        all_lights = _expand_light_groups(self.hass, self._lights)
         self.turn_on_off_listener.lights.update(all_lights)
         self.turn_on_off_listener.set_auto_reset_manual_control_times(
             all_lights, self._auto_reset_manual_control_time
         )
-        object.__setattr__(self, "_lights", list(all_lights))
+        self._lights = list(all_lights)
 
     async def _setup_listeners(self, _=None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
@@ -993,7 +989,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self.remove_listeners.extend([remove_interval, remove_sleep])
 
-        lights = self._lights
+        lights = self.get_lights()
         if lights:
             remove_state = async_track_state_change_event(
                 self.hass, lights, self._light_event
@@ -1018,7 +1014,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             for key in self._settings:
                 extra_state_attributes[key] = None
             return extra_state_attributes
-        lights = self._lights
+        lights = self.get_lights()
         extra_state_attributes["manual_control"] = [
             light
             for light in lights
@@ -1061,7 +1057,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.is_on:
             return
         self._state = True
-        self.turn_on_off_listener.reset(*self._lights)
+        self.turn_on_off_listener.reset(*self.get_lights())
         await self._setup_listeners()
         if adapt_lights:
             await self._update_attrs_and_maybe_adapt_lights(
@@ -1076,7 +1072,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         self._state = False
         self._remove_listeners()
-        self.turn_on_off_listener.reset(*self._lights)
+        self.turn_on_off_listener.reset(*self.get_lights())
 
     async def _async_update_at_interval(self, now=None) -> None:
         await self._update_attrs_and_maybe_adapt_lights(
@@ -1212,7 +1208,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
 
         if lights is None:
-            lights = self._lights
+            lights = self.get_lights()
 
         filtered_lights = []
         if not force:
@@ -1304,7 +1300,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             "%s: _sleep_mode_switch_state_event, event: '%s'", self._name, event
         )
         # Reset the manually controlled status when the "sleep mode" changes
-        self.turn_on_off_listener.reset(*self._lights)
+        self.turn_on_off_listener.reset(*self.get_lights())
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._sleep_transition,
             force=True,
