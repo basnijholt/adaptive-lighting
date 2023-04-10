@@ -1672,27 +1672,15 @@ class SunLightSettings:
         def calculate_noon_and_midnight(
             sunset: datetime.datetime, sunrise: datetime.datetime
         ) -> tuple[datetime.datetime, datetime.datetime]:
-            total = abs(sunset - sunrise)
-            middle = total / 2
-            total = (
-                total.total_seconds() / 60 / 60 * (2 / 3)
-            )  # about 12 hours normally.
-            _LOGGER.debug(
-                "Calculate noon/midnight. Total diff: %s, middle: %s", total, middle
-            )
+            middle = abs(sunset - sunrise) / 2
             if sunset > sunrise:
                 noon = sunrise + middle
-                midnight = noon + timedelta(hours=total) * (
-                    1 if noon.hour < total else -1
-                )
+                midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
             else:
                 midnight = sunset + middle
-                noon = midnight + timedelta(hours=total) * (
-                    1 if midnight.hour < total else -1
+                noon = midnight + timedelta(hours=12) * (
+                    1 if midnight.hour < 12 else -1
                 )
-            _LOGGER.debug(
-                "Calculate noon/midnight. Noon: %s Midnight: %s", noon, midnight
-            )
             return noon, midnight
 
         location = self.astral_location
