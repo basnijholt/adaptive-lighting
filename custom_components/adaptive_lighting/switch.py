@@ -1312,6 +1312,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         service_data = build_with_supported(
             self, light, service_data, features, prefer_rgb_color, supports_colors
         )
+
+        def replace_zero_with_none(val: int) -> None:
+            if val == 0:
+                return None
+            return val
+
         # Ensure no key: None pair exists.
         service_data = pop_keys_with_none(service_data)
         if ATTR_COLOR_TEMP_KELVIN in service_data:
@@ -1343,6 +1349,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         # Validate with hass's own schema.
         service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
+        if service_data.get(ATTR_TRANSITION) == 0:
+            service_data.pop(ATTR_TRANSITION)
         service_data.update({ATTR_ENTITY_ID: light})
         _LOGGER.debug(
             "%s: Built service_data supported by light %s. service_data: %s",

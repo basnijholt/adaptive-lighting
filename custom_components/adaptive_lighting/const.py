@@ -1,7 +1,6 @@
 """Constants for the Adaptive Lighting integration."""
 
-from homeassistant.components.light import (
-    ATTR_TRANSITION,
+from homeassistant.components.light import (  # ATTR_TRANSITION
     LIGHT_TURN_ON_SCHEMA,
     VALID_TRANSITION,
 )
@@ -292,10 +291,10 @@ def replace_zero_with_none(val: int) -> None:
 
 # Fixes an issue I can't find on github at this moment.
 # Ensure no transition of 0 exists.
-VALID_TRANSITION = vol.All(VALID_TRANSITION, replace_zero_with_none)
+# VALID_TRANSITION = vol.SomeOf(validators=[VALID_TRANSITION, replace_zero_with_none], max_valid=1)
 ENTITY_LIGHT_TURN_ON_SCHEMA = LIGHT_TURN_ON_SCHEMA
 # ATTR_ENTITY_ID exists in a different schema in hass.
-ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
+# ENTITY_LIGHT_TURN_ON_SCHEMA.update({ATTR_TRANSITION: VALID_TRANSITION})
 
 
 VALIDATION_TUPLES = [
