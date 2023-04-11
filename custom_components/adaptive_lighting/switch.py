@@ -787,6 +787,7 @@ def _supported_features(hass: HomeAssistant, light: str):
         {
             ATTR_MIN_COLOR_TEMP_KELVIN: min_kelvin,
             ATTR_MAX_COLOR_TEMP_KELVIN: max_kelvin,
+            ATTR_TRANSITION: True,
         }
     )
     if supports_colors:
