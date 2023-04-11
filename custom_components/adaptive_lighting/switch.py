@@ -684,6 +684,7 @@ def _supported_features(hass: HomeAssistant, light: str):
         {
             ATTR_MIN_COLOR_TEMP_KELVIN: min_kelvin,
             ATTR_MAX_COLOR_TEMP_KELVIN: max_kelvin,
+            ATTR_TRANSITION: True,
         }
     )
     if supports_colors:
@@ -1200,6 +1201,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Validate with hass's own schema.
         service_data = vol.Schema(ENTITY_LIGHT_TURN_ON_SCHEMA)(service_data)
         service_data.update({ATTR_ENTITY_ID: light})
+        if service_data.get(ATTR_TRANSITION) == 0:
+            service_data.pop(ATTR_TRANSITION)
         _LOGGER.debug(
             "%s: Built service_data supported by light %s. service_data: %s",
             self._name,
