@@ -683,6 +683,7 @@ def _supported_features(hass: HomeAssistant, light: str):
             _LOGGER.debug(
                 "'supported_color_modes' supports color but the legacy 'supported_features'"
                 " bitfield says we do not. Despite this we'll assume light '%s' supports colors",
+                light,
             )
     return supported, supports_colors
 
