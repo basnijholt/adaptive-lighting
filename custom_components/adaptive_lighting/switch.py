@@ -835,7 +835,7 @@ def build_with_supported(
         )
         data.pop(ATTR_COLOR_TEMP_KELVIN)
     elif prefer_rgb_color:
-        color_attrs_in_data = {k for k, _ in COLOR_ATTRS.keys() ^ data.keys()}
+        color_attrs_in_data = {k for k, _ in COLOR_ATTRS ^ data.keys()}
         if supports_colors and color_attrs_in_data:
             _LOGGER.debug(
                 "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
