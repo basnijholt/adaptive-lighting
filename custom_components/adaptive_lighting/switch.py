@@ -1278,8 +1278,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.id,
         )
 
-        tasks = []
-
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
 
@@ -1318,17 +1316,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 else:
                     _fire_manual_control_event(self, light, context)
             else:
-                tasks.append(
-                    asyncio.create_task(
-                        self._adapt_light(
-                            light, transition, force=force, context=context
-                        )
-                    )
+                self.hass.async_create_task(
+                    self._adapt_light(light, transition, force=force, context=context)
                 )
-        if tasks:
-            await asyncio.gather(*tasks)
-        else:
-            _LOGGER.debug("%s: No lights to adapt", self._name)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
