@@ -44,6 +44,7 @@
           "min_sunset_time": "min_sunset_time: Set the earliest virtual sunset time (HH:MM:SS), allowing for later real sunsets. 🌇",
           "sunset_offset": "sunset_offset: Adjust sunset time with a positive or negative offset in seconds. ⏰",
           "only_once": "only_once: Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄",
+          "flat_limits": "flat_limits: When True, will not calculate between the max/min supported limits of your light. Example: when adapting brightness to 50% while max_brightness is set to 80%, Adaptive Lighting will use 80% instead of 90%",
           "take_over_control": "take_over_control: Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒",
           "alt_detect_method": "alt_detect_method: alt_detect_method: When true, will check for any significant changes in the opposite direction of where adaptive-lighting tried to adapt last. This is an alternative to 'detect_non_ha_changes' (default: false)",
           "detect_non_ha_changes": "detect_non_ha_changes: Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️",

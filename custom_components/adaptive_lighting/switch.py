@@ -109,6 +109,7 @@ from .const import (
     CONF_ALT_DETECT_METHOD,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_FLAT_LIMITS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -1086,6 +1087,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             name=self._name,
             astral_location=location,
             adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
+            flat_limits=data[CONF_FLAT_LIMITS],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
             min_brightness=data[CONF_MIN_BRIGHTNESS],
@@ -1634,6 +1636,7 @@ class SunLightSettings:
     name: str
     astral_location: astral.Location
     adapt_until_sleep: bool
+    flat_limits: bool
     max_brightness: int
     max_color_temp: int
     min_brightness: int
@@ -1773,8 +1776,14 @@ class SunLightSettings:
             return self.sleep_brightness
         if percent > 0:
             return self.max_brightness
-        delta_brightness = self.max_brightness - self.min_brightness
         percent = 1 + percent
+        if self.flat_limits:
+            if percent * 100 > self.max_brightness:
+                return self.max_brightness
+            elif percent * 100 < self.min_brightness:
+                return self.min_brightness
+            return percent * 100
+        delta_brightness = self.max_brightness - self.min_brightness
         return (delta_brightness * percent) + self.min_brightness
 
     def calc_color_temp_kelvin(self, percent: float) -> int:
