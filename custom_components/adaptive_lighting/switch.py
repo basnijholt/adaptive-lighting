@@ -1739,7 +1739,6 @@ class TurnOnOffListener:
                 "Transition finished for light %s",
                 light,
             )
-            raise ValueError("THIS SHOULD BE CALLED")
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
 
