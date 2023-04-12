@@ -1,7 +1,12 @@
 """Constants for the Adaptive Lighting integration."""
 
 from homeassistant.components.light import VALID_TRANSITION
-from homeassistant.const import CONF_ENTITY_ID
+from homeassistant.const import (
+    CONF_ENTITY_ID,
+    SERVICE_TOGGLE,
+    SERVICE_TURN_OFF,
+    SERVICE_TURN_ON,
+)
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -201,6 +206,19 @@ DOCS[CONF_USE_DEFAULTS] = (
     'documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
 )
 
+CONF_WHICH_SWITCH, DEFAULT_WHICH_SWITCH = "switch_type", "main"
+DOCS[CONF_WHICH_SWITCH] = (
+    "Which switch to target in this service call. Options: "
+    '"main" (default, targets the main switch), "sleep", "brightness", "color"'
+)
+DOCS[
+    SERVICE_TURN_ON
+] = "Turn on an Adaptive Lighting main/sleep/brightness/color switch"
+DOCS[
+    SERVICE_TURN_OFF
+] = "Turn off an Adaptive Lighting main/sleep/brightness/color switch"
+DOCS[SERVICE_TOGGLE] = "Toggle an Adaptive Lighting main/sleep/brightness/color switch"
+
 TURNING_OFF_DELAY = 5
 
 DOCS_MANUAL_CONTROL = {
@@ -340,6 +358,14 @@ def apply_service_schema(initial_transition: int = 1):
         }
     )
 
+
+SERVICE_TOGGLE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+        vol.Optional(CONF_WHICH_SWITCH): cv.string,
+    }
+)
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
