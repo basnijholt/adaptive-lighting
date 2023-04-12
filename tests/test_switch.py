@@ -5,7 +5,7 @@ from copy import deepcopy
 import datetime
 import logging
 from random import randint
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
@@ -37,22 +37,25 @@ from homeassistant.components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
 )
 from homeassistant.components.adaptive_lighting.switch import (
+    _SUPPORT_OPTS,
     _attributes_have_changed,
+    _supported_features,
     color_difference_redmean,
     create_context,
     is_our_context,
 )
 from homeassistant.components.demo.light import DemoLight
-from homeassistant.components.light import (
+from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import SERVICE_TURN_OFF
+from homeassistant.components.light import SERVICE_TURN_OFF  # ATTR_RGBWW_COLOR
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.config_entries import ConfigEntryState
@@ -513,6 +516,39 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
         )
         await hass.async_block_till_done()
     assert light not in switch.turn_on_off_listener.lights
+
+
+def test_supported_features():
+    expected_features = [
+        {"color", "brightness", "color_temp", "transition"},
+        {"color", "brightness", "color_temp"},
+        {"color", "brightness"},
+        {"color", "color_temp", "transition"},
+        {"color", "color_temp"},
+        {"color"},
+        {"brightness", "color_temp", "transition"},
+        {"brightness", "color_temp"},
+        {"brightness", "transition"},
+        {"brightness"},
+        {"color_temp", "transition"},
+        {"color_temp"},
+        {"transition"},
+        set(),
+    ]
+
+    for i, legacy_supported in enumerate(_SUPPORT_OPTS.keys()):
+        for j, supported in enumerate(_SUPPORT_OPTS.keys()):
+            state = MagicMock()
+            state.attributes = {
+                ATTR_SUPPORTED_FEATURES: _SUPPORT_OPTS[legacy_supported],
+                ATTR_SUPPORTED_COLOR_MODES: {_SUPPORT_OPTS[supported]},
+            }
+            hass = MagicMock()
+            hass.states.get.return_value = state
+
+            result = _supported_features(hass, "light.test")
+
+            assert result == expected_features[i * len(_SUPPORT_OPTS) + j]
 
 
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
