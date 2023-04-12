@@ -1327,12 +1327,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         elif supports_colors and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
-
-        context = context or self.create_context("adapt_lights")
-
-        # See #80. Doesn't check if transitions differ but it does the job.
-        last_service_data = self.turn_on_off_listener.last_service_data
-        if not force and last_service_data.get(light) == service_data:
+        # Check if service data differs from the last. See #80.
+        listener = self.turn_on_off_listener
+        last_service_data = listener.last_service_data.get(light)
+        ignore_fields = {ATTR_TRANSITION}
+        if (
+            not force
+            and last_service_data
+            and {k for k, _ in last_service_data.items() ^ service_data.items()}
+            == ignore_fields
+        ):
             _LOGGER.debug(
                 "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
                 self._name,
@@ -1340,8 +1344,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context.id,
             )
             return
-        else:
-            self.turn_on_off_listener.last_service_data[light] = service_data
+        listener.last_service_data[light] = service_data
+
+        context = context or self.create_context("adapt_lights")
 
         async def turn_on(service_data):
             _LOGGER.debug(
