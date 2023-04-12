@@ -1529,6 +1529,9 @@ async def test_switch_turn_on_off_toggle(hass):
 async def test_change_switch_settings_service(hass):
     """Test adaptive_lighting.change_switch_settings service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
+    switch2, (_, light2, _) = await setup_lights_and_switch(
+        hass, {CONF_NAME: "second_switch"}
+    )
     entity_id = light.entity_id
     assert entity_id not in switch._lights
 
@@ -1537,7 +1540,6 @@ async def test_change_switch_settings_service(hass):
             DOMAIN,
             SERVICE_CHANGE_SWITCH_SETTINGS,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
                 **kwargs,
             },
             blocking=True,
@@ -1546,12 +1548,16 @@ async def test_change_switch_settings_service(hass):
 
     # Test changing sunrise offset
     assert switch._sun_light_settings.sunrise_offset.total_seconds() == 0
-    await change_switch_settings(**{CONF_SUNRISE_OFFSET: 10})
+    await change_switch_settings(
+        **{ATTR_ENTITY_ID: ENTITY_SWITCH, CONF_SUNRISE_OFFSET: 10}
+    )
     assert switch._sun_light_settings.sunrise_offset.total_seconds() == 10
 
     # Test changing max brightness
     assert switch._sun_light_settings.max_brightness == 100
-    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 50})
+    await change_switch_settings(
+        **{ATTR_ENTITY_ID: ENTITY_SWITCH, CONF_MAX_BRIGHTNESS: 50}
+    )
     assert switch._sun_light_settings.max_brightness == 50
 
     # Test changing to illegal max brightness
@@ -1559,20 +1565,33 @@ async def test_change_switch_settings_service(hass):
         voluptuous.error.MultipleInvalid,
         match="value must be at most 100 for dictionary",
     ):
-        await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
+        await change_switch_settings(
+            **{ATTR_ENTITY_ID: ENTITY_SWITCH, CONF_MAX_BRIGHTNESS: 5000}
+        )
 
     # Change CONF_MIN_COLOR_TEMP, the factory default is 2000, but setup_lights_and_switch
     # sets it to 2500
     assert switch._sun_light_settings.min_color_temp == 2500
 
     # testing with "factory" should change it to 2000
-    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    await change_switch_settings(
+        **{ATTR_ENTITY_ID: ENTITY_SWITCH, CONF_USE_DEFAULTS: "factory"}
+    )
     assert switch._sun_light_settings.min_color_temp == 2000
 
     # testing with "current" should not change things
-    await change_switch_settings(**{CONF_USE_DEFAULTS: "current"})
+    await change_switch_settings(
+        **{ATTR_ENTITY_ID: ENTITY_SWITCH, CONF_USE_DEFAULTS: "current"}
+    )
     assert switch._sun_light_settings.min_color_temp == 2000
 
     # testing with "configuration" should revert back to 2500
-    await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
+    await change_switch_settings(
+        **{ATTR_ENTITY_ID: ENTITY_SWITCH, CONF_USE_DEFAULTS: "configuration"}
+    )
     assert switch._sun_light_settings.min_color_temp == 2500
+
+    # testing with no switches or lights defined.
+    assert switch2._sun_light_settings.max_brightness == 100
+    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 50})
+    assert switch2._sun_light_settings.max_brightness == 50

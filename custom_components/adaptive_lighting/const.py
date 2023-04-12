@@ -239,9 +239,9 @@ DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. �
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 DOCS[CONF_USE_DEFAULTS] = (
-    "Sets the default values not specified in this service call. Options: "
+    "Where to autofill config options that are not passed to this service. Options: "
     '"current" (default, retains current values), "factory" (resets to '
-    'documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
+    'documented defaults), or "configuration" (reverts to original user config). ⚙️'
 )
 
 CONF_WHICH_SWITCH, DEFAULT_WHICH_SWITCH = "switch_type", "main"
@@ -384,25 +384,19 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
-def apply_service_schema(initial_transition: int = 1):
-    """Return the schema for the apply service."""
-    return vol.Schema(
-        {
-            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
-            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
-            vol.Optional(
-                CONF_TRANSITION,
-                default=initial_transition,
-            ): VALID_TRANSITION,
-            vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
-            vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
-            vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
-            vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
-        }
-    )
+SCHEMA_APPLY = vol.Schema(
+    {
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+        vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
+        vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
+        vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
+        vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
+        vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+    }
+)
 
-
-SERVICE_TOGGLE_SCHEMA = vol.Schema(
+SCHEMA_SERVICE_TOGGLE = vol.Schema(
     {
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
@@ -410,10 +404,23 @@ SERVICE_TOGGLE_SCHEMA = vol.Schema(
     }
 )
 
-SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
+SCHEMA_SET_MANUAL_CONTROL = vol.Schema(
     {
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
         vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
+    }
+)
+
+SCHEMA_CHANGE_SWITCH_SETTINGS = vol.Schema(
+    {
+        vol.Optional(CONF_USE_DEFAULTS): cv.string,
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
+        vol.Required(CONF_LIGHTS, default=[]): [],
+        **{
+            vol.Optional(k): valid
+            for k, _, valid in VALIDATION_TUPLES
+            if k not in [CONF_INTERVAL, CONF_NAME, CONF_LIGHTS]
+        },
     }
 )
