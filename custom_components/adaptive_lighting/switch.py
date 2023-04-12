@@ -1734,11 +1734,12 @@ class TurnOnOffListener:
         )
 
         async def reset():
-            raise ValueError("THIS SHOULD BE CALLED")
+            self.transition_timers[light] = None
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
             )
+            raise ValueError("THIS SHOULD BE CALLED")
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
 
