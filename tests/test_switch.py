@@ -40,7 +40,6 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.components.adaptive_lighting.switch import (
     _SUPPORT_OPTS,
-    COLOR_ATTRS,
     VALID_COLOR_MODES,
     _attributes_have_changed,
     _supported_features,
@@ -53,28 +52,13 @@ from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
-    ATTR_HS_COLOR,
     ATTR_MAX_COLOR_TEMP_KELVIN,
     ATTR_MIN_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
-    ATTR_RGBW_COLOR,
-    ATTR_RGBWW_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
     COLOR_MODE_BRIGHTNESS,
-    COLOR_MODE_COLOR_TEMP,
-    COLOR_MODE_HS,
-    COLOR_MODE_RGB,
-    COLOR_MODE_RGBW,
-    COLOR_MODE_RGBWW,
-    COLOR_MODE_XY,
-)
-from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_COLOR,
-    SUPPORT_COLOR_TEMP,
-    SUPPORT_TRANSITION,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF  # ATTR_RGBWW_COLOR
@@ -580,7 +564,6 @@ def test_supported_features(hass):
             supported, supports_colors = (
                 result if isinstance(result, tuple) else (result, None)
             )
-
             expected_supported = {} if supports_colors is not None else set()
             for mode, attr in VALID_COLOR_MODES.items():
                 if mode in mode_values:
