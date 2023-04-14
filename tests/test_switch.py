@@ -40,6 +40,8 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.components.adaptive_lighting.switch import (
     _SUPPORT_OPTS,
+    VALID_COLOR_MODES,
+    COLOR_ATTRS,
     _attributes_have_changed,
     _supported_features,
     color_difference_redmean,
@@ -541,35 +543,18 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
 def test_supported_features(hass):
     """Test the supported features of a light."""
 
-    _SUPPORT_OPTS = {
-        ATTR_BRIGHTNESS: SUPPORT_BRIGHTNESS,
-        ATTR_COLOR_TEMP_KELVIN: SUPPORT_COLOR_TEMP,
-        CONST_COLOR: SUPPORT_COLOR,
-        ATTR_TRANSITION: SUPPORT_TRANSITION,
-    }
-
     possible_legacy_features = {}
     MAX_COMBINATIONS = 4  # maximum number of elements that can be combined
-    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS)) + 1):
+    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS))+1):
         for combination in itertools.combinations(_SUPPORT_OPTS.keys(), i):
-            key = "_".join(combination)
+            key = '_'.join(combination)
             value = [v for k, v in _SUPPORT_OPTS.items() if k in combination]
             possible_legacy_features[key] = value
 
-    VALID_COLOR_MODES = {
-        COLOR_MODE_BRIGHTNESS: ATTR_BRIGHTNESS,
-        COLOR_MODE_COLOR_TEMP: ATTR_COLOR_TEMP_KELVIN,
-        COLOR_MODE_HS: ATTR_HS_COLOR,
-        COLOR_MODE_RGB: ATTR_RGB_COLOR,
-        COLOR_MODE_RGBW: ATTR_RGBW_COLOR,
-        COLOR_MODE_RGBWW: ATTR_RGBWW_COLOR,
-        COLOR_MODE_XY: ATTR_XY_COLOR,
-    }
-
     possible_color_modes = {}
-    for i in range(1, len(VALID_COLOR_MODES) + 1):
+    for i in range(1, len(VALID_COLOR_MODES)+1):
         for combination in itertools.combinations(VALID_COLOR_MODES.keys(), i):
-            key = "_".join(combination)
+            key = '_'.join(combination)
             value = [v for k, v in VALID_COLOR_MODES.items() if k in combination]
             possible_color_modes[key] = value
 
@@ -578,40 +563,52 @@ def test_supported_features(hass):
 
     # iterate over possible legacy features
     for feature_key, feature_values in possible_legacy_features.items():
+        # _LOGGER.debug(feature_values)
         # set the attributes of the mock state object to the possible legacy feature values
         state_attrs = {ATTR_SUPPORTED_FEATURES: sum(feature_values)}
         hass.states.get.return_value.attributes = state_attrs
 
         # iterate over possible color modes
         for mode_key, mode_values in possible_color_modes.items():
+            # _LOGGER.debug(mode_values)
             # set the attributes of the mock state object to the possible color mode values
             state_attrs[ATTR_SUPPORTED_COLOR_MODES] = set(mode_values)
             hass.states.get.return_value.attributes = state_attrs
 
             # Handle both the new and the old _supported_features.
             result = _supported_features(hass, ENTITY_LIGHT)
-            if isinstance(result, tuple):
-                supported, supports_colors = result
-            else:
-                supported = result
-                supports_colors = False
+            supported, supports_colors = result if isinstance(result, tuple) else (result, None)
 
-            expected_supported = {}
+            expected_supported = {} if supports_colors is not None else set()
             for mode, attr in VALID_COLOR_MODES.items():
                 if mode in mode_values:
-                    expected_supported[attr] = True
+                    if supports_colors is None:
+                        expected_supported.add(mode)
+                    else:
+                        expected_supported[attr] = True
+                        if supports_colors is True:
+                            expected_supported[COLOR_MODE_BRIGHTNESS] = True
             for opt, value in _SUPPORT_OPTS.items():
                 if value in feature_values:
-                    expected_supported[opt] = True
+                    if supports_colors is None:
+                        expected_supported.add(opt)
+                    else:
+                        if supports_colors is True:
+                            expected_supported[COLOR_MODE_BRIGHTNESS] = True
+                        if opt in VALID_COLOR_MODES:
+                            expected_supported[VALID_COLOR_MODES[opt]] = True
+                        elif opt != CONST_COLOR:
+                            expected_supported[opt] = True
             if ATTR_MIN_COLOR_TEMP_KELVIN in supported:
                 supported.pop(ATTR_MIN_COLOR_TEMP_KELVIN)
             if ATTR_MAX_COLOR_TEMP_KELVIN in supported:
                 supported.pop(ATTR_MAX_COLOR_TEMP_KELVIN)
             assert supported == expected_supported, (
-                f"Expected supported: {expected_supported}\n"
+                f"\nExpected supported: {expected_supported}\n"
                 f"Actual supported: {supported}\n"
                 f"feature_values: {feature_values}\n"
                 f"mode_values: {mode_values}\n"
+                f"supports_colors: {supports_colors}\n"
             )
 
 
