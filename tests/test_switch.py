@@ -40,8 +40,8 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.components.adaptive_lighting.switch import (
     _SUPPORT_OPTS,
-    VALID_COLOR_MODES,
     COLOR_ATTRS,
+    VALID_COLOR_MODES,
     _attributes_have_changed,
     _supported_features,
     color_difference_redmean,
@@ -545,16 +545,16 @@ def test_supported_features(hass):
 
     possible_legacy_features = {}
     MAX_COMBINATIONS = 4  # maximum number of elements that can be combined
-    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS))+1):
+    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS)) + 1):
         for combination in itertools.combinations(_SUPPORT_OPTS.keys(), i):
-            key = '_'.join(combination)
+            key = "_".join(combination)
             value = [v for k, v in _SUPPORT_OPTS.items() if k in combination]
             possible_legacy_features[key] = value
 
     possible_color_modes = {}
-    for i in range(1, len(VALID_COLOR_MODES)+1):
+    for i in range(1, len(VALID_COLOR_MODES) + 1):
         for combination in itertools.combinations(VALID_COLOR_MODES.keys(), i):
-            key = '_'.join(combination)
+            key = "_".join(combination)
             value = [v for k, v in VALID_COLOR_MODES.items() if k in combination]
             possible_color_modes[key] = value
 
@@ -577,7 +577,9 @@ def test_supported_features(hass):
 
             # Handle both the new and the old _supported_features.
             result = _supported_features(hass, ENTITY_LIGHT)
-            supported, supports_colors = result if isinstance(result, tuple) else (result, None)
+            supported, supports_colors = (
+                result if isinstance(result, tuple) else (result, None)
+            )
 
             expected_supported = {} if supports_colors is not None else set()
             for mode, attr in VALID_COLOR_MODES.items():
