@@ -3,8 +3,8 @@
 import asyncio
 from copy import deepcopy
 import datetime
-import logging
 import itertools
+import logging
 from random import randint
 from unittest.mock import MagicMock, patch
 
@@ -51,16 +51,15 @@ from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
-    ATTR_RGB_COLOR,
-    ATTR_SUPPORTED_COLOR_MODES,
-    ATTR_TRANSITION,
     ATTR_HS_COLOR,
-    ATTR_XY_COLOR,
+    ATTR_MAX_COLOR_TEMP_KELVIN,
+    ATTR_MIN_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
     ATTR_RGBW_COLOR,
     ATTR_RGBWW_COLOR,
-    ATTR_MAX_COLOR_TEMP_KELVIN,
-    ATTR_MIN_COLOR_TEMP_KELVIN,
+    ATTR_SUPPORTED_COLOR_MODES,
+    ATTR_TRANSITION,
+    ATTR_XY_COLOR,
     COLOR_MODE_BRIGHTNESS,
     COLOR_MODE_COLOR_TEMP,
     COLOR_MODE_HS,
@@ -68,6 +67,8 @@ from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     COLOR_MODE_RGBW,
     COLOR_MODE_RGBWW,
     COLOR_MODE_XY,
+)
+from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
@@ -549,9 +550,9 @@ def test_supported_features(hass):
 
     possible_legacy_features = {}
     MAX_COMBINATIONS = 4  # maximum number of elements that can be combined
-    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS))+1):
+    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS)) + 1):
         for combination in itertools.combinations(_SUPPORT_OPTS.keys(), i):
-            key = '_'.join(combination)
+            key = "_".join(combination)
             value = [v for k, v in _SUPPORT_OPTS.items() if k in combination]
             possible_legacy_features[key] = value
 
@@ -566,9 +567,9 @@ def test_supported_features(hass):
     }
 
     possible_color_modes = {}
-    for i in range(1, len(VALID_COLOR_MODES)+1):
+    for i in range(1, len(VALID_COLOR_MODES) + 1):
         for combination in itertools.combinations(VALID_COLOR_MODES.keys(), i):
-            key = '_'.join(combination)
+            key = "_".join(combination)
             value = [v for k, v in VALID_COLOR_MODES.items() if k in combination]
             possible_color_modes[key] = value
 
@@ -612,8 +613,6 @@ def test_supported_features(hass):
                 f"feature_values: {feature_values}\n"
                 f"mode_values: {mode_values}\n"
             )
-
-
 
 
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
