@@ -4,6 +4,7 @@ import asyncio
 from copy import deepcopy
 import datetime
 import logging
+import itertools
 from random import randint
 from unittest.mock import MagicMock, patch
 
@@ -25,6 +26,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONST_COLOR,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
@@ -52,7 +54,13 @@ from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
+    ATTR_HS_COLOR,
     ATTR_XY_COLOR,
+    ATTR_RGB_COLOR,
+    ATTR_RGBW_COLOR,
+    ATTR_RGBWW_COLOR,
+    ATTR_MAX_COLOR_TEMP_KELVIN,
+    ATTR_MIN_COLOR_TEMP_KELVIN,
     COLOR_MODE_BRIGHTNESS,
     COLOR_MODE_COLOR_TEMP,
     COLOR_MODE_HS,
@@ -60,6 +68,10 @@ from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     COLOR_MODE_RGBW,
     COLOR_MODE_RGBWW,
     COLOR_MODE_XY,
+    SUPPORT_BRIGHTNESS,
+    SUPPORT_COLOR,
+    SUPPORT_COLOR_TEMP,
+    SUPPORT_TRANSITION,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF  # ATTR_RGBWW_COLOR
@@ -527,80 +539,81 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
 
 def test_supported_features(hass):
     """Test the supported features of a light."""
-    state_mock = MagicMock()
-    state_mock.attributes = {
-        ATTR_SUPPORTED_FEATURES: _SUPPORT_OPTS["brightness"],
-        ATTR_SUPPORTED_COLOR_MODES: {"color_temp"},
+
+    _SUPPORT_OPTS = {
+        ATTR_BRIGHTNESS: SUPPORT_BRIGHTNESS,
+        ATTR_COLOR_TEMP_KELVIN: SUPPORT_COLOR_TEMP,
+        CONST_COLOR: SUPPORT_COLOR,
+        ATTR_TRANSITION: SUPPORT_TRANSITION,
     }
-    hass_mock = MagicMock()
-    hass_mock.states.get.return_value = state_mock
 
-    expected_features = [
-        {
-            "brightness",
-            "color_temp_kelvin",
-            "min_color_temp_kelvin",
-            "max_color_temp_kelvin",
-        },
-        {
-            "color_temp_kelvin",
-            "brightness",
-            "min_color_temp_kelvin",
-            "max_color_temp_kelvin",
-        },
-        {
-            "color_temp_kelvin",
-            "brightness",
-            "transition",
-            "min_color_temp_kelvin",
-            "max_color_temp_kelvin",
-        },
-        {"color", "brightness", "min_color_temp_kelvin", "max_color_temp_kelvin"},
-        {
-            "color_temp_kelvin",
-            "brightness",
-            "transition",
-            "color",
-            "min_color_temp_kelvin",
-            "max_color_temp_kelvin",
-        },
-        {
-            "color",
-            "brightness",
-            "transition",
-            "min_color_temp_kelvin",
-            "max_color_temp_kelvin",
-        },
-    ]
+    possible_legacy_features = {}
+    MAX_COMBINATIONS = 4  # maximum number of elements that can be combined
+    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS))+1):
+        for combination in itertools.combinations(_SUPPORT_OPTS.keys(), i):
+            key = '_'.join(combination)
+            value = [v for k, v in _SUPPORT_OPTS.items() if k in combination]
+            possible_legacy_features[key] = value
 
-    for feature, bit in _SUPPORT_OPTS.items():
-        for i, expected in enumerate(expected_features):
-            state_mock.attributes[ATTR_SUPPORTED_FEATURES] = (
-                state_mock.attributes[ATTR_SUPPORTED_FEATURES] + bit
-            )
+    VALID_COLOR_MODES = {
+        COLOR_MODE_BRIGHTNESS: ATTR_BRIGHTNESS,
+        COLOR_MODE_COLOR_TEMP: ATTR_COLOR_TEMP_KELVIN,
+        COLOR_MODE_HS: ATTR_HS_COLOR,
+        COLOR_MODE_RGB: ATTR_RGB_COLOR,
+        COLOR_MODE_RGBW: ATTR_RGBW_COLOR,
+        COLOR_MODE_RGBWW: ATTR_RGBWW_COLOR,
+        COLOR_MODE_XY: ATTR_XY_COLOR,
+    }
 
-            if feature == "color" or feature == "transition":
-                state_mock.attributes[ATTR_SUPPORTED_COLOR_MODES] = {
-                    COLOR_MODE_RGB,
-                    COLOR_MODE_RGBW,
-                    COLOR_MODE_XY,
-                    COLOR_MODE_HS,
-                    COLOR_MODE_COLOR_TEMP,
-                }
+    possible_color_modes = {}
+    for i in range(1, len(VALID_COLOR_MODES)+1):
+        for combination in itertools.combinations(VALID_COLOR_MODES.keys(), i):
+            key = '_'.join(combination)
+            value = [v for k, v in VALID_COLOR_MODES.items() if k in combination]
+            possible_color_modes[key] = value
+
+    # create a mock HomeAssistant object
+    hass = MagicMock()
+
+    # iterate over possible legacy features
+    for feature_key, feature_values in possible_legacy_features.items():
+        # set the attributes of the mock state object to the possible legacy feature values
+        state_attrs = {ATTR_SUPPORTED_FEATURES: sum(feature_values)}
+        hass.states.get.return_value.attributes = state_attrs
+
+        # iterate over possible color modes
+        for mode_key, mode_values in possible_color_modes.items():
+            # set the attributes of the mock state object to the possible color mode values
+            state_attrs[ATTR_SUPPORTED_COLOR_MODES] = set(mode_values)
+            hass.states.get.return_value.attributes = state_attrs
+
+            # Handle both the new and the old _supported_features.
+            result = _supported_features(hass, ENTITY_LIGHT)
+            if isinstance(result, tuple):
+                supported, supports_colors = result
             else:
-                state_mock.attributes[ATTR_SUPPORTED_COLOR_MODES] = {
-                    COLOR_MODE_COLOR_TEMP
-                }
+                supported = result
+                supports_colors = False
 
-            supported, supports_colors = _supported_features(
-                hass_mock, "light.test_dining_table"
+            expected_supported = {}
+            for mode, attr in VALID_COLOR_MODES.items():
+                if mode in mode_values:
+                    expected_supported[attr] = True
+            for opt, value in _SUPPORT_OPTS.items():
+                if value in feature_values:
+                    expected_supported[opt] = True
+            if ATTR_MIN_COLOR_TEMP_KELVIN in supported:
+                supported.pop(ATTR_MIN_COLOR_TEMP_KELVIN)
+            if ATTR_MAX_COLOR_TEMP_KELVIN in supported:
+                supported.pop(ATTR_MAX_COLOR_TEMP_KELVIN)
+            assert supported == expected_supported, (
+                f"Expected supported: {expected_supported}\n"
+                f"Actual supported: {supported}\n"
+                f"feature_values: {feature_values}\n"
+                f"mode_values: {mode_values}\n"
             )
 
-            assert supported.keys() == expected
-            assert supports_colors == ("color" in expected)
 
-            state_mock.attributes[ATTR_SUPPORTED_FEATURES] = 0
-            state_mock.attributes[ATTR_SUPPORTED_COLOR_MODES] = {"color_temp"}
 
 
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
