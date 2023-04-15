@@ -686,6 +686,47 @@ def _supported_features(hass: HomeAssistant, light: str):
     return supported, supports_colors
 
 
+def rgb_to_rgbww(rgb):
+    """
+    Convert an RGB tuple to RGBWW tuple.
+
+    Args:
+    rgb: A tuple containing the RGB values.
+
+    Returns:
+    A tuple containing the RGBWW values.
+    """
+    red, green, blue = rgb
+    warm_white = min(red, green, blue)
+    cold_white = max(red, green, blue)
+    white = (warm_white + cold_white) / 2
+    red = max(red - white, 0)
+    green = max(green - white, 0)
+    blue = max(blue - white, 0)
+    return (red, green, blue, warm_white, cold_white)
+
+
+def rgb_to_rgbw(rgb):
+    # Unpack RGB values
+    r, g, b = rgb
+
+    # Calculate the maximum and minimum values
+    max_val = max(r, g, b)
+    min_val = min(r, g, b)
+
+    # Calculate the brightness and the chromaticity
+    brightness = max_val
+    if brightness == 0:
+        return (0, 0, 0, 0)
+    chromaticity = (max_val - min_val) / max_val
+
+    # Calculate the white component
+    white = int((1 - chromaticity) * brightness)
+
+    # Return the RGBW tuple
+    return (r, g, b, white)
+
+
 def color_difference_redmean(
     rgb1: tuple[float, float, float], rgb2: tuple[float, float, float]
 ) -> float:
