@@ -172,16 +172,6 @@ VALID_COLOR_MODES = {
     COLOR_MODE_XY: ATTR_XY_COLOR,
 }
 
-VALID_COLOR_MODES = {
-    COLOR_MODE_BRIGHTNESS: ATTR_BRIGHTNESS,
-    COLOR_MODE_COLOR_TEMP: ATTR_COLOR_TEMP_KELVIN,
-    COLOR_MODE_HS: ATTR_HS_COLOR,
-    COLOR_MODE_RGB: ATTR_RGB_COLOR,
-    COLOR_MODE_RGBW: ATTR_RGBW_COLOR,
-    COLOR_MODE_RGBWW: ATTR_RGBWW_COLOR,
-    COLOR_MODE_XY: ATTR_XY_COLOR,
-}
-
 _ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
@@ -655,16 +645,18 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 def _supported_to_attributes(supported):
     supported_attributes = {}
     supports_colors = False
-    for mode, attr in VALID_COLOR_MODES.items():
-        if mode not in supported:
-            continue
-        supported_attributes[attr] = True
-        if (
-            not supports_colors
-            and mode != COLOR_MODE_BRIGHTNESS
-            and mode != COLOR_MODE_COLOR_TEMP
-        ):
-            supports_colors = True
+    for mode in supported:
+        attr = VALID_COLOR_MODES.get(mode)
+        if attr:
+            supported_attributes[attr] = True
+            if attr in COLOR_ATTRS:
+                supports_colors = True
+        # ATTR_SUPPORTED_FEATURES only
+        elif mode in _SUPPORT_OPTS:
+            supported_attributes[mode] = True
+    if CONST_COLOR in supported_attributes:
+        supports_colors = True
+        supported_attributes.pop(CONST_COLOR)
     return supported_attributes, supports_colors
 
 
