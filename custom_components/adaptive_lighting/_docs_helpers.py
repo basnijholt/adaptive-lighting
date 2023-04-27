@@ -1,9 +1,9 @@
 from typing import Any
 
-from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 import pandas as pd
 import voluptuous as vol
+from homeassistant.helpers import selector
 
 from .const import (
     DOCS,
@@ -85,15 +85,17 @@ def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
 
 
 def _generate_service_markdown_table(
-    schema: dict[str, tuple[Any, Any]], alternative_docs: dict[str, str] = None
+    schema: dict[str, tuple[Any, Any]],
+    alternative_docs: dict[str, str] = None,
 ):
     schema = _schema_to_dict(schema)
     rows = []
     for k, (default, type_) in schema.items():
-        if alternative_docs is not None and k in alternative_docs:
-            description = alternative_docs[k]
-        else:
-            description = DOCS[k]
+        description = (
+            alternative_docs[k]
+            if alternative_docs is not None and k in alternative_docs
+            else DOCS[k]
+        )
         row = {
             "Service data attribute": f"`{k}`",
             "Description": description,
@@ -112,5 +114,6 @@ def generate_apply_markdown_table():
 
 def generate_set_manual_control_markdown_table():
     return _generate_service_markdown_table(
-        SET_MANUAL_CONTROL_SCHEMA, DOCS_MANUAL_CONTROL
+        SET_MANUAL_CONTROL_SCHEMA,
+        DOCS_MANUAL_CONTROL,
     )

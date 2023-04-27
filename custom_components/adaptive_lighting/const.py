@@ -1,10 +1,10 @@
 """Constants for the Adaptive Lighting integration."""
 
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import selector
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
 
 ICON_MAIN = "mdi:theme-light-dark"
 ICON_BRIGHTNESS = "mdi:brightness-4"
@@ -319,7 +319,7 @@ _DOMAIN_SCHEMA = vol.Schema(
     {
         vol.Optional(key, default=replace_none_str(default, vol.UNDEFINED)): validation
         for key, default, validation in _yaml_validation_tuples
-    }
+    },
 )
 
 
@@ -337,7 +337,7 @@ def apply_service_schema(initial_transition: int = 1):
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
-        }
+        },
     )
 
 
@@ -346,5 +346,5 @@ SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
         vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
-    }
+    },
 )
