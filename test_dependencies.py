@@ -5,6 +5,8 @@ components = []
 packages = []
 deps = {}
 for i, line in enumerate(lines):
+    if "codecov" in line:
+        continue
     line = line.strip()
     if line.startswith("# homeassistant."):
         component = line.split("# homeassistant.")[1]
