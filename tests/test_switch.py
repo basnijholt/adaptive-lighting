@@ -3,11 +3,10 @@
 import asyncio
 from copy import deepcopy
 import datetime
+import itertools
 import logging
-from random import choices as random_choices
 from random import randint
-import string
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
@@ -27,6 +26,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONST_COLOR,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
@@ -39,7 +39,10 @@ from homeassistant.components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
 )
 from homeassistant.components.adaptive_lighting.switch import (
+    _SUPPORT_OPTS,
+    VALID_COLOR_MODES,
     _attributes_have_changed,
+    _supported_features,
     color_difference_redmean,
     create_context,
     is_our_context,
@@ -49,9 +52,13 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
+    ATTR_MAX_COLOR_TEMP_KELVIN,
+    ATTR_MIN_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
+    COLOR_MODE_BRIGHTNESS,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF
@@ -76,6 +83,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
+import ulid_transform
 import voluptuous.error
 
 from tests.common import MockConfigEntry, mock_area_registry
@@ -116,6 +124,10 @@ GLOBAL_TEST_DEPENDENCIES = [
     "test_adaptive_lighting_switches",
     "test_light_settings",
 ]
+
+
+def create_random_context() -> str:
+    return Context(id=ulid_transform.ulid_now(), parent_id=None)
 
 
 @pytest.fixture
@@ -217,16 +229,6 @@ async def setup_lights_and_switch(hass, extra_conf=None):
     )
     await hass.async_block_till_done()
     return switch, lights_instances
-
-
-def create_random_context() -> str:
-    ulid_max_length = 26  # changed from 36->26 in core2023.4.0
-    return Context(
-        id="".join(
-            random_choices(string.ascii_uppercase + string.digits, k=ulid_max_length)
-        ),
-        parent_id=None,
-    )
 
 
 # see https://github.com/home-assistant/core/blob/dev/homeassistant/scripts/benchmark/__init__.py
@@ -522,6 +524,79 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
     assert light not in switch.turn_on_off_listener.lights
 
 
+def test_supported_features(hass):  # noqa: C901
+    """Test the supported features of a light."""
+
+    possible_legacy_features = {}
+    MAX_COMBINATIONS = 4  # maximum number of elements that can be combined
+    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS)) + 1):
+        for combination in itertools.combinations(_SUPPORT_OPTS.keys(), i):
+            key = "_".join(combination)
+            value = [v for k, v in _SUPPORT_OPTS.items() if k in combination]
+            possible_legacy_features[key] = value
+
+    possible_color_modes = {}
+    for i in range(1, len(VALID_COLOR_MODES) + 1):
+        for combination in itertools.combinations(VALID_COLOR_MODES.keys(), i):
+            key = "_".join(combination)
+            value = [v for k, v in VALID_COLOR_MODES.items() if k in combination]
+            possible_color_modes[key] = value
+
+    # create a mock HomeAssistant object
+    hass = MagicMock()
+
+    # iterate over possible legacy features
+    for feature_key, feature_values in possible_legacy_features.items():
+        # _LOGGER.debug(feature_values)
+        # set the attributes of the mock state object to the possible legacy feature values
+        state_attrs = {ATTR_SUPPORTED_FEATURES: sum(feature_values)}
+        hass.states.get.return_value.attributes = state_attrs
+
+        # iterate over possible color modes
+        for mode_key, mode_values in possible_color_modes.items():
+            # _LOGGER.debug(mode_values)
+            # set the attributes of the mock state object to the possible color mode values
+            state_attrs[ATTR_SUPPORTED_COLOR_MODES] = set(mode_values)
+            hass.states.get.return_value.attributes = state_attrs
+
+            # Handle both the new and the old _supported_features.
+            result = _supported_features(hass, ENTITY_LIGHT)
+            supported, supports_colors = (
+                result if isinstance(result, tuple) else (result, None)
+            )
+            expected_supported = {} if supports_colors is not None else set()
+            for mode, attr in VALID_COLOR_MODES.items():
+                if mode in mode_values:
+                    if supports_colors is None:
+                        expected_supported.add(mode)
+                    else:
+                        expected_supported[attr] = True
+                        if supports_colors is True:
+                            expected_supported[COLOR_MODE_BRIGHTNESS] = True
+            for opt, value in _SUPPORT_OPTS.items():
+                if value in feature_values:
+                    if supports_colors is None:
+                        expected_supported.add(opt)
+                    else:
+                        if supports_colors is True:
+                            expected_supported[COLOR_MODE_BRIGHTNESS] = True
+                        if opt in VALID_COLOR_MODES:
+                            expected_supported[VALID_COLOR_MODES[opt]] = True
+                        elif opt != CONST_COLOR:
+                            expected_supported[opt] = True
+            if ATTR_MIN_COLOR_TEMP_KELVIN in supported:
+                supported.pop(ATTR_MIN_COLOR_TEMP_KELVIN)
+            if ATTR_MAX_COLOR_TEMP_KELVIN in supported:
+                supported.pop(ATTR_MAX_COLOR_TEMP_KELVIN)
+            assert supported == expected_supported, (
+                f"\nExpected supported: {expected_supported}\n"
+                f"Actual supported: {supported}\n"
+                f"feature_values: {feature_values}\n"
+                f"mode_values: {mode_values}\n"
+                f"supports_colors: {supports_colors}\n"
+            )
+
+
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_manual_control(hass):
     """Test the 'manual control' tracking."""
@@ -699,9 +774,15 @@ async def test_auto_reset_manual_control(hass):
     await turn_light(True, brightness=1)
     await turn_light(True, brightness=10)
     assert manual_control[light.entity_id]
+    assert (
+        switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id] > 0
+    )
     await asyncio.sleep(0.3)  # Should be enough time for auto reset
     await update()
     assert not manual_control[light.entity_id], (light, manual_control)
+    assert (
+        light.entity_id not in switch.extra_state_attributes["autoreset_time_remaining"]
+    )
 
     # Do a couple of quick changes and check that light is not reset
     for i in range(3):
@@ -1077,27 +1158,14 @@ async def test_state_change_handlers(hass):
     await turn_light(True)
     assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
-    # last_state_change should have our state changes.
-    # Change brightness by async_set (not using 'light.turn_on')
-    new_brightness = 50
-    await set_brightness(new_brightness)
-    _LOGGER.debug("Test: Brightness set to %s", new_brightness)
+    await turn_light(True, brightness=50)
+    _LOGGER.debug("Test: Brightness set to %s", 50)
 
-    # mock homeassistant.core.HomeAssistant.helpers.entity_component.async_update_entity
-    # Otherwise what happens is update_entity() refreshes the state to the last call of
-    # light.turn_on(). This is because we are not using hass.states.async_set() to
-    # set the brightness of the light. We mock `async_update_ha_state` because
-    # `async_update_entity` calls it.
-    with patch("homeassistant.helpers.entity.Entity.async_update_ha_state"):
-        # On next update ENTITY_LIGHT should be marked as manually controlled
-        await update(force=False)
-        assert (
-            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-        )
-        assert (
-            switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
-        )
-        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+    # On next update ENTITY_LIGHT should be marked as manually controlled
+    await update(force=False)
+    assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+    assert switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
+    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 @pytest.mark.dependency(
