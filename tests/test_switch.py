@@ -524,7 +524,7 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
     assert light not in switch.turn_on_off_listener.lights
 
 
-def test_supported_features(hass):
+def test_supported_features(hass):  # noqa: C901
     """Test the supported features of a light."""
 
     possible_legacy_features = {}
