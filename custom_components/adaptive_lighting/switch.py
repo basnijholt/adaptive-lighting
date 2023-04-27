@@ -155,11 +155,12 @@ from .const import (
 )
 
 _SUPPORT_OPTS = {
-    "brightness": SUPPORT_BRIGHTNESS,
-    "color_temp": SUPPORT_COLOR_TEMP,
-    "color": SUPPORT_COLOR,
-    "transition": SUPPORT_TRANSITION,
+    COLOR_MODE_BRIGHTNESS: SUPPORT_BRIGHTNESS,
+    COLOR_MODE_COLOR_TEMP: SUPPORT_COLOR_TEMP,
+    CONST_COLOR: SUPPORT_COLOR,
+    ATTR_TRANSITION: SUPPORT_TRANSITION,
 }
+
 
 VALID_COLOR_MODES = {
     COLOR_MODE_BRIGHTNESS: ATTR_BRIGHTNESS,
@@ -642,16 +643,18 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
 def _supported_to_attributes(supported):
     supported_attributes = {}
     supports_colors = False
-    for mode, attr in VALID_COLOR_MODES.items():
-        if mode not in supported:
-            continue
-        supported_attributes[attr] = True
-        if (
-            not supports_colors
-            and mode != COLOR_MODE_BRIGHTNESS
-            and mode != COLOR_MODE_COLOR_TEMP
-        ):
-            supports_colors = True
+    for mode in supported:
+        attr = VALID_COLOR_MODES.get(mode)
+        if attr:
+            supported_attributes[attr] = True
+            if attr in COLOR_ATTRS:
+                supports_colors = True
+        # ATTR_SUPPORTED_FEATURES only
+        elif mode in _SUPPORT_OPTS:
+            supported_attributes[mode] = True
+    if CONST_COLOR in supported_attributes:
+        supports_colors = True
+        supported_attributes.pop(CONST_COLOR)
     return supported_attributes, supports_colors
 
 
