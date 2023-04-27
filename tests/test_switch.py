@@ -48,7 +48,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     is_our_context,
 )
 from homeassistant.components.demo.light import DemoLight
-from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
+from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
@@ -61,7 +61,7 @@ from homeassistant.components.light import (  # ATTR_RGBWW_COLOR
     COLOR_MODE_BRIGHTNESS,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import SERVICE_TURN_OFF  # ATTR_RGBWW_COLOR
+from homeassistant.components.light import SERVICE_TURN_OFF
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 import homeassistant.config as config_util
 from homeassistant.config_entries import ConfigEntryState
