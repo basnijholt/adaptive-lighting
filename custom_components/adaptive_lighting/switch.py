@@ -739,6 +739,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
             all_lights.add(light)
     return list(all_lights)
 
+
 def _supported_to_attributes(supported):
     supported_attributes = {}
     supports_colors = False
