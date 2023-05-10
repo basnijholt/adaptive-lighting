@@ -1199,10 +1199,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 context=context,
             )
-
-        if not self._separate_turn_on_commands:
-            await turn_on(service_data)
-        else:
+        
+        async def turn_on_split():
             # Could be a list of length 1 or 2
             service_datas = _split_service_data(
                 service_data, adapt_brightness, adapt_color
@@ -1214,6 +1212,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     await asyncio.sleep(transition)
                 await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
+
+        if not self._separate_turn_on_commands:
+            await turn_on(service_data)
+        else:
+            if previous_task := self.turn_on_off_listener.split_adaptation_tasks.get(light) is not None:
+                previous_task.cancel()
+            
+            try:
+                task = self.turn_on_off_listener.split_adaptation_tasks[light] = asyncio.ensure_future(turn_on_split())
+                await task
+            except asyncio.CancelledError:
+                _LOGGER.debug("Split adaptation of %s cancelled", light)
+            
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1685,6 +1696,8 @@ class TurnOnOffListener:
         self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
+        # Track ongoing split adaptations to be able to cancel them
+        self.split_adaptation_tasks: dict[str, asyncio.Task] = {}
 
         # Track auto reset of manual_control
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
@@ -1842,6 +1855,8 @@ class TurnOnOffListener:
             for eid in entity_ids:
                 self.turn_off_event[eid] = event
                 self.reset(eid)
+                if task := self.split_adaptation_tasks.get(eid) is not None:
+                    task.cancel()
 
         elif service == SERVICE_TURN_ON:
             _LOGGER.debug(
