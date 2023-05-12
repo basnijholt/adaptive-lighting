@@ -310,13 +310,13 @@ iphone_carly_wakeup:
 
 </details>
 
-# Additional Information
+## Additional Information
 
 For more details on adding the integration and setting options, refer to the [documentation of the PR](https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/) and [this video tutorial on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/).
 
 Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
-# :sos: Troubleshooting
+## :sos: Troubleshooting
 
 Encountering issues? Enable debug logging in your `configuration.yaml`:
 
@@ -329,9 +329,9 @@ logger:
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
 
-## :exclamation: Common Problems & Solutions
+### :exclamation: Common Problems & Solutions
 
-### :bulb: Lights Not Responding or Turning On by Themselves
+#### :bulb: Lights Not Responding or Turning On by Themselves
 
 Adaptive Lighting sends more commands to lights than a typical human user would. If your light control network is unhealthy, you may experience:
 
@@ -353,7 +353,7 @@ For most Zigbee networks, **using groups is essential for optimal performance**.
 
 As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
-### :rainbow: Light Colors Not Matching
+#### :rainbow: Light Colors Not Matching
 
 Bulbs from different manufacturers or models may have varying color temperature specifications. For instance, if you have two Adaptive Lighting configurations—one with only Philips Hue White Ambiance bulbs and another with a mix of Philips Hue White Ambiance and Sengled bulbs—the Philips Hue bulbs may appear to have different color temperatures despite having identical settings.
 
@@ -362,7 +362,7 @@ To resolve this:
 1.  Include only bulbs of the same make and model in a single Adaptive Lighting configuration.
 2.  Rearrange bulbs so that different color temperatures are not visible simultaneously.
 
-### :bulb: Bulb-Specific Issues
+#### :bulb: Bulb-Specific Issues
 
 Certain bulbs may have issues with long light transition commands:
 
@@ -372,18 +372,21 @@ Certain bulbs may have issues with long light transition commands:
 ## :bar_chart: Graphs!
 These graphs were generated using the values calculated by the Adaptive Lighting sensor/switch(es).
 
-#### :sunny: Sun Position
+### :sunny: Sun Position
 ![cl_percent|690x131](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/6/5/657ff98beb65a94598edeb4bdfd939095db1a22c.PNG)
 
-#### :thermometer: Color Temperature
+### :thermometer: Color Temperature
 ![cl_color_temp|690x129](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/9/59e84263cbecd8e428cb08777a0413672c48dfcd.PNG)
 
-#### :high_brightness: Brightness
+### :high_brightness: Brightness
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
 
-#### While using `transition_until_sleep: true`
+### While using `transition_until_sleep: true`
 ![image](https://user-images.githubusercontent.com/2219836/228949675-f9699624-8abc-466c-bb04-250ce0f495b8.png)
 
+## :eyes: See also
+
+- [*Sleep better with Adaptive Lighting in Home Assistant*](https://wartner.io/sleep-better-with-adaptive-lightning-in-home-assistant/) by Florian Wartner (blog post 📜)
 
 ## :busts_in_silhouette: Contributors
 
