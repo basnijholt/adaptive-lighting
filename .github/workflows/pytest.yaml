@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10"]
-        core-version: ["2023.2.5", "2023.3.6", "2023.4.6", "dev"]
+        core-version: ["2023.2.5", "2023.3.6", "2023.4.6", "2023.5.2", "dev"]
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3
@@ -54,6 +54,7 @@ jobs:
         run: |
           cd core
           python3 -X dev -m pytest \
+            -vvv \
             -qq \
             --timeout=9 \
             --durations=10 \
