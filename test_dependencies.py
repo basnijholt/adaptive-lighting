@@ -25,6 +25,7 @@ required = [
     "components.http",
     "components.stream",
     "components.conversation",
+    "components.cloud",
 ]
 to_install = []
 for r in required:
