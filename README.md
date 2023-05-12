@@ -386,7 +386,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 
 ## :eyes: See also
 
-- [*Sleep better with Adaptive Lighting in Home Assistant*](https://wartner.io/sleep-better-with-adaptive-lightning-in-home-assistant/) by Florian Wartner (blog post 📜)
+- [*Sleep better with Adaptive Lighting in Home Assistant*](https://wartner.io/sleep-better-with-adaptive-lightning-in-home-assistant/) by Florian Wartner on 2023-02-23 (blog post 📜)
 
 ## :busts_in_silhouette: Contributors
 
