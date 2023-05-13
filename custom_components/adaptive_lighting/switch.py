@@ -1220,8 +1220,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if (previous_task := split_tasks.get(light)) is not None:
                 previous_task.cancel()
             try:
-                self.split_tasks[light] = asyncio.ensure_future(turn_on_split())
-                await self.split_tasks[light]
+                split_tasks[light] = asyncio.ensure_future(turn_on_split())
+                await split_tasks[light]
             except asyncio.CancelledError:
                 _LOGGER.debug("Split adaptation of %s cancelled", light)
 
