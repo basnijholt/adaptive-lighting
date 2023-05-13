@@ -1217,8 +1217,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await turn_on(service_data)
         else:
             split_tasks = self.turn_on_off_listener.split_adaptation_tasks
-            previous_task = split_tasks.get(light)
-            if previous_task is not None:
+            if (previous_task := split_tasks.get(light)) is not None:
                 previous_task.cancel()
             try:
                 self.split_tasks[light] = asyncio.ensure_future(turn_on_split())
