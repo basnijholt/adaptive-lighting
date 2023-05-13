@@ -1111,7 +1111,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
-    async def _adapt_light(
+    async def _adapt_light(  # noqa: C901
         self,
         light: str,
         transition: int | None = None,
