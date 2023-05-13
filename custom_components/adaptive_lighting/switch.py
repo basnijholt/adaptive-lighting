@@ -1217,11 +1217,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await turn_on(service_data)
         else:
             if (
-                (previous_task := self.turn_on_off_listener.split_adaptation_tasks.get(
+                previous_task := self.turn_on_off_listener.split_adaptation_tasks.get(
                     light
-                ))
-                is not None
-            ):
+                )
+            ) is not None:
                 previous_task.cancel()
 
             try:
