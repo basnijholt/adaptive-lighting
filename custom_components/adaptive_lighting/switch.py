@@ -106,6 +106,8 @@ from .const import (
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_DIM_TO_WARM,
+    CONF_DIM_TO_WARM_BRIGHTNESS_CHECK,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -689,6 +691,62 @@ def _supported_features(hass: HomeAssistant, light: str):
     return supported, supports_colors
 
 
+def pop_keys_with_none(data):
+    new_data = {}
+    for key, val in data.items():
+        if val is not None:
+            new_data[key] = val
+    return new_data
+
+
+def remove_color_attributes(data):
+    for attr in COLOR_ATTRS:
+        if attr in data and attr != ATTR_COLOR_TEMP_KELVIN:
+            _LOGGER.debug("Remove color attr %s from service data", attr)
+            data[attr] = None
+    return data
+
+
+def build_with_supported(
+    switch: AdaptiveSwitch, light, data, features, prefer_rgb_color, supports_colors
+):
+    if not prefer_rgb_color and ATTR_COLOR_TEMP_KELVIN in features:
+        if ATTR_COLOR_TEMP_KELVIN in data:
+            remove_color_attributes(data)
+    elif prefer_rgb_color is False:
+        _LOGGER.debug(
+            "%s: 'prefer_rgb_color: false' but light %s does not support color_temp."
+            " Using rgb_color to build service data instead...",
+            switch._name,
+            light,
+        )
+        data.pop(ATTR_COLOR_TEMP_KELVIN)
+    elif prefer_rgb_color:
+        color_attrs_in_data = {k for k, _ in COLOR_ATTRS.keys() ^ data.keys()}
+        if supports_colors and color_attrs_in_data:
+            _LOGGER.debug(
+                "%s: 'prefer_rgb_color: true', using rgb_color for light %s",
+                switch._name,
+                light,
+            )
+            data.pop(ATTR_COLOR_TEMP_KELVIN)
+        elif ATTR_COLOR_TEMP_KELVIN in data:
+            _LOGGER.debug(
+                "%s: 'prefer_rgb_color: true' but light %s does not support rgb."
+                " Using color temp to build service data instead...",
+                switch._name,
+                light,
+            )
+            remove_color_attributes(data)
+        else:
+            _LOGGER.error(ATTR_COLOR_TEMP_KELVIN + " not in service data")
+    for attr, val in data.items():
+        if attr not in COLOR_ATTRS and attr not in features:
+            _LOGGER.debug("pop unsupported %s val %s", attr, val)
+            data[attr] = None
+    return data
+
+
 def color_difference_redmean(
     rgb1: tuple[float, float, float], rgb2: tuple[float, float, float]
 ) -> float:
@@ -906,6 +964,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._only_once = data[CONF_ONLY_ONCE]
         self._prefer_rgb_color = data[CONF_PREFER_RGB_COLOR]
+        self._dim_to_warm = data[CONF_DIM_TO_WARM]
+        self._dim_to_warm_brightness_check = data[CONF_DIM_TO_WARM_BRIGHTNESS_CHECK]
         self._separate_turn_on_commands = data[CONF_SEPARATE_TURN_ON_COMMANDS]
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
@@ -1111,6 +1171,43 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
+    def calc_dim_to_warm_ct(
+        self,
+        light: str,
+        brightness: float,
+    ):
+        min_ct = (
+            self._sun_light_settings.min_color_temp
+        )  # pylint: disable=protected-access
+        max_ct = (
+            self._sun_light_settings.max_color_temp
+        )  # pylint: disable=protected-access
+        min_brightness = (
+            self._sun_light_settings.min_brightness
+        )  # pylint: disable=protected-access
+        max_brightness = (
+            self._sun_light_settings.max_brightness
+        )  # pylint: disable=protected-access
+        min_brightness = min((min_brightness * 2.55), brightness)
+        max_brightness = max((max_brightness * 2.55), brightness)
+        _LOGGER.debug(
+            "Setting dim_to_warm color temp using the following values in eq:"
+            " max_brightness: %s, min_brightness: %s, max_ct: %s,"
+            " min_ct: %s, brightness: %s",
+            max_brightness,
+            min_brightness,
+            max_ct,
+            min_ct,
+            brightness,
+        )
+        # y = a(x-h)**2+k where h,k is the vertex (255,6500) or (max_brightness,max_ct)
+        # a = (min_ct-max_ct)/(min_brightness-max_brightness)**2
+        # check: y = (1000-6500)/((1-h)**2)*(x-255)**2+6500 if x=2 then y=1043.221836
+        # ^ when 1=min_brightness,255=max_brightness,6500=max_ct,1000=min_ct ^
+        return ((min_ct - max_ct) / (min_brightness - max_brightness) ** 2) * (
+            brightness - max_brightness
+        ) ** 2 + max_ct
+
     async def _adapt_light(
         self,
         light: str,
@@ -1164,8 +1261,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_kelvin = features[ATTR_MIN_COLOR_TEMP_KELVIN]
             max_kelvin = features[ATTR_MAX_COLOR_TEMP_KELVIN]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
-            color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
-            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
+            if self._dim_to_warm and "brightness" in features:
+                cur_state = None
+                if self._dim_to_warm_brightness_check:
+                    await self.hass.helpers.entity_component.async_update_entity(light)
+                    cur_state = self.hass.states.get(light)
+                if cur_state:
+                    brightness = cur_state.attributes[ATTR_BRIGHTNESS]
+                else:
+                    brightness = service_data[ATTR_BRIGHTNESS]
+                dimmed_ct = self.calc_dim_to_warm_ct(
+                    light,
+                    brightness,
+                )
+                median = (dimmed_ct + color_temp_kelvin) / 2
+                color_temp_kelvin = median
+            service_data[ATTR_COLOR_TEMP_KELVIN] = max(
+                min(color_temp_kelvin, max_kelvin), min_kelvin
+            )
         elif supports_colors and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
@@ -1975,6 +2088,8 @@ class TurnOnOffListener:
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return
+        if switch._dim_to_warm_brightness_check:
+            adapt_brightness = False
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
