@@ -89,6 +89,15 @@ DOCS[CONF_SEPARATE_TURN_ON_COMMANDS] = (
     "some light types. 🔀"
 )
 
+CONF_SPLIT_ORDER_BRIGHTNESS_FIRST, DEFAULT_SPLIT_ORDER_BRIGHTNESS_FIRST = (
+    "split_order_brightness_first",
+    False,
+)
+DOCS[CONF_SPLIT_ORDER_BRIGHTNESS_FIRST] = (
+    "With `separate_turn_on_commands`, adapt brightness before color "
+    "instead of color before brightness."
+)
+
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
 DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness percentage of lights in sleep mode. 😴"
 
@@ -264,6 +273,11 @@ VALIDATION_TUPLES = [
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
+    (
+        CONF_SPLIT_ORDER_BRIGHTNESS_FIRST,
+        DEFAULT_SPLIT_ORDER_BRIGHTNESS_FIRST,
+        bool,
+    ),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
     (
