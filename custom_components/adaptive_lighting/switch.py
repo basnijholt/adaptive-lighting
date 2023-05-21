@@ -1813,6 +1813,9 @@ class TurnOnOffListener:
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
 
+            if (task := self.split_adaptation_tasks.get(light)) is not None:
+                task.cancel()
+
     async def turn_on_off_event_listener(self, event: Event) -> None:
         """Track 'light.turn_off' and 'light.turn_on' service calls."""
         domain = event.data.get(ATTR_DOMAIN)
@@ -1854,8 +1857,6 @@ class TurnOnOffListener:
             for eid in entity_ids:
                 self.turn_off_event[eid] = event
                 self.reset(eid)
-                if (task := self.split_adaptation_tasks.get(eid)) is not None:
-                    task.cancel()
 
         elif service == SERVICE_TURN_ON:
             _LOGGER.debug(
