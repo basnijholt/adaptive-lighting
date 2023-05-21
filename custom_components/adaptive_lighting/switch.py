@@ -1111,7 +1111,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("interval"),
         )
 
-    async def _adapt_light(
+    async def _adapt_light(  # noqa: C901
         self,
         light: str,
         transition: int | None = None,
@@ -1200,9 +1200,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context=context,
             )
 
-        if not self._separate_turn_on_commands:
-            await turn_on(service_data)
-        else:
+        async def turn_on_split():
             # Could be a list of length 1 or 2
             service_datas = _split_service_data(
                 service_data, adapt_brightness, adapt_color
@@ -1214,6 +1212,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     await asyncio.sleep(transition)
                 await asyncio.sleep(self._send_split_delay / 1000.0)
                 await turn_on(service_datas[1])
+
+        if not self._separate_turn_on_commands:
+            await turn_on(service_data)
+        else:
+            split_tasks = self.turn_on_off_listener.split_adaptation_tasks
+            if (previous_task := split_tasks.get(light)) is not None:
+                previous_task.cancel()
+            try:
+                split_tasks[light] = asyncio.ensure_future(turn_on_split())
+                await split_tasks[light]
+            except asyncio.CancelledError:
+                _LOGGER.debug("Split adaptation of %s cancelled", light)
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1685,6 +1695,8 @@ class TurnOnOffListener:
         self.last_state_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
+        # Track ongoing split adaptations to be able to cancel them
+        self.split_adaptation_tasks: dict[str, asyncio.Task] = {}
 
         # Track auto reset of manual_control
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
@@ -1800,6 +1812,9 @@ class TurnOnOffListener:
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
+
+            if (task := self.split_adaptation_tasks.get(light)) is not None:
+                task.cancel()
 
     async def turn_on_off_event_listener(self, event: Event) -> None:
         """Track 'light.turn_off' and 'light.turn_on' service calls."""
