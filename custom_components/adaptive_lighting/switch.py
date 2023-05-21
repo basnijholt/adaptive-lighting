@@ -310,11 +310,11 @@ def _prepare_service_calls(
     service_datas = []
 
     for attributes in attributes_split_sequence:
-        split_data = dict(
-            (attribute, service_data[attribute])
+        split_data = {
+            attribute: service_data[attribute]
             for attribute in attributes
             if service_data.get(attribute)
-        )
+        }
         if split_data:
             service_datas.append(split_data)
 
