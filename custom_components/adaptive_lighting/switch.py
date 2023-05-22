@@ -126,7 +126,6 @@ from .const import (
     CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
-    CONF_SPLIT_ORDER_BRIGHTNESS_FIRST,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
@@ -283,11 +282,7 @@ def is_our_context(context: Context | None) -> bool:
     return f":{_DOMAIN_SHORT}:" in context.id
 
 
-def _prepare_service_calls(
-    service_data: ServiceData,
-    split=False,
-    prioritize_brightness=False,
-) -> list[ServiceData]:
+def _prepare_service_calls(service_data: ServiceData, split=False) -> list[ServiceData]:
     """Prepares the service data for service calls.
 
     Processes the service_data according to the config flags, optionally splitting
@@ -302,11 +297,7 @@ def _prepare_service_calls(
     brightness_data_attrs = common_attrs | BRIGHTNESS_ATTRS
     color_data_attrs = common_attrs | COLOR_ATTRS
 
-    attributes_split_sequence = (
-        [brightness_data_attrs, color_data_attrs]
-        if prioritize_brightness
-        else [color_data_attrs, brightness_data_attrs]
-    )
+    attributes_split_sequence = [brightness_data_attrs, color_data_attrs]
     service_datas = []
 
     for attributes in attributes_split_sequence:
@@ -936,7 +927,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
-        self._split_order_brightness_first = data[CONF_SPLIT_ORDER_BRIGHTNESS_FIRST]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         if not data[CONF_TAKE_OVER_CONTROL] and data[CONF_DETECT_NON_HA_CHANGES]:
@@ -1213,9 +1203,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.turn_on_off_listener.last_service_data[light] = service_data
 
         service_datas = _prepare_service_calls(
-            service_data,
-            self._separate_turn_on_commands,
-            self._split_order_brightness_first,
+            service_data, self._separate_turn_on_commands
         )
         await self._make_cancellable_adaptation_calls(service_datas, context, light)
 
