@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-47-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-48-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -41,27 +41,28 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-  - [:gear: Configuration](#gear-configuration)
-    - [:memo: Options](#memo-options)
-    - [:hammer_and_wrench: Services](#hammer_and_wrench-services)
-      - [`adaptive_lighting.apply`](#adaptive_lightingapply)
-      - [`adaptive_lighting.set_manual_control`](#adaptive_lightingset_manual_control)
-      - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
-  - [:robot: Automation examples](#robot-automation-examples)
+- [:gear: Configuration](#gear-configuration)
+  - [:memo: Options](#memo-options)
+  - [:hammer_and_wrench: Services](#hammer_and_wrench-services)
+    - [`adaptive_lighting.apply`](#adaptive_lightingapply)
+    - [`adaptive_lighting.set_manual_control`](#adaptive_lightingset_manual_control)
+    - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
+- [:robot: Automation examples](#robot-automation-examples)
 - [Additional Information](#additional-information)
 - [:sos: Troubleshooting](#sos-troubleshooting)
   - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
-      - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
-      - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
+    - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
+    - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
     - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
     - [:bulb: Bulb-Specific Issues](#bulb-bulb-specific-issues)
-  - [:bar_chart: Graphs!](#bar_chart-graphs)
-      - [:sunny: Sun Position](#sunny-sun-position)
-      - [:thermometer: Color Temperature](#thermometer-color-temperature)
-      - [:high_brightness: Brightness](#high_brightness-brightness)
-      - [While using `transition_until_sleep: true`](#while-using-transition_until_sleep-true)
-  - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
+- [:bar_chart: Graphs!](#bar_chart-graphs)
+  - [:sunny: Sun Position](#sunny-sun-position)
+  - [:thermometer: Color Temperature](#thermometer-color-temperature)
+  - [:high_brightness: Brightness](#high_brightness-brightness)
+  - [While using `transition_until_sleep: true`](#while-using-transition_until_sleep-true)
+- [:eyes: See also](#eyes-see-also)
+- [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -310,13 +311,13 @@ iphone_carly_wakeup:
 
 </details>
 
-# Additional Information
+## Additional Information
 
 For more details on adding the integration and setting options, refer to the [documentation of the PR](https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/) and [this video tutorial on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/).
 
 Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
-# :sos: Troubleshooting
+## :sos: Troubleshooting
 
 Encountering issues? Enable debug logging in your `configuration.yaml`:
 
@@ -329,9 +330,9 @@ logger:
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
 
-## :exclamation: Common Problems & Solutions
+### :exclamation: Common Problems & Solutions
 
-### :bulb: Lights Not Responding or Turning On by Themselves
+#### :bulb: Lights Not Responding or Turning On by Themselves
 
 Adaptive Lighting sends more commands to lights than a typical human user would. If your light control network is unhealthy, you may experience:
 
@@ -353,7 +354,7 @@ For most Zigbee networks, **using groups is essential for optimal performance**.
 
 As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
-### :rainbow: Light Colors Not Matching
+#### :rainbow: Light Colors Not Matching
 
 Bulbs from different manufacturers or models may have varying color temperature specifications. For instance, if you have two Adaptive Lighting configurations—one with only Philips Hue White Ambiance bulbs and another with a mix of Philips Hue White Ambiance and Sengled bulbs—the Philips Hue bulbs may appear to have different color temperatures despite having identical settings.
 
@@ -362,7 +363,7 @@ To resolve this:
 1.  Include only bulbs of the same make and model in a single Adaptive Lighting configuration.
 2.  Rearrange bulbs so that different color temperatures are not visible simultaneously.
 
-### :bulb: Bulb-Specific Issues
+#### :bulb: Bulb-Specific Issues
 
 Certain bulbs may have issues with long light transition commands:
 
@@ -372,18 +373,23 @@ Certain bulbs may have issues with long light transition commands:
 ## :bar_chart: Graphs!
 These graphs were generated using the values calculated by the Adaptive Lighting sensor/switch(es).
 
-#### :sunny: Sun Position
+### :sunny: Sun Position
 ![cl_percent|690x131](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/6/5/657ff98beb65a94598edeb4bdfd939095db1a22c.PNG)
 
-#### :thermometer: Color Temperature
+### :thermometer: Color Temperature
 ![cl_color_temp|690x129](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/9/59e84263cbecd8e428cb08777a0413672c48dfcd.PNG)
 
-#### :high_brightness: Brightness
+### :high_brightness: Brightness
 ![cl_brightness|690x130](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/8/58ebd994b62a8b1abfb3497a5288d923ff4e2330.PNG)
 
-#### While using `transition_until_sleep: true`
+### While using `transition_until_sleep: true`
 ![image](https://user-images.githubusercontent.com/2219836/228949675-f9699624-8abc-466c-bb04-250ce0f495b8.png)
 
+## :eyes: See also
+
+- [*Sleep better with Adaptive Lighting in Home Assistant*](https://wartner.io/sleep-better-with-adaptive-lightning-in-home-assistant/) by Florian Wartner on 2023-02-23 (blog post 📜)
+- [*Automatic smart light brightness and color based on the sun*](https://www.youtube.com/watch?v=Rg3zI1Oyk3c) by Home Automation Guy on 2022-08-31 (YouTube video 📺)
+- [*Adaptive Lighting Blew My Mind in Home Assistant - How to set it up*](https://www.youtube.com/watch?v=c1cnccmgl3k) by Smart Home Junkie on 2022-06-26 (YouTube video 📺)
 
 ## :busts_in_silhouette: Contributors
 
@@ -423,6 +429,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="http://medium.com/@hudsonbrendon"><img src="https://avatars.githubusercontent.com/u/5201888?v=4?s=100" width="100px;" alt="Hudson Brendon"/><br /><sub><b>Hudson Brendon</b></sub></a><br /><a href="#translation-hudsonbrendon" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/gvssr"><img src="https://avatars.githubusercontent.com/u/61377476?v=4?s=100" width="100px;" alt="Gabriel Visser"/><br /><sub><b>Gabriel Visser</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=gvssr" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/glebsterx"><img src="https://avatars.githubusercontent.com/u/8779304?v=4?s=100" width="100px;" alt="Gleb"/><br /><sub><b>Gleb</b></sub></a><br /><a href="#translation-glebsterx" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ghost"><img src="https://avatars.githubusercontent.com/u/10137?v=4?s=100" width="100px;" alt="Deleted user"/><br /><sub><b>Deleted user</b></sub></a><br /><a href="#translation-ghost" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://omg.dje.li/"><img src="https://avatars.githubusercontent.com/u/103232?v=4?s=100" width="100px;" alt="Avi Miller"/><br /><sub><b>Avi Miller</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Djelibeybi" title="Documentation">📖</a> <a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Djelibeybi" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/denysdovhan"><img src="https://avatars.githubusercontent.com/u/3459374?v=4?s=100" width="100px;" alt="Denys Dovhan"/><br /><sub><b>Denys Dovhan</b></sub></a><br /><a href="#translation-denysdovhan" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://davidstenbeck.com/"><img src="https://avatars.githubusercontent.com/u/3330933?v=4?s=100" width="100px;" alt="David Stenbeck"/><br /><sub><b>David Stenbeck</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Davst" title="Documentation">📖</a></td>
@@ -451,6 +458,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/firstof9"><img src="https://avatars.githubusercontent.com/u/1105672?v=4?s=100" width="100px;" alt="Chris"/><br /><sub><b>Chris</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=firstof9" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/raman325"><img src="https://avatars.githubusercontent.com/u/7243222?v=4?s=100" width="100px;" alt="Raman Gupta"/><br /><sub><b>Raman Gupta</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=raman325" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/igiannakas"><img src="https://avatars.githubusercontent.com/u/59056762?v=4?s=100" width="100px;" alt="igiannakas"/><br /><sub><b>igiannakas</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=igiannakas" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://protyposis.net"><img src="https://avatars.githubusercontent.com/u/189372?v=4?s=100" width="100px;" alt="Mario Guggenberger"/><br /><sub><b>Mario Guggenberger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=protyposis" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
