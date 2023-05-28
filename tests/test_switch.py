@@ -777,8 +777,8 @@ async def test_auto_reset_manual_control(hass):
     assert (
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id] > 0
     )
-    await asyncio.sleep(0.3)  # Should be enough time for auto reset
     await update()
+    await asyncio.sleep(0.3)  # Should be enough time for auto reset
     assert not manual_control[light.entity_id], (light, manual_control)
     assert (
         light.entity_id not in switch.extra_state_attributes["autoreset_time_remaining"]
@@ -791,8 +791,8 @@ async def test_auto_reset_manual_control(hass):
         await asyncio.sleep(0.05)  # Less than 0.1
         assert manual_control[light.entity_id]
 
-    await asyncio.sleep(0.3)  # Wait the auto reset time
     await update()
+    await asyncio.sleep(0.3)  # Wait the auto reset time
     assert not manual_control[light.entity_id]
 
 
