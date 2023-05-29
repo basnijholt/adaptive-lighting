@@ -1482,4 +1482,9 @@ async def test_service_calls_task_cancellation(hass):
 
     switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(entity_id)
 
-    assert task.cancelling()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+    assert task.cancelled()
