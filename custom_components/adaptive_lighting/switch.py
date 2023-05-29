@@ -309,7 +309,7 @@ def _prepare_service_calls(service_data: ServiceData, split=False) -> list[Servi
             service_datas.append(common_data | split_data)
 
     # Distribute the transition duration across all service calls
-    if (transition := service_data.get(ATTR_TRANSITION)) is not None:
+    if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
         transition = service_data[ATTR_TRANSITION] / len(service_datas)
 
         for service_data in service_datas:

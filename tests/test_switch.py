@@ -1429,6 +1429,11 @@ async def test_change_switch_settings_service(hass):
                 {ATTR_COLOR_TEMP_KELVIN: 3500, ATTR_TRANSITION: 1},
             ],
         ),
+        (
+            {ATTR_TRANSITION: 1},
+            True,
+            [],
+        ),
     ],
     ids=[
         "pass through when splitting is disabled",
@@ -1438,6 +1443,7 @@ async def test_change_switch_settings_service(hass):
         "include entity ID",
         "brightness and color are split into two with brightness first",
         "transition time is distributed among service calls",
+        "ignore transition time without service calls",
     ],
 )
 async def test_prepare_service_calls(service_data_input, split, service_data_expected):
