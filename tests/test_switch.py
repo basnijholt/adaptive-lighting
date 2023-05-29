@@ -42,6 +42,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     _SUPPORT_OPTS,
     VALID_COLOR_MODES,
     _attributes_have_changed,
+    _prepare_service_calls,
     _supported_features,
     color_difference_redmean,
     create_context,
@@ -1385,3 +1386,100 @@ async def test_change_switch_settings_service(hass):
     # testing with "configuration" should revert back to 2500
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
+
+
+@pytest.mark.parametrize(
+    "service_data_input,split,service_data_expected",
+    [
+        (
+            {"foo": 1, ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
+            False,
+            [{"foo": 1, ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2}],
+        ),
+        (
+            {"foo": 1},
+            True,
+            [],
+        ),
+        (
+            {ATTR_BRIGHTNESS: 10},
+            True,
+            [{ATTR_BRIGHTNESS: 10}],
+        ),
+        (
+            {ATTR_COLOR_TEMP_KELVIN: 3500},
+            True,
+            [{ATTR_COLOR_TEMP_KELVIN: 3500}],
+        ),
+        (
+            {ATTR_ENTITY_ID: "foo", ATTR_BRIGHTNESS: 10},
+            True,
+            [{ATTR_ENTITY_ID: "foo", ATTR_BRIGHTNESS: 10}],
+        ),
+        (
+            {ATTR_BRIGHTNESS: 10, ATTR_COLOR_TEMP_KELVIN: 3500},
+            True,
+            [{ATTR_BRIGHTNESS: 10}, {ATTR_COLOR_TEMP_KELVIN: 3500}],
+        ),
+        (
+            {ATTR_BRIGHTNESS: 10, ATTR_COLOR_TEMP_KELVIN: 3500, ATTR_TRANSITION: 2},
+            True,
+            [
+                {ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 1},
+                {ATTR_COLOR_TEMP_KELVIN: 3500, ATTR_TRANSITION: 1},
+            ],
+        ),
+    ],
+    ids=[
+        "pass through when splitting is disabled",
+        "remove irrelevant attributes",
+        "brightness only yields one service call",
+        "color only yields one service call",
+        "include entity ID",
+        "brightness and color are split into two with brightness first",
+        "transition time is distributed among service calls",
+    ],
+)
+async def test_prepare_service_calls(service_data_input, split, service_data_expected):
+    """Test the preparation of service calls, e.g., splitting."""
+    assert _prepare_service_calls(service_data_input, split) == service_data_expected
+
+
+@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
+async def test_cancellable_service_calls_task(hass):
+    """Test the creation and execution of the task that wraps adaptation service calls."""
+    (light, *_) = await setup_lights(hass)
+    _, switch = await setup_switch(hass, {CONF_SEPARATE_TURN_ON_COMMANDS: True})
+    context = switch.create_context("test")
+
+    assert switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id) is None
+
+    await switch._make_cancellable_adaptation_calls(
+        [
+            {
+                ATTR_BRIGHTNESS: 10,
+                ATTR_COLOR_TEMP_KELVIN: 10,
+                ATTR_ENTITY_ID: light.entity_id,
+            }
+        ],
+        context,
+        light.entity_id,
+    )
+
+    task = switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id)
+    assert task is not None
+    assert task.done()
+
+
+@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
+async def test_service_calls_task_cancellation(hass):
+    """Tests if the task that wraps ongoing adaptation service calls gets cancelled."""
+    _, switch = await setup_switch(hass, {})
+    entity_id = "test_id"
+
+    task = asyncio.ensure_future(asyncio.sleep(1))
+    switch.turn_on_off_listener.adaptation_tasks[entity_id] = task
+
+    switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(entity_id)
+
+    assert task.cancelling()
