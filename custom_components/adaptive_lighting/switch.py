@@ -294,10 +294,9 @@ def _prepare_service_calls(service_data: ServiceData, split=False) -> list[Servi
         return [service_data]
 
     common_attrs = {ATTR_ENTITY_ID}
-    brightness_data_attrs = common_attrs | BRIGHTNESS_ATTRS
-    color_data_attrs = common_attrs | COLOR_ATTRS
+    common_data = {k: service_data[k] for k in common_attrs if k in service_data}
 
-    attributes_split_sequence = [brightness_data_attrs, color_data_attrs]
+    attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
     service_datas = []
 
     for attributes in attributes_split_sequence:
@@ -307,7 +306,7 @@ def _prepare_service_calls(service_data: ServiceData, split=False) -> list[Servi
             if service_data.get(attribute)
         }
         if split_data:
-            service_datas.append(split_data)
+            service_datas.append(common_data | split_data)
 
     # Distribute the transition duration across all service calls
     if (transition := service_data.get(ATTR_TRANSITION)) is not None:
