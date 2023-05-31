@@ -192,6 +192,11 @@ TODO: ...
 
 <!-- START_OUTPUT -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
+| Service data attribute   | Description                                                                                                                     | Required   | Type                 |
+|:-------------------------|:--------------------------------------------------------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | The `entity_id` of the switch with the settings to apply. 📝                                                                     | ✅          | list of `entity_id`s |
+| `lights`                 | A light (or list of lights) to apply the settings to. 💡                                                                         | ❌          | list of `entity_id`s |
+| `switch_type`            | Which switch to target in this service call. Options: "main" (default, targets the main switch), "sleep", "brightness", "color" | ✅          | str                  |
 
 <!-- END_OUTPUT -->
 
