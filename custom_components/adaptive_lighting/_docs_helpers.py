@@ -9,6 +9,7 @@ from .const import (
     DOCS,
     DOCS_APPLY,
     DOCS_MANUAL_CONTROL,
+    SERVICE_TOGGLE_SCHEMA,
     SET_MANUAL_CONTROL_SCHEMA,
     VALIDATION_TUPLES,
     apply_service_schema,
@@ -108,6 +109,10 @@ def _generate_service_markdown_table(
 
 def generate_apply_markdown_table():
     return _generate_service_markdown_table(apply_service_schema(), DOCS_APPLY)
+
+
+def generate_turn_on_markdown_table():
+    return _generate_service_markdown_table(SERVICE_TOGGLE_SCHEMA, DOCS_APPLY)
 
 
 def generate_set_manual_control_markdown_table():

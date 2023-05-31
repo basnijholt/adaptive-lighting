@@ -211,12 +211,12 @@ DOCS[CONF_WHICH_SWITCH] = (
     "Which switch to target in this service call. Options: "
     '"main" (default, targets the main switch), "sleep", "brightness", "color"'
 )
-DOCS[
-    SERVICE_TURN_ON
-] = "Turn on an Adaptive Lighting main/sleep/brightness/color switch"
-DOCS[
-    SERVICE_TURN_OFF
-] = "Turn off an Adaptive Lighting main/sleep/brightness/color switch"
+DOCS[SERVICE_TURN_ON] = (
+    "Turn on an Adaptive Lighting" " main/sleep/brightness/color switch"
+)
+DOCS[SERVICE_TURN_OFF] = (
+    "Turn off an Adaptive Lighting" " main/sleep/brightness/color switch"
+)
 DOCS[SERVICE_TOGGLE] = "Toggle an Adaptive Lighting main/sleep/brightness/color switch"
 
 TURNING_OFF_DELAY = 5
