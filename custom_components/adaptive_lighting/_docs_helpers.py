@@ -42,6 +42,8 @@ def _type_to_str(type_: Any) -> str:
     """Convert a (voluptuous) type to a string."""
     if type_ == cv.entity_ids:
         return "list of `entity_id`s"
+    elif type_ == cv.string:
+        return "str"
     elif type_ in (bool, int, float, str):
         return f"`{type_.__name__}`"
     elif type_ == cv.boolean:
