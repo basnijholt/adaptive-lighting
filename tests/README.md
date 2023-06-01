@@ -1,7 +1,7 @@
 # Developer notes for the tests directory
 
 To run the tests, check out the [CI configuration](../.github/workflows/pytest.yml) to see how they are executed in the CI pipeline.
-Alternatively, you can use the provided Docker image to run the tests locally.
+Alternatively, you can use the provided Docker image to run the tests locally or run them with VS Code directly in the dev container.
 
 To run the tests using the Docker image, navigate to the `adaptive-lighting` repo folder and execute the following command:
 
