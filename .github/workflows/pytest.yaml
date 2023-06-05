@@ -54,7 +54,7 @@ jobs:
             -qq \
             --timeout=9 \
             --durations=10 \
-            --cov="homeassistant" \
+            --cov="custom_components.adaptive_lighting" \
             --cov-report=xml \
             -o console_output_style=count \
             -p no:sugar \
