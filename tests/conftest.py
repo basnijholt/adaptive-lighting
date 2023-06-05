@@ -4,7 +4,6 @@ import sys
 
 import pytest
 
-
 # Tests in the dev enviromentment use the pytest_homeassistant_custom_component instead of
 # a cloned HA core repo for a simple and clean structure. To still test against a HA core
 # clone (e.g. the dev branch for which no pytest_homeassistant_custom_component exists
