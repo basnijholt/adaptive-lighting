@@ -202,6 +202,8 @@ BRIGHTNESS_ATTRS = {
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
 
+ServiceData = dict[str, Any]
+
 
 def _int_to_base36(num: int) -> str:
     """
@@ -280,25 +282,39 @@ def is_our_context(context: Context | None) -> bool:
     return f":{_DOMAIN_SHORT}:" in context.id
 
 
-def _split_service_data(service_data, adapt_brightness, adapt_color):
-    """Split service_data into two dictionaries (for color and brightness)."""
-    transition = service_data.get(ATTR_TRANSITION)
-    if transition is not None:
-        # Split the transition over both commands
-        service_data[ATTR_TRANSITION] /= 2
-    service_datas = []
-    if adapt_color:
-        service_data_color = service_data.copy()
-        service_data_color.pop(ATTR_BRIGHTNESS, None)
-        service_datas.append(service_data_color)
-    if adapt_brightness:
-        service_data_brightness = service_data.copy()
-        service_data_brightness.pop(ATTR_RGB_COLOR, None)
-        service_data_brightness.pop(ATTR_COLOR_TEMP_KELVIN, None)
-        service_datas.append(service_data_brightness)
+def _prepare_service_calls(service_data: ServiceData, split=False) -> list[ServiceData]:
+    """Prepares the service data for service calls.
 
-    if not service_datas:  # neither adapt_brightness nor adapt_color
+    Processes the service_data according to the config flags, optionally splitting
+    it into multiple data items for the separate adaptation of different attributes.
+    Returns a list of service_datas that indicates the required service calls. If
+    no splitting is necessary, the output is a list with a single item.
+    """
+    if not split:
         return [service_data]
+
+    common_attrs = {ATTR_ENTITY_ID}
+    common_data = {k: service_data[k] for k in common_attrs if k in service_data}
+
+    attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
+    service_datas = []
+
+    for attributes in attributes_split_sequence:
+        split_data = {
+            attribute: service_data[attribute]
+            for attribute in attributes
+            if service_data.get(attribute)
+        }
+        if split_data:
+            service_datas.append(common_data | split_data)
+
+    # Distribute the transition duration across all service calls
+    if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
+        transition = service_data[ATTR_TRANSITION] / len(service_datas)
+
+        for service_data in service_datas:
+            service_data[ATTR_TRANSITION] = transition
+
     return service_datas
 
 
@@ -1185,7 +1201,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         else:
             self.turn_on_off_listener.last_service_data[light] = service_data
 
-        async def turn_on(service_data):
+        service_datas = _prepare_service_calls(
+            service_data, self._separate_turn_on_commands
+        )
+        await self._make_cancellable_adaptation_calls(service_datas, context, light)
+
+    async def _make_adaptation_calls(
+        self, service_datas: list[ServiceData], context: Context
+    ):
+        """Executes a sequence of adaptation service calls for the given service datas."""
+        for i, service_data in enumerate(service_datas):
+            is_first_call = i == 0
+
+            # Sleep _between_ multiple service calls, but not before the first or a single one.
+            if not is_first_call:
+                await asyncio.sleep(service_data.get(ATTR_TRANSITION, 0))
+                await asyncio.sleep(self._send_split_delay / 1000.0)
+
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
                 " with context.id='%s'",
@@ -1200,30 +1232,27 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context=context,
             )
 
-        async def turn_on_split():
-            # Could be a list of length 1 or 2
-            service_datas = _split_service_data(
-                service_data, adapt_brightness, adapt_color
-            )
-            await turn_on(service_datas[0])
-            if len(service_datas) == 2:
-                transition = service_datas[0].get(ATTR_TRANSITION)
-                if transition is not None:
-                    await asyncio.sleep(transition)
-                await asyncio.sleep(self._send_split_delay / 1000.0)
-                await turn_on(service_datas[1])
+    async def _make_cancellable_adaptation_calls(
+        self, service_datas: list[ServiceData], context: Context, light_id: str
+    ):
+        """Executes a cancellable sequence of adaptation service calls for the given service datas.
 
-        if not self._separate_turn_on_commands:
-            await turn_on(service_data)
-        else:
-            split_tasks = self.turn_on_off_listener.split_adaptation_tasks
-            if (previous_task := split_tasks.get(light)) is not None:
-                previous_task.cancel()
-            try:
-                split_tasks[light] = asyncio.ensure_future(turn_on_split())
-                await split_tasks[light]
-            except asyncio.CancelledError:
-                _LOGGER.debug("Split adaptation of %s cancelled", light)
+        Wraps the sequence of service calls in a task that can be cancelled from elsewhere, e.g.,
+        to cancel an ongoing adaptation when a light is turned off.
+        """
+        # Prevent overlap of multiple adaptation sequences
+        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(light_id)
+
+        # Execute adaptation calls within a task
+        try:
+            task = self.turn_on_off_listener.adaptation_tasks[
+                light_id
+            ] = asyncio.ensure_future(
+                self._make_adaptation_calls(service_datas, context)
+            )
+            await task
+        except asyncio.CancelledError:
+            _LOGGER.debug("Ongoing adaptation of %s cancelled", light_id)
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1696,7 +1725,7 @@ class TurnOnOffListener:
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
         # Track ongoing split adaptations to be able to cancel them
-        self.split_adaptation_tasks: dict[str, asyncio.Task] = {}
+        self.adaptation_tasks: dict[str, asyncio.Task] = {}
 
         # Track auto reset of manual_control
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
@@ -1802,6 +1831,11 @@ class TurnOnOffListener:
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
+    def cancel_ongoing_adaptation_calls(self, light_id: str):
+        """Cancels an ongoing sequence of adaptation service calls for a specific light entity."""
+        if (previous_task := self.adaptation_tasks.get(light_id)) is not None:
+            previous_task.cancel()
+
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
         for light in lights:
@@ -1812,9 +1846,7 @@ class TurnOnOffListener:
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
-
-            if (task := self.split_adaptation_tasks.get(light)) is not None:
-                task.cancel()
+            self.cancel_ongoing_adaptation_calls(light)
 
     async def turn_on_off_event_listener(self, event: Event) -> None:
         """Track 'light.turn_off' and 'light.turn_on' service calls."""
