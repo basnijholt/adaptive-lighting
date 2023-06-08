@@ -23,7 +23,7 @@ jobs:
           - python-version: "3.10"
             core-version: "2023.5.2"
           - python-version: "3.11"
-            core-version: "2023.6.0"
+            core-version: "2023.6.1"
           - python-version: "3.11"
             core-version: "dev"
     steps:
