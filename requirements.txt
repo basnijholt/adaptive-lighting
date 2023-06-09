@@ -1,7 +1,10 @@
 colorlog==6.7.0
 pip>=21.0,<23.2
 ruff==0.0.265
+pre-commit
 
 # Install HA and test dependencies (pytest, coverage)
-# See https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases for version mappings
+# To run the dev container with a different HA version, update this dependency
+# to the adequate version and rebuild the dev container.
+# See https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases for version mappings.
 pytest-homeassistant-custom-component==0.13.32 # HA 2023.5.4

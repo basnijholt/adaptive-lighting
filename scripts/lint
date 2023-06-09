@@ -4,4 +4,4 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-ruff check . --fix
+pre-commit run --all-files

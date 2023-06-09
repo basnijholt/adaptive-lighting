@@ -8,7 +8,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Lint",
+            "label": "Lint (run pre-commit hooks)",
             "type": "shell",
             "command": "scripts/lint",
             "problemMatcher": []
