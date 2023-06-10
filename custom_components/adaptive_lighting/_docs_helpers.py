@@ -9,6 +9,7 @@ from .const import (
     DOCS,
     DOCS_APPLY,
     DOCS_MANUAL_CONTROL,
+    SERVICE_TOGGLE_SCHEMA,
     SET_MANUAL_CONTROL_SCHEMA,
     VALIDATION_TUPLES,
     apply_service_schema,
@@ -41,6 +42,8 @@ def _type_to_str(type_: Any) -> str:
     """Convert a (voluptuous) type to a string."""
     if type_ == cv.entity_ids:
         return "list of `entity_id`s"
+    elif type_ == cv.string:
+        return "str"
     elif type_ in (bool, int, float, str):
         return f"`{type_.__name__}`"
     elif type_ == cv.boolean:
@@ -108,6 +111,10 @@ def _generate_service_markdown_table(
 
 def generate_apply_markdown_table():
     return _generate_service_markdown_table(apply_service_schema(), DOCS_APPLY)
+
+
+def generate_turn_on_markdown_table():
+    return _generate_service_markdown_table(SERVICE_TOGGLE_SCHEMA, DOCS_APPLY)
 
 
 def generate_set_manual_control_markdown_table():

@@ -45,6 +45,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
   - [:memo: Options](#memo-options)
   - [:hammer_and_wrench: Services](#hammer_and_wrench-services)
     - [`adaptive_lighting.apply`](#adaptive_lightingapply)
+    - [`adaptive_lighting.turn_on`, `adaptive_lighting.turn_off`, `adaptive_lighting.toggle`](#adaptive_lightingturn_on-adaptive_lightingturn_off-adaptive_lightingtoggle)
     - [`adaptive_lighting.set_manual_control`](#adaptive_lightingset_manual_control)
     - [`adaptive_lighting.change_switch_settings`](#adaptive_lightingchange_switch_settings)
 - [:robot: Automation examples](#robot-automation-examples)
@@ -176,6 +177,30 @@ adaptive_lighting:
 | `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                  | ❌          | bool                 |
 
 <!-- END_OUTPUT -->
+
+
+#### `adaptive_lighting.turn_on`, `adaptive_lighting.turn_off`, `adaptive_lighting.toggle`
+
+`adaptive_lighting.turn_on`, `adaptive_lighting.turn_off`, `adaptive_lighting.toggle` turn Adaptive Lighting on or off.
+
+TODO: ...
+
+<!-- START_CODE -->
+<!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
+<!-- print(_docs_helpers.generate_turn_on_markdown_table()) -->
+<!-- END_CODE -->
+
+<!-- START_OUTPUT -->
+<!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
+| Service data attribute   | Description                                                                                                                     | Required   | Type                 |
+|:-------------------------|:--------------------------------------------------------------------------------------------------------------------------------|:-----------|:---------------------|
+| `entity_id`              | The `entity_id` of the switch with the settings to apply. 📝                                                                     | ✅          | list of `entity_id`s |
+| `lights`                 | A light (or list of lights) to apply the settings to. 💡                                                                         | ❌          | list of `entity_id`s |
+| `switch_type`            | Which switch to target in this service call. Options: "main" (default, targets the main switch), "sleep", "brightness", "color" | ✅          | str                  |
+
+<!-- END_OUTPUT -->
+
+
 #### `adaptive_lighting.set_manual_control`
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
