@@ -1,0 +1,10 @@
+colorlog==6.7.0
+pip>=21.0,<23.2
+ruff==0.0.265
+pre-commit
+
+# Install HA and test dependencies (pytest, coverage)
+# To pin the dev container to a specific HA version, set this dependency
+# to the adequate version (add `==<version>`) and rebuild the dev container.
+# See https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases for version mappings.
+pytest-homeassistant-custom-component

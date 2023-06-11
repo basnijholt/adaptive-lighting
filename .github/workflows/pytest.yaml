@@ -50,11 +50,6 @@ jobs:
         run: |
           cd core
 
-          # Link homeassitant.components.adaptive_lighting
-          cd homeassistant/components
-          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
-          cd -
-
           # Link adaptive_lighting tests
           cd tests/components/
           ln -fs ../../../tests adaptive_lighting
@@ -63,14 +58,17 @@ jobs:
       - name: Run pytest
         timeout-minutes: 60
         run: |
+          export PYTHONPATH=${PYTHONPATH}:${PWD}
           cd core
           python3 -X dev -m pytest \
             -vvv \
             -qq \
             --timeout=9 \
             --durations=10 \
-            --cov="homeassistant" \
+            --cov="custom_components.adaptive_lighting" \
             --cov-report=xml \
             -o console_output_style=count \
             -p no:sugar \
             tests/components/adaptive_lighting
+        env:
+          HA_CLONE: true

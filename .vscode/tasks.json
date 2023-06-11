@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Home Assistant on port 8123",
+            "type": "shell",
+            "command": "scripts/develop",
+            "problemMatcher": []
+        },
+        {
+            "label": "Lint (run pre-commit hooks)",
+            "type": "shell",
+            "command": "scripts/lint",
+            "problemMatcher": []
+        }
+    ]
+}

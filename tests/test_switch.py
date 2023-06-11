@@ -8,7 +8,49 @@ import logging
 from random import randint
 from unittest.mock import MagicMock, patch
 
-from homeassistant.components.adaptive_lighting.const import (
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_MAX_COLOR_TEMP_KELVIN,
+    ATTR_MIN_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
+    ATTR_TRANSITION,
+    ATTR_XY_COLOR,
+    COLOR_MODE_BRIGHTNESS,
+)
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.light import SERVICE_TURN_OFF
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+import homeassistant.config as config_util
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import (
+    ATTR_AREA_ID,
+    ATTR_ENTITY_ID,
+    ATTR_SUPPORTED_FEATURES,
+    CONF_LIGHTS,
+    CONF_NAME,
+    EVENT_STATE_CHANGED,
+    SERVICE_TURN_ON,
+    STATE_OFF,
+    STATE_ON,
+)
+from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.helpers import entity_registry
+from homeassistant.helpers.entity_platform import async_get_platforms
+from homeassistant.setup import async_setup_component
+from homeassistant.util.color import color_temperature_mired_to_kelvin
+import homeassistant.util.dt as dt_util
+import pytest
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    mock_area_registry,
+)
+import ulid_transform
+import voluptuous.error
+
+from custom_components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
@@ -38,7 +80,7 @@ from homeassistant.components.adaptive_lighting.const import (
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
 )
-from homeassistant.components.adaptive_lighting.switch import (
+from custom_components.adaptive_lighting.switch import (
     _SUPPORT_OPTS,
     VALID_COLOR_MODES,
     _attributes_have_changed,
@@ -48,47 +90,6 @@ from homeassistant.components.adaptive_lighting.switch import (
     create_context,
     is_our_context,
 )
-from homeassistant.components.demo.light import DemoLight
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_BRIGHTNESS_PCT,
-    ATTR_COLOR_TEMP_KELVIN,
-    ATTR_MAX_COLOR_TEMP_KELVIN,
-    ATTR_MIN_COLOR_TEMP_KELVIN,
-    ATTR_RGB_COLOR,
-    ATTR_SUPPORTED_COLOR_MODES,
-    ATTR_TRANSITION,
-    ATTR_XY_COLOR,
-    COLOR_MODE_BRIGHTNESS,
-)
-from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.light import SERVICE_TURN_OFF
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-import homeassistant.config as config_util
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import (
-    ATTR_AREA_ID,
-    ATTR_ENTITY_ID,
-    ATTR_SUPPORTED_FEATURES,
-    CONF_LIGHTS,
-    CONF_NAME,
-    CONF_PLATFORM,
-    EVENT_STATE_CHANGED,
-    SERVICE_TURN_ON,
-    STATE_OFF,
-    STATE_ON,
-)
-from homeassistant.core import Context, State
-from homeassistant.helpers import entity_registry
-from homeassistant.setup import async_setup_component
-from homeassistant.util.color import color_temperature_mired_to_kelvin
-import homeassistant.util.dt as dt_util
-import pytest
-import ulid_transform
-import voluptuous.error
-
-from tests.common import MockConfigEntry, mock_area_registry
-from tests.components.demo.test_light import ENTITY_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ LAT_LONG_TZS = [
     (32.87336, -117.22743, "US/Pacific"),
 ]
 
+ENTITY_LIGHT = "light.bed_light"
 _SWITCH_FMT = f"{SWITCH_DOMAIN}.{DOMAIN}"
 ENTITY_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}"
 ENTITY_SLEEP_MODE_SWITCH = f"{_SWITCH_FMT}_sleep_mode_{DEFAULT_NAME}"
@@ -149,50 +151,60 @@ async def setup_switch(hass, extra_data):
     return entry, switch
 
 
-async def setup_lights(hass):
-    """Set up 3 light entities using the 'test' platform."""
+async def setup_lights(hass: HomeAssistant):
+    """Set up 3 light entities using the 'template' platform."""
     await async_setup_component(
-        hass, LIGHT_DOMAIN, {LIGHT_DOMAIN: {"platform": "demo"}}
+        hass,
+        LIGHT_DOMAIN,
+        {
+            LIGHT_DOMAIN: [
+                {
+                    "platform": "template",
+                    "lights": {
+                        "bed_light": {
+                            "friendly_name": "Bed Light",
+                            "unique_id": "light_1",
+                            "turn_on": None,
+                            "turn_off": None,
+                            "set_level": None,
+                            "set_temperature": None,
+                            "set_color": None,
+                        },
+                        "ceiling_lights": {
+                            "friendly_name": "Ceiling Lights",
+                            "unique_id": "light_2",
+                            "turn_on": None,
+                            "turn_off": None,
+                            "set_level": None,
+                            "set_temperature": None,
+                            "set_color": None,
+                        },
+                        "kitchen_lights": {
+                            "friendly_name": "Kitchen Lights",
+                            "unique_id": "light_3",
+                            "turn_on": None,
+                            "turn_off": None,
+                            "set_level": None,
+                            "set_temperature": None,
+                            "set_color": None,
+                        },
+                    },
+                },
+            ]
+        },
     )
-    await hass.async_block_till_done()
 
-    platform = getattr(hass.components, "test.light")
-    while platform.ENTITIES:
-        # Make sure it is empty
-        platform.ENTITIES.pop()
-    lights = [
-        DemoLight(
-            unique_id="light_1",
-            name="Bed Light",
-            state=True,
-            ct=200,
-        ),
-        DemoLight(
-            unique_id="light_2",
-            name="Ceiling Lights",
-            state=True,
-            ct=380,
-        ),
-        DemoLight(
-            unique_id="light_3",
-            name="Kitchen Lights",
-            state=False,
-            hs_color=(345, 75),
-            ct=240,
-        ),
-    ]
+    await hass.async_block_till_done()
+    platform = async_get_platforms(hass, "template")
+    lights = list(platform[0].entities.values())
+
+    await lights[0].async_turn_on()
+    await lights[1].async_turn_on()
+
     for light in lights:
-        light.hass = hass
-        slug = light.name.lower().replace(" ", "_")
-        light.entity_id = f"light.{slug}"
-        await light.async_update_ha_state()
+        light._attr_brightness = 255
+        light._attr_color_temp = 250
 
-    platform.ENTITIES.extend(lights)
-    platform.init()
-    assert await async_setup_component(
-        hass, LIGHT_DOMAIN, {LIGHT_DOMAIN: {CONF_PLATFORM: "test"}}
-    )
-    await hass.async_block_till_done()
     assert all(hass.states.get(light.entity_id) is not None for light in lights)
     return lights
 
@@ -646,11 +658,12 @@ async def test_manual_control(hass):
         await update()
 
     def increased_brightness():
-        return (light._brightness + 100) % 255
+        return (light._attr_brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
+            light.min_color_temp_kelvin,
         )
 
     # Nothing is manually controlled
@@ -703,7 +716,9 @@ async def test_manual_control(hass):
         color_temperature_mired_to_kelvin(mired_range[0]),
     )
     ptp_kelvin = kelvin_range[1] - kelvin_range[0]
-    await turn_light(True, color_temp_kelvin=(light._ct + 100) % ptp_kelvin)
+    await turn_light(
+        True, color_temp_kelvin=(light._attr_color_temp + 100) % ptp_kelvin
+    )
     assert manual_control[ENTITY_LIGHT]
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
@@ -805,11 +820,12 @@ async def test_apply_service(hass):
     assert entity_id not in switch._lights
 
     def increased_brightness():
-        return (light._brightness + 100) % 255
+        return (light._attr_brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
+            light.min_color_temp_kelvin,
         )
 
     async def change_light():
@@ -1306,7 +1322,7 @@ async def test_area(hass):
     area_registry.async_create("test_area")
 
     entity = entity_registry.async_get(hass).async_get_or_create(
-        LIGHT_DOMAIN, "demo", light.unique_id
+        LIGHT_DOMAIN, "template", light.unique_id
     )
     entity = entity_registry.async_get(hass).async_update_entity(
         entity.entity_id, area_id="test_area"
