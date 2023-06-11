@@ -502,7 +502,7 @@ async def async_setup_entry(
     data[config_entry.entry_id][SWITCH_DOMAIN] = switch
 
     async_add_entities(
-        [switch, sleep_mode_switch, adapt_color_switch, adapt_brightness_switch],
+        [sleep_mode_switch, adapt_color_switch, adapt_brightness_switch, switch],
         update_before_add=True,
     )
 
