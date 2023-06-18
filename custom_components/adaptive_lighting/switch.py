@@ -106,6 +106,7 @@ from .const import (
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_IGNORE_LIGHT_TURNON_WITH_CUSTOM_DATA,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERVAL,
@@ -918,6 +919,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     attrdata[k] = v.total_seconds()
             self._config.update(attrdata)
 
+        self._ignore_light_turnon_with_custom_data = data[
+            CONF_IGNORE_LIGHT_TURNON_WITH_CUSTOM_DATA
+        ]
         self._initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
         self._only_once = data[CONF_ONLY_ONCE]
@@ -1896,6 +1900,7 @@ class TurnOnOffListener:
                 entity_ids,
                 event.context.id,
             )
+
             for eid in entity_ids:
                 task = self.sleep_tasks.get(eid)
                 if task is not None:
@@ -1909,6 +1914,36 @@ class TurnOnOffListener:
                 ):
                     # Restart the auto reset timer
                     timer.start()
+
+            # Do not adapt any lights turned on with custom brightness/color_temp/rgb_color
+            # Probably doesn't work for most lights.
+            # Check if the option is enabled first.
+            switches = _get_switches_with_lights(self.hass, entity_ids)
+            found = False
+            for switch in switches:
+                if switch._ignore_light_turnon_with_custom_data:
+                    found = True
+            # Option not enabled on any of the light's switches.
+            if not found:
+                return
+            # Check for custom data in service data.
+            if (
+                ATTR_COLOR_TEMP_KELVIN in service_data
+                or ATTR_RGB_COLOR in service_data
+                or ATTR_BRIGHTNESS in service_data
+                or ATTR_XY_COLOR in service_data
+                or ATTR_HS_COLOR in service_data
+                or "color_temp" in service_data
+            ):
+                _LOGGER.info(
+                    "%s: Light %s was turned on with custom settings."
+                    "Setting as manually controlled.",
+                    self._name,
+                    entity_id,
+                )
+                for eid in entity_ids:
+                    self.mark_as_manual_control(eid)
+                    _fire_manual_control_event(switch, eid, event.context.id)
 
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
