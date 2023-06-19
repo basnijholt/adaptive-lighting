@@ -12,6 +12,7 @@ from datetime import timedelta
 import functools
 import logging
 import math
+from time import perf_counter
 from typing import Any, Literal
 
 import astral
@@ -99,6 +100,10 @@ import voluptuous as vol
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
+    API_EVENT_CALC_BRIGHTNESS,
+    API_EVENT_GET,
+    API_EVENT_SEND,
+    API_SINGLESHOT_EVENT,
     ATTR_ADAPT_BRIGHTNESS,
     ATTR_ADAPT_COLOR,
     ATTR_TURN_ON_OFF_LISTENER,
@@ -845,6 +850,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set attributes that can't be modified during runtime
         self.hass = hass
         self.turn_on_off_listener = turn_on_off_listener
+        self.api_caller = ApiEventCall(hass, timeout=2)
+        self.turn_on_off_listener.api_caller = self.api_caller
         self.sleep_mode_switch = sleep_mode_switch
         self.adapt_color_switch = adapt_color_switch
         self.adapt_brightness_switch = adapt_brightness_switch
@@ -1297,6 +1304,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             filtered_lights = lights
 
         if not filtered_lights:
+            self.api_caller.fire_while_idle(locals())
             return
 
         await self._update_manual_control_and_maybe_adapt(
@@ -1651,6 +1659,7 @@ class SunLightSettings:
             return self.sleep_brightness
         if percent > 0:
             return self.max_brightness
+        self.api_caller.add_job(API_EVENT_CALC_BRIGHTNESS, locals())
         delta_brightness = self.max_brightness - self.min_brightness
         percent = 1 + percent
         return (delta_brightness * percent) + self.min_brightness
@@ -1660,13 +1669,20 @@ class SunLightSettings:
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * percent) + self.min_color_temp
-            return 5 * round(ct / 5)  # round to nearest 5
+            ret = 5 * round(ct / 5)  # round to nearest 5
         if percent == 0 or not self.adapt_until_sleep:
-            return self.min_color_temp
+            ret = self.min_color_temp
         if self.adapt_until_sleep and percent < 0:
             delta = abs(self.min_color_temp - self.sleep_color_temp)
             ct = (delta * abs(1 + percent)) + self.sleep_color_temp
-            return 5 * round(ct / 5)  # round to nearest 5
+            ret = 5 * round(ct / 5)  # round to nearest 5
+        ret2 = await asyncio.wait_for(
+            self.api_caller._fire_event_await_return("calc_color_temp_kelvin", locals())
+        )
+        if ret2:
+            _LOGGER.debug("Got %s from apieventcall", ret2)
+            return ret2
+        return ret
 
     def get_settings(
         self, is_sleep, transition
@@ -1693,7 +1709,7 @@ class SunLightSettings:
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
-        return {
+        settings = {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
             "color_temp_mired": color_temp_mired,
@@ -1702,6 +1718,7 @@ class SunLightSettings:
             "hs_color": hs_color,
             "sun_position": percent,
         }
+        return settings
 
 
 class TurnOnOffListener:
@@ -2179,7 +2196,7 @@ class _AsyncSingleShotTimer:
 
     async def _run(self):
         """Run the timer. Don't call this directly, use start() instead."""
-        self.start_time = dt_util.utcnow()
+        self.start_time = perf_counter()
         await asyncio.sleep(self.delay)
         if self.callback:
             if asyncio.iscoroutinefunction(self.callback):
@@ -2206,6 +2223,80 @@ class _AsyncSingleShotTimer:
     def remaining_time(self):
         """Return the remaining time before the timer expires."""
         if self.start_time is not None:
-            elapsed_time = (dt_util.utcnow() - self.start_time).total_seconds()
+            elapsed_time = (perf_counter() - self.start_time).total_seconds()
             return max(0, self.delay - elapsed_time)
         return 0
+
+
+class ApiEventCall:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        timeout: float,
+    ):
+        self.hass = hass
+        self.timeout = timeout
+        self._event_loop = asyncio.get_event_loop()
+
+    class ApiHandlers:
+        def __init__(self, event_loop):
+            self.event_loop = event_loop
+            self.return_data: dict[str]
+            self.task: asyncio.Event()
+
+        @callback
+        def handle_calc_brightness_pct(self, event):
+            self.return_data = event.data
+            self._event_loop.call_soon_threadsafe(self.task.set())
+
+        @callback
+        def handle_calc_color_temp_kelvin(self, event):
+            self.return_data = event.data
+            self._event_loop.call_soon_threadsafe(self.task.set())
+
+    def fire_while_idle(
+        self,
+        light: str,
+        switch: AdaptiveSwitch,
+        turn_on_off_listener: TurnOnOffListener,
+        data: dict[str],
+        event: str,
+        context: Context,
+        **kwargs,
+    ):
+        assert context
+        self.fire_event(event, data)
+
+    async def _lazy_event_firer(self, event, data):
+        self.hass.bus.async_fire(
+            f"{DOMAIN}.{API_SINGLESHOT_EVENT}.{event}",
+            data,
+        )
+
+    async def fire_event(self, event: str, data: dict[str]):
+        self.hass.async_create_task(self._lazy_event_firer(event, data))
+
+    async def _fire_event_await_return(
+        self,
+        event: str,
+        data: dict[str],
+        context: Context,
+    ):
+        self.hass.bus.async_fire(
+            f"{DOMAIN}.{API_EVENT_SEND}.{event}",
+            data,
+            context=context,
+        )
+
+        # Listen for if the user gives a response.
+        handler = self.ApiHandlers(self)
+        handler_name = f"handle_{event}"
+        handler_func = handler(handler_name)
+        self.hass.bus.listen(f"{DOMAIN}.{API_EVENT_GET}.{event}", handler_func)
+        try:
+            await handler.task.wait()
+            return handler.return_data
+        except asyncio.TimeoutError:
+            await handler.task.clear()
+        except Exception:
+            _LOGGER.error("Task %s errored with %s", handler_name, handler.task())
