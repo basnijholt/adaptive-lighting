@@ -33,6 +33,12 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Requires `take_over_control`. 🕵️"
 )
 
+CONF_ALT_DETECT_METHOD, DEFAULT_ALT_DETECT_METHOD = "alt_detect_method", False
+DOCS[CONF_ALT_DETECT_METHOD] = (
+    "alt_detect_method: When true, will check for any significant changes in the opposite direction"
+    " of where adaptive-lighting tried to adapt last."
+    " This is an alternative to 'detect_non_ha_changes' (default: false)"
+)
 CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
     "include_config_in_attributes",
     False,
@@ -262,6 +268,7 @@ VALIDATION_TUPLES = [
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
+    (CONF_ALT_DETECT_METHOD, DEFAULT_ALT_DETECT_METHOD, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
