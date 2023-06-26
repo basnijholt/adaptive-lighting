@@ -54,6 +54,7 @@ from custom_components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_TURN_ON_OFF_LISTENER,
+    CONF_ALT_DETECT_METHOD,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
@@ -65,6 +66,7 @@ from custom_components.adaptive_lighting.const import (
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
+    CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
@@ -234,7 +236,9 @@ async def setup_lights_and_switch(hass, extra_conf=None):
             CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
             CONF_INITIAL_TRANSITION: 0,
             CONF_TRANSITION: 0,
-            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_ALT_DETECT_METHOD: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_TAKE_OVER_CONTROL: True,
             CONF_PREFER_RGB_COLOR: False,
             CONF_MIN_COLOR_TEMP: 2500,  # to not coincide with sleep_color_temp
             **(extra_conf or {}),
@@ -764,7 +768,7 @@ async def test_manual_control(hass):
 @pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES, "test_manual_control"])
 async def test_auto_reset_manual_control(hass):
     switch, (light, *_) = await setup_lights_and_switch(
-        hass, {CONF_AUTORESET_CONTROL: 0.1}
+        hass, {CONF_AUTORESET_CONTROL: 0.2}
     )
     context = switch.create_context("test")  # needs to be passed to update method
     manual_control = switch.turn_on_off_listener.manual_control
@@ -1010,7 +1014,7 @@ async def test_state_change_handlers(hass):
 
     # [Config options]:
     transition_used = 2
-    total_events = 5
+    total_events = 6
 
     async def set_brightness(val: int):
         # 'Unsafe' set but we know what we're doing.
@@ -1131,58 +1135,95 @@ async def test_state_change_handlers(hass):
     assert listener.transition_timers.get(ENTITY_LIGHT)
 
     # 5. Execute some checks during a transition
-    _LOGGER.debug("Test detect_non_ha_changes:")
-    switch._take_over_control = True
-    assert switch._take_over_control
-    switch._detect_non_ha_changes = True
-    assert switch._detect_non_ha_changes
-    await asyncio.sleep(transition_used / 3)
-    # Ensure the timer still exists
-    timer = listener.transition_timers.get(ENTITY_LIGHT)
-    assert timer and timer.is_running()
-    last_service_data = deepcopy(current_service_data)
-    await update()
-    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    await update()
-    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    timer = listener.transition_timers.get(ENTITY_LIGHT)
-    assert timer and timer.is_running()
-    # Ensure the light did not adapt during the transition.
-    assert last_service_data == current_service_data
+
+    for i in range(2):
+        if i == 0:
+            _LOGGER.debug("Test detect_non_ha_changes before a transition:")
+            switch._take_over_control = True
+            assert switch._take_over_control
+            switch._detect_non_ha_changes = True
+            assert switch._detect_non_ha_changes
+            switch._alt_detect_method = False
+            assert not switch._alt_detect_method
+        elif i == 1:
+            _LOGGER.debug("Test alt_detect_method before a transition:")
+            switch._take_over_control = True
+            assert switch._take_over_control
+            switch._detect_non_ha_changes = False
+            assert not switch._detect_non_ha_changes
+            switch._alt_detect_method = True
+            assert switch._alt_detect_method
+        await asyncio.sleep(transition_used / 3)
+        # Ensure the timer still exists
+        timer = listener.transition_timers.get(ENTITY_LIGHT)
+        assert timer and timer.is_running()
+        last_service_data = deepcopy(current_service_data)
+        await update()
+        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        await update()
+        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        timer = listener.transition_timers.get(ENTITY_LIGHT)
+        assert timer and timer.is_running()
+        # Ensure the light did not adapt during the transition.
+        assert last_service_data == current_service_data
 
     # 6. Assert everything after the transition finishes.
     await asyncio.sleep(transition_used)
-    assert listener.last_state_change.get(ENTITY_LIGHT)
-    assert len(listener.last_state_change[ENTITY_LIGHT]) == total_events
-    # Timer should be done and reset now.
-    # This is the assert that I can't fix.
-    timer = listener.transition_timers.get(ENTITY_LIGHT)
-    assert not timer or not timer.is_running()
 
-    # build last service data
-    await update(force=False)
+    for i in range(2):
+        if i == 0:
+            _LOGGER.debug("Test detect_non_ha_changes after a transition:")
+            switch._take_over_control = True
+            assert switch._take_over_control
+            switch._detect_non_ha_changes = True
+            assert switch._detect_non_ha_changes
+            switch._alt_detect_method = False
+            assert not switch._alt_detect_method
+        elif i == 1:
+            _LOGGER.debug("Test alt_detect_method after a transition:")
+            switch._take_over_control = True
+            assert switch._take_over_control
+            switch._detect_non_ha_changes = False
+            assert not switch._detect_non_ha_changes
+            switch._alt_detect_method = True
+            assert switch._alt_detect_method
 
-    # force=True should not reset manual control.
-    await turn_light(True, brightness=40)
-    await turn_light(True, brightness=20)
-    await update(force=False)
-    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
-    await update(force=True)
-    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        assert listener.last_state_change.get(ENTITY_LIGHT)
+        if i == 1:
+            total_events = 2
+        assert len(listener.last_state_change[ENTITY_LIGHT]) == total_events
+        # Timer should be done and reset now.
+        timer = listener.transition_timers.get(ENTITY_LIGHT)
+        assert not timer or not timer.is_running()
 
-    # turn light off then on should reset manual control.
-    await turn_light(False)
-    await turn_light(True)
-    assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        # build last service data
+        await update(force=False)
 
-    await turn_light(True, brightness=50)
-    _LOGGER.debug("Test: Brightness set to %s", 50)
+        # force=True should not reset manual control.
+        await turn_light(True, brightness=40)
+        await turn_light(True, brightness=20)
+        await update(force=False)
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        await update(force=True)
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
-    # On next update ENTITY_LIGHT should be marked as manually controlled
-    await update(force=False)
-    assert switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
-    assert switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
-    assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+        # turn light off then on should reset manual control.
+        await turn_light(False)
+        await turn_light(True)
+        assert not switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
+
+        await turn_light(True, brightness=50)
+        _LOGGER.debug("Test: Brightness set to %s", 50)
+
+        # On next update ENTITY_LIGHT should be marked as manually controlled
+        await update(force=False)
+        assert (
+            switch.turn_on_off_listener.last_service_data.get(ENTITY_LIGHT) is not None
+        )
+        assert (
+            switch.turn_on_off_listener.last_state_change.get(ENTITY_LIGHT) is not None
+        )
+        assert switch.turn_on_off_listener.manual_control[ENTITY_LIGHT]
 
 
 @pytest.mark.dependency(
