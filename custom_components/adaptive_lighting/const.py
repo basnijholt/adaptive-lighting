@@ -177,11 +177,11 @@ DOCS[CONF_AUTORESET_CONTROL] = (
 )
 
 CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
-    "experimental_skip_redundant_commands",
+    "skip_redundant_commands",
     False,
 )
 DOCS[CONF_SKIP_REDUNDANT_COMMANDS] = (
-    "Experimental: Skip sending adaptation commands whose target state already "
+    "Skip sending adaptation commands whose target state already "
     "equals the light's known state. Minimizes network traffic and improves the "
     "adaptation responsivity in some situations. "
     "Disable if physical light states get out of sync with HA's recorded state."

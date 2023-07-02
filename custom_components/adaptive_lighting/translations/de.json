@@ -46,7 +46,7 @@
           "detect_non_ha_changes": "detect_non_ha_changes, entdeckt alle Änderungen über 10% am Licht (auch außerhalb von HA gemacht), 'take_over_control' muss aktiviert sein (ruft 'homeassistant.update_entity' jede 'interval' auf!)",
           "transition": "transition, Wechselzeit in Sekunden",
           "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden.",
-          "experimental_skip_redundant_commands": "Experimentell: Keine Adaptierungsbefehle senden, deren erwünschter Status schon dem bekanntes Status von Lichtern entspricht. Minimiert die Netzwerkbelastung und verbessert die Adaptierung in manchen Situationen. Deaktiviert lassen falls der pysikalische Status der Lichter und der erkannte Status in HA nicht synchron bleiben."
+          "skip_redundant_commands": "Keine Adaptierungsbefehle senden, deren erwünschter Status schon dem bekanntes Status von Lichtern entspricht. Minimiert die Netzwerkbelastung und verbessert die Adaptierung in manchen Situationen. Deaktiviert lassen falls der pysikalische Status der Lichter und der erkannte Status in HA nicht synchron bleiben."
         }
       }
     },
