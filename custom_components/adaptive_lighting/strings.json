@@ -47,7 +47,8 @@
           "separate_turn_on_commands": "separate_turn_on_commands: Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀",
           "send_split_delay": "send_split_delay: Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
           "adapt_delay": "adapt_delay: Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️",
-          "autoreset_control_seconds": "autoreset_control_seconds: Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️"
+          "autoreset_control_seconds": "autoreset_control_seconds: Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️",
+          "skip_redundant_commands": "Experimental: Skip sending adaptation commands whose target state already equals the light's known state. Minimizes network traffic and improves the adaptation responsivity in some situations. Disable if physical light states get out of sync with HA's recorded state."
         }
       }
     },

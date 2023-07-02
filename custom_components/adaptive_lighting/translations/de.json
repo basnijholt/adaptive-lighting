@@ -45,7 +45,8 @@
 	  "take_over_control": "take_over_control, wenn irgendetwas während ein Licht an ist außer Adaptive Lighting den Service 'light.turn_on' aufruft, stoppe die Anpassung des Lichtes (oder des Schalters) bis dieser wieder von off -> on geschaltet wird.",
           "detect_non_ha_changes": "detect_non_ha_changes, entdeckt alle Änderungen über 10% am Licht (auch außerhalb von HA gemacht), 'take_over_control' muss aktiviert sein (ruft 'homeassistant.update_entity' jede 'interval' auf!)",
           "transition": "transition, Wechselzeit in Sekunden",
-	  "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden."
+          "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden.",
+          "skip_redundant_commands": "Keine Adaptierungsbefehle senden, deren erwünschter Status schon dem bekanntes Status von Lichtern entspricht. Minimiert die Netzwerkbelastung und verbessert die Adaptierung in manchen Situationen. Deaktiviert lassen falls der pysikalische Status der Lichter und der erkannte Status in HA nicht synchron bleiben."
         }
       }
     },

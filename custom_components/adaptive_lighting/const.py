@@ -176,6 +176,17 @@ DOCS[CONF_AUTORESET_CONTROL] = (
     "Set to 0 to disable. ⏲️"
 )
 
+CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
+    "skip_redundant_commands",
+    False,
+)
+DOCS[CONF_SKIP_REDUNDANT_COMMANDS] = (
+    "Skip sending adaptation commands whose target state already "
+    "equals the light's known state. Minimizes network traffic and improves the "
+    "adaptation responsivity in some situations. "
+    "Disable if physical light states get out of sync with HA's recorded state."
+)
+
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
@@ -270,6 +281,11 @@ VALIDATION_TUPLES = [
         CONF_AUTORESET_CONTROL,
         DEFAULT_AUTORESET_CONTROL,
         int_between(0, 365 * 24 * 60 * 60),  # 1 year max
+    ),
+    (
+        CONF_SKIP_REDUNDANT_COMMANDS,
+        DEFAULT_SKIP_REDUNDANT_COMMANDS,
+        bool,
     ),
 ]
 
