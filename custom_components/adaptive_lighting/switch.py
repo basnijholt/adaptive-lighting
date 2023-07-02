@@ -1148,8 +1148,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             transition if use_transition else 0,
             self._send_split_delay / 1000.0,
             service_data,
-            self._separate_turn_on_commands is True,
-            self._skip_redundant_commands is True,
+            split=self._separate_turn_on_commands,
+            filter_by_state=self._skip_redundant_commands,
         )
 
         await self._execute_cancellable_adaptation_calls(data)
@@ -1203,9 +1203,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Execute adaptation calls within a task
         try:
-            task = self.turn_on_off_listener.adaptation_tasks[
-                data.entity_id
-            ] = asyncio.ensure_future(self._execute_adaptation_calls(data))
+            task = asyncio.ensure_future(self._execute_adaptation_calls(data))
+            self.turn_on_off_listener.adaptation_tasks[data.entity_id] = task
             await task
         except asyncio.CancelledError:
             _LOGGER.debug("Ongoing adaptation of %s cancelled", data.entity_id)

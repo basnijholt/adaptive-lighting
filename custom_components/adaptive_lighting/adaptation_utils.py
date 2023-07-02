@@ -98,7 +98,7 @@ def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
 async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
-    filter_by_state=False,
+    filter_by_state: bool = False,
 ) -> AsyncGenerator[ServiceData, None]:
     """Enumerates and filters a list of service datas on the fly.
 
