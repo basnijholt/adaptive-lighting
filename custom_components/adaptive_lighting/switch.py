@@ -17,10 +17,6 @@ from typing import Any, Literal
 import astral
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_BRIGHTNESS_PCT,
-    ATTR_BRIGHTNESS_STEP,
-    ATTR_BRIGHTNESS_STEP_PCT,
-    ATTR_COLOR_NAME,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
     ATTR_MAX_COLOR_TEMP_KELVIN,
@@ -96,6 +92,12 @@ import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
 
+from .adaptation_utils import (
+    BRIGHTNESS_ATTRS,
+    COLOR_ATTRS,
+    AdaptationData,
+    prepare_adaptation_data,
+)
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
@@ -121,6 +123,7 @@ from .const import (
     CONF_PREFER_RGB_COLOR,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
+    CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_RGB_COLOR,
@@ -184,25 +187,9 @@ BRIGHTNESS_CHANGE = 25  # ≈10% of total range
 COLOR_TEMP_CHANGE = 100  # ≈3% of total range (2000-6500)
 RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
-COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
-    ATTR_COLOR_NAME,
-    ATTR_COLOR_TEMP_KELVIN,
-    ATTR_HS_COLOR,
-    ATTR_RGB_COLOR,
-    ATTR_XY_COLOR,
-}
-
-BRIGHTNESS_ATTRS = {
-    ATTR_BRIGHTNESS,
-    ATTR_BRIGHTNESS_PCT,
-    ATTR_BRIGHTNESS_STEP,
-    ATTR_BRIGHTNESS_STEP_PCT,
-}
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
-
-ServiceData = dict[str, Any]
 
 
 def _int_to_base36(num: int) -> str:
@@ -280,42 +267,6 @@ def is_our_context(context: Context | None) -> bool:
     if context is None:
         return False
     return f":{_DOMAIN_SHORT}:" in context.id
-
-
-def _prepare_service_calls(service_data: ServiceData, split=False) -> list[ServiceData]:
-    """Prepares the service data for service calls.
-
-    Processes the service_data according to the config flags, optionally splitting
-    it into multiple data items for the separate adaptation of different attributes.
-    Returns a list of service_datas that indicates the required service calls. If
-    no splitting is necessary, the output is a list with a single item.
-    """
-    if not split:
-        return [service_data]
-
-    common_attrs = {ATTR_ENTITY_ID}
-    common_data = {k: service_data[k] for k in common_attrs if k in service_data}
-
-    attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
-    service_datas = []
-
-    for attributes in attributes_split_sequence:
-        split_data = {
-            attribute: service_data[attribute]
-            for attribute in attributes
-            if service_data.get(attribute)
-        }
-        if split_data:
-            service_datas.append(common_data | split_data)
-
-    # Distribute the transition duration across all service calls
-    if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
-        transition = service_data[ATTR_TRANSITION] / len(service_datas)
-
-        for service_data in service_datas:
-            service_data[ATTR_TRANSITION] = transition
-
-    return service_datas
 
 
 def _get_switches_with_lights(
@@ -530,7 +481,6 @@ async def async_setup_entry(
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
-                        force=True,
                         context=switch.create_context(
                             "service", parent=service_call.context
                         ),
@@ -937,6 +887,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._take_over_control = True
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
+        self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._expand_light_groups()  # updates manual control timers
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
@@ -1134,7 +1085,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: bool | None = None,
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
-        force: bool = False,
         context: Context | None = None,
     ) -> None:
         lock = self._locks.get(light)
@@ -1160,7 +1110,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         features, supports_colors = _supported_features(self.hass, light)
 
         # Check transition == 0 to fix #378
-        if ATTR_TRANSITION in features and transition > 0:
+        use_transition = ATTR_TRANSITION in features and transition > 0
+        if use_transition:
             service_data[ATTR_TRANSITION] = transition
         if ATTR_BRIGHTNESS in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
@@ -1188,52 +1139,59 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        # See #80. Doesn't check if transitions differ but it does the job.
-        last_service_data = self.turn_on_off_listener.last_service_data
-        if not force and last_service_data.get(light) == service_data:
-            _LOGGER.debug(
-                "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
-                self._name,
-                light,
-                context.id,
-            )
-            return
-        else:
-            self.turn_on_off_listener.last_service_data[light] = service_data
+        self.turn_on_off_listener.last_service_data[light] = service_data
 
-        service_datas = _prepare_service_calls(
-            service_data, self._separate_turn_on_commands
+        data = prepare_adaptation_data(
+            self.hass,
+            light,
+            context,
+            transition if use_transition else 0,
+            self._send_split_delay / 1000.0,
+            service_data,
+            split=self._separate_turn_on_commands,
+            filter_by_state=self._skip_redundant_commands,
         )
-        await self._make_cancellable_adaptation_calls(service_datas, context, light)
 
-    async def _make_adaptation_calls(
-        self, service_datas: list[ServiceData], context: Context
-    ):
+        await self._execute_cancellable_adaptation_calls(data)
+
+    async def _execute_adaptation_calls(self, data: AdaptationData):
         """Executes a sequence of adaptation service calls for the given service datas."""
-        for i, service_data in enumerate(service_datas):
-            is_first_call = i == 0
 
-            # Sleep _between_ multiple service calls, but not before the first or a single one.
+        index = 0
+        while True:
+            is_first_call = index == 0
+            index += 1
+
+            # Sleep between multiple service calls.
             if not is_first_call:
-                await asyncio.sleep(service_data.get(ATTR_TRANSITION, 0))
-                await asyncio.sleep(self._send_split_delay / 1000.0)
+                await asyncio.sleep(data.sleep_time)
+
+            # Instead of directly iterating the generator in the while-loop, we get
+            # the next item here after the sleep to make sure it incorporates state
+            # changes which happened during the sleep.
+            service_data = await data.next_service_call_data()
+
+            if not service_data:
+                # All service datas processed
+                break
 
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
                 " with context.id='%s'",
                 self._name,
                 service_data,
-                context.id,
+                data.context.id,
             )
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
                 service_data,
-                context=context,
+                context=data.context,
             )
 
-    async def _make_cancellable_adaptation_calls(
-        self, service_datas: list[ServiceData], context: Context, light_id: str
+    async def _execute_cancellable_adaptation_calls(
+        self,
+        data: AdaptationData,
     ):
         """Executes a cancellable sequence of adaptation service calls for the given service datas.
 
@@ -1241,18 +1199,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         to cancel an ongoing adaptation when a light is turned off.
         """
         # Prevent overlap of multiple adaptation sequences
-        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(light_id)
+        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(data.entity_id)
 
         # Execute adaptation calls within a task
         try:
-            task = self.turn_on_off_listener.adaptation_tasks[
-                light_id
-            ] = asyncio.ensure_future(
-                self._make_adaptation_calls(service_datas, context)
-            )
+            task = asyncio.ensure_future(self._execute_adaptation_calls(data))
+            self.turn_on_off_listener.adaptation_tasks[data.entity_id] = task
             await task
         except asyncio.CancelledError:
-            _LOGGER.debug("Ongoing adaptation of %s cancelled", light_id)
+            _LOGGER.debug("Ongoing adaptation of %s cancelled", data.entity_id)
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1358,7 +1313,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 else:
                     _fire_manual_control_event(self, light, context)
             else:
-                await self._adapt_light(light, transition, force=force, context=context)
+                await self._adapt_light(light, transition, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
