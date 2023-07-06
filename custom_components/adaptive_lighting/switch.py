@@ -59,6 +59,7 @@ from homeassistant.const import (
     EVENT_CALL_SERVICE,
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_STATE_CHANGED,
+    SERVICE_TOGGLE,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
     STATE_OFF,
@@ -1769,6 +1770,15 @@ class TurnOnOffListener:
                     )
                 )
 
+                self.listener_removers.append(
+                    setup_service_call_interceptor(
+                        hass,
+                        LIGHT_DOMAIN,
+                        SERVICE_TOGGLE,
+                        self._service_interceptor_turn_on_handler,
+                    )
+                )
+
                 _LOGGER.debug("Proactive adaptation enabled")
             except RuntimeError:
                 _LOGGER.warning(
@@ -1840,6 +1850,8 @@ class TurnOnOffListener:
         if self.manual_control.get(entity_id, False):
             return
 
+        # Prevent adaptation of TURN_ON calls when light is already on,
+        # and of TOGGLE calls when toggling off.
         if self.hass.states.is_state(entity_id, STATE_ON):
             return
 

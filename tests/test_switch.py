@@ -34,6 +34,7 @@ from homeassistant.const import (
     CONF_NAME,
     EVENT_CALL_SERVICE,
     EVENT_STATE_CHANGED,
+    SERVICE_TOGGLE,
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
@@ -1560,3 +1561,36 @@ async def test_proactive_adaptation_with_separate_commands(hass):
     state = hass.states.get(ENTITY_LIGHT3)
     assert state.attributes[ATTR_BRIGHTNESS] == 171
     assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
+
+
+async def test_proactive_adaptation_toggle(hass):
+    """Validate that a proactive adaptation updates service calls which toggle a light on,
+    but not those which toggle off.
+
+    This test is based on the fact that contexts of proactive adaptations are recorded.
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass, {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}, True
+    )
+
+    # Toggle ON
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TOGGLE,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+        blocking=True,
+        context=Context(id="test1"),
+    )
+
+    assert switch.turn_on_off_listener.is_proactively_adapting("test1")
+
+    # Toggle OFF
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TOGGLE,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+        blocking=True,
+        context=Context(id="test2"),
+    )
+
+    assert not switch.turn_on_off_listener.is_proactively_adapting("test2")
