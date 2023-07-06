@@ -1864,10 +1864,14 @@ class TurnOnOffListener:
 
         adapt_brightness = self.adaptive_switch.adapt_brightness_switch.is_on or False
         adapt_color = self.adaptive_switch.adapt_color_switch.is_on or False
+        transition = (
+            data[CONF_PARAMS].get(ATTR_TRANSITION, None)
+            or self.adaptive_switch.initial_transition
+        )
 
         adaptation_data = await self.adaptive_switch.prepare_adaptation_data(
             entity_id,
-            self.adaptive_switch.initial_transition,
+            transition,
             adapt_brightness,
             adapt_color,
         )

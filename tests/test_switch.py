@@ -204,6 +204,7 @@ async def setup_lights(hass: HomeAssistant):
                             "set_level": None,
                             "set_temperature": None,
                             "set_color": None,
+                            "supports_transition_template": True,
                         },
                     },
                 },
@@ -1594,3 +1595,43 @@ async def test_proactive_adaptation_toggle(hass):
     )
 
     assert not switch.turn_on_off_listener.is_proactively_adapting("test2")
+
+
+async def test_proactive_adaptation_transition_override(hass):
+    """Validate that transitions in service calls are preferred over the default transition."""
+    switch, (_, _, light3) = await setup_lights_and_switch(
+        hass,
+        {
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+            CONF_INITIAL_TRANSITION: 123,
+        },
+        True,
+    )
+
+    with patch.object(
+        light3, "async_turn_on", wraps=light3.async_turn_on
+    ) as patched_async_turn_on:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+            blocking=True,
+        )
+
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT3, ATTR_TRANSITION: 456},
+            blocking=True,
+        )
+
+    # Assert that default is used when no transition is specified in service call
+    kwargs = patched_async_turn_on.call_args_list[0].kwargs
+    assert set({ATTR_TRANSITION: 123}.items()).issubset(kwargs.items())
+
+    # Assert that specified service call transition takes precedence over default
+    kwargs = patched_async_turn_on.call_args_list[1].kwargs
+    assert set({ATTR_TRANSITION: 456}.items()).issubset(kwargs.items())
+
+    # Cleanup
+    switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(ENTITY_LIGHT3)
