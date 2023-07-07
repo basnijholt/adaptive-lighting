@@ -125,17 +125,17 @@ from .const import (
     CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
+    CONF_SLEEP_TIME,
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
-    CONF_SLEEP_TIME,
-    CONF_WAKE_TIME,
     CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONF_WAKE_TIME,
     CONST_COLOR,
     DOMAIN,
     EXTRA_VALIDATION,
@@ -150,8 +150,8 @@ from .const import (
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
-    SUN_EVENT_WAKE,
     SUN_EVENT_SLEEP,
+    SUN_EVENT_WAKE,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     apply_service_schema,
@@ -176,7 +176,14 @@ VALID_COLOR_MODES = {
     COLOR_MODE_XY: ATTR_XY_COLOR,
 }
 
-_ORDER = (SUN_EVENT_WAKE, SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_SLEEP, SUN_EVENT_MIDNIGHT)
+_ORDER = (
+    SUN_EVENT_WAKE,
+    SUN_EVENT_SUNRISE,
+    SUN_EVENT_NOON,
+    SUN_EVENT_SUNSET,
+    SUN_EVENT_SLEEP,
+    SUN_EVENT_MIDNIGHT,
+)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
 _LOGGER = logging.getLogger(__name__)
@@ -964,15 +971,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
-            
             wake_time=data[CONF_WAKE_TIME],
-
             max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
-
             sleep_time=data[CONF_SLEEP_TIME],
-
             min_sunset_time=data[CONF_MIN_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
@@ -1598,7 +1601,6 @@ class SunLightSettings:
             else _replace_time(date, "sleep")
         )
 
-
         if self.max_sunrise_time is not None:
             max_sunrise = _replace_time(date, "max_sunrise")
             if max_sunrise < sunrise:
@@ -1635,8 +1637,7 @@ class SunLightSettings:
             (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
         ]
 
-        
-        #_LOGGER.error(events)
+        # _LOGGER.error(events)
 
         # Check whether order is correct
         events = sorted(events, key=lambda x: x[1])
@@ -1665,8 +1666,8 @@ class SunLightSettings:
         # this is not inclusive of i_now + 1, it is only 2 elements!
         # list = [0,1,2,3], list[1:3] = [1,2]
 
-        #_LOGGER.error(events)
-        
+        # _LOGGER.error(events)
+
         return events[i_now - 1 : i_now + 1]
 
     def calc_percent(self, transition: int) -> float:
@@ -1680,25 +1681,25 @@ class SunLightSettings:
         # relevant events returns events 1 before and the next (':' doesn't include the )
         # so we set today to that list
         today = self.relevant_events(target_time)
-        
-        
-        # sequence unpacking of today into 
-        # (previous event (ignored as _), previous timestamp), (next event, next timestamp) 
+
+        # sequence unpacking of today into
+        # (previous event (ignored as _), previous timestamp), (next event, next timestamp)
 
         (_, prev_ts), (next_event, next_ts) = today
 
-        #_LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
+        # _LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
 
-        
         if next_event in (SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET):
-                h, x = (prev_ts, next_ts)
-        elif next_event in(SUN_EVENT_NOON, SUN_EVENT_SLEEP):
-                h, x = (next_ts, prev_ts)
-        elif next_event in(SUN_EVENT_WAKE, SUN_EVENT_MIDNIGHT):
-                h, x = (target_ts, prev_ts)
+            h, x = (prev_ts, next_ts)
+        elif next_event in (SUN_EVENT_NOON, SUN_EVENT_SLEEP):
+            h, x = (next_ts, prev_ts)
+        elif next_event in (SUN_EVENT_WAKE, SUN_EVENT_MIDNIGHT):
+            h, x = (target_ts, prev_ts)
         else:
-            _LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
-            
+            _LOGGER.error(
+                "time: ", target_time, " next_event: ", next_event, " today: ", today
+            )
+
         k = 1 if next_event in (SUN_EVENT_NOON, SUN_EVENT_SUNSET) else -1
 
         # match next_event:
@@ -1730,13 +1731,14 @@ class SunLightSettings:
         #         h, x = (target_ts, next_ts)
         #     case _:
         #         _LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
-                
 
         # percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
 
         # midnight = -1, sunrise = 0, noon = 1, sunset = 0, next midnight = -1
         # want to change so that midnight = wake = -1 and sleep = next midnight = -1
-        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k if target_ts != h else -1
+        percentage = (
+            (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k if target_ts != h else -1
+        )
         return percentage
 
     def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
