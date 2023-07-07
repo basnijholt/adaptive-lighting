@@ -17,6 +17,10 @@ from typing import Any, Literal
 import astral
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
+    ATTR_BRIGHTNESS_STEP,
+    ATTR_BRIGHTNESS_STEP_PCT,
+    ATTR_COLOR_NAME,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
     ATTR_MAX_COLOR_TEMP_KELVIN,
@@ -92,12 +96,6 @@ import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
 
-from .adaptation_utils import (
-    BRIGHTNESS_ATTRS,
-    COLOR_ATTRS,
-    AdaptationData,
-    prepare_adaptation_data,
-)
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
@@ -123,7 +121,6 @@ from .const import (
     CONF_PREFER_RGB_COLOR,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
-    CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_RGB_COLOR,
@@ -133,6 +130,8 @@ from .const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
+    CONF_SLEEP_TIME,
+    CONF_WAKE_TIME,
     CONF_TAKE_OVER_CONTROL,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
@@ -151,6 +150,8 @@ from .const import (
     SLEEP_MODE_SWITCH,
     SUN_EVENT_MIDNIGHT,
     SUN_EVENT_NOON,
+    SUN_EVENT_WAKE,
+    SUN_EVENT_SLEEP,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     apply_service_schema,
@@ -175,7 +176,7 @@ VALID_COLOR_MODES = {
     COLOR_MODE_XY: ATTR_XY_COLOR,
 }
 
-_ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
+_ORDER = (SUN_EVENT_WAKE, SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_SLEEP, SUN_EVENT_MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
 _LOGGER = logging.getLogger(__name__)
@@ -187,9 +188,25 @@ BRIGHTNESS_CHANGE = 25  # ≈10% of total range
 COLOR_TEMP_CHANGE = 100  # ≈3% of total range (2000-6500)
 RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
+COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
+    ATTR_COLOR_NAME,
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_HS_COLOR,
+    ATTR_RGB_COLOR,
+    ATTR_XY_COLOR,
+}
+
+BRIGHTNESS_ATTRS = {
+    ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
+    ATTR_BRIGHTNESS_STEP,
+    ATTR_BRIGHTNESS_STEP_PCT,
+}
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
+
+ServiceData = dict[str, Any]
 
 
 def _int_to_base36(num: int) -> str:
@@ -267,6 +284,42 @@ def is_our_context(context: Context | None) -> bool:
     if context is None:
         return False
     return f":{_DOMAIN_SHORT}:" in context.id
+
+
+def _prepare_service_calls(service_data: ServiceData, split=False) -> list[ServiceData]:
+    """Prepares the service data for service calls.
+
+    Processes the service_data according to the config flags, optionally splitting
+    it into multiple data items for the separate adaptation of different attributes.
+    Returns a list of service_datas that indicates the required service calls. If
+    no splitting is necessary, the output is a list with a single item.
+    """
+    if not split:
+        return [service_data]
+
+    common_attrs = {ATTR_ENTITY_ID}
+    common_data = {k: service_data[k] for k in common_attrs if k in service_data}
+
+    attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
+    service_datas = []
+
+    for attributes in attributes_split_sequence:
+        split_data = {
+            attribute: service_data[attribute]
+            for attribute in attributes
+            if service_data.get(attribute)
+        }
+        if split_data:
+            service_datas.append(common_data | split_data)
+
+    # Distribute the transition duration across all service calls
+    if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
+        transition = service_data[ATTR_TRANSITION] / len(service_datas)
+
+        for service_data in service_datas:
+            service_data[ATTR_TRANSITION] = transition
+
+    return service_datas
 
 
 def _get_switches_with_lights(
@@ -481,6 +534,7 @@ async def async_setup_entry(
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
+                        force=True,
                         context=switch.create_context(
                             "service", parent=service_call.context
                         ),
@@ -887,7 +941,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._take_over_control = True
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
-        self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._expand_light_groups()  # updates manual control timers
         _loc = get_astral_location(self.hass)
         if isinstance(_loc, tuple):
@@ -911,9 +964,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
+            
+            wake_time=data[CONF_WAKE_TIME],
+
             max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
+
+            sleep_time=data[CONF_SLEEP_TIME],
+
             min_sunset_time=data[CONF_MIN_SUNSET_TIME],
             time_zone=self.hass.config.time_zone,
             transition=data[CONF_TRANSITION],
@@ -1085,6 +1144,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: bool | None = None,
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
+        force: bool = False,
         context: Context | None = None,
     ) -> None:
         lock = self._locks.get(light)
@@ -1110,8 +1170,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         features, supports_colors = _supported_features(self.hass, light)
 
         # Check transition == 0 to fix #378
-        use_transition = ATTR_TRANSITION in features and transition > 0
-        if use_transition:
+        if ATTR_TRANSITION in features and transition > 0:
             service_data[ATTR_TRANSITION] = transition
         if ATTR_BRIGHTNESS in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
@@ -1139,59 +1198,52 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        self.turn_on_off_listener.last_service_data[light] = service_data
+        # See #80. Doesn't check if transitions differ but it does the job.
+        last_service_data = self.turn_on_off_listener.last_service_data
+        if not force and last_service_data.get(light) == service_data:
+            _LOGGER.debug(
+                "%s: Cancelling adapt to light %s, there's no new values to set (context.id='%s')",
+                self._name,
+                light,
+                context.id,
+            )
+            return
+        else:
+            self.turn_on_off_listener.last_service_data[light] = service_data
 
-        data = prepare_adaptation_data(
-            self.hass,
-            light,
-            context,
-            transition if use_transition else 0,
-            self._send_split_delay / 1000.0,
-            service_data,
-            split=self._separate_turn_on_commands,
-            filter_by_state=self._skip_redundant_commands,
+        service_datas = _prepare_service_calls(
+            service_data, self._separate_turn_on_commands
         )
+        await self._make_cancellable_adaptation_calls(service_datas, context, light)
 
-        await self._execute_cancellable_adaptation_calls(data)
-
-    async def _execute_adaptation_calls(self, data: AdaptationData):
+    async def _make_adaptation_calls(
+        self, service_datas: list[ServiceData], context: Context
+    ):
         """Executes a sequence of adaptation service calls for the given service datas."""
+        for i, service_data in enumerate(service_datas):
+            is_first_call = i == 0
 
-        index = 0
-        while True:
-            is_first_call = index == 0
-            index += 1
-
-            # Sleep between multiple service calls.
+            # Sleep _between_ multiple service calls, but not before the first or a single one.
             if not is_first_call:
-                await asyncio.sleep(data.sleep_time)
-
-            # Instead of directly iterating the generator in the while-loop, we get
-            # the next item here after the sleep to make sure it incorporates state
-            # changes which happened during the sleep.
-            service_data = await data.next_service_call_data()
-
-            if not service_data:
-                # All service datas processed
-                break
+                await asyncio.sleep(service_data.get(ATTR_TRANSITION, 0))
+                await asyncio.sleep(self._send_split_delay / 1000.0)
 
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
                 " with context.id='%s'",
                 self._name,
                 service_data,
-                data.context.id,
+                context.id,
             )
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
                 service_data,
-                context=data.context,
+                context=context,
             )
 
-    async def _execute_cancellable_adaptation_calls(
-        self,
-        data: AdaptationData,
+    async def _make_cancellable_adaptation_calls(
+        self, service_datas: list[ServiceData], context: Context, light_id: str
     ):
         """Executes a cancellable sequence of adaptation service calls for the given service datas.
 
@@ -1199,15 +1251,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         to cancel an ongoing adaptation when a light is turned off.
         """
         # Prevent overlap of multiple adaptation sequences
-        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(data.entity_id)
+        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(light_id)
 
         # Execute adaptation calls within a task
         try:
-            task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            self.turn_on_off_listener.adaptation_tasks[data.entity_id] = task
+            task = self.turn_on_off_listener.adaptation_tasks[
+                light_id
+            ] = asyncio.ensure_future(
+                self._make_adaptation_calls(service_datas, context)
+            )
             await task
         except asyncio.CancelledError:
-            _LOGGER.debug("Ongoing adaptation of %s cancelled", data.entity_id)
+            _LOGGER.debug("Ongoing adaptation of %s cancelled", light_id)
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1313,7 +1368,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 else:
                     _fire_manual_control_event(self, light, context)
             else:
-                await self._adapt_light(light, transition, context=context)
+                await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event(self, event: Event) -> None:
         if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
@@ -1476,10 +1531,16 @@ class SunLightSettings:
     sleep_color_temp: int
     sleep_rgb_color: tuple[int, int, int]
     sunrise_offset: datetime.timedelta | None
+
+    wake_time: datetime.time | None
+
     sunrise_time: datetime.time | None
     max_sunrise_time: datetime.time | None
     sunset_offset: datetime.timedelta | None
     sunset_time: datetime.time | None
+
+    sleep_time: datetime.time | None
+
     min_sunset_time: datetime.time | None
     time_zone: datetime.tzinfo
     transition: int
@@ -1514,6 +1575,12 @@ class SunLightSettings:
 
         location = self.astral_location
 
+        wake = (
+            location.sunrise(date, local=False)
+            if self.wake_time is None
+            else _replace_time(date, "wake")
+        )
+
         sunrise = (
             location.sunrise(date, local=False)
             if self.sunrise_time is None
@@ -1524,6 +1591,13 @@ class SunLightSettings:
             if self.sunset_time is None
             else _replace_time(date, "sunset")
         ) + self.sunset_offset
+
+        sleep = (
+            location.sunset(date, local=False)
+            if self.sleep_time is None
+            else _replace_time(date, "sleep")
+        )
+
 
         if self.max_sunrise_time is not None:
             max_sunrise = _replace_time(date, "max_sunrise")
@@ -1553,11 +1627,17 @@ class SunLightSettings:
             (solar_noon, solar_midnight) = calculate_noon_and_midnight(sunset, sunrise)
 
         events = [
+            (SUN_EVENT_WAKE, wake.timestamp()),
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
             (SUN_EVENT_SUNSET, sunset.timestamp()),
+            (SUN_EVENT_SLEEP, sleep.timestamp()),
             (SUN_EVENT_NOON, solar_noon.timestamp()),
             (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
         ]
+
+        
+        #_LOGGER.error(events)
+
         # Check whether order is correct
         events = sorted(events, key=lambda x: x[1])
         events_names, _ = zip(*events)
@@ -1580,24 +1660,83 @@ class SunLightSettings:
         ]
         events = sum(events, [])  # flatten lists
         events = sorted(events, key=lambda x: x[1])
+        # bisect returns the index where now() would fit in the list of events
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
+        # this is not inclusive of i_now + 1, it is only 2 elements!
+        # list = [0,1,2,3], list[1:3] = [1,2]
+
+        #_LOGGER.error(events)
+        
         return events[i_now - 1 : i_now + 1]
 
     def calc_percent(self, transition: int) -> float:
         """Calculate the position of the sun in %."""
         now = dt_util.utcnow()
 
+        # target time = (now + transition seconds from now)
         target_time = now + timedelta(seconds=transition)
+        # get that as timestamp
         target_ts = target_time.timestamp()
+        # relevant events returns events 1 before and the next (':' doesn't include the )
+        # so we set today to that list
         today = self.relevant_events(target_time)
+        
+        
+        # sequence unpacking of today into 
+        # (previous event (ignored as _), previous timestamp), (next event, next timestamp) 
+
         (_, prev_ts), (next_event, next_ts) = today
-        h, x = (  # pylint: disable=invalid-name
-            (prev_ts, next_ts)
-            if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_SUNRISE)
-            else (next_ts, prev_ts)
-        )
-        k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
-        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
+
+        #_LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
+
+        
+        if next_event in (SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET):
+                h, x = (prev_ts, next_ts)
+        elif next_event in(SUN_EVENT_NOON, SUN_EVENT_SLEEP):
+                h, x = (next_ts, prev_ts)
+        elif next_event in(SUN_EVENT_WAKE, SUN_EVENT_MIDNIGHT):
+                h, x = (target_ts, prev_ts)
+        else:
+            _LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
+            
+        k = 1 if next_event in (SUN_EVENT_NOON, SUN_EVENT_SUNSET) else -1
+
+        # match next_event:
+        #     # It's between midnight and wake
+        #     case 'wake_time':
+        #         k = -1
+        #         # If h = target_ts, then the numerator is 0 and percentage = k = -1
+        #         h, x = (target_ts, next_ts)
+        #     # It's between wake and sunrise
+        #     case 'sunrise':
+        #         k = -1
+        #         h, x = (prev_ts, next_ts)
+        #     # It's between sunrise and noon
+        #     case 'solar_noon':
+        #         k = 1
+        #         h, x = (next_ts, prev_ts)
+        #     # It's between noon and sunset
+        #     case 'sunset':
+        #         k = 1
+        #         h, x = (prev_ts, next_ts)
+        #     # It's between sunset and sleep
+        #     case 'sleep_time':
+        #         k = -1
+        #         h, x = (next_ts, prev_ts)
+        #     # It's between sleep and midnight
+        #     case 'solar_midnight':
+        #         k = -1
+        #         # If h = target_ts, then the numerator is 0 and percentage = k = -1
+        #         h, x = (target_ts, next_ts)
+        #     case _:
+        #         _LOGGER.error("time: ", target_time, " next_event: ", next_event, " today: ", today)
+                
+
+        # percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
+
+        # midnight = -1, sunrise = 0, noon = 1, sunset = 0, next midnight = -1
+        # want to change so that midnight = wake = -1 and sleep = next midnight = -1
+        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k if target_ts != h else -1
         return percentage
 
     def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
