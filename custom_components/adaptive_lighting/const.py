@@ -14,6 +14,8 @@ ICON_SLEEP = "mdi:sleep"
 DOMAIN = "adaptive_lighting"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
+SUN_EVENT_WAKE = "wake_time"
+SUN_EVENT_SLEEP = "sleep_time"
 
 DOCS = {CONF_ENTITY_ID: "Entity ID of the switch. 📝"}
 
@@ -119,6 +121,12 @@ DOCS[CONF_SUNRISE_OFFSET] = (
 CONF_SUNRISE_TIME = "sunrise_time"
 DOCS[CONF_SUNRISE_TIME] = "Set a fixed time (HH:MM:SS) for sunrise. 🌅"
 
+CONF_WAKE_TIME = "wake_time"
+DOCS[CONF_WAKE_TIME] = "Set a fixed time (HH:MM:SS) for lights to start brightening. 🌅"
+
+CONF_SLEEP_TIME = "sleep_time"
+DOCS[CONF_SLEEP_TIME] = "Set a fixed time (HH:MM:SS) for lights to be at most dim. 🌅"
+
 CONF_MAX_SUNRISE_TIME = "max_sunrise_time"
 DOCS[CONF_MAX_SUNRISE_TIME] = (
     "Set the latest virtual sunrise time (HH:MM:SS), allowing"
@@ -174,17 +182,6 @@ CONF_AUTORESET_CONTROL, DEFAULT_AUTORESET_CONTROL = "autoreset_control_seconds",
 DOCS[CONF_AUTORESET_CONTROL] = (
     "Automatically reset the manual control after a number of seconds. "
     "Set to 0 to disable. ⏲️"
-)
-
-CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
-    "skip_redundant_commands",
-    False,
-)
-DOCS[CONF_SKIP_REDUNDANT_COMMANDS] = (
-    "Skip sending adaptation commands whose target state already "
-    "equals the light's known state. Minimizes network traffic and improves the "
-    "adaptation responsivity in some situations. "
-    "Disable if physical light states get out of sync with HA's recorded state."
 )
 
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
@@ -266,6 +263,8 @@ VALIDATION_TUPLES = [
         selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
     ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
+    (CONF_WAKE_TIME, NONE_STR, str),
+    (CONF_SLEEP_TIME, NONE_STR, str),
     (CONF_MAX_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
     (CONF_SUNSET_TIME, NONE_STR, str),
@@ -281,11 +280,6 @@ VALIDATION_TUPLES = [
         CONF_AUTORESET_CONTROL,
         DEFAULT_AUTORESET_CONTROL,
         int_between(0, 365 * 24 * 60 * 60),  # 1 year max
-    ),
-    (
-        CONF_SKIP_REDUNDANT_COMMANDS,
-        DEFAULT_SKIP_REDUNDANT_COMMANDS,
-        bool,
     ),
 ]
 
@@ -306,6 +300,8 @@ EXTRA_VALIDATION = {
     CONF_INTERVAL: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_TIME: (cv.time, str),
+    CONF_WAKE_TIME: (cv.time, str),
+    CONF_SLEEP_TIME: (cv.time, str),
     CONF_MAX_SUNRISE_TIME: (cv.time, str),
     CONF_SUNSET_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNSET_TIME: (cv.time, str),
