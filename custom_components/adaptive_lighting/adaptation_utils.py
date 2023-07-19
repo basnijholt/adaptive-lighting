@@ -133,6 +133,7 @@ class AdaptationData:
     context: Context
     sleep_time: float
     service_call_datas: AsyncGenerator[ServiceData, None]
+    initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
         """Return data for the next service call, or none if no more data exists."""
@@ -149,6 +150,7 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
 ) -> AdaptationData:
+    "Prepares a data object carrying all data required to execute an adaptation."
     service_datas = (
         [service_data] if not split else _split_service_call_data(service_data)
     )

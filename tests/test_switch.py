@@ -6,7 +6,8 @@ import datetime
 import itertools
 import logging
 from random import randint
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -31,12 +32,14 @@ from homeassistant.const import (
     ATTR_SUPPORTED_FEATURES,
     CONF_LIGHTS,
     CONF_NAME,
+    EVENT_CALL_SERVICE,
     EVENT_STATE_CHANGED,
+    SERVICE_TOGGLE,
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
 )
-from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.core import Context, Event, HomeAssistant, State
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
 from homeassistant.setup import async_setup_component
@@ -86,12 +89,15 @@ from custom_components.adaptive_lighting.const import (
 )
 from custom_components.adaptive_lighting.switch import (
     _SUPPORT_OPTS,
+    INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
     VALID_COLOR_MODES,
+    AdaptiveSwitch,
     _attributes_have_changed,
     _supported_features,
     color_difference_redmean,
     create_context,
     is_our_context,
+    is_our_context_id,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -118,6 +124,7 @@ LAT_LONG_TZS = [
 ]
 
 ENTITY_LIGHT = "light.bed_light"
+ENTITY_LIGHT3 = "light.kitchen_lights"
 _SWITCH_FMT = f"{SWITCH_DOMAIN}.{DOMAIN}"
 ENTITY_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}"
 ENTITY_SLEEP_MODE_SWITCH = f"{_SWITCH_FMT}_sleep_mode_{DEFAULT_NAME}"
@@ -143,9 +150,16 @@ def reset_time_zone():
     dt_util.DEFAULT_TIME_ZONE = ORIG_TIMEZONE
 
 
-async def setup_switch(hass, extra_data):
+async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitch]:
     """Create the switch entry."""
-    entry = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: DEFAULT_NAME, **extra_data})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_NAME: DEFAULT_NAME,
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: False,
+            **extra_data,
+        },
+    )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -190,6 +204,7 @@ async def setup_lights(hass: HomeAssistant):
                             "set_level": None,
                             "set_temperature": None,
                             "set_color": None,
+                            "supports_transition_template": True,
                         },
                     },
                 },
@@ -212,7 +227,7 @@ async def setup_lights(hass: HomeAssistant):
     return lights
 
 
-async def setup_lights_and_switch(hass, extra_conf=None):
+async def setup_lights_and_switch(hass, extra_conf=None, all_lights: bool = False):
     """Create switch and demo lights."""
     # Setup demo lights and turn on
     lights_instances = await setup_lights(hass)
@@ -228,6 +243,10 @@ async def setup_lights_and_switch(hass, extra_conf=None):
         ENTITY_LIGHT,
         "light.ceiling_lights",
     ]
+
+    if all_lights:
+        lights.append(ENTITY_LIGHT3)
+
     assert all(hass.states.get(light) is not None for light in lights)
     _, switch = await setup_switch(
         hass,
@@ -421,7 +440,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
 async def test_light_settings(hass):
     """Test that light settings are correctly applied."""
     switch, _ = await setup_lights_and_switch(hass)
-    lights = switch._lights
+    lights = switch.lights
 
     # Turn on "sleep mode"
     await hass.services.async_call(
@@ -525,7 +544,7 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
     """Test that lights that are not in a Adaptive Lighting switch aren't tracked."""
     switch, _ = await setup_lights_and_switch(hass)
     light = "light.kitchen_lights"
-    assert light not in switch._lights
+    assert light not in switch.lights
     for state in [True, False]:
         await hass.services.async_call(
             LIGHT_DOMAIN,
@@ -757,11 +776,11 @@ async def test_manual_control(hass):
     await switch.adapt_brightness_switch.async_turn_on()
 
     # Check that when no lights are specified, all are reset
-    await change_manual_control(True, {CONF_LIGHTS: switch._lights})
-    assert all([manual_control[eid] for eid in switch._lights])
+    await change_manual_control(True, {CONF_LIGHTS: switch.lights})
+    assert all([manual_control[eid] for eid in switch.lights])
     # do not pass "lights" so reset all
     await change_manual_control(False, {})
-    assert all([not manual_control[eid] for eid in switch._lights])
+    assert all([not manual_control[eid] for eid in switch.lights])
 
 
 @pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES, "test_manual_control"])
@@ -820,7 +839,7 @@ async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
     entity_id = light.entity_id
-    assert entity_id not in switch._lights
+    assert entity_id not in switch.lights
 
     def increased_brightness():
         return (light._attr_brightness + 100) % 255
@@ -1074,7 +1093,7 @@ async def test_state_change_handlers(hass):
     current_service_data = switch.turn_on_off_listener.last_service_data
     assert current_service_data != last_service_data
 
-    for light in switch._lights:
+    for light in switch.lights:
         # current_service_data should have changed after the last update.
         assert current_service_data.get(light)
         assert last_service_data.get(light)
@@ -1359,7 +1378,7 @@ async def test_change_switch_settings_service(hass):
     """Test adaptive_lighting.change_switch_settings service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
     entity_id = light.entity_id
-    assert entity_id not in switch._lights
+    assert entity_id not in switch.lights
 
     async def change_switch_settings(**kwargs):
         await hass.services.async_call(
@@ -1427,7 +1446,7 @@ async def test_cancellable_service_calls_task(hass):
         0,
         _create_service_call_data_iterator(hass, [service_data]),
     )
-    await switch._execute_cancellable_adaptation_calls(adaptation_data)
+    await switch.execute_cancellable_adaptation_calls(adaptation_data)
 
     task = switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id)
     assert task is not None
@@ -1451,3 +1470,168 @@ async def test_service_calls_task_cancellation(hass):
         pass
 
     assert task.cancelled()
+
+
+async def _turn_on_and_track_event_contexts(
+    hass: HomeAssistant, context_id: str, entity_id
+):
+    context = Context(id=context_id)
+    event_context_ids = []
+
+    async def turn_on_off_event_listener(event: Event) -> None:
+        event_context_ids.append(event.context.id)
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, turn_on_off_event_listener)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: entity_id},
+        blocking=True,
+        context=context,
+    )
+    await hass.async_block_till_done()
+
+    return event_context_ids
+
+
+def _mock_sun_light_settings(switch: AdaptiveSwitch, settings: dict[str, Any]):
+    sun_light_settings_mock = Mock()
+    sun_light_settings_mock.get_settings = Mock(return_value=settings)
+    switch._sun_light_settings = sun_light_settings_mock
+
+
+async def test_proactive_adaptation(hass):
+    """Validate that a proactive adaptation updates the original service call."""
+    switch, _ = await setup_lights_and_switch(
+        hass, {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}, True
+    )
+
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+        },
+    )
+
+    event_context_ids = await _turn_on_and_track_event_contexts(
+        hass, "test_context", ENTITY_LIGHT3
+    )
+
+    # Expect a single service call
+    assert len(event_context_ids) == 1
+    assert event_context_ids == ["test_context"]
+
+    # Expect adapted light state
+    state = hass.states.get(ENTITY_LIGHT3)
+    # Sun light settings use %, state only contains absolute
+    assert state.attributes[ATTR_BRIGHTNESS] == 171  # == 67%
+    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
+
+
+async def test_proactive_adaptation_with_separate_commands(hass):
+    """Validate that a split proactive adaptation yields one additional service call."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+        },
+        True,
+    )
+
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+        },
+    )
+
+    event_context_ids = await _turn_on_and_track_event_contexts(
+        hass, "test_context", ENTITY_LIGHT3
+    )
+
+    # Expect two service calls
+    assert len(event_context_ids) == 2
+    assert event_context_ids[0] == "test_context"
+    assert is_our_context_id(event_context_ids[1])
+
+    # Expect adapted light state
+    state = hass.states.get(ENTITY_LIGHT3)
+    assert state.attributes[ATTR_BRIGHTNESS] == 171
+    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
+
+
+async def test_proactive_adaptation_toggle(hass):
+    """Validate that a proactive adaptation updates service calls which toggle a light on,
+    but not those which toggle off.
+
+    This test is based on the fact that contexts of proactive adaptations are recorded.
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass, {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}, True
+    )
+
+    # Toggle ON
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TOGGLE,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+        blocking=True,
+        context=Context(id="test1"),
+    )
+
+    assert switch.turn_on_off_listener.is_proactively_adapting("test1")
+
+    # Toggle OFF
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TOGGLE,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+        blocking=True,
+        context=Context(id="test2"),
+    )
+
+    assert not switch.turn_on_off_listener.is_proactively_adapting("test2")
+
+
+async def test_proactive_adaptation_transition_override(hass):
+    """Validate that transitions in service calls are preferred over the default transition."""
+    switch, (_, _, light3) = await setup_lights_and_switch(
+        hass,
+        {
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+            CONF_INITIAL_TRANSITION: 123,
+        },
+        True,
+    )
+
+    with patch.object(
+        light3, "async_turn_on", wraps=light3.async_turn_on
+    ) as patched_async_turn_on:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+            blocking=True,
+        )
+
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT3, ATTR_TRANSITION: 456},
+            blocking=True,
+        )
+
+    # Assert that default is used when no transition is specified in service call
+    kwargs = patched_async_turn_on.call_args_list[0].kwargs
+    assert set({ATTR_TRANSITION: 123}.items()).issubset(kwargs.items())
+
+    # Assert that specified service call transition takes precedence over default
+    kwargs = patched_async_turn_on.call_args_list[1].kwargs
+    assert set({ATTR_TRANSITION: 456}.items()).issubset(kwargs.items())
+
+    # Cleanup
+    switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(ENTITY_LIGHT3)
