@@ -305,6 +305,10 @@ def _get_switches_with_lights(
     return switches
 
 
+class NoSwitchFoundError(ValueError):
+    """No switches found for lights."""
+
+
 def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -318,13 +322,13 @@ def find_switch_for_lights(
         if len(on_switches) == 1:
             # Of the multiple switches, only one is on
             return on_switches[0]
-        raise ValueError(
+        raise NoSwitchFoundError(
             f"find_switch_for_lights: Light(s) {lights} found in multiple switch configs"
             f" ({[s.entity_id for s in switches]}). You must pass a switch under"
             f" 'entity_id'."
         )
     else:
-        raise ValueError(
+        raise NoSwitchFoundError(
             f"find_switch_for_lights: Light(s) {lights} not found in any switch's"
             f" configuration. You must either include the light(s) that is/are"
             f" in the integration config, or pass a switch under 'entity_id'."
@@ -1840,7 +1844,12 @@ class TurnOnOffListener:
             return
 
         entity_id = entity_ids[0]
-        adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
+        try:
+            adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
+        except NoSwitchFoundError:
+            # This might be a light that is not managed by this AL instance.
+            return
+
         if entity_id not in adaptive_switch.lights:
             return
 
