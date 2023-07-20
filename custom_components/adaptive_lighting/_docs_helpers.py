@@ -23,7 +23,7 @@ def _format_voluptuous_instance(instance):
     for validator in instance.validators:
         if isinstance(validator, vol.Coerce):
             coerce_type = validator.type.__name__
-        elif isinstance(validator, (vol.Clamp, vol.Range)):
+        elif isinstance(validator, vol.Clamp | vol.Range):
             min_val = validator.min
             max_val = validator.max
 
@@ -54,7 +54,8 @@ def _type_to_str(type_: Any) -> str:
     elif isinstance(type_, selector.ColorRGBSelector):
         return "RGB color"
     else:
-        raise ValueError(f"Unknown type: {type_}")
+        msg = f"Unknown type: {type_}"
+        raise ValueError(msg)
 
 
 def generate_config_markdown_table():
@@ -85,7 +86,8 @@ def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
 
 
 def _generate_service_markdown_table(
-    schema: dict[str, tuple[Any, Any]], alternative_docs: dict[str, str] = None
+    schema: dict[str, tuple[Any, Any]],
+    alternative_docs: dict[str, str] | None = None,
 ):
     schema = _schema_to_dict(schema)
     rows = []
@@ -112,5 +114,6 @@ def generate_apply_markdown_table():
 
 def generate_set_manual_control_markdown_table():
     return _generate_service_markdown_table(
-        SET_MANUAL_CONTROL_SCHEMA, DOCS_MANUAL_CONTROL
+        SET_MANUAL_CONTROL_SCHEMA,
+        DOCS_MANUAL_CONTROL,
     )

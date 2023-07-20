@@ -75,7 +75,7 @@ def validate_options(user_input, errors):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
 
@@ -114,5 +114,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             options_schema[key] = value
 
         return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(options_schema), errors=errors
+            step_id="init",
+            data_schema=vol.Schema(options_schema),
+            errors=errors,
         )

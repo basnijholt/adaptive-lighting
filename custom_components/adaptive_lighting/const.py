@@ -112,9 +112,9 @@ DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
 )
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
-DOCS[CONF_SUNRISE_OFFSET] = (
-    "Adjust sunrise time with a positive or negative offset " "in seconds. ⏰"
-)
+DOCS[
+    CONF_SUNRISE_OFFSET
+] = "Adjust sunrise time with a positive or negative offset in seconds. ⏰"
 
 CONF_SUNRISE_TIME = "sunrise_time"
 DOCS[CONF_SUNRISE_TIME] = "Set a fixed time (HH:MM:SS) for sunrise. 🌅"
@@ -333,7 +333,7 @@ _DOMAIN_SCHEMA = vol.Schema(
     {
         vol.Optional(key, default=replace_none_str(default, vol.UNDEFINED)): validation
         for key, default, validation in _yaml_validation_tuples
-    }
+    },
 )
 
 
@@ -351,7 +351,7 @@ def apply_service_schema(initial_transition: int = 1):
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
-        }
+        },
     )
 
 
@@ -360,5 +360,5 @@ SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
         vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
-    }
+    },
 )

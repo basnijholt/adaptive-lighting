@@ -40,7 +40,6 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     """Splits the service data by the adapted attributes, i.e., into separate data
     items for brightness and color.
     """
-
     common_attrs = {ATTR_ENTITY_ID}
     common_data = {k: service_data[k] for k in common_attrs if k in service_data}
 
@@ -70,25 +69,24 @@ def _filter_service_data(service_data: ServiceData, state: State | None) -> Serv
     """Filter service data by removing attributes that already equal the given state.
 
     Removes all attributes from service call data whose values are already present
-    in the target entity's state."""
-
+    in the target entity's state.
+    """
     if not state:
         return service_data
 
-    filtered_service_data = {
+    return {
         k: service_data[k]
-        for k in service_data.keys()
+        for k in service_data
         if k not in state.attributes or service_data[k] != state.attributes[k]
     }
-
-    return filtered_service_data
 
 
 def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
     """Determines whether the service data justifies an adaptation service call.
 
     A service call is not justified for data which does not contain any entries that
-    change relevant attributes of an adapting entity, e.g., brightness or color."""
+    change relevant attributes of an adapting entity, e.g., brightness or color.
+    """
     common_attrs = {ATTR_ENTITY_ID, ATTR_TRANSITION}
     relevant_attrs = set(service_data) - common_attrs
 
@@ -109,7 +107,6 @@ async def _create_service_call_data_iterator(
     at the time when the service data is read instead of up front. This gives greater
     flexibility because entity states can change while the items are iterated.
     """
-
     for service_data in service_datas:
         if filter_by_state and (entity_id := service_data.get(ATTR_ENTITY_ID)):
             current_entity_state = hass.states.get(entity_id)
@@ -160,7 +157,9 @@ def prepare_adaptation_data(
     ) + split_delay
 
     service_data_iterator = _create_service_call_data_iterator(
-        hass, service_datas, filter_by_state
+        hass,
+        service_datas,
+        filter_by_state,
     )
 
     return AdaptationData(entity_id, context, sleep_time, service_data_iterator)

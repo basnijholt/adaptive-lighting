@@ -42,13 +42,12 @@ async def reload_configuration_yaml(event: dict, hass: HomeAssistant):
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     """Import integration from config."""
-
     if DOMAIN in config:
         for entry in config[DOMAIN]:
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
                     DOMAIN, context={CONF_SOURCE: SOURCE_IMPORT}, data=entry
-                )
+                ),
             )
     return True
 
@@ -65,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
     for platform in PLATFORMS:
         hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(config_entry, platform)
+            hass.config_entries.async_forward_entry_setup(config_entry, platform),
         )
 
     return True
