@@ -308,7 +308,6 @@ def _get_switches_with_lights(
 def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
-    is_on: bool = False,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
     switches = _get_switches_with_lights(hass, lights)
@@ -365,7 +364,7 @@ def _get_switches_from_service_call(
         return switches
 
     if lights:
-        switch = find_switch_for_lights(hass, lights, service_call)
+        switch = find_switch_for_lights(hass, lights)
         return [switch]
 
     raise ValueError(
