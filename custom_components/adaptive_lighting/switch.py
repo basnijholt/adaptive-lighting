@@ -308,7 +308,6 @@ def _get_switches_with_lights(
 def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
-    is_on: bool = False,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
     switches = _get_switches_with_lights(hass, lights)
@@ -365,7 +364,7 @@ def _get_switches_from_service_call(
         return switches
 
     if lights:
-        switch = find_switch_for_lights(hass, lights, service_call)
+        switch = find_switch_for_lights(hass, lights)
         return [switch]
 
     raise ValueError(
@@ -459,7 +458,6 @@ async def async_setup_entry(
         adapt_color_switch,
         adapt_brightness_switch,
     )
-    turn_on_off_listener.adaptive_switch = switch
 
     # save our switch instance, allows us to make switch's entity_id optional in service calls.
     hass.data[DOMAIN][config_entry.entry_id]["instance"] = switch
@@ -1752,7 +1750,6 @@ class TurnOnOffListener:
             )
         )
 
-        self.adaptive_switch: AdaptiveSwitch | None
         self._proactively_adapting_contexts: dict[str, str] = {}
 
         is_proactive_adaptation_enabled = (
@@ -1843,8 +1840,8 @@ class TurnOnOffListener:
             return
 
         entity_id = entity_ids[0]
-
-        if entity_id not in self.adaptive_switch.lights:
+        adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
+        if entity_id not in adaptive_switch.lights:
             return
 
         if self.manual_control.get(entity_id, False):
@@ -1862,14 +1859,14 @@ class TurnOnOffListener:
         self.reset(entity_id, reset_manual_control=False)
         self.clear_proactively_adapting(entity_id)
 
-        adapt_brightness = self.adaptive_switch.adapt_brightness_switch.is_on or False
-        adapt_color = self.adaptive_switch.adapt_color_switch.is_on or False
+        adapt_brightness = adaptive_switch.adapt_brightness_switch.is_on or False
+        adapt_color = adaptive_switch.adapt_color_switch.is_on or False
         transition = (
             data[CONF_PARAMS].get(ATTR_TRANSITION, None)
-            or self.adaptive_switch.initial_transition
+            or adaptive_switch.initial_transition
         )
 
-        adaptation_data = await self.adaptive_switch.prepare_adaptation_data(
+        adaptation_data = await adaptive_switch.prepare_adaptation_data(
             entity_id,
             transition,
             adapt_brightness,
@@ -1901,7 +1898,7 @@ class TurnOnOffListener:
         self.set_proactively_adapting(adaptation_data.context.id, entity_id)
         adaptation_data.initial_sleep = True
         asyncio.create_task(  # Don't await to avoid blocking the service call
-            self.adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data)
+            adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data)
         )
 
     def _handle_timer(
