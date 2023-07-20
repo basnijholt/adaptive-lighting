@@ -3,23 +3,18 @@
 import asyncio
 from copy import deepcopy
 import datetime
-import itertools
 import logging
 from random import randint
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
-    ATTR_MAX_COLOR_TEMP_KELVIN,
-    ATTR_MIN_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
-    ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
-    COLOR_MODE_BRIGHTNESS,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF
@@ -75,7 +70,6 @@ from custom_components.adaptive_lighting.const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
-    CONST_COLOR,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
@@ -88,12 +82,9 @@ from custom_components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
 )
 from custom_components.adaptive_lighting.switch import (
-    _SUPPORT_OPTS,
     INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
-    VALID_COLOR_MODES,
     AdaptiveSwitch,
     _attributes_have_changed,
-    _supported_features,
     color_difference_redmean,
     create_context,
     is_our_context,
@@ -557,79 +548,6 @@ async def test_turn_on_off_listener_not_tracking_untracked_lights(hass):
         )
         await hass.async_block_till_done()
     assert light not in switch.turn_on_off_listener.lights
-
-
-def test_supported_features(hass):  # noqa: C901
-    """Test the supported features of a light."""
-
-    possible_legacy_features = {}
-    MAX_COMBINATIONS = 4  # maximum number of elements that can be combined
-    for i in range(1, min(MAX_COMBINATIONS, len(_SUPPORT_OPTS)) + 1):
-        for combination in itertools.combinations(_SUPPORT_OPTS.keys(), i):
-            key = "_".join(combination)
-            value = [v for k, v in _SUPPORT_OPTS.items() if k in combination]
-            possible_legacy_features[key] = value
-
-    possible_color_modes = {}
-    for i in range(1, len(VALID_COLOR_MODES) + 1):
-        for combination in itertools.combinations(VALID_COLOR_MODES.keys(), i):
-            key = "_".join(combination)
-            value = [v for k, v in VALID_COLOR_MODES.items() if k in combination]
-            possible_color_modes[key] = value
-
-    # create a mock HomeAssistant object
-    hass = MagicMock()
-
-    # iterate over possible legacy features
-    for feature_key, feature_values in possible_legacy_features.items():
-        # _LOGGER.debug(feature_values)
-        # set the attributes of the mock state object to the possible legacy feature values
-        state_attrs = {ATTR_SUPPORTED_FEATURES: sum(feature_values)}
-        hass.states.get.return_value.attributes = state_attrs
-
-        # iterate over possible color modes
-        for mode_key, mode_values in possible_color_modes.items():
-            # _LOGGER.debug(mode_values)
-            # set the attributes of the mock state object to the possible color mode values
-            state_attrs[ATTR_SUPPORTED_COLOR_MODES] = set(mode_values)
-            hass.states.get.return_value.attributes = state_attrs
-
-            # Handle both the new and the old _supported_features.
-            result = _supported_features(hass, ENTITY_LIGHT)
-            supported, supports_colors = (
-                result if isinstance(result, tuple) else (result, None)
-            )
-            expected_supported = {} if supports_colors is not None else set()
-            for mode, attr in VALID_COLOR_MODES.items():
-                if mode in mode_values:
-                    if supports_colors is None:
-                        expected_supported.add(mode)
-                    else:
-                        expected_supported[attr] = True
-                        if supports_colors is True:
-                            expected_supported[COLOR_MODE_BRIGHTNESS] = True
-            for opt, value in _SUPPORT_OPTS.items():
-                if value in feature_values:
-                    if supports_colors is None:
-                        expected_supported.add(opt)
-                    else:
-                        if supports_colors is True:
-                            expected_supported[COLOR_MODE_BRIGHTNESS] = True
-                        if opt in VALID_COLOR_MODES:
-                            expected_supported[VALID_COLOR_MODES[opt]] = True
-                        elif opt != CONST_COLOR:
-                            expected_supported[opt] = True
-            if ATTR_MIN_COLOR_TEMP_KELVIN in supported:
-                supported.pop(ATTR_MIN_COLOR_TEMP_KELVIN)
-            if ATTR_MAX_COLOR_TEMP_KELVIN in supported:
-                supported.pop(ATTR_MAX_COLOR_TEMP_KELVIN)
-            assert supported == expected_supported, (
-                f"\nExpected supported: {expected_supported}\n"
-                f"Actual supported: {supported}\n"
-                f"feature_values: {feature_values}\n"
-                f"mode_values: {mode_values}\n"
-                f"supports_colors: {supports_colors}\n"
-            )
 
 
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
