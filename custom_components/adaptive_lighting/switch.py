@@ -1817,6 +1817,9 @@ class TurnOnOffListener:
             # This might be a light that is not managed by this AL instance.
             return
 
+        if not adaptive_switch.is_on:
+            return
+
         if entity_id not in adaptive_switch.lights:
             return
 
