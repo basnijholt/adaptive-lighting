@@ -301,19 +301,14 @@ class NoSwitchFoundError(ValueError):
 def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
-    on_only: bool = False,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
     switches = _get_switches_with_lights(hass, lights)
 
-    # Apply 'on_only' filter if true
-    if on_only:
-        switches = [s for s in switches if s.is_on]
-
     if len(switches) == 1:
         return switches[0]
     elif len(switches) > 1:
-        on_switches = [s for s in switches if s.is_on]  # noop if on_only is True
+        on_switches = [s for s in switches if s.is_on]
         if len(on_switches) == 1:
             # Of the multiple switches, only one is on
             return on_switches[0]
@@ -1892,11 +1887,12 @@ class TurnOnOffListener:
 
         entity_id = entity_ids[0]
         try:
-            adaptive_switch = find_switch_for_lights(
-                self.hass, [entity_id], on_only=True
-            )
+            adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
+            return
+
+        if not adaptive_switch.is_on:
             return
 
         if entity_id not in adaptive_switch.lights:
