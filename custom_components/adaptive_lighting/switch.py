@@ -295,22 +295,9 @@ class NoSwitchFoundError(ValueError):
 def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
-    which: Literal["brightness", "color", "both"] | None = None,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
     switches = _get_switches_with_lights(hass, lights)
-    if which is None:
-        pass
-    elif which == "both":
-        switches = [
-            s
-            for s in switches
-            if s.adapt_color_switch.is_on and s.adapt_brightness_switch.is_on
-        ]
-    elif which == "color":
-        switches = [s for s in switches if s.adapt_color_switch.is_on]
-    elif which == "brightness":
-        switches = [s for s in switches if s.adapt_brightness_switch.is_on]
 
     if len(switches) == 1:
         return switches[0]
