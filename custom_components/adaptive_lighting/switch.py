@@ -1887,8 +1887,8 @@ class TurnOnOffListener:
             adapt_brightness,
             adapt_color,
         )
-        if adaptation_data is None:
-            return
+        # if adaptation_data is None:
+        #     return
 
         # Take first adaptation item to apply it to this service call
         first_service_data = await adaptation_data.next_service_call_data()

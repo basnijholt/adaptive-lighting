@@ -157,13 +157,12 @@ def is_color_brightness_or_both(
     has_color = any(attr in service_data for attr in COLOR_ATTRS)
     if has_brightness and has_color:
         return "both"
-    elif has_brightness:
+    if has_brightness:
         return "brightness"
-    elif has_color:
+    if has_color:
         return "color"
-    else:
-        msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
-        raise NoColorOrBrightnessInServiceData(msg)
+    msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
+    raise NoColorOrBrightnessInServiceData(msg)
 
 
 def prepare_adaptation_data(
