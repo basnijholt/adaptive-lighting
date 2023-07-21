@@ -1553,3 +1553,49 @@ async def test_proactive_adaptation_transition_override(hass):
 
     # Cleanup
     switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(ENTITY_LIGHT3)
+
+
+async def test_two_switches_for_single_light(hass):
+    """Test the case where someone has two switches for a single light.
+
+    This might be the case if someone has a switch for brightness and
+    another for color with different times
+    """
+    extra_conf = {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}
+    switch1, _ = await setup_lights_and_switch(
+        hass, extra_conf | {CONF_NAME: "switch1"}, all_lights=True
+    )
+    switch2, _ = await setup_lights_and_switch(
+        hass, extra_conf | {CONF_NAME: "switch2"}, all_lights=True
+    )
+
+    # One switch controls brightness the other color
+    await switch1.adapt_color_switch.async_turn_off()
+    await switch2.adapt_brightness_switch.async_turn_off()
+
+    assert switch1.adapt_brightness_switch.is_on
+    assert switch2.adapt_color_switch.is_on
+    _LOGGER.debug("yolo")
+    # Toggle ON
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TOGGLE,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+        blocking=True,
+        context=Context(id="test1"),
+    )
+
+    assert switch1.turn_on_off_listener.is_proactively_adapting("test1")
+    assert switch2.turn_on_off_listener.is_proactively_adapting("test1")
+
+    # Toggle OFF
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TOGGLE,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
+        blocking=True,
+        context=Context(id="test2"),
+    )
+
+    assert not switch1.turn_on_off_listener.is_proactively_adapting("test2")
+    assert not switch2.turn_on_off_listener.is_proactively_adapting("test2")

@@ -1150,7 +1150,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         if self.turn_on_off_listener.is_proactively_adapting(context.parent_id):
             # Skip if adaptation was already executed by the service call interceptor
-            _LOGGER.debug("Skipping reactive adaptation of %s", context.parent_id)
+            _LOGGER.debug(
+                "%s: Skipping reactive adaptation of %s", self._name, context.parent_id
+            )
             return
 
         data = await self.prepare_adaptation_data(
@@ -1217,7 +1219,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.turn_on_off_listener.adaptation_tasks[data.entity_id] = task
             await task
         except asyncio.CancelledError:
-            _LOGGER.debug("Ongoing adaptation of %s cancelled", data.entity_id)
+            _LOGGER.debug(
+                "%s: Ongoing adaptation of %s cancelled", self._name, data.entity_id
+            )
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1815,6 +1819,9 @@ class TurnOnOffListener:
             adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
+            _LOGGER.debug(
+                "No adaptive switch found for entity %s, skipping adaptation", entity_id
+            )
             return
 
         if not adaptive_switch.is_on:
