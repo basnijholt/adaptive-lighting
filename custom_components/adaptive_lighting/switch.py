@@ -1223,7 +1223,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """
         # Prevent overlap of multiple adaptation sequences
         listener = self.turn_on_off_listener
-        listener.cancel_ongoing_adaptation_calls(data.entity_id)
+        listener.cancel_ongoing_adaptation_calls(data.entity_id, which=data.which)
         _LOGGER.debug(
             "%s: execute_cancellable_adaptation_calls with data: %s"
             "adaptation_tasks_brightness: %s"
@@ -2008,13 +2008,19 @@ class TurnOnOffListener:
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
-    def cancel_ongoing_adaptation_calls(self, light_id: str):
+    def cancel_ongoing_adaptation_calls(
+        self, light_id: str, which: Literal["color", "brightness", "both"] = "both"
+    ):
         """Cancel ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
-        if brightness_task is not None:
+        if which in ("both", "brightness") and brightness_task is not None:
             brightness_task.cancel()
-        if color_task is not None and color_task is not brightness_task:
+        if (
+            which in ("both", "color")
+            and color_task is not None
+            and color_task is not brightness_task
+        ):
             # color_task might be the same as brightness_task
             color_task.cancel()
 
@@ -2028,7 +2034,7 @@ class TurnOnOffListener:
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
-            self.cancel_ongoing_adaptation_calls(light)
+            self.cancel_ongoing_adaptation_calls(light, "both")
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
         entity_ids = []
