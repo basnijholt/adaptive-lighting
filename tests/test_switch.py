@@ -1351,7 +1351,9 @@ async def test_cancellable_service_calls_task(hass):
     _, switch = await setup_switch(hass, {CONF_SEPARATE_TURN_ON_COMMANDS: True})
     context = switch.create_context("test")
 
-    assert switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id) is None
+    assert (
+        switch.turn_on_off_listener.adaptation_tasks_color.get(light.entity_id) is None
+    )
 
     service_data = {
         ATTR_BRIGHTNESS: 10,
@@ -1362,11 +1364,15 @@ async def test_cancellable_service_calls_task(hass):
         light.entity_id,
         context,
         0,
-        _create_service_call_data_iterator(hass, [service_data]),
+        _create_service_call_data_iterator(hass, [service_data], False),
+        max_length=1,
+        which="both",
     )
     await switch.execute_cancellable_adaptation_calls(adaptation_data)
 
-    task = switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id)
+    task = switch.turn_on_off_listener.adaptation_tasks_brightness.get(light.entity_id)
+    task2 = switch.turn_on_off_listener.adaptation_tasks_color.get(light.entity_id)
+    assert task is task2
     assert task is not None
     assert task.done()
 
@@ -1378,7 +1384,7 @@ async def test_service_calls_task_cancellation(hass):
     entity_id = "test_id"
 
     task = asyncio.ensure_future(asyncio.sleep(1))
-    switch.turn_on_off_listener.adaptation_tasks[entity_id] = task
+    switch.turn_on_off_listener.adaptation_tasks_brightness[entity_id] = task
 
     switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(entity_id)
 
@@ -1553,3 +1559,65 @@ async def test_proactive_adaptation_transition_override(hass):
 
     # Cleanup
     switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(ENTITY_LIGHT3)
+
+
+async def test_two_switches_for_single_light(hass):
+    """Test the case where someone has two switches for a single light.
+
+    One switch for brightness and another for color.
+    """
+    extra_conf = {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}
+    switch1, (light1, *_) = await setup_lights_and_switch(
+        hass, extra_conf | {CONF_NAME: "switch1"}, all_lights=True
+    )
+    switch2, (light2, *_) = await setup_lights_and_switch(
+        hass, extra_conf | {CONF_NAME: "switch2"}, all_lights=True
+    )
+    assert light1 is light2
+
+    # One switch controls brightness the other color
+    await switch1.adapt_color_switch.async_turn_off()
+    await switch2.adapt_brightness_switch.async_turn_off()
+
+    assert switch1.adapt_brightness_switch.is_on
+    assert switch2.adapt_color_switch.is_on
+
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        _LOGGER.debug("Turn light %s, to %s", state, kwargs)
+
+    def increased_brightness():
+        return (light1._attr_brightness + 100) % 255
+
+    def increased_color_temp():
+        return max(
+            (light1._attr_color_temp + 100) % light1.max_color_temp_kelvin,
+            light1.min_color_temp_kelvin,
+        )
+
+    assert light1.is_on
+    await turn_light(True, brightness=increased_brightness())
+    await turn_light(True, color_temp=increased_color_temp())
+
+    attrs = hass.states.get(light1.entity_id).attributes
+    before_brightness = attrs[ATTR_BRIGHTNESS]
+    before_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
+
+    # Turn off "light1"
+    await turn_light(False)
+
+    # Turn on "light1"
+    await turn_light(True)
+
+    # Assert that the brightness and color temp have changed
+    attrs = hass.states.get(light1.entity_id).attributes
+    after_brightness = attrs[ATTR_BRIGHTNESS]
+    after_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
+    assert before_brightness != after_brightness
+    assert before_color_temp != after_color_temp

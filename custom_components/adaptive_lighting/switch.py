@@ -1071,7 +1071,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
         context: Context | None = None,
-    ) -> AdaptationData:
+    ) -> AdaptationData | None:
         if transition is None:
             transition = self._transition
         if adapt_brightness is None:
@@ -1080,6 +1080,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             adapt_color = self.adapt_color_switch.is_on
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
+
+        if not adapt_color and not adapt_brightness:
+            _LOGGER.debug(
+                "%s: Skipping adaptation of %s because both adapt_brightness and"
+                " adapt_color are False",
+                self._name,
+                light,
+            )
+            return None
 
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
@@ -1150,7 +1159,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         if self.turn_on_off_listener.is_proactively_adapting(context.parent_id):
             # Skip if adaptation was already executed by the service call interceptor
-            _LOGGER.debug("Skipping reactive adaptation of %s", context.parent_id)
+            _LOGGER.debug(
+                "%s: Skipping reactive adaptation of %s", self._name, context.parent_id
+            )
             return
 
         data = await self.prepare_adaptation_data(
@@ -1161,6 +1172,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color,
             context,
         )
+        if data is None:
+            return None  # nothing to adapt
 
         await self.execute_cancellable_adaptation_calls(data)
 
@@ -1209,15 +1222,32 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         to cancel an ongoing adaptation when a light is turned off.
         """
         # Prevent overlap of multiple adaptation sequences
-        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(data.entity_id)
-
+        listener = self.turn_on_off_listener
+        listener.cancel_ongoing_adaptation_calls(data.entity_id, which=data.which)
+        _LOGGER.debug(
+            "%s: execute_cancellable_adaptation_calls with data: %s"
+            "adaptation_tasks_brightness: %s"
+            "adaptation_tasks_color: %s",
+            self._name,
+            data,
+            listener.adaptation_tasks_brightness,
+            listener.adaptation_tasks_color,
+        )
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            self.turn_on_off_listener.adaptation_tasks[data.entity_id] = task
+            if data.which in ("both", "brightness"):
+                listener.adaptation_tasks_brightness[data.entity_id] = task
+            if data.which in ("both", "color"):
+                listener.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
-            _LOGGER.debug("Ongoing adaptation of %s cancelled", data.entity_id)
+            _LOGGER.debug(
+                "%s: Ongoing adaptation of %s cancelled, with AdaptationData: %s",
+                self._name,
+                data.entity_id,
+                data,
+            )
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -1699,7 +1729,8 @@ class TurnOnOffListener:
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
         # Track ongoing split adaptations to be able to cancel them
-        self.adaptation_tasks: dict[str, asyncio.Task] = {}
+        self.adaptation_tasks_brightness: dict[str, asyncio.Task] = {}
+        self.adaptation_tasks_color: dict[str, asyncio.Task] = {}
 
         # Track auto reset of manual_control
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
@@ -1815,6 +1846,11 @@ class TurnOnOffListener:
             adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
+            _LOGGER.debug(
+                "No (or multiple) adaptive switch(es) found for entity %s,"
+                " skipping adaptation by intercepting service call",
+                entity_id,
+            )
             return
 
         if not adaptive_switch.is_on:
@@ -1851,6 +1887,8 @@ class TurnOnOffListener:
             adapt_brightness,
             adapt_color,
         )
+        # if adaptation_data is None:
+        #     return
 
         # Take first adaptation item to apply it to this service call
         first_service_data = await adaptation_data.next_service_call_data()
@@ -1970,10 +2008,31 @@ class TurnOnOffListener:
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
-    def cancel_ongoing_adaptation_calls(self, light_id: str):
-        """Cancels an ongoing sequence of adaptation service calls for a specific light entity."""
-        if (previous_task := self.adaptation_tasks.get(light_id)) is not None:
-            previous_task.cancel()
+    def cancel_ongoing_adaptation_calls(
+        self, light_id: str, which: Literal["color", "brightness", "both"] = "both"
+    ):
+        """Cancel ongoing adaptation service calls for a specific light entity."""
+        brightness_task = self.adaptation_tasks_brightness.get(light_id)
+        color_task = self.adaptation_tasks_color.get(light_id)
+        if which in ("both", "brightness") and brightness_task is not None:
+            _LOGGER.debug(
+                "Cancelled ongoing brightness adaptation calls (%s) for '%s'",
+                brightness_task,
+                light_id,
+            )
+            brightness_task.cancel()
+        if (
+            which in ("both", "color")
+            and color_task is not None
+            and color_task is not brightness_task
+        ):
+            _LOGGER.debug(
+                "Cancelled ongoing color adaptation calls (%s) for '%s'",
+                color_task,
+                light_id,
+            )
+            # color_task might be the same as brightness_task
+            color_task.cancel()
 
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
