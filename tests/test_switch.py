@@ -1582,28 +1582,15 @@ async def test_two_switches_for_single_light(hass):
     assert switch1.adapt_brightness_switch.is_on
     assert switch2.adapt_color_switch.is_on
 
-    context1 = switch1.create_context("test1")  # needs to be passed to update method
-    context2 = switch2.create_context("test2")  # needs to be passed to update method
-
-    async def update():
-        await switch1._update_attrs_and_maybe_adapt_lights(
-            transition=0, context=context1
-        )
-        await switch2._update_attrs_and_maybe_adapt_lights(
-            transition=0, context=context2
-        )
-        await hass.async_block_till_done()
-
-    async def turn_light(state, wait: bool = True, **kwargs):
+    async def turn_light(state, block: bool = True, **kwargs):
         await hass.services.async_call(
             LIGHT_DOMAIN,
             SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
             {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
-            blocking=wait,
+            blocking=block,
         )
-        if wait:
+        if block:
             await hass.async_block_till_done()
-            await update()
         _LOGGER.debug("Turn light %s, to %s", state, kwargs)
 
     def increased_brightness():
@@ -1616,7 +1603,7 @@ async def test_two_switches_for_single_light(hass):
         )
 
     assert light1.is_on
-    await turn_light(True, False, brightness=increased_brightness())
+    await turn_light(True, block=False, brightness=increased_brightness())
     await turn_light(True, color_temp=increased_color_temp())
 
     attrs = hass.states.get(light1.entity_id).attributes
