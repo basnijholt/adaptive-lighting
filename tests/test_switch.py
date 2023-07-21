@@ -1582,15 +1582,14 @@ async def test_two_switches_for_single_light(hass):
     assert switch1.adapt_brightness_switch.is_on
     assert switch2.adapt_color_switch.is_on
 
-    async def turn_light(state, block: bool = True, **kwargs):
+    async def turn_light(state, **kwargs):
         await hass.services.async_call(
             LIGHT_DOMAIN,
             SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
             {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
-            blocking=block,
+            blocking=True,
         )
-        if block:
-            await hass.async_block_till_done()
+        await hass.async_block_till_done()
         _LOGGER.debug("Turn light %s, to %s", state, kwargs)
 
     def increased_brightness():
@@ -1603,7 +1602,7 @@ async def test_two_switches_for_single_light(hass):
         )
 
     assert light1.is_on
-    await turn_light(True, block=False, brightness=increased_brightness())
+    await turn_light(True, brightness=increased_brightness())
     await turn_light(True, color_temp=increased_color_temp())
 
     attrs = hass.states.get(light1.entity_id).attributes
