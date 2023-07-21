@@ -136,17 +136,13 @@ class AdaptationData:
     context: Context
     sleep_time: float
     service_call_datas: AsyncGenerator[ServiceData, None]
-    length: int
+    max_length: int
     which: Literal["brightness", "color", "both"]
     initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
         """Return data for the next service call, or none if no more data exists."""
         return await anext(self.service_call_datas, None)
-
-    def __len__(self) -> int:
-        """Return the number of service calls."""
-        return self.length
 
 
 class NoColorOrBrightnessInServiceData(Exception):
@@ -203,6 +199,6 @@ def prepare_adaptation_data(
         context,
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
-        length=len(service_datas),
+        max_length=len(service_datas),
         which=is_color_brightness_or_both(service_data),
     )

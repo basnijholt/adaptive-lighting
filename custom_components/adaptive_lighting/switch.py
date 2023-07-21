@@ -298,7 +298,6 @@ def find_switch_for_lights(
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
     switches = _get_switches_with_lights(hass, lights)
-
     if len(switches) == 1:
         return switches[0]
     elif len(switches) > 1:
@@ -1132,6 +1131,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         context = context or self.create_context("adapt_lights")
 
         self.turn_on_off_listener.last_service_data[light] = service_data
+
         return prepare_adaptation_data(
             self.hass,
             light,

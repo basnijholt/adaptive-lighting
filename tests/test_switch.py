@@ -1365,7 +1365,7 @@ async def test_cancellable_service_calls_task(hass):
         context,
         0,
         _create_service_call_data_iterator(hass, [service_data], False),
-        length=1,
+        max_length=1,
         which="both",
     )
     await switch.execute_cancellable_adaptation_calls(adaptation_data)
