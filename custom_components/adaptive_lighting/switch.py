@@ -1993,19 +1993,13 @@ class TurnOnOffListener:
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def cancel_ongoing_adaptation_calls(self, light_id: str):
-        """Cancels an ongoing sequence of adaptation service calls for a specific light entity."""
+        """Cancels ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
-        if brightness_task is None and color_task is None:
-            return
-
-        if brightness_task is color_task:  # same task, single cancellation
-            assert brightness_task is not None
-            assert color_task is not None
+        if brightness_task is not None:
             brightness_task.cancel()
-        elif brightness_task is not None:
-            brightness_task.cancel()
-        elif color_task is not None:
+        if color_task is not None and color_task is not brightness_task:
+            # color_task might be the same as brightness_task
             color_task.cancel()
 
     def reset(self, *lights, reset_manual_control=True) -> None:
