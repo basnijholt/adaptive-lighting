@@ -1013,6 +1013,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         if self.lights:
             self._expand_light_groups()
+            _LOGGER.debug(
+                "%s: Tracking state changes with '_light_event' for lights '%s'",
+                self._name,
+                self.lights,
+            )
             remove_state = async_track_state_change_event(
                 self.hass,
                 self.lights,
@@ -1387,6 +1392,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     async def _light_event(self, event: Event) -> None:
+        _LOGGER.debug(
+            "%s: _light_event, event: '%s'",
+            self._name,
+            event,
+        )
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
         entity_id = event.data.get("entity_id")
@@ -1826,9 +1836,9 @@ class TurnOnOffListener:
         )
 
         _LOGGER.debug(
-            "is_proactively_adapting_context %s %s",
-            context_id,
+            "is_proactively_adapting_context='%s', context_id='%s'",
             is_proactively_adapting_context,
+            context_id,
         )
 
         return is_proactively_adapting_context
@@ -1838,15 +1848,25 @@ class TurnOnOffListener:
 
         Call this method to clear past context IDs and avoid a memory leak.
         """
-        for k, v in self._proactively_adapting_contexts.items():
-            if v == entity_id:
-                self._proactively_adapting_contexts.pop(k)
+        # First get the keys to avoid modifying the dict while iterating it
+        keys = [
+            k for k, v in self._proactively_adapting_contexts.items() if v == entity_id
+        ]
+        for key in keys:
+            self._proactively_adapting_contexts.pop(key)
 
     async def _service_interceptor_turn_on_handler(
         self,
         call: ServiceCall,
         data: ServiceData,
     ):
+        _LOGGER.debug(
+            "_service_interceptor_turn_on_handler:"
+            " self._proactively_adapting_contexts='%s', call.context.id='%s', data='%s'",
+            self._proactively_adapting_contexts,
+            call.context.id,
+            data,
+        )
         # Don't adapt our own service calls
         if is_our_context(call.context):
             return
