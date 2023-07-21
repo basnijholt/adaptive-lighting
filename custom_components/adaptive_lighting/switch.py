@@ -95,6 +95,7 @@ from .adaptation_utils import (
     COLOR_ATTRS,
     AdaptationData,
     ServiceData,
+    extract_which,
     prepare_adaptation_data,
 )
 from .const import (
@@ -295,9 +296,23 @@ class NoSwitchFoundError(ValueError):
 def find_switch_for_lights(
     hass: HomeAssistant,
     lights: list[str],
+    which: Literal["brightness", "color", "both"] | None = None,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
     switches = _get_switches_with_lights(hass, lights)
+    if which is None:
+        pass
+    elif which == "both":
+        switches = [
+            s
+            for s in switches
+            if s.adapt_color_switch.is_on and s.adapt_brightness_switch.is_on
+        ]
+    elif which == "color":
+        switches = [s for s in switches if s.adapt_color_switch.is_on]
+    elif which == "brightness":
+        switches = [s for s in switches if s.adapt_brightness_switch.is_on]
+
     if len(switches) == 1:
         return switches[0]
     elif len(switches) > 1:
@@ -1240,7 +1255,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 "%s: Ongoing adaptation of %s cancelled, with AdaptationData: %s",
                 self._name,
                 data.entity_id,
-                AdaptationData,
+                data,
             )
 
     async def _update_attrs_and_maybe_adapt_lights(
@@ -1837,7 +1852,9 @@ class TurnOnOffListener:
 
         entity_id = entity_ids[0]
         try:
-            adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
+            adaptive_switch = find_switch_for_lights(
+                self.hass, [entity_id], which=extract_which(data)
+            )
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
             _LOGGER.debug(

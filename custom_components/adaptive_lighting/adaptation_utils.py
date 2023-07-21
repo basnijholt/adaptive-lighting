@@ -149,7 +149,7 @@ class AdaptationData:
         return self.length
 
 
-def generate_which(service_data: ServiceData) -> Literal["brightness", "color", "both"]:
+def extract_which(service_data: ServiceData) -> Literal["brightness", "color", "both"]:
     """Extracts the 'which' attribute from the service data."""
     has_brightness = ATTR_BRIGHTNESS in service_data
     has_color = any(attr in service_data for attr in COLOR_ATTRS)
@@ -198,5 +198,5 @@ def prepare_adaptation_data(
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
         length=len(service_datas),
-        which=generate_which(service_data),
+        which=extract_which(service_data),
     )
