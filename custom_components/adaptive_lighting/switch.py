@@ -2034,7 +2034,7 @@ class TurnOnOffListener:
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)
-            self.cancel_ongoing_adaptation_calls(light, "both")
+            self.cancel_ongoing_adaptation_calls(light)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
         entity_ids = []
