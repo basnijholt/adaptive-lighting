@@ -1,7 +1,8 @@
 """Utility functions for adaptation commands."""
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any
+import logging
+from typing import Any, Literal
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -17,6 +18,8 @@ from homeassistant.components.light import (
 )
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Context, HomeAssistant, State
+
+_LOGGER = logging.getLogger(__name__)
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_NAME,
@@ -98,7 +101,7 @@ def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
 async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
-    filter_by_state: bool = False,
+    filter_by_state: bool,
 ) -> AsyncGenerator[ServiceData, None]:
     """Enumerates and filters a list of service datas on the fly.
 
@@ -133,11 +136,33 @@ class AdaptationData:
     context: Context
     sleep_time: float
     service_call_datas: AsyncGenerator[ServiceData, None]
+    max_length: int
+    which: Literal["brightness", "color", "both"]
     initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
         """Return data for the next service call, or none if no more data exists."""
         return await anext(self.service_call_datas, None)
+
+
+class NoColorOrBrightnessInServiceData(Exception):
+    """Exception raised when no color or brightness attributes are found in service data."""
+
+
+def is_color_brightness_or_both(
+    service_data: ServiceData,
+) -> Literal["brightness", "color", "both"]:
+    """Extract the 'which' attribute from the service data."""
+    has_brightness = ATTR_BRIGHTNESS in service_data
+    has_color = any(attr in service_data for attr in COLOR_ATTRS)
+    if has_brightness and has_color:
+        return "both"
+    if has_brightness:
+        return "brightness"
+    if has_color:
+        return "color"
+    msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
+    raise NoColorOrBrightnessInServiceData(msg)
 
 
 def prepare_adaptation_data(
@@ -150,7 +175,12 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
 ) -> AdaptationData:
-    "Prepares a data object carrying all data required to execute an adaptation."
+    """Prepares a data object carrying all data required to execute an adaptation."""
+    _LOGGER.debug(
+        "Preparing adaptation data for %s with service data %s",
+        entity_id,
+        service_data,
+    )
     service_datas = (
         [service_data] if not split else _split_service_call_data(service_data)
     )
@@ -163,4 +193,11 @@ def prepare_adaptation_data(
         hass, service_datas, filter_by_state
     )
 
-    return AdaptationData(entity_id, context, sleep_time, service_data_iterator)
+    return AdaptationData(
+        entity_id,
+        context,
+        sleep_time=sleep_time,
+        service_call_datas=service_data_iterator,
+        max_length=len(service_datas),
+        which=is_color_brightness_or_both(service_data),
+    )
