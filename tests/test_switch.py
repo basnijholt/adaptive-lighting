@@ -1599,7 +1599,7 @@ async def test_two_switches_for_single_light(hass):
             LIGHT_DOMAIN,
             SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
             {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
-            blocking=True,
+            blocking=wait,
         )
         if wait:
             await hass.async_block_till_done()

@@ -2015,12 +2015,22 @@ class TurnOnOffListener:
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
         if which in ("both", "brightness") and brightness_task is not None:
+            _LOGGER.debug(
+                "Cancelled ongoing brightness adaptation calls (%s) for '%s'",
+                brightness_task,
+                light_id,
+            )
             brightness_task.cancel()
         if (
             which in ("both", "color")
             and color_task is not None
             and color_task is not brightness_task
         ):
+            _LOGGER.debug(
+                "Cancelled ongoing color adaptation calls (%s) for '%s'",
+                color_task,
+                light_id,
+            )
             # color_task might be the same as brightness_task
             color_task.cancel()
 
