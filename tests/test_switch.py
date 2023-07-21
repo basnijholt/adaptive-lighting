@@ -1614,21 +1614,23 @@ async def test_two_switches_for_single_light(hass):
             light1.min_color_temp_kelvin,
         )
 
+    assert light1.is_on
     await turn_light(True, brightness=increased_brightness())
     await turn_light(True, color_temp=increased_color_temp())
-    entity_id_light = switch1.lights[0]
 
-    attrs = hass.states.get(entity_id_light).attributes
-    current_brightness = attrs[ATTR_BRIGHTNESS]
-    current_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
+    attrs = hass.states.get(light1.entity_id).attributes
+    before_brightness = attrs[ATTR_BRIGHTNESS]
+    before_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
 
-    # Turn off "entity_id_light"
+    # Turn off "light1"
     await turn_light(False)
 
-    # Turn on "entity_id_light"
+    # Turn on "light1"
     await turn_light(True)
 
     # Assert that the brightness and color temp have changed
-    attrs = hass.states.get(entity_id_light).attributes
-    assert current_brightness != attrs[ATTR_BRIGHTNESS]
-    assert current_color_temp != attrs[ATTR_COLOR_TEMP_KELVIN]
+    attrs = hass.states.get(light1.entity_id).attributes
+    after_brightness = attrs[ATTR_BRIGHTNESS]
+    after_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
+    assert before_brightness != after_brightness
+    assert before_color_temp != after_color_temp
