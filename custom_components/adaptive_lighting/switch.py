@@ -403,7 +403,7 @@ async def handle_change_switch_settings(
         data,
     )
 
-    all_lights = switch.lights  # pylint: disable=protected-access
+    all_lights = switch.lights
     switch.turn_on_off_listener.reset(*all_lights, reset_manual_control=False)
     if switch.is_on:
         await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
@@ -561,7 +561,7 @@ async def async_setup_entry(
         service_func=handle_apply,
         schema=apply_service_schema(
             switch.initial_transition,
-        ),  # pylint: disable=protected-access
+        ),
     )
 
     # Register `set_manual_control` service
