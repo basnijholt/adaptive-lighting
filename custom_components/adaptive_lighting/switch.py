@@ -1221,14 +1221,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         to cancel an ongoing adaptation when a light is turned off.
         """
         # Prevent overlap of multiple adaptation sequences
-        self.turn_on_off_listener.cancel_ongoing_adaptation_calls(data.entity_id)
+        listener = self.turn_on_off_listener
+        listener.cancel_ongoing_adaptation_calls(data.entity_id)
 
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            # TODO: only set the task if actually adapting color/brightness
-            self.turn_on_off_listener.adaptation_tasks_brightness[data.entity_id] = task
-            self.turn_on_off_listener.adaptation_tasks_color[data.entity_id] = task
+            if data.which == "both":
+                listener.adaptation_tasks_brightness[data.entity_id] = task
+                listener.adaptation_tasks_color[data.entity_id] = task
+            elif data.which == "brightness":
+                listener.adaptation_tasks_brightness[data.entity_id] = task
+            elif data.which == "color":
+                listener.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
             _LOGGER.debug(
@@ -1993,7 +1998,7 @@ class TurnOnOffListener:
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def cancel_ongoing_adaptation_calls(self, light_id: str):
-        """Cancels ongoing adaptation service calls for a specific light entity."""
+        """Cancel ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
         if brightness_task is not None:
