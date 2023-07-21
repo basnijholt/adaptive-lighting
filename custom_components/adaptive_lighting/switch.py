@@ -1014,11 +1014,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         if self.lights:
             self._expand_light_groups()
-            _LOGGER.debug(
-                "%s: Tracking state changes with '_light_event' for lights '%s'",
-                self._name,
-                self.lights,
-            )
             remove_state = async_track_state_change_event(
                 self.hass,
                 self.lights,
@@ -1393,11 +1388,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     async def _light_event(self, event: Event) -> None:
-        _LOGGER.debug(
-            "%s: _light_event, event: '%s'",
-            self._name,
-            event,
-        )
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
         entity_id = event.data.get("entity_id")
@@ -1861,13 +1851,6 @@ class TurnOnOffListener:
         call: ServiceCall,
         data: ServiceData,
     ):
-        _LOGGER.debug(
-            "_service_interceptor_turn_on_handler:"
-            " self._proactively_adapting_contexts='%s', call.context.id='%s', data='%s'",
-            self._proactively_adapting_contexts,
-            call.context.id,
-            data,
-        )
         # Don't adapt our own service calls
         if is_our_context(call.context):
             return
