@@ -46,7 +46,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
         for entry in config[DOMAIN]:
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
-                    DOMAIN, context={CONF_SOURCE: SOURCE_IMPORT}, data=entry
+                    DOMAIN,
+                    context={CONF_SOURCE: SOURCE_IMPORT},
+                    data=entry,
                 ),
             )
     return True
@@ -78,7 +80,8 @@ async def async_update_options(hass, config_entry: ConfigEntry):
 async def async_unload_entry(hass, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_forward_entry_unload(
-        config_entry, "switch"
+        config_entry,
+        "switch",
     )
     data = hass.data[DOMAIN]
     data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()
