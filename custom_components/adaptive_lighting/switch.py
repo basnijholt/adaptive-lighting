@@ -95,7 +95,6 @@ from .adaptation_utils import (
     COLOR_ATTRS,
     AdaptationData,
     ServiceData,
-    extract_which,
     prepare_adaptation_data,
 )
 from .const import (
@@ -1238,16 +1237,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Prevent overlap of multiple adaptation sequences
         listener = self.turn_on_off_listener
         listener.cancel_ongoing_adaptation_calls(data.entity_id)
-
+        _LOGGER.debug(
+            "%s: execute_cancellable_adaptation_calls with data: %s"
+            "adaptation_tasks_brightness: %s"
+            "adaptation_tasks_color: %s",
+            self._name,
+            data,
+            listener.adaptation_tasks_brightness,
+            listener.adaptation_tasks_color,
+        )
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            if data.which == "both":
+            if data.which in ("both", "brightness"):
                 listener.adaptation_tasks_brightness[data.entity_id] = task
-                listener.adaptation_tasks_color[data.entity_id] = task
-            elif data.which == "brightness":
-                listener.adaptation_tasks_brightness[data.entity_id] = task
-            elif data.which == "color":
+            if data.which in ("both", "color"):
                 listener.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
@@ -1852,13 +1856,12 @@ class TurnOnOffListener:
 
         entity_id = entity_ids[0]
         try:
-            adaptive_switch = find_switch_for_lights(
-                self.hass, [entity_id], which=extract_which(data)
-            )
+            adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
             _LOGGER.debug(
-                "No adaptive switch found for entity %s, skipping adaptation", entity_id
+                "No (or multiple) adaptive switch(es) found for entity %s, skipping adaptation",
+                entity_id,
             )
             return
 

@@ -149,8 +149,14 @@ class AdaptationData:
         return self.length
 
 
-def extract_which(service_data: ServiceData) -> Literal["brightness", "color", "both"]:
-    """Extracts the 'which' attribute from the service data."""
+class NoColorOrBrightnessInServiceData(Exception):
+    """Exception raised when no color or brightness attributes are found in service data."""
+
+
+def is_color_brightness_or_both(
+    service_data: ServiceData,
+) -> Literal["brightness", "color", "both"]:
+    """Extract the 'which' attribute from the service data."""
     has_brightness = ATTR_BRIGHTNESS in service_data
     has_color = any(attr in service_data for attr in COLOR_ATTRS)
     if has_brightness and has_color:
@@ -161,7 +167,7 @@ def extract_which(service_data: ServiceData) -> Literal["brightness", "color", "
         return "color"
     else:
         msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
-        raise ValueError(msg)
+        raise NoColorOrBrightnessInServiceData(msg)
 
 
 def prepare_adaptation_data(
@@ -198,5 +204,5 @@ def prepare_adaptation_data(
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
         length=len(service_datas),
-        which=extract_which(service_data),
+        which=is_color_brightness_or_both(service_data),
     )
