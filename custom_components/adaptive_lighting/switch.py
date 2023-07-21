@@ -382,6 +382,8 @@ async def handle_change_switch_settings(
         defaults=defaults,
     )
 
+    switch._update_time_interval_listener()
+
     _LOGGER.debug(
         "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
         data,
@@ -787,7 +789,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         data = validate(config_entry)
 
         self._name = data[CONF_NAME]
-        self._interval = data[CONF_INTERVAL]
+        self._interval: timedelta = data[CONF_INTERVAL]
         self.lights: list[str] = data[CONF_LIGHTS]
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
@@ -815,6 +817,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners = []
+        self.remove_interval: Callable[[], None] = lambda: None
+
         _LOGGER.debug(
             "%s: Setting up with '%s',"
             " config_entry.data: '%s',"
@@ -961,16 +965,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         assert not self.remove_listeners
 
-        remove_interval = async_track_time_interval(
-            self.hass, self._async_update_at_interval, self._interval
-        )
+        self._update_time_interval_listener()
+
         remove_sleep = async_track_state_change_event(
             self.hass,
             self.sleep_mode_switch.entity_id,
             self._sleep_mode_switch_state_event,
         )
 
-        self.remove_listeners.extend([remove_interval, remove_sleep])
+        self.remove_listeners.append(remove_sleep)
 
         if self.lights:
             self._expand_light_groups()
@@ -979,7 +982,36 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self.remove_listeners.append(remove_state)
 
+    def _update_time_interval_listener(self) -> None:
+        """Create or recreate the adaptation interval listener.
+
+        Recreation is necessary when the configuration has changed (e.g., `send_split_delay`).
+        """
+        self._remove_interval_listener()
+
+        # An adaptation takes a little longer than its nominal duration due processing overhead,
+        # so we factor this in to avoid overlapping adaptations. Since this is a constant value,
+        # it might not cover all cases, but if large enough, it covers most.
+        # Ideally, the interval and adaptation are a coupled process where a finished adaptation
+        # triggers the next, but that requires a larger architectural change.
+        processing_overhead_time = 0.5
+
+        adaptation_interval = (
+            self._interval
+            + timedelta(milliseconds=self._send_split_delay)
+            + timedelta(seconds=processing_overhead_time)
+        )
+
+        self.remove_interval = async_track_time_interval(
+            self.hass, self._async_update_at_interval, adaptation_interval
+        )
+
+    def _remove_interval_listener(self) -> None:
+        self.remove_interval()
+
     def _remove_listeners(self) -> None:
+        self._remove_interval_listener()
+
         while self.remove_listeners:
             remove_listener = self.remove_listeners.pop()
             remove_listener()
