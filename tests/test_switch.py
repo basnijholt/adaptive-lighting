@@ -1351,7 +1351,9 @@ async def test_cancellable_service_calls_task(hass):
     _, switch = await setup_switch(hass, {CONF_SEPARATE_TURN_ON_COMMANDS: True})
     context = switch.create_context("test")
 
-    assert switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id) is None
+    assert (
+        switch.turn_on_off_listener.adaptation_tasks_color.get(light.entity_id) is None
+    )
 
     service_data = {
         ATTR_BRIGHTNESS: 10,
@@ -1362,11 +1364,15 @@ async def test_cancellable_service_calls_task(hass):
         light.entity_id,
         context,
         0,
-        _create_service_call_data_iterator(hass, [service_data]),
+        _create_service_call_data_iterator(hass, [service_data], False),
+        length=1,
+        which="both",
     )
     await switch.execute_cancellable_adaptation_calls(adaptation_data)
 
-    task = switch.turn_on_off_listener.adaptation_tasks.get(light.entity_id)
+    task = switch.turn_on_off_listener.adaptation_tasks_brightness.get(light.entity_id)
+    task2 = switch.turn_on_off_listener.adaptation_tasks_color.get(light.entity_id)
+    assert task is task2
     assert task is not None
     assert task.done()
 
@@ -1378,7 +1384,7 @@ async def test_service_calls_task_cancellation(hass):
     entity_id = "test_id"
 
     task = asyncio.ensure_future(asyncio.sleep(1))
-    switch.turn_on_off_listener.adaptation_tasks[entity_id] = task
+    switch.turn_on_off_listener.adaptation_tasks_brightness[entity_id] = task
 
     switch.turn_on_off_listener.cancel_ongoing_adaptation_calls(entity_id)
 

@@ -1071,7 +1071,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
         context: Context | None = None,
-    ) -> AdaptationData:
+    ) -> AdaptationData | None:
         if transition is None:
             transition = self._transition
         if adapt_brightness is None:
@@ -1080,6 +1080,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             adapt_color = self.adapt_color_switch.is_on
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
+
+        if not adapt_color and not adapt_brightness:
+            _LOGGER.debug(
+                "%s: Skipping adaptation of %s because both adapt_brightness and"
+                " adapt_color are False",
+                self._name,
+                light,
+            )
+            return None
 
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
@@ -1122,7 +1131,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         context = context or self.create_context("adapt_lights")
 
         self.turn_on_off_listener.last_service_data[light] = service_data
-
         return prepare_adaptation_data(
             self.hass,
             light,
@@ -1163,6 +1171,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color,
             context,
         )
+        if data is None:
+            return None  # nothing to adapt
 
         await self.execute_cancellable_adaptation_calls(data)
 
@@ -1861,6 +1871,8 @@ class TurnOnOffListener:
             adapt_brightness,
             adapt_color,
         )
+        if adaptation_data is None:
+            return
 
         # Take first adaptation item to apply it to this service call
         first_service_data = await adaptation_data.next_service_call_data()
