@@ -1847,7 +1847,8 @@ class TurnOnOffListener:
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
             _LOGGER.debug(
-                "No (or multiple) adaptive switch(es) found for entity %s, skipping adaptation",
+                "No (or multiple) adaptive switch(es) found for entity %s,"
+                " skipping adaptation by intercepting service call",
                 entity_id,
             )
             return
