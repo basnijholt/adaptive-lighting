@@ -1564,16 +1564,16 @@ async def test_proactive_adaptation_transition_override(hass):
 async def test_two_switches_for_single_light(hass):
     """Test the case where someone has two switches for a single light.
 
-    This might be the case if someone has a switch for brightness and
-    another for color with different times
+    One switch for brightness and another for color.
     """
     extra_conf = {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}
-    switch1, _ = await setup_lights_and_switch(
+    switch1, (light1, *_) = await setup_lights_and_switch(
         hass, extra_conf | {CONF_NAME: "switch1"}, all_lights=True
     )
-    switch2, _ = await setup_lights_and_switch(
+    switch2, (light2, *_) = await setup_lights_and_switch(
         hass, extra_conf | {CONF_NAME: "switch2"}, all_lights=True
     )
+    assert light1 is light2
 
     # One switch controls brightness the other color
     await switch1.adapt_color_switch.async_turn_off()
@@ -1581,27 +1581,54 @@ async def test_two_switches_for_single_light(hass):
 
     assert switch1.adapt_brightness_switch.is_on
     assert switch2.adapt_color_switch.is_on
-    _LOGGER.debug("yolo")
-    # Toggle ON
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        SERVICE_TOGGLE,
-        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
-        blocking=True,
-        context=Context(id="test1"),
-    )
 
-    assert switch1.turn_on_off_listener.is_proactively_adapting("test1")
-    assert switch2.turn_on_off_listener.is_proactively_adapting("test1")
+    context1 = switch1.create_context("test1")  # needs to be passed to update method
+    context2 = switch2.create_context("test2")  # needs to be passed to update method
 
-    # Toggle OFF
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        SERVICE_TOGGLE,
-        {ATTR_ENTITY_ID: ENTITY_LIGHT3},
-        blocking=True,
-        context=Context(id="test2"),
-    )
+    async def update():
+        await switch1._update_attrs_and_maybe_adapt_lights(
+            transition=0, context=context1
+        )
+        await switch2._update_attrs_and_maybe_adapt_lights(
+            transition=0, context=context2
+        )
+        await hass.async_block_till_done()
 
-    assert not switch1.turn_on_off_listener.is_proactively_adapting("test2")
-    assert not switch2.turn_on_off_listener.is_proactively_adapting("test2")
+    async def turn_light(state, **kwargs):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        await update()
+        _LOGGER.debug("Turn light %s, to %s", state, kwargs)
+
+    def increased_brightness():
+        return (light1._attr_brightness + 100) % 255
+
+    def increased_color_temp():
+        return max(
+            (light1._attr_color_temp + 100) % light1.max_color_temp_kelvin,
+            light1.min_color_temp_kelvin,
+        )
+
+    await turn_light(True, brightness=increased_brightness())
+    await turn_light(True, color_temp=increased_color_temp())
+    entity_id_light = switch1.lights[0]
+
+    attrs = hass.states.get(entity_id_light).attributes
+    current_brightness = attrs[ATTR_BRIGHTNESS]
+    current_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
+
+    # Turn off "entity_id_light"
+    await turn_light(False)
+
+    # Turn on "entity_id_light"
+    await turn_light(True)
+
+    # Assert that the brightness and color temp have changed
+    attrs = hass.states.get(entity_id_light).attributes
+    assert current_brightness != attrs[ATTR_BRIGHTNESS]
+    assert current_color_temp != attrs[ATTR_COLOR_TEMP_KELVIN]
