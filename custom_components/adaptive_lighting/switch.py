@@ -1237,7 +1237,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await task
         except asyncio.CancelledError:
             _LOGGER.debug(
-                "%s: Ongoing adaptation of %s cancelled", self._name, data.entity_id
+                "%s: Ongoing adaptation of %s cancelled, with AdaptationData: %s",
+                self._name,
+                data.entity_id,
+                AdaptationData,
             )
 
     async def _update_attrs_and_maybe_adapt_lights(
