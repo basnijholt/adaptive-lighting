@@ -1216,7 +1216,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            self.turn_on_off_listener.adaptation_tasks[data.entity_id] = task
+            # TODO: only set the task if actually adapting color/brightness
+            self.turn_on_off_listener.adaptation_tasks_brightness[data.entity_id] = task
+            self.turn_on_off_listener.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
             _LOGGER.debug(
@@ -1703,7 +1705,8 @@ class TurnOnOffListener:
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
         # Track ongoing split adaptations to be able to cancel them
-        self.adaptation_tasks: dict[str, asyncio.Task] = {}
+        self.adaptation_tasks_brightness: dict[str, asyncio.Task] = {}
+        self.adaptation_tasks_color: dict[str, asyncio.Task] = {}
 
         # Track auto reset of manual_control
         self.auto_reset_manual_control_timers: dict[str, _AsyncSingleShotTimer] = {}
@@ -1979,8 +1982,19 @@ class TurnOnOffListener:
 
     def cancel_ongoing_adaptation_calls(self, light_id: str):
         """Cancels an ongoing sequence of adaptation service calls for a specific light entity."""
-        if (previous_task := self.adaptation_tasks.get(light_id)) is not None:
-            previous_task.cancel()
+        brightness_task = self.adaptation_tasks_brightness.get(light_id)
+        color_task = self.adaptation_tasks_color.get(light_id)
+        if brightness_task is None and color_task is None:
+            return
+
+        if brightness_task is color_task:  # same task, single cancellation
+            assert brightness_task is not None
+            assert color_task is not None
+            brightness_task.cancel()
+        elif brightness_task is not None:
+            brightness_task.cancel()
+        elif color_task is not None:
+            color_task.cancel()
 
     def reset(self, *lights, reset_manual_control=True) -> None:
         """Reset the 'manual_control' status of the lights."""
