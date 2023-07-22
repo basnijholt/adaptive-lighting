@@ -1212,10 +1212,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _execute_adaptation_calls(self, data: AdaptationData):
         """Executes a sequence of adaptation service calls for the given service datas."""
 
-        index = 0
-        while True:
+        for index in range(data.max_length):
             is_first_call = index == 0
-            index += 1
 
             # Sleep between multiple service calls.
             if not is_first_call or data.initial_sleep:
@@ -1257,13 +1255,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         listener = self.turn_on_off_listener
         listener.cancel_ongoing_adaptation_calls(data.entity_id, which=data.which)
         _LOGGER.debug(
-            "%s: execute_cancellable_adaptation_calls with data: %s"
-            "adaptation_tasks_brightness: %s"
-            "adaptation_tasks_color: %s",
+            "%s: execute_cancellable_adaptation_calls with data: %s",
             self._name,
             data,
-            listener.adaptation_tasks_brightness,
-            listener.adaptation_tasks_color,
         )
         # Execute adaptation calls within a task
         try:
@@ -1290,9 +1284,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     ) -> None:
         assert context is not None
         _LOGGER.debug(
-            "%s: '_update_attrs_and_maybe_adapt_lights' called with context.id='%s'",
+            "%s: '_update_attrs_and_maybe_adapt_lights' called with context.id='%s'"
+            " lights: '%s', transition: '%s', force: '%s'",
             self._name,
             context.id,
+            lights,
+            transition,
+            force,
         )
         assert self.is_on
         self._settings.update(
@@ -1919,8 +1917,8 @@ class TurnOnOffListener:
             adapt_brightness,
             adapt_color,
         )
-        # if adaptation_data is None:
-        #     return
+        if adaptation_data is None:
+            return
 
         # Take first adaptation item to apply it to this service call
         first_service_data = await adaptation_data.next_service_call_data()
@@ -2193,10 +2191,6 @@ class TurnOnOffListener:
                         entity_id,
                     )
                     self.last_state_change[entity_id] = [new_state]
-                    _LOGGER.debug(
-                        "Last transition: %s",
-                        self.last_service_data[entity_id].get(ATTR_TRANSITION),
-                    )
                     self.start_transition_timer(entity_id)
             elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
