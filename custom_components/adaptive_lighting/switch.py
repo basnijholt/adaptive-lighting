@@ -1212,10 +1212,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _execute_adaptation_calls(self, data: AdaptationData):
         """Executes a sequence of adaptation service calls for the given service datas."""
 
-        index = 0
-        while True:
+        for index in range(data.max_length):
             is_first_call = index == 0
-            index += 1
 
             # Sleep between multiple service calls.
             if not is_first_call or data.initial_sleep:
@@ -2193,10 +2191,6 @@ class TurnOnOffListener:
                         entity_id,
                     )
                     self.last_state_change[entity_id] = [new_state]
-                    _LOGGER.debug(
-                        "Last transition: %s",
-                        self.last_service_data[entity_id].get(ATTR_TRANSITION),
-                    )
                     self.start_transition_timer(entity_id)
             elif old_state is not None:
                 self.last_state_change[entity_id].append(new_state)
