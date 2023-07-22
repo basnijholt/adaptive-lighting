@@ -1162,8 +1162,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        self.turn_on_off_listener.last_service_data[light] = service_data
-
         return prepare_adaptation_data(
             self.hass,
             light,
@@ -1235,6 +1233,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 data.context.id,
             )
+            light = service_data[ATTR_ENTITY_ID]
+            self.turn_on_off_listener.last_service_data[light] = service_data
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
