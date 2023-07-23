@@ -1517,12 +1517,9 @@ class SunLightSettings:
         def _replace_time(date: datetime.datetime, key: str) -> datetime.datetime:
             time = getattr(self, f"{key}_time")
             date_time = datetime.datetime.combine(date, time)
-            try:  # HA ≤2021.05, https://github.com/basnijholt/adaptive-lighting/issues/128
-                utc_time = self.time_zone.localize(date_time).astimezone(dt_util.UTC)
-            except AttributeError:  # HA ≥2021.06
-                utc_time = date_time.replace(
-                    tzinfo=dt_util.DEFAULT_TIME_ZONE
-                ).astimezone(dt_util.UTC)
+            utc_time = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
+                dt_util.UTC
+            )
             return utc_time
 
         def calculate_noon_and_midnight(
