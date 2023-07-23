@@ -26,7 +26,6 @@ ignore = [
 [per-file-ignores]
 "tests/*.py" = ["ALL"]
 ".github/*py" = ["INP001"]
-"test_dependencies.py" = ["ALL"]
 
 [flake8-pytest-style]
 fixture-parentheses = false
