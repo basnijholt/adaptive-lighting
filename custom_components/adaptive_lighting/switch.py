@@ -1123,6 +1123,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and adapt_color
             and not (prefer_rgb_color and "color" in features)
             and not (sleep_rgb and "color" in features)
+            and not (self._settings["force_rgb_color"] and "color" in features)
         ):
             _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
             attributes = self.hass.states.get(light).attributes
@@ -1487,6 +1488,17 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
+def lerp_color(
+    rgb1: tuple[int, int, int], rgb2: tuple[int, int, int], t: float
+) -> tuple[int, int, int]:
+    """Linearly interpolate between two RGB colors."""
+    return (
+        int(rgb1[0] + t * (rgb2[0] - rgb1[0])),
+        int(rgb1[1] + t * (rgb2[1] - rgb1[1])),
+        int(rgb1[2] + t * (rgb2[2] - rgb1[2])),
+    )
+
+
 @dataclass(frozen=True)
 class SunLightSettings:
     """Track the state of the sun and associated light settings."""
@@ -1654,15 +1666,28 @@ class SunLightSettings:
             if transition is not None
             else self.calc_percent(0)
         )
+        rgb_color: tuple[float, float, float]
+        force_rgb_color = False  # Needed for RGB color after sunset (if enabled)
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
-            rgb_color: tuple[float, float, float] = self.sleep_rgb_color
+            rgb_color = self.sleep_rgb_color
+        elif (
+            self.sleep_rgb_or_color_temp == "rgb_color"
+            and self.adapt_until_sleep
+            and percent < 0
+        ):
+            # Feature requested in
+            # https://github.com/basnijholt/adaptive-lighting/issues/624
+            # This will result in a perceptible jump in color at sunset and sunrise
+            # because the `color_temperature_to_rgb` function is not 100% accurate.
+            min_color_rgb = color_temperature_to_rgb(self.min_color_temp)
+            rgb_color = lerp_color(min_color_rgb, self.sleep_rgb_color, percent)
+            color_temp_kelvin = self.calc_color_temp_kelvin(percent)
+            force_rgb_color = True
         else:
             color_temp_kelvin = self.calc_color_temp_kelvin(percent)
-            rgb_color: tuple[float, float, float] = color_temperature_to_rgb(
-                color_temp_kelvin
-            )
+            rgb_color = color_temperature_to_rgb(color_temp_kelvin)
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
@@ -1675,6 +1700,7 @@ class SunLightSettings:
             "xy_color": xy_color,
             "hs_color": hs_color,
             "sun_position": percent,
+            "force_rgb_color": force_rgb_color,
         }
 
 
