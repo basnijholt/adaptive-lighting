@@ -10,7 +10,6 @@ ignore = [
     "ANN",
     "ANN101",  # Missing type annotation for {name} in method
     "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in {name}
-    "ARG",
     "B905",
     "D102",
     "D103",

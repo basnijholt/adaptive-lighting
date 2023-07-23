@@ -35,7 +35,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def reload_configuration_yaml(event: dict, hass: HomeAssistant):
+async def reload_configuration_yaml(event: dict, hass: HomeAssistant):  # noqa: ARG001
     """Reload configuration.yaml."""
     await hass.services.async_call("homeassistant", "check_config", {})
 

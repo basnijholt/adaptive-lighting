@@ -1099,7 +1099,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context=self.create_context("turn_on"),
             )
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs) -> None:  # noqa: ARG002
         """Turn off adaptive lighting."""
         if not self.is_on:
             return
@@ -1107,7 +1107,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
         self.manager.reset(*self.lights)
 
-    async def _async_update_at_interval_action(self, now=None) -> None:
+    async def _async_update_at_interval_action(self, now=None) -> None:  # noqa: ARG002
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._transition,
             force=False,
@@ -1535,12 +1535,12 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         else:
             await self.async_turn_off()
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs) -> None:  # noqa: ARG002
         """Turn on adaptive lighting sleep mode."""
         _LOGGER.debug("%s: Turning on", self._name)
         self._state = True
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs) -> None:  # noqa: ARG002
         """Turn off adaptive lighting sleep mode."""
         _LOGGER.debug("%s: Turning off", self._name)
         self._state = False
