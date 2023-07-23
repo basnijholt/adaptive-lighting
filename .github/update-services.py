@@ -5,7 +5,7 @@ import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from custom_components.adaptive_lighting import const  # noqa: E402
+from custom_components.adaptive_lighting import const
 
 services_filename = "custom_components/adaptive_lighting/services.yaml"
 with open(services_filename) as f:

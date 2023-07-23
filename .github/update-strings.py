@@ -4,7 +4,7 @@ import sys
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from custom_components.adaptive_lighting import const  # noqa: E402
+from custom_components.adaptive_lighting import const
 
 strings_fname = "custom_components/adaptive_lighting/strings.json"
 en_fname = "custom_components/adaptive_lighting/translations/en.json"
