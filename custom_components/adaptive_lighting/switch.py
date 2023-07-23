@@ -1163,8 +1163,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         prefer_rgb_color: bool | None = None,
         context: Context | None = None,
     ) -> None:
-        lock = self._locks.get(light)
-        if lock is not None and lock.locked():
+        if (lock := self._locks.get(light)) is not None and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
 
