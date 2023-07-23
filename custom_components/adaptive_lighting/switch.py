@@ -842,9 +842,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self._include_config_in_attributes:
             attrdata = deepcopy(data)
             for k, v in attrdata.items():
-                if isinstance(v, (datetime.date, datetime.datetime)):
+                if isinstance(v, datetime.date | datetime.datetime):
                     attrdata[k] = v.isoformat()
-                if isinstance(v, (datetime.timedelta)):
+                elif isinstance(v, datetime.timedelta):
                     attrdata[k] = v.total_seconds()
             self._config.update(attrdata)
 
