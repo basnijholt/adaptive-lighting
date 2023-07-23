@@ -662,16 +662,16 @@ def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
         return attributes
 
     rgb = None
-    if ATTR_COLOR_TEMP_KELVIN in attributes:
-        rgb = color_temperature_to_rgb(attributes[ATTR_COLOR_TEMP_KELVIN])
-    elif ATTR_XY_COLOR in attributes:
-        rgb = color_xy_to_RGB(*attributes[ATTR_XY_COLOR])
+    if (color := attributes.get(ATTR_COLOR_TEMP_KELVIN)) is not None:
+        rgb = color_temperature_to_rgb(color)
+    elif (color := attributes.get(ATTR_XY_COLOR)) is not None:
+        rgb = color_xy_to_RGB(*color)
 
     if rgb is not None:
         attributes[ATTR_RGB_COLOR] = rgb
         _LOGGER.debug(f"Converted {attributes} to rgb {rgb}")
     else:
-        _LOGGER.debug("No suitable conversion found")
+        _LOGGER.debug("No suitable color conversion found for %s", attributes)
 
     return attributes
 
@@ -869,13 +869,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._expand_light_groups()  # updates manual control timers
-        _loc = get_astral_location(self.hass)
-        if isinstance(_loc, tuple):
-            # Astral v2.2
-            location, _ = _loc
-        else:
-            # Astral v1
-            location = _loc
+        location, _ = get_astral_location(self.hass)
 
         self._sun_light_settings = SunLightSettings(
             name=self._name,
