@@ -1970,10 +1970,7 @@ class TurnOnOffListener:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        last_service_data = self.last_service_data.get(light)
-        if not last_service_data:
-            _LOGGER.debug("This should not ever happen. Please report to the devs.")
-            return
+        last_service_data = self.last_service_data[light]
         last_transition = last_service_data.get(ATTR_TRANSITION)
         if not last_transition:
             _LOGGER.debug(
@@ -1985,7 +1982,6 @@ class TurnOnOffListener:
         )
 
         async def reset():
-            ValueError("TEST")
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
