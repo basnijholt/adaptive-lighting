@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from custom_components.adaptive_lighting import const
+from custom_components.adaptive_lighting import const  # noqa: E402
 
 strings_fname = "custom_components/adaptive_lighting/strings.json"
 en_fname = "custom_components/adaptive_lighting/translations/en.json"
