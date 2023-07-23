@@ -5,7 +5,7 @@ from pathlib import Path
 deps = defaultdict(list)
 components, packages = [], []
 
-requirements = Path("code") / "requirements_test_all.txt"
+requirements = Path("core") / "requirements_test_all.txt"
 
 with requirements.open() as f:
     lines = f.readlines()
