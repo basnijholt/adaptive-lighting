@@ -1844,8 +1844,6 @@ class AdaptiveLightingManager:
         self.reset(entity_id, reset_manual_control=False)
         self.clear_proactively_adapting(entity_id)
 
-        adapt_brightness = adaptive_switch.adapt_brightness_switch.is_on or False
-        adapt_color = adaptive_switch.adapt_color_switch.is_on or False
         transition = data[CONF_PARAMS].get(
             ATTR_TRANSITION, adaptive_switch.initial_transition
         )
@@ -1853,8 +1851,6 @@ class AdaptiveLightingManager:
         adaptation_data = await adaptive_switch.prepare_adaptation_data(
             entity_id,
             transition,
-            adapt_brightness,
-            adapt_color,
         )
         if adaptation_data is None:
             return
