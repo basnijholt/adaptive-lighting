@@ -21,13 +21,10 @@ ignore = [
     "D411",    # Missing blank line before section
     "E501",    # line too long
     "E731",    # do not assign a lambda expression, use a def
-    "EXE002",
-    "FBT",
     "FIX002",  # Line contains TODO"
-    "FIX004",
-    "ISC001",
-    "N806",
-    "N818",
+    "FIX004",  # Line contains HACK, consider resolving the issue
+    "FBT001",  # Boolean positional arg in function definition
+    "FBT002",  # Boolean default value in function definition
     "PD901",   # df is a bad variable name. Be kinder to your future self.
     "PERF203",
     "PERF401",

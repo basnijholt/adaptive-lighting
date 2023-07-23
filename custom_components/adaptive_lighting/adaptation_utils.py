@@ -145,7 +145,7 @@ class AdaptationData:
         return await anext(self.service_call_datas, None)
 
 
-class NoColorOrBrightnessInServiceData(Exception):
+class NoColorOrBrightnessInServiceDataError(Exception):
     """Exception raised when no color or brightness attributes are found in service data."""
 
 
@@ -162,7 +162,7 @@ def _identify_lighting_type(
     if has_color:
         return "color"
     msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
-    raise NoColorOrBrightnessInServiceData(msg)
+    raise NoColorOrBrightnessInServiceDataError(msg)
 
 
 def prepare_adaptation_data(

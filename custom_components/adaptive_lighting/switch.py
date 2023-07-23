@@ -211,17 +211,17 @@ def _int_to_base36(num: int) -> str:
     >>> print(base36_num)
     '2N9'
     """
-    ALPHANUMERIC_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    alphanumeric_chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     if num == 0:
-        return ALPHANUMERIC_CHARS[0]
+        return alphanumeric_chars[0]
 
     base36_str = ""
-    base = len(ALPHANUMERIC_CHARS)
+    base = len(alphanumeric_chars)
 
     while num:
         num, remainder = divmod(num, base)
-        base36_str = ALPHANUMERIC_CHARS[remainder] + base36_str
+        base36_str = alphanumeric_chars[remainder] + base36_str
 
     return base36_str
 
@@ -413,7 +413,7 @@ def _fire_manual_control_event(
     switch: AdaptiveSwitch,
     light: str,
     context: Context,
-    is_async=True,
+    is_async: bool = True,
 ):
     """Fire an event that 'light' is marked as manual_control."""
     hass = switch.hass

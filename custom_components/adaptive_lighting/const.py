@@ -49,9 +49,9 @@ DOCS[CONF_INITIAL_TRANSITION] = (
 )
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
-DOCS[CONF_SLEEP_TRANSITION] = (
-    'Duration of transition when "sleep mode" is toggled ' "in seconds. 😴"
-)
+DOCS[
+    CONF_SLEEP_TRANSITION
+] = 'Duration of transition when "sleep mode" is toggled in seconds. 😴'
 
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
 DOCS[CONF_INTERVAL] = "Frequency to adapt the lights, in seconds. 🔄"
@@ -99,17 +99,17 @@ DOCS[CONF_SLEEP_COLOR_TEMP] = (
 )
 
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
-DOCS[CONF_SLEEP_RGB_COLOR] = (
-    "RGB color in sleep mode (used when " '`sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
-)
+DOCS[
+    CONF_SLEEP_RGB_COLOR
+] = 'RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
 
 CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
     "sleep_rgb_or_color_temp",
     "color_temp",
 )
-DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
-    'Use either `"rgb_color"` or `"color_temp"` ' "in sleep mode. 🌙"
-)
+DOCS[
+    CONF_SLEEP_RGB_OR_COLOR_TEMP
+] = 'Use either `"rgb_color"` or `"color_temp"` in sleep mode. 🌙'
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
 DOCS[
