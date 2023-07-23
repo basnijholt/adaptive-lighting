@@ -1920,7 +1920,7 @@ class AdaptiveLightingManager:
         )
 
         async def reset():
-            ValueError("TEST")
+            # Called when the timer expires, doesn't need to do anything
             _LOGGER.debug(
                 "Transition finished for light %s",
                 light,
