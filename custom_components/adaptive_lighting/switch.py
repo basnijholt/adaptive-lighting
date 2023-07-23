@@ -320,8 +320,8 @@ def _switch_with_lights(
     else:
         msg = (
             f"_switch_with_lights: Light(s) {lights} not found in any switch's"
-            f" configuration. You must either include the light(s) that is/are"
-            f" in the integration config, or pass a switch under 'entity_id'."
+            " configuration. You must either include the light(s) that is/are"
+            " in the integration config, or pass a switch under 'entity_id'."
         )
         raise NoSwitchFoundError(msg)
 
@@ -352,9 +352,7 @@ def _switches_from_service_call(
                 "adaptive-lighting: Cannot pass multiple switches with lights argument."
                 f" Invalid service data received: {service_call.data}"
             )
-            raise ValueError(
-                msg,
-            )
+            raise ValueError(msg)
         switches = []
         ent_reg = entity_registry.async_get(hass)
         for entity_id in switch_entity_ids:
@@ -368,7 +366,7 @@ def _switches_from_service_call(
         return [switch]
 
     msg = (
-        f"adaptive-lighting: Incorrect data provided in service call."
+        "adaptive-lighting: Incorrect data provided in service call."
         f" Entities not found in the integration. Service data: {service_call.data}"
     )
     raise ValueError(msg)

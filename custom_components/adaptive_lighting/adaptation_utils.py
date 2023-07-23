@@ -117,7 +117,7 @@ async def _create_service_call_data_iterator(
             if current_entity_state is not None:
                 service_data = _remove_redundant_attributes(
                     service_data,
-                    current_entity_state,
+                    state=current_entity_state,
                 )
 
             # Emit service data if it still contains relevant attributes (else try next)
