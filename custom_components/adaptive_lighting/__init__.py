@@ -10,7 +10,7 @@ import voluptuous as vol
 
 from .const import (
     _DOMAIN_SCHEMA,
-    ATTR_TURN_ON_OFF_LISTENER,
+    ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_NAME,
     DOMAIN,
     UNDO_UPDATE_LISTENER,
@@ -86,10 +86,10 @@ async def async_unload_entry(hass, config_entry: ConfigEntry) -> bool:
     if unload_ok:
         data.pop(config_entry.entry_id)
 
-    if len(data) == 1 and ATTR_TURN_ON_OFF_LISTENER in data:
+    if len(data) == 1 and ATTR_ADAPTIVE_LIGHTING_MANAGER in data:
         # no more config_entries
-        turn_on_off_listener = data.pop(ATTR_TURN_ON_OFF_LISTENER)
-        turn_on_off_listener.disable()
+        manager = data.pop(ATTR_ADAPTIVE_LIGHTING_MANAGER)
+        manager.disable()
 
     if not data:
         hass.data.pop(DOMAIN)
