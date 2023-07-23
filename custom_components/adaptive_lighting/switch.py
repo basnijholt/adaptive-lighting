@@ -260,6 +260,7 @@ def create_context(
 
 
 def is_our_context_id(context_id: str | None) -> bool:
+    """Check whether this integration created 'context_id'."""
     if context_id is None:
         return False
     return f":{_DOMAIN_SHORT}:" in context_id
@@ -1125,6 +1126,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         prefer_rgb_color: bool | None = None,
         context: Context | None = None,
     ) -> AdaptationData | None:
+        """Prepare `AdaptationData` for adapting a light."""
         if transition is None:
             transition = self._transition
         if adapt_brightness is None:
@@ -1854,13 +1856,13 @@ class AdaptiveLightingManager:
             remove()
 
     def set_proactively_adapting(self, context_id: str, entity_id: str) -> None:
-        """Declare the adaptation with the given context ID as proactively adapting,
-        and associate it to an entity ID.
-        """
+        """Declare the adaptation with context_id as proactively adapting,
+        and associate it to an entity_id.
+        """  # noqa: D205
         self._proactively_adapting_contexts[context_id] = entity_id
 
     def is_proactively_adapting(self, context_id: str) -> bool:
-        """Determine whether an adaptation with the given context ID is proactive."""
+        """Determine whether an adaptation with the given context_id is proactive."""
         is_proactively_adapting_context = (
             context_id in self._proactively_adapting_contexts
         )

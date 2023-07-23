@@ -40,8 +40,9 @@ ServiceData = dict[str, Any]
 
 
 def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
-    """Splits the service data by the adapted attributes, i.e., into separate data
-    items for brightness and color.
+    """Splits the service data by the adapted attributes.
+
+    i.e., into separate data items for brightness and color.
     """
     common_attrs = {ATTR_ENTITY_ID}
     common_data = {k: service_data[k] for k in common_attrs if k in service_data}
