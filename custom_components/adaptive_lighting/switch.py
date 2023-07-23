@@ -1314,31 +1314,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not filtered_lights:
             return
 
-        await self._update_manual_control_and_maybe_adapt(
-            filtered_lights, transition, force, context
-        )
-
-    async def _update_manual_control_and_maybe_adapt(
-        self,
-        lights: list[str],
-        transition: int | None,
-        force: bool,
-        context: Context | None,
-    ) -> None:
         assert context is not None
-        _LOGGER.debug(
-            "%s: '_update_manual_control_and_maybe_adapt(%s, %s, force=%s, context.id=%s)' called",
-            self.name,
-            lights,
-            transition,
-            force,
-            context.id,
-        )
 
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
 
-        for light in lights:
+        for light in filtered_lights:
             if not is_on(self.hass, light):
                 continue
 
@@ -1756,18 +1737,17 @@ class AdaptiveLightingManager:
         # Track light transitions
         self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
 
-        self.listener_removers = []
-
-        self.listener_removers.append(
+        # Setup listeners and its callbacks to remove them later
+        self.listener_removers = [
             self.hass.bus.async_listen(
-                EVENT_CALL_SERVICE, self.turn_on_off_event_listener
-            )
-        )
-        self.listener_removers.append(
+                EVENT_CALL_SERVICE,
+                self.turn_on_off_event_listener,
+            ),
             self.hass.bus.async_listen(
-                EVENT_STATE_CHANGED, self.state_changed_event_listener
-            )
-        )
+                EVENT_STATE_CHANGED,
+                self.state_changed_event_listener,
+            ),
+        ]
 
         self._proactively_adapting_contexts: dict[str, str] = {}
 
