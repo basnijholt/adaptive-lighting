@@ -1378,9 +1378,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
             # Tracks 'off' → 'on' state changes
             self._off_to_on_event[entity_id] = event
-            lock = self._locks.get(entity_id)
-            if lock is None:
-                lock = self._locks[entity_id] = asyncio.Lock()
+            lock = self._locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.manager.maybe_cancel_adjusting(
                     entity_id,
