@@ -14,8 +14,8 @@ import pytest
 from custom_components.adaptive_lighting.adaptation_utils import (
     ServiceData,
     _create_service_call_data_iterator,
-    _filter_service_data,
     _has_relevant_service_data_attributes,
+    _remove_redundant_attributes,
     _split_service_call_data,
     prepare_adaptation_data,
 )
@@ -76,11 +76,6 @@ async def test_split_service_call_data(input_data, expected_data_list):
     [
         (
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
-            None,
-            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
-        ),
-        (
-            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
             State("light.test", STATE_ON),
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
         ),
@@ -96,17 +91,16 @@ async def test_split_service_call_data(input_data, expected_data_list):
         ),
     ],
     ids=[
-        "pass all attributes on missing state",
         "pass all attributes on empty state",
         "remove attributes whose values equal the state",
         "keep attributes whose values differ from the state",
     ],
 )
-async def test_filter_service_data(
+async def test_remove_redundant_attributes(
     service_data: ServiceData, state: State | None, service_data_expected: ServiceData
 ):
     """Test filtering of service data."""
-    assert _filter_service_data(service_data, state) == service_data_expected
+    assert _remove_redundant_attributes(service_data, state) == service_data_expected
 
 
 @pytest.mark.parametrize(

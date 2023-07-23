@@ -1,7 +1,8 @@
 """Utility functions for adaptation commands."""
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any
+import logging
+from typing import Any, Literal
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -17,6 +18,8 @@ from homeassistant.components.light import (
 )
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Context, HomeAssistant, State
+
+_LOGGER = logging.getLogger(__name__)
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_COLOR_NAME,
@@ -57,7 +60,7 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
 
     # Distribute the transition duration across all service calls
     if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
-        transition = service_data[ATTR_TRANSITION] / len(service_datas)
+        transition /= len(service_datas)
 
         for service_data in service_datas:
             service_data[ATTR_TRANSITION] = transition
@@ -65,19 +68,18 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     return service_datas
 
 
-def _filter_service_data(service_data: ServiceData, state: State | None) -> ServiceData:
+def _remove_redundant_attributes(
+    service_data: ServiceData, state: State
+) -> ServiceData:
     """Filter service data by removing attributes that already equal the given state.
 
     Removes all attributes from service call data whose values are already present
-    in the target entity's state.
-    """
-    if not state:
-        return service_data
+    in the target entity's state."""
 
     return {
-        k: service_data[k]
-        for k in service_data
-        if k not in state.attributes or service_data[k] != state.attributes[k]
+        k: v
+        for k, v in service_data.items()
+        if k not in state.attributes or v != state.attributes[k]
     }
 
 
@@ -88,15 +90,14 @@ def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
     change relevant attributes of an adapting entity, e.g., brightness or color.
     """
     common_attrs = {ATTR_ENTITY_ID, ATTR_TRANSITION}
-    relevant_attrs = set(service_data) - common_attrs
 
-    return bool(relevant_attrs)
+    return any(attr not in common_attrs for attr in service_data)
 
 
 async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
-    filter_by_state: bool = False,
+    filter_by_state: bool,
 ) -> AsyncGenerator[ServiceData, None]:
     """Enumerates and filters a list of service datas on the fly.
 
@@ -112,8 +113,10 @@ async def _create_service_call_data_iterator(
             current_entity_state = hass.states.get(entity_id)
 
             # Filter data to remove attributes that equal the current state
-            if current_entity_state:
-                service_data = _filter_service_data(service_data, current_entity_state)
+            if current_entity_state is not None:
+                service_data = _remove_redundant_attributes(
+                    service_data, current_entity_state
+                )
 
             # Emit service data if it still contains relevant attributes (else try next)
             if _has_relevant_service_data_attributes(service_data):
@@ -130,11 +133,33 @@ class AdaptationData:
     context: Context
     sleep_time: float
     service_call_datas: AsyncGenerator[ServiceData, None]
+    max_length: int
+    which: Literal["brightness", "color", "both"]
     initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
         """Return data for the next service call, or none if no more data exists."""
         return await anext(self.service_call_datas, None)
+
+
+class NoColorOrBrightnessInServiceData(Exception):
+    """Exception raised when no color or brightness attributes are found in service data."""
+
+
+def _identify_lighting_type(
+    service_data: ServiceData,
+) -> Literal["brightness", "color", "both"]:
+    """Extract the 'which' attribute from the service data."""
+    has_brightness = ATTR_BRIGHTNESS in service_data
+    has_color = any(attr in service_data for attr in COLOR_ATTRS)
+    if has_brightness and has_color:
+        return "both"
+    if has_brightness:
+        return "brightness"
+    if has_color:
+        return "color"
+    msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
+    raise NoColorOrBrightnessInServiceData(msg)
 
 
 def prepare_adaptation_data(
@@ -147,14 +172,24 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
 ) -> AdaptationData:
-    "Prepares a data object carrying all data required to execute an adaptation."
-    service_datas = (
-        [service_data] if not split else _split_service_call_data(service_data)
+    """Prepares a data object carrying all data required to execute an adaptation."""
+    _LOGGER.debug(
+        "Preparing adaptation data for %s with service data %s",
+        entity_id,
+        service_data,
     )
+    if split:
+        service_datas = _split_service_call_data(service_data)
+    else:
+        service_datas = [service_data]
 
-    sleep_time = (
-        transition / max(1, len(service_datas)) if transition is not None else 0
-    ) + split_delay
+    service_datas_length = len(service_datas)
+
+    if transition is not None:
+        transition_duration_per_data = transition / max(1, service_datas_length)
+        sleep_time = transition_duration_per_data + split_delay
+    else:
+        sleep_time = split_delay
 
     service_data_iterator = _create_service_call_data_iterator(
         hass,
@@ -162,4 +197,13 @@ def prepare_adaptation_data(
         filter_by_state,
     )
 
-    return AdaptationData(entity_id, context, sleep_time, service_data_iterator)
+    lighting_type = _identify_lighting_type(service_data)
+
+    return AdaptationData(
+        entity_id=entity_id,
+        context=context,
+        sleep_time=sleep_time,
+        service_call_datas=service_data_iterator,
+        max_length=service_datas_length,
+        which=lighting_type,
+    )
