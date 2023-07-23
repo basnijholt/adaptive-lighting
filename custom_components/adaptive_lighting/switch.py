@@ -158,6 +158,7 @@ if TYPE_CHECKING:
 
     import astral
     from homeassistant.config_entries import ConfigEntry
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 _SUPPORT_OPTS = {
     "brightness": SUPPORT_BRIGHTNESS,
@@ -434,7 +435,7 @@ def _fire_manual_control_event(
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
-    async_add_entities: bool,
+    async_add_entities: AddEntitiesCallback,
 ):
     """Set up the AdaptiveLighting switch."""
     data = hass.data[DOMAIN]
@@ -447,25 +448,25 @@ async def async_setup_entry(
         )
     manager: AdaptiveLightingManager = data[ATTR_ADAPTIVE_LIGHTING_MANAGER]
     sleep_mode_switch = SimpleSwitch(
-        "Sleep Mode",
-        False,
-        hass,
-        config_entry,
-        ICON_SLEEP,
+        which="Sleep Mode",
+        initial_state=False,
+        hass=hass,
+        config_entry=config_entry,
+        icon=ICON_SLEEP,
     )
     adapt_color_switch = SimpleSwitch(
-        "Adapt Color",
-        True,
-        hass,
-        config_entry,
-        ICON_COLOR_TEMP,
+        which="Adapt Color",
+        initial_state=True,
+        hass=hass,
+        config_entry=config_entry,
+        icon=ICON_COLOR_TEMP,
     )
     adapt_brightness_switch = SimpleSwitch(
-        "Adapt Brightness",
-        True,
-        hass,
-        config_entry,
-        ICON_BRIGHTNESS,
+        which="Adapt Brightness",
+        initial_state=True,
+        hass=hass,
+        config_entry=config_entry,
+        icon=ICON_BRIGHTNESS,
     )
     switch = AdaptiveSwitch(
         hass,
