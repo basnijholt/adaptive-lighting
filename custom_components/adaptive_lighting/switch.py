@@ -1667,7 +1667,8 @@ class SunLightSettings:
             else self.calc_percent(0)
         )
         rgb_color: tuple[float, float, float]
-        force_rgb_color = False  # Needed for RGB color after sunset (if enabled)
+        # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
+        force_rgb_color = False
         brightness_pct = self.calc_brightness_pct(percent, is_sleep)
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
