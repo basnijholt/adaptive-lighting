@@ -1283,10 +1283,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if lights is None:
             lights = self.lights
 
-        filtered_lights = []
-        if not force:
-            if self._only_once:
-                return
+        if not force and self._only_once:
+            return
+
+        if force:
+            filtered_lights = lights
+        else:
+            filtered_lights = []
             for light in lights:
                 # Don't adapt lights that haven't finished prior transitions.
                 timer = self.manager.transition_timers.get(light)
@@ -1298,13 +1301,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                 else:
                     filtered_lights.append(light)
-        else:
-            filtered_lights = lights
 
         if not filtered_lights:
             return
-
-        assert context is not None
 
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
