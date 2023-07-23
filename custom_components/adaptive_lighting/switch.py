@@ -954,8 +954,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         remove_sleep = async_track_state_change_event(
             self.hass,
-            self.sleep_mode_switch.entity_id,
-            self._sleep_mode_switch_state_event_action,
+            entity_ids=self.sleep_mode_switch.entity_id,
+            action=self._sleep_mode_switch_state_event_action,
         )
 
         self.remove_listeners.append(remove_sleep)
@@ -963,7 +963,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.lights:
             self._expand_light_groups()
             remove_state = async_track_state_change_event(
-                self.hass, self.lights, self._light_event_action
+                self.hass, entity_ids=self.lights, action=self._light_event_action
             )
             self.remove_listeners.append(remove_state)
 
@@ -988,7 +988,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
         self.remove_interval = async_track_time_interval(
-            self.hass, self._async_update_at_interval_action, adaptation_interval
+            self.hass,
+            action=self._async_update_at_interval_action,
+            interval=adaptation_interval,
         )
 
     def _remove_interval_listener(self) -> None:
