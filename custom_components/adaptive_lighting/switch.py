@@ -186,8 +186,7 @@ _DOMAIN_SHORT = "al"
 
 
 def _int_to_base36(num: int) -> str:
-    """
-    Convert an integer to its base-36 representation using numbers and uppercase letters.
+    """Convert an integer to its base-36 representation using numbers and uppercase letters.
 
     Base-36 encoding uses digits 0-9 and uppercase letters A-Z, providing a case-insensitive
     alphanumeric representation. The function takes an integer `num` as input and returns
@@ -604,35 +603,36 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
     return list(all_lights)
 
 
-def _supported_features(hass: HomeAssistant, light: str):
+def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
     supported = {
         key for key, value in _SUPPORT_OPTS.items() if supported_features & value
     }
+
     supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())
-    if COLOR_MODE_RGB in supported_color_modes:
-        supported.add("color")
-        # Adding brightness here, see
-        # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
-        supported.add("brightness")
-    if COLOR_MODE_RGBW in supported_color_modes:
-        supported.add("color")
-        supported.add("brightness")  # see above url
-    if COLOR_MODE_RGBWW:
-        supported.add("color")
-        supported.add("brightness")  # see above url
-    if COLOR_MODE_XY in supported_color_modes:
-        supported.add("color")
-        supported.add("brightness")  # see above url
-    if COLOR_MODE_HS in supported_color_modes:
-        supported.add("color")
-        supported.add("brightness")  # see above url
+    color_modes = {
+        COLOR_MODE_RGB,
+        COLOR_MODE_RGBW,
+        COLOR_MODE_RGBWW,
+        COLOR_MODE_XY,
+        COLOR_MODE_HS,
+    }
+
+    # Adding brightness when color mode is supported, see
+    # comment https://github.com/basnijholt/adaptive-lighting/issues/112#issuecomment-836944011
+
+    for mode in color_modes:
+        if mode in supported_color_modes:
+            supported.update({"color", "brightness"})
+            break
+
     if COLOR_MODE_COLOR_TEMP in supported_color_modes:
-        supported.add("color_temp")
-        supported.add("brightness")  # see above url
+        supported.update({"color_temp", "brightness"})
+
     if COLOR_MODE_BRIGHTNESS in supported_color_modes:
         supported.add("brightness")
+
     return supported
 
 
