@@ -4,17 +4,19 @@ from __future__ import annotations
 import asyncio
 import base64
 import bisect
-from collections.abc import Callable, Coroutine, Iterable
-from copy import deepcopy
-from dataclasses import dataclass
 import datetime
-from datetime import timedelta
 import functools
 import logging
 import math
-from typing import Any, Literal
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import timedelta
+from typing import TYPE_CHECKING, Any, Literal
 
-import astral
+import homeassistant.helpers.config_validation as cv
+import homeassistant.util.dt as dt_util
+import ulid_transform
+import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -29,8 +31,6 @@ from homeassistant.components.light import (
     COLOR_MODE_RGBW,
     COLOR_MODE_RGBWW,
     COLOR_MODE_XY,
-)
-from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
@@ -41,7 +41,6 @@ from homeassistant.components.light import (
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_DOMAIN,
@@ -71,7 +70,6 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import entity_platform, entity_registry
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
@@ -86,9 +84,6 @@ from homeassistant.util.color import (
     color_xy_to_hs,
     color_xy_to_RGB,
 )
-import homeassistant.util.dt as dt_util
-import ulid_transform
-import voluptuous as vol
 
 from .adaptation_utils import (
     BRIGHTNESS_ATTRS,
@@ -156,6 +151,13 @@ from .const import (
 )
 from .hass_utils import setup_service_call_interceptor
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine, Iterable
+
+    import astral
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 _SUPPORT_OPTS = {
     "brightness": SUPPORT_BRIGHTNESS,
     "color_temp": SUPPORT_COLOR_TEMP,
@@ -209,17 +211,17 @@ def _int_to_base36(num: int) -> str:
     >>> print(base36_num)
     '2N9'
     """
-    ALPHANUMERIC_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    alphanumeric_chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     if num == 0:
-        return ALPHANUMERIC_CHARS[0]
+        return alphanumeric_chars[0]
 
     base36_str = ""
-    base = len(ALPHANUMERIC_CHARS)
+    base = len(alphanumeric_chars)
 
     while num:
         num, remainder = divmod(num, base)
-        base36_str = ALPHANUMERIC_CHARS[remainder] + base36_str
+        base36_str = alphanumeric_chars[remainder] + base36_str
 
     return base36_str
 
@@ -236,7 +238,10 @@ def _remove_vowels(input_str: str, length: int = 4) -> str:
 
 
 def create_context(
-    name: str, which: str, index: int, parent: Context | None = None
+    name: str,
+    which: str,
+    index: int,
+    parent: Context | None = None,
 ) -> Context:
     """Create a context that can identify this integration."""
     # Use a hash for the name because otherwise the context might become
@@ -255,6 +260,7 @@ def create_context(
 
 
 def is_our_context_id(context_id: str | None) -> bool:
+    """Check whether this integration created 'context_id'."""
     if context_id is None:
         return False
     return f":{_DOMAIN_SHORT}:" in context_id
@@ -268,7 +274,8 @@ def is_our_context(context: Context | None) -> bool:
 
 
 def _switches_with_lights(
-    hass: HomeAssistant, lights: list[str]
+    hass: HomeAssistant,
+    lights: list[str],
 ) -> list[AdaptiveSwitch]:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
@@ -299,48 +306,52 @@ def _switch_with_lights(
     switches = _switches_with_lights(hass, lights)
     if len(switches) == 1:
         return switches[0]
-    elif len(switches) > 1:
+    if len(switches) > 1:
         on_switches = [s for s in switches if s.is_on]
         if len(on_switches) == 1:
             # Of the multiple switches, only one is on
             return on_switches[0]
-        raise NoSwitchFoundError(
+        msg = (
             f"_switch_with_lights: Light(s) {lights} found in multiple switch configs"
             f" ({[s.entity_id for s in switches]}). You must pass a switch under"
-            f" 'entity_id'."
+            " 'entity_id'."
         )
-    else:
-        raise NoSwitchFoundError(
-            f"_switch_with_lights: Light(s) {lights} not found in any switch's"
-            f" configuration. You must either include the light(s) that is/are"
-            f" in the integration config, or pass a switch under 'entity_id'."
-        )
+        raise NoSwitchFoundError(msg)
+    msg = (
+        f"_switch_with_lights: Light(s) {lights} not found in any switch's"
+        " configuration. You must either include the light(s) that is/are"
+        " in the integration config, or pass a switch under 'entity_id'."
+    )
+    raise NoSwitchFoundError(msg)
 
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
 def _switches_from_service_call(
-    hass: HomeAssistant, service_call: ServiceCall
+    hass: HomeAssistant,
+    service_call: ServiceCall,
 ) -> list[AdaptiveSwitch]:
     data = service_call.data
     lights = data[CONF_LIGHTS]
     switch_entity_ids: list[str] | None = data.get("entity_id")
 
     if not lights and not switch_entity_ids:
-        raise ValueError(
+        msg = (
             "adaptive-lighting: Neither a switch nor a light was provided in the service call."
-            " If you intend to adapt all lights on all switches, please inform the developers at"
-            " https://github.com/basnijholt/adaptive-lighting about your use case."
-            " Currently, you must pass either an adaptive-lighting switch or the lights to an"
-            " `adaptive_lighting` service call."
+            " If you intend to adapt all lights on all switches, please inform the"
+            " developers at https://github.com/basnijholt/adaptive-lighting about your"
+            " use case. Currently, you must pass either an adaptive-lighting switch or"
+            " the lights to an `adaptive_lighting` service call."
         )
+        raise ValueError(msg)
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
-            raise ValueError(
-                f"adaptive-lighting: Cannot pass multiple switches with lights argument."
+            msg = (
+                "adaptive-lighting: Cannot pass multiple switches with lights argument."
                 f" Invalid service data received: {service_call.data}"
             )
+            raise ValueError(msg)
         switches = []
         ent_reg = entity_registry.async_get(hass)
         for entity_id in switch_entity_ids:
@@ -353,14 +364,16 @@ def _switches_from_service_call(
         switch = _switch_with_lights(hass, lights)
         return [switch]
 
-    raise ValueError(
-        f"adaptive-lighting: Incorrect data provided in service call."
+    msg = (
+        "adaptive-lighting: Incorrect data provided in service call."
         f" Entities not found in the integration. Service data: {service_call.data}"
     )
+    raise ValueError(msg)
 
 
 async def handle_change_switch_settings(
-    switch: AdaptiveSwitch, service_call: ServiceCall
+    switch: AdaptiveSwitch,
+    service_call: ServiceCall,
 ) -> None:
     """Allows HASS to change config values via a service call."""
     data = service_call.data
@@ -396,7 +409,10 @@ async def handle_change_switch_settings(
 
 @callback
 def _fire_manual_control_event(
-    switch: AdaptiveSwitch, light: str, context: Context, is_async=True
+    switch: AdaptiveSwitch,
+    light: str,
+    context: Context,
+    is_async: bool = True,
 ):
     """Fire an event that 'light' is marked as manual_control."""
     hass = switch.hass
@@ -414,8 +430,10 @@ def _fire_manual_control_event(
     )
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: bool
+async def async_setup_entry(  # noqa: PLR0915
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ):
     """Set up the AdaptiveLighting switch."""
     data = hass.data[DOMAIN]
@@ -423,17 +441,30 @@ async def async_setup_entry(
 
     if ATTR_ADAPTIVE_LIGHTING_MANAGER not in data:
         data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = AdaptiveLightingManager(
-            hass, config_entry
+            hass,
+            config_entry,
         )
     manager: AdaptiveLightingManager = data[ATTR_ADAPTIVE_LIGHTING_MANAGER]
     sleep_mode_switch = SimpleSwitch(
-        "Sleep Mode", False, hass, config_entry, ICON_SLEEP
+        which="Sleep Mode",
+        initial_state=False,
+        hass=hass,
+        config_entry=config_entry,
+        icon=ICON_SLEEP,
     )
     adapt_color_switch = SimpleSwitch(
-        "Adapt Color", True, hass, config_entry, ICON_COLOR_TEMP
+        which="Adapt Color",
+        initial_state=True,
+        hass=hass,
+        config_entry=config_entry,
+        icon=ICON_COLOR_TEMP,
     )
     adapt_brightness_switch = SimpleSwitch(
-        "Adapt Brightness", True, hass, config_entry, ICON_BRIGHTNESS
+        which="Adapt Brightness",
+        initial_state=True,
+        hass=hass,
+        config_entry=config_entry,
+        icon=ICON_BRIGHTNESS,
     )
     switch = AdaptiveSwitch(
         hass,
@@ -482,7 +513,8 @@ async def async_setup_entry(
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
                         context=switch.create_context(
-                            "service", parent=service_call.context
+                            "service",
+                            parent=service_call.context,
                         ),
                     )
 
@@ -513,7 +545,8 @@ async def async_setup_entry(
                         transition=switch.initial_transition,
                         force=True,
                         context=switch.create_context(
-                            "service", parent=service_call.context
+                            "service",
+                            parent=service_call.context,
                         ),
                     )
 
@@ -637,7 +670,8 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
 
 
 def color_difference_redmean(
-    rgb1: tuple[float, float, float], rgb2: tuple[float, float, float]
+    rgb1: tuple[float, float, float],
+    rgb2: tuple[float, float, float],
 ) -> float:
     """Distance between colors in RGB space (redmean metric).
 
@@ -648,7 +682,9 @@ def color_difference_redmean(
     - https://www.compuphase.com/cmetric.htm
     """
     r_hat = (rgb1[0] + rgb2[0]) / 2
-    delta_r, delta_g, delta_b = ((col1 - col2) for col1, col2 in zip(rgb1, rgb2))
+    delta_r, delta_g, delta_b = (
+        (col1 - col2) for col1, col2 in zip(rgb1, rgb2, strict=True)
+    )
     red_term = (2 + r_hat / 256) * delta_r**2
     green_term = 4 * delta_g**2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
@@ -700,7 +736,8 @@ def _attributes_have_changed(
 ) -> bool:
     if adapt_color:
         old_attributes, new_attributes = _add_missing_attributes(
-            old_attributes, new_attributes
+            old_attributes,
+            new_attributes,
         )
 
     if (
@@ -771,7 +808,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         sleep_mode_switch: SimpleSwitch,
         adapt_color_switch: SimpleSwitch,
         adapt_brightness_switch: SimpleSwitch,
-    ):
+    ) -> None:
         """Initialize the Adaptive Lighting switch."""
         # Set attributes that can't be modified during runtime
         self.hass = hass
@@ -920,7 +957,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await self._setup_listeners()
         else:
             self.hass.bus.async_listen_once(
-                EVENT_HOMEASSISTANT_STARTED, self._setup_listeners
+                EVENT_HOMEASSISTANT_STARTED,
+                self._setup_listeners,
             )
         last_state = await self.async_get_last_state()
         is_new_entry = last_state is None  # newly added to HA
@@ -938,7 +976,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         all_lights = _expand_light_groups(self.hass, self.lights)
         self.manager.lights.update(all_lights)
         self.manager.set_auto_reset_manual_control_times(
-            all_lights, self._auto_reset_manual_control_time
+            all_lights,
+            self._auto_reset_manual_control_time,
         )
         self.lights = list(all_lights)
 
@@ -963,7 +1002,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.lights:
             self._expand_light_groups()
             remove_state = async_track_state_change_event(
-                self.hass, entity_ids=self.lights, action=self._light_event_action
+                self.hass,
+                entity_ids=self.lights,
+                action=self._light_event_action,
             )
             self.remove_listeners.append(remove_state)
 
@@ -1029,7 +1070,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         return extra_state_attributes
 
     def create_context(
-        self, which: str = "default", parent: Context | None = None
+        self,
+        which: str = "default",
+        parent: Context | None = None,
     ) -> Context:
         """Create a context that identifies this Adaptive Lighting instance."""
         context = create_context(self._name, which, self._context_cnt, parent=parent)
@@ -1037,11 +1080,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         return context
 
     async def async_turn_on(  # pylint: disable=arguments-differ
-        self, adapt_lights: bool = True
+        self,
+        adapt_lights: bool = True,
     ) -> None:
         """Turn on adaptive lighting."""
         _LOGGER.debug(
-            "%s: Called 'async_turn_on', current state is '%s'", self._name, self._state
+            "%s: Called 'async_turn_on', current state is '%s'",
+            self._name,
+            self._state,
         )
         if self.is_on:
             return
@@ -1055,7 +1101,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context=self.create_context("turn_on"),
             )
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs) -> None:  # noqa: ARG002
         """Turn off adaptive lighting."""
         if not self.is_on:
             return
@@ -1063,7 +1109,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
         self.manager.reset(*self.lights)
 
-    async def _async_update_at_interval_action(self, now=None) -> None:
+    async def _async_update_at_interval_action(self, now=None) -> None:  # noqa: ARG002
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._transition,
             force=False,
@@ -1079,6 +1125,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         prefer_rgb_color: bool | None = None,
         context: Context | None = None,
     ) -> AdaptationData | None:
+        """Prepare `AdaptationData` for adapting a light."""
         if transition is None:
             transition = self._transition
         if adapt_brightness is None:
@@ -1099,7 +1146,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # The switch might be off and not have _settings set.
         self._settings = self._sun_light_settings.get_settings(
-            self.sleep_mode_switch.is_on, transition
+            self.sleep_mode_switch.is_on,
+            transition,
         )
 
         # Build service data.
@@ -1151,7 +1199,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             filter_by_state=self._skip_redundant_commands,
         )
 
-    async def _adapt_light(  # noqa: C901
+    async def _adapt_light(
         self,
         light: str,
         transition: int | None = None,
@@ -1167,7 +1215,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.manager.is_proactively_adapting(context.parent_id):
             # Skip if adaptation was already executed by the service call interceptor
             _LOGGER.debug(
-                "%s: Skipping reactive adaptation of %s", self._name, context.parent_id
+                "%s: Skipping reactive adaptation of %s",
+                self._name,
+                context.parent_id,
             )
             return
 
@@ -1180,13 +1230,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context,
         )
         if data is None:
-            return None  # nothing to adapt
+            return  # nothing to adapt
 
         await self.execute_cancellable_adaptation_calls(data)
 
     async def _execute_adaptation_calls(self, data: AdaptationData):
         """Executes a sequence of adaptation service calls for the given service datas."""
-
         for index in range(data.max_length):
             is_first_call = index == 0
 
@@ -1250,7 +1299,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
-    async def _update_attrs_and_maybe_adapt_lights(
+    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
         self,
         lights: list[str] | None = None,
         transition: int | None = None,
@@ -1270,8 +1319,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         assert self.is_on
         self._settings.update(
             self._sun_light_settings.get_settings(
-                self.sleep_mode_switch.is_on, transition
-            )
+                self.sleep_mode_switch.is_on,
+                transition,
+            ),
         )
         self.async_write_ha_state()
 
@@ -1352,7 +1402,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: Ignoring sleep event %s", self._name, event)
             return
         _LOGGER.debug(
-            "%s: _sleep_mode_switch_state_event_action, event: '%s'", self._name, event
+            "%s: _sleep_mode_switch_state_event_action, event: '%s'",
+            self._name,
+            event,
         )
         # Reset the manually controlled status when the "sleep mode" changes
         self.manager.reset(*self.lights)
@@ -1380,7 +1432,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
 
             if event.context.parent_id and not self.manager.is_proactively_adapting(
-                event.context.id
+                event.context.id,
             ):
                 self.manager.reset(entity_id, reset_manual_control=False)
 
@@ -1395,7 +1447,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 ):
                     # Stop if a rapid 'off' → 'on' → 'off' happens.
                     _LOGGER.debug(
-                        "%s: Cancelling adjusting lights for %s", self._name, entity_id
+                        "%s: Cancelling adjusting lights for %s",
+                        self._name,
+                        entity_id,
                     )
                     return
 
@@ -1441,7 +1495,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         hass: HomeAssistant,
         config_entry: ConfigEntry,
         icon: str,
-    ):
+    ) -> None:
         """Initialize the Adaptive Lighting switch."""
         self.hass = hass
         data = validate(config_entry)
@@ -1484,19 +1538,21 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         else:
             await self.async_turn_off()
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs) -> None:  # noqa: ARG002
         """Turn on adaptive lighting sleep mode."""
         _LOGGER.debug("%s: Turning on", self._name)
         self._state = True
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs) -> None:  # noqa: ARG002
         """Turn off adaptive lighting sleep mode."""
         _LOGGER.debug("%s: Turning off", self._name)
         self._state = False
 
 
 def lerp_color(
-    rgb1: tuple[int, int, int], rgb2: tuple[int, int, int], t: float
+    rgb1: tuple[int, int, int],
+    rgb2: tuple[int, int, int],
+    t: float,
 ) -> tuple[int, int, int]:
     """Linearly interpolate between two RGB colors."""
     return (
@@ -1536,13 +1592,13 @@ class SunLightSettings:
         def _replace_time(date: datetime.datetime, key: str) -> datetime.datetime:
             time = getattr(self, f"{key}_time")
             date_time = datetime.datetime.combine(date, time)
-            utc_time = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
-                dt_util.UTC
+            return date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
+                dt_util.UTC,
             )
-            return utc_time
 
         def calculate_noon_and_midnight(
-            sunset: datetime.datetime, sunrise: datetime.datetime
+            sunset: datetime.datetime,
+            sunrise: datetime.datetime,
         ) -> tuple[datetime.datetime, datetime.datetime]:
             middle = abs(sunset - sunrise) / 2
             if sunset > sunrise:
@@ -1597,7 +1653,7 @@ class SunLightSettings:
         ]
         # Check whether order is correct
         events = sorted(events, key=lambda x: x[1])
-        events_names, _ = zip(*events)
+        events_names, _ = zip(*events, strict=True)
         if events_names not in _ALLOWED_ORDERS:
             msg = (
                 f"{self.name}: The sun events {events_names} are not in the expected"
@@ -1635,8 +1691,7 @@ class SunLightSettings:
             else (next_ts, prev_ts)
         )
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
-        percentage = (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
-        return percentage
+        return (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
 
     def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
         """Calculate the brightness in %."""
@@ -1660,9 +1715,12 @@ class SunLightSettings:
             delta = abs(self.min_color_temp - self.sleep_color_temp)
             ct = (delta * abs(1 + percent)) + self.sleep_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
+        return None
 
     def get_settings(
-        self, is_sleep, transition
+        self,
+        is_sleep,
+        transition,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
@@ -1715,7 +1773,7 @@ class SunLightSettings:
 class AdaptiveLightingManager:
     """Track 'light.turn_off' and 'light.turn_on' service calls."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the AdaptiveLightingManager that is shared among all switches."""
         self.hass = hass
         data = validate(config_entry)
@@ -1759,7 +1817,8 @@ class AdaptiveLightingManager:
         self._proactively_adapting_contexts: dict[str, str] = {}
 
         is_proactive_adaptation_enabled = data.get(
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION, True
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
+            True,
         )
 
         if is_proactive_adaptation_enabled:
@@ -1770,7 +1829,7 @@ class AdaptiveLightingManager:
                         LIGHT_DOMAIN,
                         SERVICE_TURN_ON,
                         self._service_interceptor_turn_on_handler,
-                    )
+                    ),
                 )
 
                 self.listener_removers.append(
@@ -1779,7 +1838,7 @@ class AdaptiveLightingManager:
                         LIGHT_DOMAIN,
                         SERVICE_TOGGLE,
                         self._service_interceptor_turn_on_handler,
-                    )
+                    ),
                 )
 
                 _LOGGER.debug("Proactive adaptation enabled")
@@ -1796,20 +1855,21 @@ class AdaptiveLightingManager:
             remove()
 
     def set_proactively_adapting(self, context_id: str, entity_id: str) -> None:
-        """Declare the adaptation with the given context ID as proactively adapting,
-        and associate it to an entity ID."""
+        """Declare the adaptation with context_id as proactively adapting,
+        and associate it to an entity_id.
+        """  # noqa: D205
         self._proactively_adapting_contexts[context_id] = entity_id
 
     def is_proactively_adapting(self, context_id: str) -> bool:
-        """Determine whether an adaptation with the given context ID is proactive."""
+        """Determine whether an adaptation with the given context_id is proactive."""
         is_proactively_adapting_context = (
             context_id in self._proactively_adapting_contexts
         )
 
         _LOGGER.debug(
-            "is_proactively_adapting_context %s %s",
-            context_id,
+            "is_proactively_adapting_context='%s', context_id='%s'",
             is_proactively_adapting_context,
+            context_id,
         )
 
         return is_proactively_adapting_context
@@ -1817,16 +1877,19 @@ class AdaptiveLightingManager:
     def clear_proactively_adapting(self, entity_id: str) -> None:
         """Clear all context IDs associated with the given entity ID.
 
-        Call this method to clear past context IDs and avoid a memory leak."""
+        Call this method to clear past context IDs and avoid a memory leak.
+        """
+        # First get the keys to avoid modifying the dict while iterating it
         keys = [
             k for k, v in self._proactively_adapting_contexts.items() if v == entity_id
         ]
-
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(
-        self, call: ServiceCall, data: ServiceData
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0911
+        self,
+        call: ServiceCall,
+        data: ServiceData,
     ):
         # Don't adapt our own service calls
         if is_our_context(call.context):
@@ -1872,14 +1935,17 @@ class AdaptiveLightingManager:
             return
 
         _LOGGER.debug(
-            "Intercepted TURN_ON call with data %s (%s)", data, call.context.id
+            "Intercepted TURN_ON call with data %s (%s)",
+            data,
+            call.context.id,
         )
 
         self.reset(entity_id, reset_manual_control=False)
         self.clear_proactively_adapting(entity_id)
 
         transition = data[CONF_PARAMS].get(
-            ATTR_TRANSITION, adaptive_switch.initial_transition
+            ATTR_TRANSITION,
+            adaptive_switch.initial_transition,
         )
 
         adaptation_data = await adaptive_switch.prepare_adaptation_data(
@@ -1913,8 +1979,8 @@ class AdaptiveLightingManager:
         self.set_proactively_adapting(call.context.id, entity_id)
         self.set_proactively_adapting(adaptation_data.context.id, entity_id)
         adaptation_data.initial_sleep = True
-        asyncio.create_task(  # Don't await to avoid blocking the service call
-            adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data)
+        _ = asyncio.create_task(  # Don't await to avoid blocking the service call
+            adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data),
         )
 
     def _handle_timer(
@@ -1946,11 +2012,14 @@ class AdaptiveLightingManager:
         last_transition = last_service_data.get(ATTR_TRANSITION)
         if not last_transition:
             _LOGGER.debug(
-                "No transition in last adapt for light %s, continuing...", light
+                "No transition in last adapt for light %s, continuing...",
+                light,
             )
             return
         _LOGGER.debug(
-            "Start transition timer of %s seconds for light %s", last_transition, light
+            "Start transition timer of %s seconds for light %s",
+            last_transition,
+            light,
         )
 
         async def reset():
@@ -2008,7 +2077,9 @@ class AdaptiveLightingManager:
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def cancel_ongoing_adaptation_calls(
-        self, light_id: str, which: Literal["color", "brightness", "both"] = "both"
+        self,
+        light_id: str,
+        which: Literal["color", "brightness", "both"] = "both",
     ):
         """Cancel ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
@@ -2054,15 +2125,21 @@ class AdaptiveLightingManager:
             area_ids = cv.ensure_list_csv(service_data[ATTR_AREA_ID])
             for area_id in area_ids:
                 area_entity_ids = area_entities(self.hass, area_id)
-                for entity_id in area_entity_ids:
-                    if entity_id.startswith(LIGHT_DOMAIN):
-                        entity_ids.append(entity_id)
+                eids = [
+                    entity_id
+                    for entity_id in area_entity_ids
+                    if entity_id.startswith(LIGHT_DOMAIN)
+                ]
+                entity_ids.extend(eids)
                 _LOGGER.debug(
-                    "Found entity_ids '%s' for area_id '%s'", entity_ids, area_id
+                    "Found entity_ids '%s' for area_id '%s'",
+                    entity_ids,
+                    area_id,
                 )
         else:
             _LOGGER.debug(
-                "No entity_ids or area_ids found in service_data: %s", service_data
+                "No entity_ids or area_ids found in service_data: %s",
+                service_data,
             )
 
         return entity_ids
@@ -2219,7 +2296,7 @@ class AdaptiveLightingManager:
         """
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
-            return
+            return None
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
@@ -2268,8 +2345,11 @@ class AdaptiveLightingManager:
         )
         return False
 
-    async def maybe_cancel_adjusting(
-        self, entity_id: str, off_to_on_event: Event, on_to_off_event: Event | None
+    async def maybe_cancel_adjusting(  # noqa: PLR0911, PLR0912
+        self,
+        entity_id: str,
+        off_to_on_event: Event,
+        on_to_off_event: Event | None,
     ) -> bool:
         """Cancel the adjusting of a light if it has just been turned off.
 
@@ -2368,7 +2448,7 @@ class AdaptiveLightingManager:
 
 
 class _AsyncSingleShotTimer:
-    def __init__(self, delay, callback):
+    def __init__(self, delay, callback) -> None:
         """Initialize the timer."""
         self.delay = delay
         self.callback = callback

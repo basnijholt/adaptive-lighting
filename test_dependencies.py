@@ -1,13 +1,17 @@
+"""Extracts the dependencies of the components required for testing."""
 from collections import defaultdict
+from pathlib import Path
 
 deps = defaultdict(list)
 components, packages = [], []
 
-with open("core/requirements_test_all.txt") as f:
+requirements = Path("core") / "requirements_test_all.txt"
+
+with requirements.open() as f:
     lines = f.readlines()
 
 for line in lines:
-    line = line.strip()
+    line = line.strip()  # noqa: PLW2901
 
     if line.startswith("# homeassistant."):
         if components and packages:
@@ -34,4 +38,4 @@ required = [
 ]
 to_install = [package for r in required for package in deps[r]]
 
-print(" ".join(to_install))
+print(" ".join(to_install))  # noqa: T201
