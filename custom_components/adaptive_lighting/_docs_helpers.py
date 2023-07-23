@@ -29,33 +29,31 @@ def _format_voluptuous_instance(instance):
 
     if min_val is not None and max_val is not None:
         return f"`{coerce_type}` {min_val}-{max_val}"
-    elif min_val is not None:
+    if min_val is not None:
         return f"`{coerce_type} > {min_val}`"
-    elif max_val is not None:
+    if max_val is not None:
         return f"`{coerce_type} < {max_val}`"
-    else:
-        return f"`{coerce_type}`"
+    return f"`{coerce_type}`"
 
 
-def _type_to_str(type_: Any) -> str:
+def _type_to_str(type_: Any) -> str:  # noqa: PLR0911
     """Convert a (voluptuous) type to a string."""
     if type_ == cv.entity_ids:
         return "list of `entity_id`s"
-    elif type_ in (bool, int, float, str):
+    if type_ in (bool, int, float, str):
         return f"`{type_.__name__}`"
-    elif type_ == cv.boolean:
+    if type_ == cv.boolean:
         return "bool"
-    elif isinstance(type_, vol.All):
+    if isinstance(type_, vol.All):
         return _format_voluptuous_instance(type_)
-    elif isinstance(type_, vol.In):
+    if isinstance(type_, vol.In):
         return f"one of `{type_.container}`"
-    elif isinstance(type_, selector.SelectSelector):
+    if isinstance(type_, selector.SelectSelector):
         return f"one of `{type_.config['options']}`"
-    elif isinstance(type_, selector.ColorRGBSelector):
+    if isinstance(type_, selector.ColorRGBSelector):
         return "RGB color"
-    else:
-        msg = f"Unknown type: {type_}"
-        raise ValueError(msg)
+    msg = f"Unknown type: {type_}"
+    raise ValueError(msg)
 
 
 def generate_config_markdown_table():

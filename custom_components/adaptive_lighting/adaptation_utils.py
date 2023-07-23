@@ -116,7 +116,7 @@ async def _create_service_call_data_iterator(
 
             # Filter data to remove attributes that equal the current state
             if current_entity_state is not None:
-                service_data = _remove_redundant_attributes(
+                service_data = _remove_redundant_attributes(  # noqa: PLW2901
                     service_data,
                     state=current_entity_state,
                 )

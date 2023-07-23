@@ -26,14 +26,10 @@ ignore = [
     "FBT001",  # Boolean positional arg in function definition
     "FBT002",  # Boolean default value in function definition
     "PD901",   # df is a bad variable name. Be kinder to your future self.
-    "PERF203",
-    "PERF401",
-    "PLR",
     "PLR0913", # Too many arguments to function call (N > 5)
+    "PLR2004", # Magic value used in comparison, consider replacing X with a constant variable
+    "PERF203",# `try`-`except` within a loop incurs performance overhead
     "PLW0603", # Using the global statement to update `X` is discouraged
-    "PLW2901",
-    "RET505",
-    "RUF006",
     "S101",    # Use of assert detected
     "S603",    # `subprocess` call: check for execution of untrusted input
     "S607",    # Starting a process with a partial executable path

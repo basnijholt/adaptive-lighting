@@ -306,7 +306,7 @@ def _switch_with_lights(
     switches = _switches_with_lights(hass, lights)
     if len(switches) == 1:
         return switches[0]
-    elif len(switches) > 1:
+    if len(switches) > 1:
         on_switches = [s for s in switches if s.is_on]
         if len(on_switches) == 1:
             # Of the multiple switches, only one is on
@@ -317,13 +317,12 @@ def _switch_with_lights(
             " 'entity_id'."
         )
         raise NoSwitchFoundError(msg)
-    else:
-        msg = (
-            f"_switch_with_lights: Light(s) {lights} not found in any switch's"
-            " configuration. You must either include the light(s) that is/are"
-            " in the integration config, or pass a switch under 'entity_id'."
-        )
-        raise NoSwitchFoundError(msg)
+    msg = (
+        f"_switch_with_lights: Light(s) {lights} not found in any switch's"
+        " configuration. You must either include the light(s) that is/are"
+        " in the integration config, or pass a switch under 'entity_id'."
+    )
+    raise NoSwitchFoundError(msg)
 
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
@@ -431,7 +430,7 @@ def _fire_manual_control_event(
     )
 
 
-async def async_setup_entry(
+async def async_setup_entry(  # noqa: PLR0915
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
@@ -1300,7 +1299,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
-    async def _update_attrs_and_maybe_adapt_lights(
+    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
         self,
         lights: list[str] | None = None,
         transition: int | None = None,
@@ -1887,7 +1886,7 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0911
         self,
         call: ServiceCall,
         data: ServiceData,
@@ -1980,7 +1979,7 @@ class AdaptiveLightingManager:
         self.set_proactively_adapting(call.context.id, entity_id)
         self.set_proactively_adapting(adaptation_data.context.id, entity_id)
         adaptation_data.initial_sleep = True
-        asyncio.create_task(  # Don't await to avoid blocking the service call
+        _ = asyncio.create_task(  # Don't await to avoid blocking the service call
             adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data),
         )
 
@@ -2126,9 +2125,12 @@ class AdaptiveLightingManager:
             area_ids = cv.ensure_list_csv(service_data[ATTR_AREA_ID])
             for area_id in area_ids:
                 area_entity_ids = area_entities(self.hass, area_id)
-                for entity_id in area_entity_ids:
-                    if entity_id.startswith(LIGHT_DOMAIN):
-                        entity_ids.append(entity_id)
+                eids = [
+                    entity_id
+                    for entity_id in area_entity_ids
+                    if entity_id.startswith(LIGHT_DOMAIN)
+                ]
+                entity_ids.extend(eids)
                 _LOGGER.debug(
                     "Found entity_ids '%s' for area_id '%s'",
                     entity_ids,
@@ -2343,7 +2345,7 @@ class AdaptiveLightingManager:
         )
         return False
 
-    async def maybe_cancel_adjusting(
+    async def maybe_cancel_adjusting(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
         off_to_on_event: Event,
