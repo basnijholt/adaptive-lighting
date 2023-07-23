@@ -61,7 +61,7 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
 
     # Distribute the transition duration across all service calls
     if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
-        transition = service_data[ATTR_TRANSITION] / len(service_datas)
+        transition /= len(service_datas)
 
         for service_data in service_datas:
             service_data[ATTR_TRANSITION] = transition
@@ -69,22 +69,17 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     return service_datas
 
 
-def _filter_service_data(service_data: ServiceData, state: State | None) -> ServiceData:
+def _filter_service_data(service_data: ServiceData, state: State) -> ServiceData:
     """Filter service data by removing attributes that already equal the given state.
 
     Removes all attributes from service call data whose values are already present
     in the target entity's state."""
 
-    if not state:
-        return service_data
-
-    filtered_service_data = {
-        k: service_data[k]
-        for k in service_data.keys()
-        if k not in state.attributes or service_data[k] != state.attributes[k]
+    return {
+        k: v
+        for k, v in service_data.items()
+        if k not in state.attributes or v != state.attributes[k]
     }
-
-    return filtered_service_data
 
 
 def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
@@ -93,9 +88,8 @@ def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
     A service call is not justified for data which does not contain any entries that
     change relevant attributes of an adapting entity, e.g., brightness or color."""
     common_attrs = {ATTR_ENTITY_ID, ATTR_TRANSITION}
-    relevant_attrs = set(service_data) - common_attrs
 
-    return bool(relevant_attrs)
+    return any(attr not in common_attrs for attr in service_data)
 
 
 async def _create_service_call_data_iterator(
@@ -118,7 +112,7 @@ async def _create_service_call_data_iterator(
             current_entity_state = hass.states.get(entity_id)
 
             # Filter data to remove attributes that equal the current state
-            if current_entity_state:
+            if current_entity_state is not None:
                 service_data = _filter_service_data(service_data, current_entity_state)
 
             # Emit service data if it still contains relevant attributes (else try next)

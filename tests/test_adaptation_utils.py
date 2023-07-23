@@ -76,11 +76,6 @@ async def test_split_service_call_data(input_data, expected_data_list):
     [
         (
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
-            None,
-            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
-        ),
-        (
-            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
             State("light.test", STATE_ON),
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
         ),
@@ -96,7 +91,6 @@ async def test_split_service_call_data(input_data, expected_data_list):
         ),
     ],
     ids=[
-        "pass all attributes on missing state",
         "pass all attributes on empty state",
         "remove attributes whose values equal the state",
         "keep attributes whose values differ from the state",
