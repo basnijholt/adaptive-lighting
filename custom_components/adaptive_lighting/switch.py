@@ -1511,7 +1511,7 @@ class SunLightSettings:
     time_zone: datetime.tzinfo
     transition: int
 
-    def get_sun_events(self, date: datetime.datetime) -> dict[str, float]:
+    def get_sun_events(self, date: datetime.datetime) -> list[tuple[str, float]]:
         """Get the four sun event's timestamps at 'date'."""
 
         def _replace_time(date: datetime.datetime, key: str) -> datetime.datetime:
@@ -1565,16 +1565,10 @@ class SunLightSettings:
             and self.max_sunrise_time is None
             and self.min_sunset_time is None
         ):
-            try:
-                # Astral v1
-                solar_noon = location.solar_noon(date, local=False)
-                solar_midnight = location.solar_midnight(date, local=False)
-            except AttributeError:
-                # Astral v2
-                solar_noon = location.noon(date, local=False)
-                solar_midnight = location.midnight(date, local=False)
+            solar_noon = location.noon(date, local=False)
+            solar_midnight = location.midnight(date, local=False)
         else:
-            (solar_noon, solar_midnight) = calculate_noon_and_midnight(sunset, sunrise)
+            solar_noon, solar_midnight = calculate_noon_and_midnight(sunset, sunrise)
 
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
@@ -1599,11 +1593,14 @@ class SunLightSettings:
 
     def relevant_events(self, now: datetime.datetime) -> list[tuple[str, float]]:
         """Get the previous and next sun event."""
-        events = [
-            self.get_sun_events(now + timedelta(days=days)) for days in [-1, 0, 1]
-        ]
-        events = sum(events, [])  # flatten lists
-        events = sorted(events, key=lambda x: x[1])
+        events = sorted(
+            [
+                event
+                for days in [-1, 0, 1]
+                for event in self.get_sun_events(now + timedelta(days=days))
+            ],
+            key=lambda x: x[1],
+        )
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
         return events[i_now - 1 : i_now + 1]
 
