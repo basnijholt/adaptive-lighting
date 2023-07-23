@@ -1593,14 +1593,12 @@ class SunLightSettings:
 
     def relevant_events(self, now: datetime.datetime) -> list[tuple[str, float]]:
         """Get the previous and next sun event."""
-        events = sorted(
-            [
-                event
-                for days in [-1, 0, 1]
-                for event in self.get_sun_events(now + timedelta(days=days))
-            ],
-            key=lambda x: x[1],
-        )
+        events = [
+            event
+            for days in [-1, 0, 1]
+            for event in self.get_sun_events(now + timedelta(days=days))
+        ]
+        events = sorted(events, key=lambda x: x[1])
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
         return events[i_now - 1 : i_now + 1]
 
