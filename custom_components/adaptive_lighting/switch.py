@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import bisect
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Iterable
 from copy import deepcopy
 from dataclasses import dataclass
 import datetime
@@ -575,16 +575,15 @@ def validate(
     return data
 
 
-def match_switch_state_event(event: Event, from_or_to_state: list[str]):
+def _is_state_event(event: Event, from_or_to_state: Iterable[str]):
     """Match state event when either 'from_state' or 'to_state' matches."""
-    old_state = event.data.get("old_state")
-    from_state_match = old_state is not None and old_state.state in from_or_to_state
-
-    new_state = event.data.get("new_state")
-    to_state_match = new_state is not None and new_state.state in from_or_to_state
-
-    match = from_state_match or to_state_match
-    return match
+    return (
+        (old_state := event.data.get("old_state")) is not None
+        and old_state.state in from_or_to_state
+    ) or (
+        (new_state := event.data.get("new_state")) is not None
+        and new_state.state in from_or_to_state
+    )
 
 
 def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
@@ -962,7 +961,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         remove_sleep = async_track_state_change_event(
             self.hass,
             self.sleep_mode_switch.entity_id,
-            self._sleep_mode_switch_state_event,
+            self._sleep_mode_switch_state_event_action,
         )
 
         self.remove_listeners.append(remove_sleep)
@@ -970,7 +969,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.lights:
             self._expand_light_groups()
             remove_state = async_track_state_change_event(
-                self.hass, self.lights, self._light_event
+                self.hass, self.lights, self._light_event_action
             )
             self.remove_listeners.append(remove_state)
 
@@ -995,7 +994,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
         self.remove_interval = async_track_time_interval(
-            self.hass, self._async_update_at_interval, adaptation_interval
+            self.hass, self._async_update_at_interval_action, adaptation_interval
         )
 
     def _remove_interval_listener(self) -> None:
@@ -1068,7 +1067,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
         self.manager.reset(*self.lights)
 
-    async def _async_update_at_interval(self, now=None) -> None:
+    async def _async_update_at_interval_action(self, now=None) -> None:
         await self._update_attrs_and_maybe_adapt_lights(
             transition=self._transition,
             force=False,
@@ -1345,12 +1344,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             else:
                 await self._adapt_light(light, transition, context=context)
 
-    async def _sleep_mode_switch_state_event(self, event: Event) -> None:
-        if not match_switch_state_event(event, (STATE_ON, STATE_OFF)):
+    async def _sleep_mode_switch_state_event_action(self, event: Event) -> None:
+        if not _is_state_event(event, (STATE_ON, STATE_OFF)):
             _LOGGER.debug("%s: Ignoring sleep event %s", self._name, event)
             return
         _LOGGER.debug(
-            "%s: _sleep_mode_switch_state_event, event: '%s'", self._name, event
+            "%s: _sleep_mode_switch_state_event_action, event: '%s'", self._name, event
         )
         # Reset the manually controlled status when the "sleep mode" changes
         self.manager.reset(*self.lights)
@@ -1360,7 +1359,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("sleep", parent=event.context),
         )
 
-    async def _light_event(self, event: Event) -> None:
+    async def _light_event_action(self, event: Event) -> None:
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
         entity_id = event.data.get("entity_id")
