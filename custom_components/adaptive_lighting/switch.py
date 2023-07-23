@@ -1297,9 +1297,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 else:
                     filtered_lights.append(light)
 
+        _LOGGER.debug("%s: filtered_lights: '%s'", self._name, filtered_lights)
         if not filtered_lights:
             return
-
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
 
@@ -1338,6 +1338,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 else:
                     _fire_manual_control_event(self, light, context)
             else:
+                _LOGGER.debug(
+                    "%s: Calling _adapt_light from _update_attrs_and_maybe_adapt_lights:"
+                    " '%s' with transition %s",
+                    self._name,
+                    light,
+                    transition,
+                )
                 await self._adapt_light(light, transition, context=context)
 
     async def _sleep_mode_switch_state_event_action(self, event: Event) -> None:

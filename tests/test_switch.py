@@ -56,6 +56,7 @@ from custom_components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
+    CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
@@ -64,6 +65,7 @@ from custom_components.adaptive_lighting.const import (
     CONF_MIN_COLOR_TEMP,
     CONF_PREFER_RGB_COLOR,
     CONF_SEPARATE_TURN_ON_COMMANDS,
+    CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -74,6 +76,7 @@ from custom_components.adaptive_lighting.const import (
     DEFAULT_NAME,
     DEFAULT_SLEEP_BRIGHTNESS,
     DEFAULT_SLEEP_COLOR_TEMP,
+    DEFAULT_SLEEP_RGB_COLOR,
     DOMAIN,
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
@@ -1430,6 +1433,7 @@ async def test_proactive_adaptation(hass):
         {
             ATTR_BRIGHTNESS_PCT: 67,
             ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
         },
     )
 
@@ -1464,6 +1468,7 @@ async def test_proactive_adaptation_with_separate_commands(hass):
         {
             ATTR_BRIGHTNESS_PCT: 67,
             ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
         },
     )
 
@@ -1615,3 +1620,84 @@ async def test_two_switches_for_single_light(hass):
     after_color_temp = attrs[ATTR_COLOR_TEMP_KELVIN]
     assert before_brightness != after_brightness
     assert before_color_temp != after_color_temp
+
+
+async def test_adapt_until_sleep_and_rgb_colors(hass):
+    """Test setting up the Adaptive Lighting switches with different timezones.
+
+    Also test the (sleep) brightness and color temperature settings.
+    """
+    lat, long, timezone = (32.87336, -117.22743, "US/Pacific")
+    await config_util.async_process_ha_core_config(
+        hass,
+        {"latitude": lat, "longitude": long, "time_zone": timezone},
+    )
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+            CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+            CONF_ADAPT_UNTIL_SLEEP: True,
+            CONF_SLEEP_RGB_OR_COLOR_TEMP: "rgb_color",
+        },
+    )
+
+    context = switch.create_context("test")  # needs to be passed to update method
+    min_color_temp = switch._sun_light_settings.min_color_temp
+
+    sunset = SUNSET.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+    before_sunset = sunset - datetime.timedelta(hours=1)
+    after_sunset = sunset + datetime.timedelta(hours=1)
+    sunrise = SUNRISE.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+    before_sunrise = sunrise - datetime.timedelta(hours=1)
+    after_sunrise = sunrise + datetime.timedelta(hours=1)
+
+    async def patch_time_and_update(time):
+        with patch("homeassistant.util.dt.utcnow", return_value=time):
+            await switch._update_attrs_and_maybe_adapt_lights(context=context)
+            await hass.async_block_till_done()
+
+    # At sunset the brightness should be max and color_temp at the smallest value
+    await patch_time_and_update(sunset)
+    assert not switch._settings["force_rgb_color"]
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_MAX_BRIGHTNESS
+    assert switch._settings["color_temp_kelvin"] == min_color_temp
+
+    # One hour before sunset the brightness should be max and color_temp
+    # not at the smallest value yet.
+    await patch_time_and_update(before_sunset)
+    assert not switch._settings["force_rgb_color"]
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_MAX_BRIGHTNESS
+    assert switch._settings["color_temp_kelvin"] > min_color_temp
+    assert "color_temp_kelvin" in switch.manager.last_service_data[ENTITY_LIGHT]
+
+    # One hour after sunset the brightness should be down
+    await patch_time_and_update(after_sunset)
+    assert switch._settings["force_rgb_color"]
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] < DEFAULT_MAX_BRIGHTNESS
+    assert "rgb_color" in switch.manager.last_service_data[ENTITY_LIGHT]
+
+    # At sunrise the brightness should be max and color_temp at the smallest value
+    await patch_time_and_update(sunrise)
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_MAX_BRIGHTNESS
+    assert switch._settings["color_temp_kelvin"] == min_color_temp
+    assert "color_temp_kelvin" in switch.manager.last_service_data[ENTITY_LIGHT]
+
+    # One hour before sunrise the brightness should smaller than max
+    # and color_temp at the min value.
+    await patch_time_and_update(before_sunrise)
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] < DEFAULT_MAX_BRIGHTNESS
+    assert "rgb_color" in switch.manager.last_service_data[ENTITY_LIGHT]
+
+    # One hour after sunrise the brightness should be up
+    await patch_time_and_update(after_sunrise)
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_MAX_BRIGHTNESS
+    assert switch._settings["color_temp_kelvin"] > min_color_temp
+    assert "color_temp_kelvin" in switch.manager.last_service_data[ENTITY_LIGHT]
+
+    # Turn on sleep mode which make the brightness and color_temp
+    # deterministic regardless of the time
+    await switch.sleep_mode_switch.async_turn_on()
+    await switch._update_attrs_and_maybe_adapt_lights(context=context)
+    assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_SLEEP_BRIGHTNESS
+    assert switch._settings["rgb_color"] == DEFAULT_SLEEP_RGB_COLOR
