@@ -9,16 +9,8 @@ select = [
 # All the ones without a comment were the ones that are currently violated
 # by the codebase. The plan is to fix them all (when sensible) and then enable them.
 ignore = [
-    "ANN001",
-    "ANN002",
-    "ANN003",
-    "ANN101",
-    "ANN201",
-    "ANN202",
-    "ANN205",
-    "ANN401",
-    "ARG001",
-    "ARG002",
+    "ANN",
+    "ARG",
     "B905",
     "D102",
     "D103",
@@ -31,12 +23,10 @@ ignore = [
     "D406", # Section name should end with a newline
     "D407", # Section name underlining
     "D411", # Missing blank line before section
-    "E501",
     "E501", # line too long
     "E731", # do not assign a lambda expression, use a def
     "EXE002",
-    "FBT001",
-    "FBT002",
+    "FBT",
     "FIX004",
     "ISC001",
     "N806",
@@ -44,11 +34,7 @@ ignore = [
     "PD901",
     "PERF203",
     "PERF401",
-    "PLR0911",
-    "PLR0912",
-    "PLR0913",
-    "PLR0915",
-    "PLR2004",
+    "PLR",
     "PLW2901",
     "RET505",
     "RUF006",
@@ -59,7 +45,7 @@ ignore = [
 
 [per-file-ignores]
 "tests/*.py" = ["ALL"]
-".github/*py" = ["ALL"]
+".github/*py" = ["INP001"]
 "test_dependencies.py" = ["ALL"]
 
 [flake8-pytest-style]
