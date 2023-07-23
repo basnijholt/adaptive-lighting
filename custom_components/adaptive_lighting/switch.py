@@ -682,7 +682,9 @@ def color_difference_redmean(
     - https://www.compuphase.com/cmetric.htm
     """
     r_hat = (rgb1[0] + rgb2[0]) / 2
-    delta_r, delta_g, delta_b = ((col1 - col2) for col1, col2 in zip(rgb1, rgb2))
+    delta_r, delta_g, delta_b = (
+        (col1 - col2) for col1, col2 in zip(rgb1, rgb2, strict=True)
+    )
     red_term = (2 + r_hat / 256) * delta_r**2
     green_term = 4 * delta_g**2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
@@ -1650,7 +1652,7 @@ class SunLightSettings:
         ]
         # Check whether order is correct
         events = sorted(events, key=lambda x: x[1])
-        events_names, _ = zip(*events)
+        events_names, _ = zip(*events, strict=True)
         if events_names not in _ALLOWED_ORDERS:
             msg = (
                 f"{self.name}: The sun events {events_names} are not in the expected"
