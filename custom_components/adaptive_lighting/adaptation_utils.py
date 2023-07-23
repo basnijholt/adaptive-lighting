@@ -69,7 +69,9 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     return service_datas
 
 
-def _filter_service_data(service_data: ServiceData, state: State) -> ServiceData:
+def _remove_redundant_attributes(
+    service_data: ServiceData, state: State
+) -> ServiceData:
     """Filter service data by removing attributes that already equal the given state.
 
     Removes all attributes from service call data whose values are already present
@@ -113,7 +115,9 @@ async def _create_service_call_data_iterator(
 
             # Filter data to remove attributes that equal the current state
             if current_entity_state is not None:
-                service_data = _filter_service_data(service_data, current_entity_state)
+                service_data = _remove_redundant_attributes(
+                    service_data, current_entity_state
+                )
 
             # Emit service data if it still contains relevant attributes (else try next)
             if _has_relevant_service_data_attributes(service_data):
