@@ -268,7 +268,7 @@ def is_our_context(context: Context | None) -> bool:
     return is_our_context_id(context.id)
 
 
-def _get_switches_with_lights(
+def _switches_with_lights(
     hass: HomeAssistant, lights: list[str]
 ) -> list[AdaptiveSwitch]:
     """Get all switches that control at least one of the lights passed."""
@@ -292,12 +292,12 @@ class NoSwitchFoundError(ValueError):
     """No switches found for lights."""
 
 
-def find_switch_for_lights(
+def _switch_with_lights(
     hass: HomeAssistant,
     lights: list[str],
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
-    switches = _get_switches_with_lights(hass, lights)
+    switches = _switches_with_lights(hass, lights)
     if len(switches) == 1:
         return switches[0]
     elif len(switches) > 1:
@@ -306,13 +306,13 @@ def find_switch_for_lights(
             # Of the multiple switches, only one is on
             return on_switches[0]
         raise NoSwitchFoundError(
-            f"find_switch_for_lights: Light(s) {lights} found in multiple switch configs"
+            f"_switch_with_lights: Light(s) {lights} found in multiple switch configs"
             f" ({[s.entity_id for s in switches]}). You must pass a switch under"
             f" 'entity_id'."
         )
     else:
         raise NoSwitchFoundError(
-            f"find_switch_for_lights: Light(s) {lights} not found in any switch's"
+            f"_switch_with_lights: Light(s) {lights} not found in any switch's"
             f" configuration. You must either include the light(s) that is/are"
             f" in the integration config, or pass a switch under 'entity_id'."
         )
@@ -320,7 +320,7 @@ def find_switch_for_lights(
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-def _get_switches_from_service_call(
+def _switches_from_service_call(
     hass: HomeAssistant, service_call: ServiceCall
 ) -> list[AdaptiveSwitch]:
     data = service_call.data
@@ -351,7 +351,7 @@ def _get_switches_from_service_call(
         return switches
 
     if lights:
-        switch = find_switch_for_lights(hass, lights)
+        switch = _switch_with_lights(hass, lights)
         return [switch]
 
     raise ValueError(
@@ -377,11 +377,7 @@ async def handle_change_switch_settings(
     else:
         defaults = None
 
-    switch._set_changeable_settings(
-        data=data,
-        defaults=defaults,
-    )
-
+    switch._set_changeable_settings(data=data, defaults=defaults)
     switch._update_time_interval_listener()
 
     _LOGGER.debug(
@@ -389,11 +385,10 @@ async def handle_change_switch_settings(
         data,
     )
 
-    all_lights = switch.lights  # pylint: disable=protected-access
-    switch.manager.reset(*all_lights, reset_manual_control=False)
+    switch.manager.reset(*switch.lights, reset_manual_control=False)
     if switch.is_on:
         await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
-            all_lights,
+            switch.lights,
             transition=switch.initial_transition,
             force=True,
             context=switch.create_context("service", parent=service_call.context),
@@ -471,7 +466,7 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.apply' service with '%s'",
             data,
         )
-        switches = _get_switches_from_service_call(hass, service_call)
+        switches = _switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
         for switch in switches:
             if not lights:
@@ -500,7 +495,7 @@ async def async_setup_entry(
             "Called 'adaptive_lighting.set_manual_control' service with '%s'",
             data,
         )
-        switches = _get_switches_from_service_call(hass, service_call)
+        switches = _switches_from_service_call(hass, service_call)
         lights = data[CONF_LIGHTS]
         for switch in switches:
             if not lights:
@@ -528,9 +523,7 @@ async def async_setup_entry(
         domain=DOMAIN,
         service=SERVICE_APPLY,
         service_func=handle_apply,
-        schema=apply_service_schema(
-            switch.initial_transition
-        ),  # pylint: disable=protected-access
+        schema=apply_service_schema(switch.initial_transition),
     )
 
     # Register `set_manual_control` service
@@ -796,10 +789,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
-        self._set_changeable_settings(
-            data=data,
-            defaults=None,
-        )
+        self._set_changeable_settings(data=data, defaults=None)
 
         # Set other attributes
         self._icon = ICON_MAIN
@@ -835,7 +825,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def _set_changeable_settings(
         self,
         data: dict,
-        defaults: dict,
+        defaults: dict | None = None,
     ):
         # Only pass settings users can change during runtime
         data = validate(
@@ -1751,8 +1741,8 @@ class AdaptiveLightingManager:
 
         self._proactively_adapting_contexts: dict[str, str] = {}
 
-        is_proactive_adaptation_enabled = (
-            data.get(INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION, True) is not False
+        is_proactive_adaptation_enabled = data.get(
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION, True
         )
 
         if is_proactive_adaptation_enabled:
@@ -1840,7 +1830,7 @@ class AdaptiveLightingManager:
 
         entity_id = entity_ids[0]
         try:
-            adaptive_switch = find_switch_for_lights(self.hass, [entity_id])
+            adaptive_switch = _switch_with_lights(self.hass, [entity_id])
         except NoSwitchFoundError:
             # This might be a light that is not managed by this AL instance.
             _LOGGER.debug(
@@ -1985,7 +1975,7 @@ class AdaptiveLightingManager:
 
         async def reset():
             self.reset(light)
-            switches = _get_switches_with_lights(self.hass, [light])
+            switches = _switches_with_lights(self.hass, [light])
             for switch in switches:
                 if not switch.is_on:
                     continue
