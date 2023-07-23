@@ -29,5 +29,6 @@ required = [
 ]
 to_install = []
 for r in required:
-    to_install.extend(deps[r])
+    if r in deps:
+        to_install.extend(deps[r])
 print(" ".join(to_install))
