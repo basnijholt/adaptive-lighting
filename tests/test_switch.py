@@ -1206,10 +1206,10 @@ async def test_turn_on_and_off_when_already_at_that_state(hass):
 
 
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
-async def test_async_update_at_interval(hass):
-    """Test '_async_update_at_interval' method."""
+async def test_async_update_at_interval_action(hass):
+    """Test '_async_update_at_interval_action' method."""
     _, switch = await setup_switch(hass, {})
-    await switch._async_update_at_interval()
+    await switch._async_update_at_interval_action()
 
 
 @pytest.mark.parametrize("separate_turn_on_commands", (True, False))
