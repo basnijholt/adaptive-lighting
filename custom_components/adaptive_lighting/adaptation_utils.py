@@ -1,7 +1,7 @@
 """Utility functions for adaptation commands."""
+import logging
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-import logging
 from typing import Any, Literal
 
 from homeassistant.components.light import (

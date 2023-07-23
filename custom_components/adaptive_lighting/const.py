@@ -1,10 +1,10 @@
 """Constants for the Adaptive Lighting integration."""
 
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.components.light import VALID_TRANSITION
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import selector
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
 
 ICON_MAIN = "mdi:theme-light-dark"
 ICON_BRIGHTNESS = "mdi:brightness-4"
