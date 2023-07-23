@@ -1846,9 +1846,8 @@ class AdaptiveLightingManager:
 
         adapt_brightness = adaptive_switch.adapt_brightness_switch.is_on or False
         adapt_color = adaptive_switch.adapt_color_switch.is_on or False
-        transition = (
-            data[CONF_PARAMS].get(ATTR_TRANSITION, None)
-            or adaptive_switch.initial_transition
+        transition = data[CONF_PARAMS].get(
+            ATTR_TRANSITION, adaptive_switch.initial_transition
         )
 
         adaptation_data = await adaptive_switch.prepare_adaptation_data(
