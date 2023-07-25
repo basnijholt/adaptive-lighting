@@ -1,11 +1,11 @@
 """Config flow for Adaptive Lighting integration."""
 import logging
 
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
 
 from .const import (  # pylint: disable=unused-import
     CONF_LIGHTS,
@@ -75,7 +75,7 @@ def validate_options(user_input, errors):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
 
@@ -114,5 +114,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             options_schema[key] = value
 
         return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(options_schema), errors=errors
+            step_id="init",
+            data_schema=vol.Schema(options_schema),
+            errors=errors,
         )
