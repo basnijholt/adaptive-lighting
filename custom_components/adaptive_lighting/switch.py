@@ -1039,8 +1039,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # is not called in `add_to_platform_abort`.
         # See https://github.com/basnijholt/adaptive-lighting/issues/658
         self._remove_listeners()
-        # HACK: this is a private method in `Entity` which can change
-        super()._call_on_remove_callbacks()
+        try:
+            # HACK: this is a private method in `Entity` which can change
+            super()._call_on_remove_callbacks()
+        except AttributeError as err:
+            _LOGGER.error(
+                "%s: Caught AttributeError in `_call_on_remove_callbacks`: %s",
+                self._name,
+                err,
+            )
 
     def _remove_interval_listener(self) -> None:
         self.remove_interval()
