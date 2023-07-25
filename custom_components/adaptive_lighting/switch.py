@@ -524,7 +524,6 @@ async def async_setup_entry(  # noqa: PLR0915
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
-                        force=True,
                         context=switch.create_context(
                             "service",
                             parent=service_call.context,
