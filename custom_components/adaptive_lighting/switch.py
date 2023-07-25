@@ -1700,7 +1700,7 @@ class SunLightSettings:
                 "time: ", target_time, " next_event: ", next_event, " today: ", today
             )
 
-        k = 1 if next_event in (SUN_EVENT_NOON, SUN_EVENT_SUNSET) else -1
+        k = 1 if next_event in (SUN_EVENT_NOON, SUN_EVENT_SUNSET) else k
 
         # match next_event:
         #     # It's between midnight and wake
