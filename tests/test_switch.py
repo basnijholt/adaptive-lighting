@@ -530,6 +530,160 @@ async def test_light_settings(hass):
         assert_expected_color_temp(state)
 
 
+async def test_unconventional_sun_events(hass):
+    """Test unconventional sunrise/noon/sunset/midnight times."""
+
+    async def change_switch_settings(switch_entity_id, service_data):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: switch_entity_id,
+                **service_data,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    switch, _ = await setup_lights_and_switch(hass)
+
+    # Set config options for the test.
+    # change_switch_settings(
+    #    switch.unique_id,
+    #    {
+    #        "sunrise_time": "03:00:00",
+    #        "sunset_time": "05:00:00",
+    #        "transition_until_sleep": True,
+    #    },
+    # )
+
+    lights = switch._lights
+
+    # Turn on "sleep mode"
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    light_states = [hass.states.get(light) for light in lights]
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] == round(
+            255 * switch._settings[ATTR_BRIGHTNESS_PCT] / 100
+        )
+        last_service_data = switch.turn_on_off_listener.last_service_data[
+            state.entity_id
+        ]
+        assert state.attributes[ATTR_BRIGHTNESS] == last_service_data[ATTR_BRIGHTNESS]
+        assert (
+            state.attributes[ATTR_COLOR_TEMP_KELVIN]
+            == last_service_data[ATTR_COLOR_TEMP_KELVIN]
+        )
+
+    # Turn off "sleep mode"
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # Test with different times
+
+    context = switch.create_context("test")  # needs to be passed to update method
+
+    # Test with different times
+    sun_events = (
+        switch._sun_light_settings.get_sun_events(  # pylint: disable=protected-access
+            dt_util.utcnow()
+        )
+    )
+
+    # get our custom sun events.
+    sunrise = sun_events[0][1]
+    noon = sun_events[1][1]
+    sunset = sun_events[2][1]
+    midnight = sun_events[3][1]
+    assert sunrise < noon
+    assert noon < sunset
+    assert sunset < midnight
+
+    total = sunset - sunrise
+    # quarter = total / 4
+
+    before_sunset = datetime.datetime.fromtimestamp(sunset - (total / 12))
+    after_sunset = datetime.datetime.fromtimestamp(sunset + (total / 12))
+    before_sunrise = datetime.datetime.fromtimestamp(sunrise - (total / 12))
+    after_sunrise = datetime.datetime.fromtimestamp(sunrise + (total / 12))
+
+    test_date = datetime.datetime.strptime("10/17/2020", "%m/%d/%Y").date()
+    sunrise_time = (
+        switch._sun_light_settings.sunrise_time
+    )  # pylint: disable=protected-access
+    sunset_time = (
+        switch._sun_light_settings.sunrise_time
+    )  # pylint: disable=protected-access
+    sunrise_dt = datetime.datetime.combine(test_date, sunrise_time)
+    sunset_dt = datetime.datetime.combine(test_date, sunset_time)
+
+    async def patch_time_and_get_updated_states(time):
+        with patch("homeassistant.util.dt.utcnow", return_value=time):
+            await switch._update_attrs_and_maybe_adapt_lights(
+                transition=0, context=context, force=True
+            )
+            await hass.async_block_till_done()
+            return [hass.states.get(light) for light in lights]
+
+    def assert_expected_color_temp(state):
+        last_service_data = switch.turn_on_off_listener.last_service_data[
+            state.entity_id
+        ]
+        assert (
+            state.attributes[ATTR_COLOR_TEMP_KELVIN]
+            == last_service_data[ATTR_COLOR_TEMP_KELVIN]
+        )
+
+    # At sunset the brightness should be max and color_temp at the smallest value
+    light_states = await patch_time_and_get_updated_states(sunset_dt)
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] == 255
+        assert_expected_color_temp(state)
+
+    # One hour before sunset the brightness should be max and color_temp
+    # not at the smallest value yet.
+    light_states = await patch_time_and_get_updated_states(before_sunset)
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] == 255
+        assert_expected_color_temp(state)
+
+    # One hour after sunset the brightness should be down
+    light_states = await patch_time_and_get_updated_states(after_sunset)
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] < 255
+        assert_expected_color_temp(state)
+
+    # At sunrise the brightness should be max and color_temp at the smallest value
+    light_states = await patch_time_and_get_updated_states(sunrise_dt)
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] == 255
+        assert_expected_color_temp(state)
+
+    # One hour before sunrise the brightness should smaller than max
+    # and color_temp at the min value.
+    light_states = await patch_time_and_get_updated_states(before_sunrise)
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] < 255
+        assert_expected_color_temp(state)
+
+    # One hour after sunrise the brightness should be up
+    light_states = await patch_time_and_get_updated_states(after_sunrise)
+    for state in light_states:
+        assert state.attributes[ATTR_BRIGHTNESS] == 255
+        assert_expected_color_temp(state)
+
+
 @pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_manager_not_tracking_untracked_lights(hass):
     """Test that lights that are not in a Adaptive Lighting switch aren't tracked."""
