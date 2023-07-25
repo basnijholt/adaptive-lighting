@@ -1556,6 +1556,7 @@ def lerp_color_hsv(
     t: float,
 ) -> tuple[int, int, int]:
     """Linearly interpolate between two RGB colors in HSV color space."""
+    t = abs(t)
     assert 0 <= t <= 1
 
     # Convert RGB to HSV

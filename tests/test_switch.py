@@ -1707,12 +1707,14 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
 def test_lerp_color_hsv():
     assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0) == (255, 0, 0)
     assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 1) == (0, 255, 0)
-    assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0.5) == (127, 255, 0)
-    assert lerp_color_hsv((0, 0, 255), (255, 255, 255), 0.5) == (127, 127, 255)
+    assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0.5) == (255, 255, 0)
+    assert lerp_color_hsv((0, 0, 255), (255, 255, 255), 0.5) == (128, 255, 128)
 
+    # Tests that the interpolation is consistent
+    for t in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]:
+        color = lerp_color_hsv((255, 0, 0), (0, 255, 0), t)
+        inverted_color = lerp_color_hsv((0, 255, 0), (255, 0, 0), 1 - t)
+        assert color == inverted_color
 
-def test_lerp_color_hsv_out_of_bounds():
-    with pytest.raises(AssertionError):
-        lerp_color_hsv((255, 0, 0), (0, 255, 0), -0.1)
     with pytest.raises(AssertionError):
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
