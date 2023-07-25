@@ -1555,6 +1555,7 @@ def lerp_color(
     t: float,
 ) -> tuple[int, int, int]:
     """Linearly interpolate between two RGB colors."""
+    t = abs(t)  # because `percent` is [-1, 1]
     return (
         int(rgb1[0] + t * (rgb2[0] - rgb1[0])),
         int(rgb1[1] + t * (rgb2[1] - rgb1[1])),
