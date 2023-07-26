@@ -2371,7 +2371,7 @@ class AdaptiveLightingManager:
         )
         return False
 
-    async def maybe_cancel_adjusting(  # noqa: PLR0911, PLR0912
+    async def maybe_cancel_adjusting(  # noqa: PLR0911
         self,
         entity_id: str,
         off_to_on_event: Event,
@@ -2401,17 +2401,15 @@ class AdaptiveLightingManager:
         else:
             transition = None
 
-        turn_on_event = self.turn_on_event.get(entity_id)
-        if turn_on_event is None:
-            # This means that the light never got a 'turn_on' call that we
-            # registered. I am not 100% sure why this happens, but it does.
-            # This is a fix for #170 and #232.
-            return False
-        id_turn_on = turn_on_event.context.id
+        turn_on_event: Event | None = self.turn_on_event.get(entity_id)
 
         id_off_to_on = off_to_on_event.context.id
 
-        if id_off_to_on == id_turn_on and id_off_to_on is not None:
+        if (
+            turn_on_event is not None
+            and id_off_to_on is not None
+            and id_off_to_on == turn_on_event.context.id
+        ):
             # State change 'off' → 'on' triggered by 'light.turn_on'.
             return False
 
