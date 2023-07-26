@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import bisect
+import colorsys
 import datetime
 import functools
 import logging
@@ -1549,17 +1550,30 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
-def lerp_color(
+def lerp_color_hsv(
     rgb1: tuple[int, int, int],
     rgb2: tuple[int, int, int],
     t: float,
 ) -> tuple[int, int, int]:
-    """Linearly interpolate between two RGB colors."""
-    return (
-        int(rgb1[0] + t * (rgb2[0] - rgb1[0])),
-        int(rgb1[1] + t * (rgb2[1] - rgb1[1])),
-        int(rgb1[2] + t * (rgb2[2] - rgb1[2])),
+    """Linearly interpolate between two RGB colors in HSV color space."""
+    t = abs(t)
+    assert 0 <= t <= 1
+
+    # Convert RGB to HSV
+    hsv1 = colorsys.rgb_to_hsv(*[x / 255.0 for x in rgb1])
+    hsv2 = colorsys.rgb_to_hsv(*[x / 255.0 for x in rgb2])
+
+    # Linear interpolation in HSV space
+    hsv = (
+        hsv1[0] + t * (hsv2[0] - hsv1[0]),
+        hsv1[1] + t * (hsv2[1] - hsv1[1]),
+        hsv1[2] + t * (hsv2[2] - hsv1[2]),
     )
+
+    # Convert back to RGB
+    rgb = tuple(int(round(x * 255)) for x in colorsys.hsv_to_rgb(*hsv))
+    assert all(0 <= x <= 255 for x in rgb), f"Invalid RGB color: {rgb}"
+    return rgb
 
 
 @dataclass(frozen=True)
@@ -1748,7 +1762,7 @@ class SunLightSettings:
             # This will result in a perceptible jump in color at sunset and sunrise
             # because the `color_temperature_to_rgb` function is not 100% accurate.
             min_color_rgb = color_temperature_to_rgb(self.min_color_temp)
-            rgb_color = lerp_color(min_color_rgb, self.sleep_rgb_color, percent)
+            rgb_color = lerp_color_hsv(min_color_rgb, self.sleep_rgb_color, percent)
             color_temp_kelvin = self.calc_color_temp_kelvin(percent)
             force_rgb_color = True
         else:

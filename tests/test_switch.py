@@ -92,6 +92,7 @@ from custom_components.adaptive_lighting.switch import (
     create_context,
     is_our_context,
     is_our_context_id,
+    lerp_color_hsv,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1701,3 +1702,19 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     await switch._update_attrs_and_maybe_adapt_lights(context=context)
     assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_SLEEP_BRIGHTNESS
     assert switch._settings["rgb_color"] == DEFAULT_SLEEP_RGB_COLOR
+
+
+def test_lerp_color_hsv():
+    assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0) == (255, 0, 0)
+    assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 1) == (0, 255, 0)
+    assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0.5) == (255, 255, 0)
+    assert lerp_color_hsv((0, 0, 255), (255, 255, 255), 0.5) == (128, 255, 128)
+
+    # Tests that the interpolation is consistent
+    for t in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]:
+        color = lerp_color_hsv((255, 0, 0), (0, 255, 0), t)
+        inverted_color = lerp_color_hsv((0, 255, 0), (255, 0, 0), 1 - t)
+        assert color == inverted_color
+
+    with pytest.raises(AssertionError):
+        lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
