@@ -1,4 +1,4 @@
-name: Update README.md
+name: Update README.md, strings.json, and services.yaml
 
 on:
   push:
