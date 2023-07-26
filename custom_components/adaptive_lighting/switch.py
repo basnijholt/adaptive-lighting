@@ -1452,9 +1452,21 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
 
             if not self._detect_non_ha_changes:
-                # TODO: if not associated with a light.turn_on, then mark as manually controlled  # noqa: TD002, FIX002, TD003
+                # If we don't detect non-HA changes, we're only adjusting lights that
+                # were turned on by HA. If the light was turned on by something else,
+                # we don't adjust it (e.g., when HA suddenly reports it as on).
+                if not self.manager._state_event_is_from_turn_on(entity_id, event):
+                    _LOGGER.debug(
+                        "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
+                        " because 'light.turn_on' was not called by HA and"
+                        " 'detect_non_ha_changes' is False",
+                        self._name,
+                        entity_id,
+                        event.context.id,
+                    )
+                    self.manager.mark_as_manual_control(self, entity_id)
                 return
-            # TODO: figure out why this if below is needed!  # noqa: TD003, TD002, FIX002
+
             if event.context.parent_id and not self.manager.is_proactively_adapting(
                 event.context.id,
             ):
