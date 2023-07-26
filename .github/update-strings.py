@@ -33,7 +33,7 @@ for service_name, dct in services.items():
     for field_name, field in dct["fields"].items():
         services_json[service_name]["fields"][field_name] = {
             "description": field["description"],
-            "name": field["name"],
+            "name": field_name,
         }
 strings["services"] = services_json
 
