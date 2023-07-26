@@ -1441,6 +1441,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.manager.reset(entity_id)
 
         if old_state.state == STATE_OFF and new_state.state == STATE_ON:
+            # Tracks 'off' → 'on' state changes
+            self._off_to_on_event[entity_id] = event
+
             _LOGGER.debug(
                 "%s: Detected an 'off' → 'on' event for '%s' with context.id='%s'",
                 self._name,
@@ -1448,13 +1451,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
 
+            if not self._detect_non_ha_changes:
+                return
+
             if event.context.parent_id and not self.manager.is_proactively_adapting(
                 event.context.id,
             ):
                 self.manager.reset(entity_id, reset_manual_control=False)
 
-            # Tracks 'off' → 'on' state changes
-            self._off_to_on_event[entity_id] = event
             lock = self._locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.manager.maybe_cancel_adjusting(
@@ -2315,6 +2319,8 @@ class AdaptiveLightingManager:
         detected, we mark the light as 'manually controlled' until the light
         or switch is turned 'off' and 'on' again.
         """
+        assert switch._detect_non_ha_changes
+
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return None
@@ -2329,39 +2335,29 @@ class AdaptiveLightingManager:
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
         # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
-        if switch._detect_non_ha_changes:
+        await self.hass.helpers.entity_component.async_update_entity(light)
+        refreshed_state = self.hass.states.get(light)
+
+        changed = compare_to(
+            old_attributes=last_service_data,
+            new_attributes=refreshed_state.attributes,
+        )
+        if changed:
             _LOGGER.debug(
-                "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
-                " and check if it's last adapt succeeded.",
+                "%s: State attributes of '%s' (%s) didn't change wrt 'last_service_data' (%s) (context.id=%s)",
                 switch._name,
                 light,
+                refreshed_state.attributes,
+                last_service_data,
+                context.id,
             )
-            # This update_entity probably isn't necessary now that we're checking
-            # if transitions finished from our last adapt.
-            await self.hass.helpers.entity_component.async_update_entity(light)
-            refreshed_state = self.hass.states.get(light)
-            _LOGGER.debug(
-                "%s: Current state of %s: %s",
-                switch._name,
-                light,
-                refreshed_state,
-            )
-            changed = compare_to(
-                old_attributes=last_service_data,
-                new_attributes=refreshed_state.attributes,
-            )
-            if changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
-                    light,
-                    context.id,
-                )
-                return True
+            return True
         _LOGGER.debug(
-            "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
-            " context.id=%s.",
+            "%s: State attributes of '%s' (%s) changed wrt 'last_service_data' (%s) (context.id=%s)",
             switch._name,
             light,
+            refreshed_state.attributes,
+            last_service_data,
             context.id,
         )
         return False
