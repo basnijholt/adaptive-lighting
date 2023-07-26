@@ -1431,12 +1431,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
         entity_id = event.data.get("entity_id")
-        if (
-            old_state is not None
-            and old_state.state == STATE_OFF
-            and new_state is not None
-            and new_state.state == STATE_ON
-        ):
+
+        if old_state is None or new_state is None:
+            return
+
+        if old_state.state == STATE_ON and new_state.state == STATE_OFF:
+            # Tracks 'on' → 'off' state changes
+            self._on_to_off_event[entity_id] = event
+            self.manager.reset(entity_id)
+
+        if old_state.state == STATE_OFF and new_state.state == STATE_ON:
             _LOGGER.debug(
                 "%s: Detected an 'off' → 'on' event for '%s' with context.id='%s'",
                 self._name,
@@ -1487,15 +1491,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 force=True,
                 context=self.create_context("light_event", parent=event.context),
             )
-        elif (
-            old_state is not None
-            and old_state.state == STATE_ON
-            and new_state is not None
-            and new_state.state == STATE_OFF
-        ):
-            # Tracks 'off' → 'on' state changes
-            self._on_to_off_event[entity_id] = event
-            self.manager.reset(entity_id)
 
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
