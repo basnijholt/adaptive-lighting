@@ -1454,7 +1454,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if not self._detect_non_ha_changes:
                 # TODO: if not associated with a light.turn_on, then mark as manually controlled  # noqa: TD002, FIX002, TD003
                 return
-
+            # TODO: figure out why this if below is needed!  # noqa: TD003, TD002, FIX002
             if event.context.parent_id and not self.manager.is_proactively_adapting(
                 event.context.id,
             ):
