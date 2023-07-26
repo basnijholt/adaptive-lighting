@@ -437,6 +437,7 @@ async def async_setup_entry(  # noqa: PLR0915
     async_add_entities: AddEntitiesCallback,
 ):
     """Set up the AdaptiveLighting switch."""
+    assert hass is not None
     data = hass.data[DOMAIN]
     assert config_entry.entry_id in data
     manager = data.setdefault(
@@ -500,7 +501,7 @@ async def async_setup_entry(  # noqa: PLR0915
             if not lights:
                 all_lights = switch.lights
             else:
-                all_lights = _expand_light_groups(switch.hass, lights)
+                all_lights = _expand_light_groups(hass, lights)
             switch.manager.lights.update(all_lights)
             for light in all_lights:
                 if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
@@ -530,7 +531,7 @@ async def async_setup_entry(  # noqa: PLR0915
             if not lights:
                 all_lights = switch.lights
             else:
-                all_lights = _expand_light_groups(switch.hass, lights)
+                all_lights = _expand_light_groups(hass, lights)
             if service_call.data[CONF_MANUAL_CONTROL]:
                 for light in all_lights:
                     _fire_manual_control_event(switch, light, service_call.context)
@@ -809,6 +810,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     ) -> None:
         """Initialize the Adaptive Lighting switch."""
         # Set attributes that can't be modified during runtime
+        assert hass is not None
         self.hass = hass
         self.manager = manager
         self.sleep_mode_switch = sleep_mode_switch
@@ -1815,6 +1817,7 @@ class AdaptiveLightingManager:
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the AdaptiveLightingManager that is shared among all switches."""
+        assert hass is not None
         self.hass = hass
         data = validate(config_entry)
         self.lights: set[str] = set()
