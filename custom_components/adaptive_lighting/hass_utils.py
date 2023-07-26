@@ -1,10 +1,13 @@
 """Utility functions for HA core."""
+import logging
 from collections.abc import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.util.read_only_dict import ReadOnlyDict
 
 from .adaptation_utils import ServiceData
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def setup_service_call_interceptor(
@@ -39,15 +42,18 @@ def setup_service_call_interceptor(
     existing_service = registered_services[domain][service]
 
     async def service_func_proxy(call: ServiceCall) -> None:
-        # Convert read-only data to writeable dictionary for modification by interceptor
-        data = dict(call.data)
+        try:
+            # Convert read-only data to writeable dictionary for modification by interceptor
+            data = dict(call.data)
 
-        # Call interceptor
-        await intercept_func(call, data)
+            # Call interceptor
+            await intercept_func(call, data)
 
-        # Convert data back to read-only
-        call.data = ReadOnlyDict(data)
-
+            # Convert data back to read-only
+            call.data = ReadOnlyDict(data)
+        except Exception as e:  # noqa: BLE001
+            # Blindly catch all exceptions to avoid breaking light.turn_on
+            _LOGGER.error("Error in service_func_proxy: %s", e)
         # Call original service handler with processed data
         await existing_service.job.target(call)
 
