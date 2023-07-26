@@ -2406,14 +2406,12 @@ class AdaptiveLightingManager:
         if the brightness is still decreasing. Only if it is the case we
         adjust the lights.
         """
-        _LOGGER.debug(
-            "maybe_cancel_adjusting called with entity_id='%s', off_to_on_event='%s', on_to_off_event='%s'",
-            entity_id,
-            off_to_on_event,
-            on_to_off_event,
-        )
         if on_to_off_event is None:
-            # No state change has been registered before.
+            _LOGGER.debug(
+                "maybe_cancel_adjusting: No 'on' → 'off' state change has been registered before for '%s'."
+                " It's possible that the light was already on when Home Assistant was turned on.",
+                entity_id,
+            )
             return False
 
         id_on_to_off = on_to_off_event.context.id
@@ -2424,13 +2422,6 @@ class AdaptiveLightingManager:
         else:
             transition = None
 
-        _LOGGER.debug(
-            "maybe_cancel_adjusting: id_on_to_off='%s'"
-            " turn_off_event='%s', transition='%s'",
-            id_on_to_off,
-            turn_off_event,
-            transition,
-        )
         if self._state_event_is_from_turn_on(entity_id, off_to_on_event):
             _LOGGER.debug(
                 "maybe_cancel_adjusting: State change 'off' → 'on' triggered by 'light.turn_on'",
@@ -2452,12 +2443,12 @@ class AdaptiveLightingManager:
             delay = TURNING_OFF_DELAY
 
         delta_time = (dt_util.utcnow() - on_to_off_event.time_fired).total_seconds()
-        _LOGGER.debug(
-            "maybe_cancel_adjusting: delta_time='%s', delay='%s'",
-            delta_time,
-            delay,
-        )
         if delta_time > delay:
+            _LOGGER.debug(
+                "maybe_cancel_adjusting: delta_time='%s', delay='%s'",
+                delta_time,
+                delay,
+            )
             return False
 
         # Here we could just `return True` but because we want to prevent any updates
@@ -2466,23 +2457,33 @@ class AdaptiveLightingManager:
         # is 'off' or the time has passed.
 
         delay -= delta_time  # delta_time has passed since the 'off' → 'on' event
-        _LOGGER.debug("Waiting with adjusting '%s' for %s", entity_id, delay)
-
+        _LOGGER.debug(
+            "maybe_cancel_adjusting: Waiting with adjusting '%s' for %s",
+            entity_id,
+            delay,
+        )
+        total_sleep = 0
         for _ in range(3):
             # It can happen that the actual transition time is longer than the
             # specified time in the 'turn_off' service.
             coro = asyncio.sleep(delay)
+            total_sleep += delay
             task = self.sleep_tasks[entity_id] = asyncio.ensure_future(coro)
             try:
                 await task
             except asyncio.CancelledError:  # 'light.turn_on' has been called
                 _LOGGER.debug(
-                    "Sleep task is cancelled due to 'light.turn_on('%s')' call",
+                    "maybe_cancel_adjusting: Sleep task is cancelled due to 'light.turn_on('%s')' call",
                     entity_id,
                 )
                 return False
 
             if not is_on(self.hass, entity_id):
+                _LOGGER.debug(
+                    "maybe_cancel_adjusting: '%s' is off after %s seconds, cancelling adaptation",
+                    entity_id,
+                    total_sleep,
+                )
                 return True
             delay = TURNING_OFF_DELAY  # next time only wait this long
 
@@ -2497,6 +2498,11 @@ class AdaptiveLightingManager:
         # choose to **only** adapt on 'light.turn_on' events and ignore
         # other 'off' → 'on' state switches resulting from polling. That
         # would mean we 'return True' here.
+        _LOGGER.debug(
+            "maybe_cancel_adjusting: '%s' is still on after %s seconds, assuming it was intended to be on",
+            entity_id,
+            total_sleep,
+        )
         return False
 
 
