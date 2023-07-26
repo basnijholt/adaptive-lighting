@@ -1003,7 +1003,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             remove_state = async_track_state_change_event(
                 self.hass,
                 entity_ids=self.lights,
-                action=self._light_event_action,
+                action=self._light_state_event_action,
             )
             self.remove_listeners.append(remove_state)
 
@@ -1443,7 +1443,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("sleep", parent=event.context),
         )
 
-    async def _light_event_action(self, event: Event) -> None:
+    async def _light_state_event_action(self, event: Event) -> None:
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
         entity_id = event.data.get("entity_id")
