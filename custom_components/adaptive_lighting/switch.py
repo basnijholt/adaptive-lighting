@@ -2363,6 +2363,19 @@ class AdaptiveLightingManager:
         )
         return False
 
+    def _state_event_is_from_turn_on(
+        self,
+        entity_id: str,
+        off_to_on_event: Event,
+    ) -> bool:
+        turn_on_event: Event | None = self.turn_on_event.get(entity_id)
+        id_off_to_on = off_to_on_event.context.id
+        return (
+            turn_on_event is not None
+            and id_off_to_on is not None
+            and id_off_to_on == turn_on_event.context.id
+        )
+
     async def maybe_cancel_adjusting(  # noqa: PLR0911
         self,
         entity_id: str,
@@ -2399,24 +2412,17 @@ class AdaptiveLightingManager:
         else:
             transition = None
 
-        turn_on_event: Event | None = self.turn_on_event.get(entity_id)
-
-        id_off_to_on = off_to_on_event.context.id
         _LOGGER.debug(
-            "maybe_cancel_adjusting: id_off_to_on='%s', id_on_to_off='%s'"
-            " turn_on_event='%s', turn_off_event='%s', transition='%s'",
-            id_off_to_on,
+            "maybe_cancel_adjusting: id_on_to_off='%s'"
+            " turn_off_event='%s', transition='%s'",
             id_on_to_off,
-            turn_on_event,
             turn_off_event,
             transition,
         )
-        if (
-            turn_on_event is not None
-            and id_off_to_on is not None
-            and id_off_to_on == turn_on_event.context.id
-        ):
-            # State change 'off' → 'on' triggered by 'light.turn_on'.
+        if self._state_event_is_from_turn_on(entity_id, off_to_on_event):
+            _LOGGER.debug(
+                "maybe_cancel_adjusting: State change 'off' → 'on' triggered by 'light.turn_on'",
+            )
             return False
 
         if (
