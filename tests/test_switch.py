@@ -1672,25 +1672,25 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     assert switch._settings["color_temp_kelvin"] > min_color_temp
     assert "color_temp_kelvin" in switch.manager.last_service_data[ENTITY_LIGHT]
 
-    # One hour after sunset the brightness should be down
+    # One hour after sunset the brightness should be down and use RGB
     await patch_time_and_update(after_sunset)
     assert switch._settings["force_rgb_color"]
     assert switch._settings[ATTR_BRIGHTNESS_PCT] < DEFAULT_MAX_BRIGHTNESS
     assert "rgb_color" in switch.manager.last_service_data[ENTITY_LIGHT]
 
-    # At sunrise the brightness should be max and color_temp at the smallest value
+    # At sunrise the brightness should be max and use Kelvin
     await patch_time_and_update(sunrise)
     assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_MAX_BRIGHTNESS
     assert switch._settings["color_temp_kelvin"] == min_color_temp
     assert "color_temp_kelvin" in switch.manager.last_service_data[ENTITY_LIGHT]
 
     # One hour before sunrise the brightness should smaller than max
-    # and color_temp at the min value.
+    # and use RGB
     await patch_time_and_update(before_sunrise)
     assert switch._settings[ATTR_BRIGHTNESS_PCT] < DEFAULT_MAX_BRIGHTNESS
     assert "rgb_color" in switch.manager.last_service_data[ENTITY_LIGHT]
 
-    # One hour after sunrise the brightness should be up
+    # One hour after sunrise the brightness should be up and it should use Kelvin
     await patch_time_and_update(after_sunrise)
     assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_MAX_BRIGHTNESS
     assert switch._settings["color_temp_kelvin"] > min_color_temp
