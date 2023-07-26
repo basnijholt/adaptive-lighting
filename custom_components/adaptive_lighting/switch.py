@@ -1159,6 +1159,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         use_transition = "transition" in features and transition > 0
         if use_transition:
             service_data[ATTR_TRANSITION] = transition
+
         if "brightness" in features and adapt_brightness:
             brightness = round(255 * self._settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
@@ -1184,6 +1185,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         elif "color" in features and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
             service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
+
+        required_attrs = [ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, ATTR_BRIGHTNESS]
+        if not any(attr in service_data for attr in required_attrs):
+            _LOGGER.debug(
+                "%s: Skipping adaptation of %s because no relevant attributes"
+                " are set in service_data: %s",
+                self._name,
+                light,
+                service_data,
+            )
+            return None
 
         context = context or self.create_context("adapt_lights")
 
