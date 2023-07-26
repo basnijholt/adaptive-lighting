@@ -19,15 +19,12 @@ with strings_fname.open() as f:
 data = {k: f"{k}: {const.DOCS[k]}" for k, _, _ in const.VALIDATION_TUPLES}
 strings["options"]["step"]["init"]["data"] = data
 
-
 # Set "services"
 services_filename = Path("custom_components") / "adaptive_lighting" / "services.yaml"
 with open(services_filename) as f:  # noqa: PTH123
     services = yaml.safe_load(f)
 services_json = {}
 for service_name, dct in services.items():
-    _docs = {"set_manual_control": const.DOCS_MANUAL_CONTROL, "apply": const.DOCS_APPLY}
-    alternative_docs = _docs.get(service_name, const.DOCS)
     services_json[service_name] = {
         "name": service_name,
         "description": dct["description"],
@@ -40,6 +37,7 @@ for service_name, dct in services.items():
         }
 strings["services"] = services_json
 
+# Write changes to strings.json
 with strings_fname.open("w") as f:
     json.dump(strings, f, indent=2, ensure_ascii=False)
     f.write("\n")
@@ -50,6 +48,7 @@ with en_fname.open() as f:
 
 en["config"]["step"]["user"] = strings["config"]["step"]["user"]
 en["options"]["step"]["init"]["data"] = data
+en["services"] = services_json
 
 with en_fname.open("w") as f:
     json.dump(en, f, indent=2, ensure_ascii=False)
