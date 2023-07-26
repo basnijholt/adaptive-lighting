@@ -832,9 +832,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._icon = ICON_MAIN
         self._state = None
 
-        # Tracks 'off' → 'on' state changes
-        self._on_to_off_event: dict[str, Event] = {}
         # Tracks 'on' → 'off' state changes
+        self._on_to_off_event: dict[str, Event] = {}
+        # Tracks 'off' → 'on' state changes
         self._off_to_on_event: dict[str, Event] = {}
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self._locks: dict[str, asyncio.Lock] = {}
@@ -2384,6 +2384,12 @@ class AdaptiveLightingManager:
         if the brightness is still decreasing. Only if it is the case we
         adjust the lights.
         """
+        _LOGGER.debug(
+            "maybe_cancel_adjusting called with entity_id='%s', off_to_on_event='%s', on_to_off_event='%s'",
+            entity_id,
+            off_to_on_event,
+            on_to_off_event,
+        )
         if on_to_off_event is None:
             # No state change has been registered before.
             return False
@@ -2399,7 +2405,11 @@ class AdaptiveLightingManager:
         turn_on_event: Event | None = self.turn_on_event.get(entity_id)
 
         id_off_to_on = off_to_on_event.context.id
-
+        _LOGGER.debug(
+            "maybe_cancel_adjusting: id_off_to_on='%s', id_on_to_off='%s'",
+            id_off_to_on,
+            id_on_to_off,
+        )
         if (
             turn_on_event is not None
             and id_off_to_on is not None
@@ -2423,6 +2433,11 @@ class AdaptiveLightingManager:
             delay = TURNING_OFF_DELAY
 
         delta_time = (dt_util.utcnow() - on_to_off_event.time_fired).total_seconds()
+        _LOGGER.debug(
+            "maybe_cancel_adjusting: delta_time='%s', delay='%s'",
+            delta_time,
+            delay,
+        )
         if delta_time > delay:
             return False
 
