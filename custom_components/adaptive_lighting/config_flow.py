@@ -87,16 +87,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         conf = self.config_entry
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
-            # Config entry was imported from YAML
-            if conf.unique_id not in self.hass.data[DOMAIN].get("__yaml__", []):
-                # The config entry was imported from YAML but no longer exists
-                _LOGGER.error(
-                    "%s: config entry was imported from YAML, but no longer exists"
-                    " it should be removed from the Settings menu at"
-                    " %s/config/integrations/integration/adaptive_lighting.",
-                    data[CONF_NAME],
-                    self.hass.config.external_url,
-                )
             return self.async_show_form(step_id="init", data_schema=None)
         errors = {}
         if user_input is not None:
