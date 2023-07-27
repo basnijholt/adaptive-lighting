@@ -139,6 +139,7 @@ class AdaptationData:
     max_length: int
     which: Literal["brightness", "color", "both"]
     initial_sleep: bool = False
+    force: bool = True
 
     async def next_service_call_data(self) -> ServiceData | None:
         """Return data for the next service call, or none if no more data exists."""
@@ -174,6 +175,7 @@ def prepare_adaptation_data(
     service_data: ServiceData,
     split: bool,
     filter_by_state: bool,
+    force: bool,
 ) -> AdaptationData:
     """Prepares a data object carrying all data required to execute an adaptation."""
     _LOGGER.debug(
@@ -206,4 +208,5 @@ def prepare_adaptation_data(
         service_call_datas=service_data_iterator,
         max_length=service_datas_length,
         which=lighting_type,
+        force=force,
     )

@@ -532,6 +532,7 @@ async def async_setup_entry(  # noqa: PLR0915
                         data[ATTR_ADAPT_BRIGHTNESS],
                         data[ATTR_ADAPT_COLOR],
                         data[CONF_PREFER_RGB_COLOR],
+                        force=True,
                         context=switch.create_context(
                             "service",
                             parent=service_call.context,
@@ -1164,6 +1165,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: bool | None = None,
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
+        force: bool = False,
         context: Context | None = None,
     ) -> AdaptationData | None:
         """Prepare `AdaptationData` for adapting a light."""
@@ -1250,6 +1252,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data,
             split=self._separate_turn_on_commands,
             filter_by_state=self._skip_redundant_commands,
+            force=force,
         )
 
     async def _adapt_light(
@@ -1259,6 +1262,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: bool | None = None,
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
+        force: bool = False,
         context: Context | None = None,
     ) -> None:
         if (lock := self._locks.get(light)) is not None and lock.locked():
@@ -1280,6 +1284,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             adapt_brightness,
             adapt_color,
             prefer_rgb_color,
+            force,
             context,
         )
         if data is None:
@@ -1305,6 +1310,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # All service datas processed
                 break
 
+            if not data.force and not is_on(self.hass, data.entity_id):
+                _LOGGER.debug(
+                    "%s: Skipping adaptation of %s because it is now off",
+                    self._name,
+                    data.entity_id,
+                )
+                return
+
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
                 " with context.id='%s'",
@@ -1312,6 +1325,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 data.context.id,
             )
+
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
@@ -1420,6 +1434,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             significant_change = (
                 self._detect_non_ha_changes
                 and not force
+                # Note: This call updates the state of the light
+                # so it might suddenly be off.
                 and await self.manager.significant_change(
                     self,
                     light,
@@ -1447,7 +1463,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     light,
                     transition,
                 )
-                await self._adapt_light(light, transition, context=context)
+                await self._adapt_light(light, transition, force=force, context=context)
 
     async def _sleep_mode_switch_state_event_action(self, event: Event) -> None:
         if not _is_state_event(event, (STATE_ON, STATE_OFF)):
