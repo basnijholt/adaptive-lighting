@@ -1311,6 +1311,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 break
 
             if not data.force and not is_on(self.hass, data.entity_id):
+                # Do a last-minute check if the entity is still on.
                 _LOGGER.debug(
                     "%s: Skipping adaptation of %s because it is now off",
                     self._name,
