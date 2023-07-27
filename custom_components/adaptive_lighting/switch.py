@@ -1493,7 +1493,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     # Sometimes the light incorrectly reports itself as on when it's
                     # actually off. This code path will ensure that the light is
                     # not controlled by Adaptive Lighting.
-                    self.manager.mark_as_manual_control(self, entity_id)
+                    self.manager.mark_as_manual_control(entity_id)
                 return
 
             if event.context.parent_id and not self.manager.is_proactively_adapting(
