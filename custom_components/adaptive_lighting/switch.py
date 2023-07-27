@@ -1443,10 +1443,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             else:
                 _LOGGER.debug(
                     "%s: Calling _adapt_light from _update_attrs_and_maybe_adapt_lights:"
-                    " '%s' with transition %s",
+                    " '%s' with transition %s and context.id=%s",
                     self._name,
                     light,
                     transition,
+                    context.id,
                 )
                 await self._adapt_light(light, transition, context=context)
 
