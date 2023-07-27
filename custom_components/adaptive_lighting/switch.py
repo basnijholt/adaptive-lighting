@@ -576,6 +576,7 @@ async def async_setup_entry(  # noqa: PLR0915
         if k not in skip:
             args[vol.Optional(k)] = valid
     platform = entity_platform.current_platform.get()
+    assert platform is not None
     platform.async_register_entity_service(
         SERVICE_CHANGE_SWITCH_SETTINGS,
         args,
