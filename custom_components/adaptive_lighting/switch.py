@@ -455,9 +455,11 @@ async def async_setup_entry(  # noqa: PLR0915
         and config_entry.unique_id not in data.get("__yaml__", [])
     ):
         _LOGGER.warning(
-            "Skipping setup of AdaptiveLighting switch for removed YAML config entry '%s'",
+            "Deleting AdaptiveLighting switch '%s' because YAML"
+            " defined switch has been removed from YAML configuration",
             config_entry.unique_id,
         )
+        await hass.config_entries.async_remove(config_entry.entry_id)
         return
     manager = data.setdefault(
         ATTR_ADAPTIVE_LIGHTING_MANAGER,
