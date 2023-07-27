@@ -343,7 +343,11 @@ Adaptive Lighting sends more commands to lights than a typical human user would.
 - Unresponsive lights.
 - Home Assistant reporting incorrect light states, causing Adaptive Lighting to inadvertently turn lights back on.
 
-Most issues that appear to be caused by Adaptive Lighting are actually due to unrelated problems. Addressing these issues will significantly improve your Home Assistant experience.
+Most issues that appear to be caused by Adaptive Lighting are actually due to unrelated problems.
+Addressing these issues will significantly improve your Home Assistant experience.
+
+In case lights are suddenly turning on by themselves, this is most likely due to the light incorrectly reporting an "on" state to Home Assistant, leading to an undesired Adaptive Lighting action.
+To prevent adapting in cases *where the state of the light is suddenly "on" and only adapt if there is an associated `light.turn_on` service call*, set `detect_non_ha_changes: false`.
 
 #### :signal_strength: WiFi Networks
 
