@@ -42,6 +42,7 @@ from homeassistant.components.light import (
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_DOMAIN,
@@ -444,6 +445,20 @@ async def async_setup_entry(  # noqa: PLR0915
     assert hass is not None
     data = hass.data[DOMAIN]
     assert config_entry.entry_id in data
+    _LOGGER.debug(
+        "Setting up AdaptiveLighting with data: %s and config_entry %s",
+        data,
+        config_entry,
+    )
+    if (  # Skip deleted YAML config entries
+        config_entry.source == SOURCE_IMPORT
+        and config_entry.unique_id not in data.get("__yaml__", [])
+    ):
+        _LOGGER.warning(
+            "Skipping setup of AdaptiveLighting switch for removed YAML config entry '%s'",
+            config_entry.unique_id,
+        )
+        return
     manager = data.setdefault(
         ATTR_ADAPTIVE_LIGHTING_MANAGER,
         AdaptiveLightingManager(hass, config_entry),
