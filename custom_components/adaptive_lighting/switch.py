@@ -1310,7 +1310,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # All service datas processed
                 break
 
-            if not data.force and not is_on(self.hass, data.entity_id):
+            if (
+                not data.force
+                and not is_on(self.hass, data.entity_id)
+                and not self.manager.is_proactively_adapting(data.context.id)
+            ):
                 # Do a last-minute check if the entity is still on.
                 _LOGGER.debug(
                     "%s: Skipping adaptation of %s because it is now off",
