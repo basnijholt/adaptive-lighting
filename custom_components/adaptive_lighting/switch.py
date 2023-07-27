@@ -1467,6 +1467,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         entity_id,
                         event.context.id,
                     )
+                    # Sometimes the light incorrectly reports itself as on when it's
+                    # actually off. This code path will ensure that the light is
+                    # not controlled by Adaptive Lighting.
                     self.manager.mark_as_manual_control(self, entity_id)
                 return
 
@@ -2450,7 +2453,7 @@ class AdaptiveLightingManager:
         delta_time = (dt_util.utcnow() - on_to_off_event.time_fired).total_seconds()
         if delta_time > delay:
             _LOGGER.debug(
-                "maybe_cancel_adjusting: delta_time='%s', delay='%s'",
+                "maybe_cancel_adjusting: delta_time='%s' > delay='%s'",
                 delta_time,
                 delay,
             )
@@ -2499,10 +2502,7 @@ class AdaptiveLightingManager:
             return True
 
         # Now we assume that the lights are still on and they were intended
-        # to be on. In case this still gives problems for some, we might
-        # choose to **only** adapt on 'light.turn_on' events and ignore
-        # other 'off' → 'on' state switches resulting from polling. That
-        # would mean we 'return True' here.
+        # to be on.
         _LOGGER.debug(
             "maybe_cancel_adjusting: '%s' is still on after %s seconds, assuming it was intended to be on",
             entity_id,
