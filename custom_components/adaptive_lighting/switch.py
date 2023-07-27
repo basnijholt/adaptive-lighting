@@ -1497,26 +1497,28 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
 
-            if not self._detect_non_ha_changes:
+            if (
+                not self._detect_non_ha_changes
+                and not self.manager._off_to_on_state_event_is_from_turn_on(
+                    entity_id,
+                    event,
+                )
+            ):
                 # If we don't detect non-HA changes, we're only adjusting lights that
                 # were turned on by HA. If the light was turned on by something else,
                 # we don't adjust it (e.g., when HA suddenly reports it as on).
-                if not self.manager._off_to_on_state_event_is_from_turn_on(
+                _LOGGER.debug(
+                    "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
+                    " because 'light.turn_on' was not called by HA and"
+                    " 'detect_non_ha_changes' is False",
+                    self._name,
                     entity_id,
-                    event,
-                ):
-                    _LOGGER.debug(
-                        "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
-                        " because 'light.turn_on' was not called by HA and"
-                        " 'detect_non_ha_changes' is False",
-                        self._name,
-                        entity_id,
-                        event.context.id,
-                    )
-                    # Sometimes the light incorrectly reports itself as on when it's
-                    # actually off. This code path will ensure that the light is
-                    # not controlled by Adaptive Lighting.
-                    self.manager.mark_as_manual_control(entity_id)
+                    event.context.id,
+                )
+                # Sometimes the light incorrectly reports itself as on when it's
+                # actually off. This code path will ensure that the light is
+                # not controlled by Adaptive Lighting.
+                self.manager.mark_as_manual_control(entity_id)
                 return
 
             if event.context.parent_id and not self.manager.is_proactively_adapting(
