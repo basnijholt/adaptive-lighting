@@ -1313,6 +1313,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if (
                 not data.force
                 and not is_on(self.hass, data.entity_id)
+                # if proactively adapting, we are sure that it came from a `light.turn_on`
                 and not self.manager.is_proactively_adapting(data.context.id)
             ):
                 # Do a last-minute check if the entity is still on.
