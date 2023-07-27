@@ -1507,6 +1507,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 # If we don't detect non-HA changes, we're only adjusting lights that
                 # were turned on by HA. If the light was turned on by something else,
                 # we don't adjust it (e.g., when HA suddenly reports it as on).
+                # Sometimes the light incorrectly reports itself as on when it's
+                # actually off. This code path will ensure that the light is
+                # not controlled by Adaptive Lighting.
                 _LOGGER.debug(
                     "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
                     " because 'light.turn_on' was not called by HA and"
@@ -1515,9 +1518,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     entity_id,
                     event.context.id,
                 )
-                # Sometimes the light incorrectly reports itself as on when it's
-                # actually off. This code path will ensure that the light is
-                # not controlled by Adaptive Lighting.
                 self.manager.mark_as_manual_control(entity_id)
                 return
 
