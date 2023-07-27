@@ -226,7 +226,7 @@ change_switch_settings:
       selector:
         boolean: null
     detect_non_ha_changes:
-      description: Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️
+      description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.'
       required: false
       example: false
       selector:
