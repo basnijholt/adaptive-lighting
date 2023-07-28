@@ -285,12 +285,12 @@ def _switches_with_lights(
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
     switches = []
+    all_check_lights = _expand_light_groups(hass, lights)
     for config in config_entries:
         entry = data.get(config.entry_id)
         if entry is None:  # entry might be disabled and therefore missing
             continue
         switch = data[config.entry_id]["instance"]
-        all_check_lights = _expand_light_groups(hass, lights)
         switch._expand_light_groups()
         # Check if any of the lights are in the switch's lights
         if set(switch.lights) & set(all_check_lights):
@@ -461,10 +461,11 @@ async def async_setup_entry(  # noqa: PLR0915
         )
         await hass.config_entries.async_remove(config_entry.entry_id)
         return
-    manager = data.setdefault(
-        ATTR_ADAPTIVE_LIGHTING_MANAGER,
-        AdaptiveLightingManager(hass, config_entry),
-    )
+
+    if (manager := data.get(ATTR_ADAPTIVE_LIGHTING_MANAGER)) is None:
+        manager = AdaptiveLightingManager(hass, config_entry)
+        data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = manager
+
     sleep_mode_switch = SimpleSwitch(
         which="Sleep Mode",
         initial_state=False,
@@ -2178,7 +2179,11 @@ class AdaptiveLightingManager:
         """Cancel ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
-        if which in ("both", "brightness") and brightness_task is not None:
+        if (
+            which in ("both", "brightness")
+            and brightness_task is not None
+            and not brightness_task.done()
+        ):
             _LOGGER.debug(
                 "Cancelled ongoing brightness adaptation calls (%s) for '%s'",
                 brightness_task,
@@ -2189,6 +2194,7 @@ class AdaptiveLightingManager:
             which in ("both", "color")
             and color_task is not None
             and color_task is not brightness_task
+            and not color_task.done()
         ):
             _LOGGER.debug(
                 "Cancelled ongoing color adaptation calls (%s) for '%s'",
