@@ -1500,6 +1500,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
             if (
                 not self._detect_non_ha_changes
+                and not self.manager.is_proactively_adapting(event.context.id)
                 and not self.manager._off_to_on_state_event_is_from_turn_on(
                     entity_id,
                     event,
