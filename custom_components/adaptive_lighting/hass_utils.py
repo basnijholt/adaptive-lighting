@@ -53,7 +53,11 @@ def setup_service_call_interceptor(
             call.data = ReadOnlyDict(data)
         except Exception as e:  # noqa: BLE001
             # Blindly catch all exceptions to avoid breaking light.turn_on
-            _LOGGER.error("Error in service_func_proxy: %s", e)
+            _LOGGER.error(
+                "Error for call '%s' in service_func_proxy: '%s'",
+                call.data,
+                e,
+            )
         # Call original service handler with processed data
         await existing_service.job.target(call)
 

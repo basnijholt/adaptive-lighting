@@ -594,6 +594,7 @@ async def async_setup_entry(  # noqa: PLR0915
         if k not in skip:
             args[vol.Optional(k)] = valid
     platform = entity_platform.current_platform.get()
+    assert platform is not None
     platform.async_register_entity_service(
         SERVICE_CHANGE_SWITCH_SETTINGS,
         args,
@@ -855,9 +856,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._icon = ICON_MAIN
         self._state = None
 
-        # Tracks 'off' → 'on' state changes
-        self._on_to_off_event: dict[str, Event] = {}
         # Tracks 'on' → 'off' state changes
+        self._on_to_off_event: dict[str, Event] = {}
+        # Tracks 'off' → 'on' state changes
         self._off_to_on_event: dict[str, Event] = {}
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self._locks: dict[str, asyncio.Lock] = {}
@@ -1443,10 +1444,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             else:
                 _LOGGER.debug(
                     "%s: Calling _adapt_light from _update_attrs_and_maybe_adapt_lights:"
-                    " '%s' with transition %s",
+                    " '%s' with transition %s and context.id=%s",
                     self._name,
                     light,
                     transition,
+                    context.id,
                 )
                 await self._adapt_light(light, transition, context=context)
 
@@ -1471,12 +1473,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
         entity_id = event.data.get("entity_id")
-        if (
-            old_state is not None
-            and old_state.state == STATE_OFF
-            and new_state is not None
-            and new_state.state == STATE_ON
-        ):
+
+        if old_state is None or new_state is None:
+            return
+
+        if old_state.state == STATE_ON and new_state.state == STATE_OFF:
+            # Tracks 'on' → 'off' state changes
+            self._on_to_off_event[entity_id] = event
+            self.manager.reset(entity_id)
+            _LOGGER.debug(
+                "%s: Detected an 'on' → 'off' event for '%s' with context.id='%s'",
+                self._name,
+                entity_id,
+                event.context.id,
+            )
+
+        if old_state.state == STATE_OFF and new_state.state == STATE_ON:
+            # Tracks 'off' → 'on' state changes
+            self._off_to_on_event[entity_id] = event
             _LOGGER.debug(
                 "%s: Detected an 'off' → 'on' event for '%s' with context.id='%s'",
                 self._name,
@@ -1484,13 +1498,36 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
 
+            if (
+                not self._detect_non_ha_changes
+                and not self.manager.is_proactively_adapting(event.context.id)
+                and not self.manager._off_to_on_state_event_is_from_turn_on(
+                    entity_id,
+                    event,
+                )
+            ):
+                # If we don't detect non-HA changes, we're only adjusting lights that
+                # were turned on by HA. If the light was turned on by something else,
+                # we don't adjust it (e.g., when HA suddenly reports it as on).
+                # Sometimes the light incorrectly reports itself as on when it's
+                # actually off. This code path will ensure that the light is
+                # not controlled by Adaptive Lighting.
+                _LOGGER.debug(
+                    "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
+                    " because 'light.turn_on' was not called by HA and"
+                    " 'detect_non_ha_changes' is False",
+                    self._name,
+                    entity_id,
+                    event.context.id,
+                )
+                self.manager.mark_as_manual_control(entity_id)
+                return
+
             if event.context.parent_id and not self.manager.is_proactively_adapting(
                 event.context.id,
             ):
                 self.manager.reset(entity_id, reset_manual_control=False)
 
-            # Tracks 'off' → 'on' state changes
-            self._off_to_on_event[entity_id] = event
             lock = self._locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.manager.maybe_cancel_adjusting(
@@ -1527,15 +1564,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 force=True,
                 context=self.create_context("light_event", parent=event.context),
             )
-        elif (
-            old_state is not None
-            and old_state.state == STATE_ON
-            and new_state is not None
-            and new_state.state == STATE_OFF
-        ):
-            # Tracks 'off' → 'on' state changes
-            self._on_to_off_event[entity_id] = event
-            self.manager.reset(entity_id)
 
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
@@ -2365,6 +2393,8 @@ class AdaptiveLightingManager:
         detected, we mark the light as 'manually controlled' until the light
         or switch is turned 'off' and 'on' again.
         """
+        assert switch._detect_non_ha_changes
+
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return None
@@ -2379,44 +2409,49 @@ class AdaptiveLightingManager:
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
         # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
-        if switch._detect_non_ha_changes:
+        await self.hass.helpers.entity_component.async_update_entity(light)
+        refreshed_state = self.hass.states.get(light)
+
+        changed = compare_to(
+            old_attributes=last_service_data,
+            new_attributes=refreshed_state.attributes,
+        )
+        if changed:
             _LOGGER.debug(
-                "%s: 'detect_non_ha_changes: true', calling update_entity(%s)"
-                " and check if it's last adapt succeeded.",
+                "%s: State attributes of '%s' (%s) didn't change wrt 'last_service_data' (%s) (context.id=%s)",
                 switch._name,
                 light,
+                refreshed_state.attributes,
+                last_service_data,
+                context.id,
             )
-            # This update_entity probably isn't necessary now that we're checking
-            # if transitions finished from our last adapt.
-            await self.hass.helpers.entity_component.async_update_entity(light)
-            refreshed_state = self.hass.states.get(light)
-            _LOGGER.debug(
-                "%s: Current state of %s: %s",
-                switch._name,
-                light,
-                refreshed_state,
-            )
-            changed = compare_to(
-                old_attributes=last_service_data,
-                new_attributes=refreshed_state.attributes,
-            )
-            if changed:
-                _LOGGER.debug(
-                    "State of '%s' didn't change wrt 'last_service_data' (context.id=%s)",
-                    light,
-                    context.id,
-                )
-                return True
+            return True
         _LOGGER.debug(
-            "%s: Light '%s' correctly matches our last adapt's service data, continuing..."
-            " context.id=%s.",
+            "%s: State attributes of '%s' (%s) changed wrt 'last_service_data' (%s) (context.id=%s)",
             switch._name,
             light,
+            refreshed_state.attributes,
+            last_service_data,
             context.id,
         )
         return False
 
-    async def maybe_cancel_adjusting(  # noqa: PLR0911, PLR0912
+    def _off_to_on_state_event_is_from_turn_on(
+        self,
+        entity_id: str,
+        off_to_on_event: Event,
+    ) -> bool:
+        # Adaptive Lighting should never turn on lights itself
+        assert not is_our_context(off_to_on_event.context)
+        turn_on_event: Event | None = self.turn_on_event.get(entity_id)
+        id_off_to_on = off_to_on_event.context.id
+        return (
+            turn_on_event is not None
+            and id_off_to_on is not None
+            and id_off_to_on == turn_on_event.context.id
+        )
+
+    async def maybe_cancel_adjusting(  # noqa: PLR0911
         self,
         entity_id: str,
         off_to_on_event: Event,
@@ -2435,7 +2470,11 @@ class AdaptiveLightingManager:
         adjust the lights.
         """
         if on_to_off_event is None:
-            # No state change has been registered before.
+            _LOGGER.debug(
+                "maybe_cancel_adjusting: No 'on' → 'off' state change has been registered before for '%s'."
+                " It's possible that the light was already on when Home Assistant was turned on.",
+                entity_id,
+            )
             return False
 
         id_on_to_off = on_to_off_event.context.id
@@ -2446,18 +2485,10 @@ class AdaptiveLightingManager:
         else:
             transition = None
 
-        turn_on_event = self.turn_on_event.get(entity_id)
-        if turn_on_event is None:
-            # This means that the light never got a 'turn_on' call that we
-            # registered. I am not 100% sure why this happens, but it does.
-            # This is a fix for #170 and #232.
-            return False
-        id_turn_on = turn_on_event.context.id
-
-        id_off_to_on = off_to_on_event.context.id
-
-        if id_off_to_on == id_turn_on and id_off_to_on is not None:
-            # State change 'off' → 'on' triggered by 'light.turn_on'.
+        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
+            _LOGGER.debug(
+                "maybe_cancel_adjusting: State change 'off' → 'on' triggered by 'light.turn_on'",
+            )
             return False
 
         if (
@@ -2476,6 +2507,11 @@ class AdaptiveLightingManager:
 
         delta_time = (dt_util.utcnow() - on_to_off_event.time_fired).total_seconds()
         if delta_time > delay:
+            _LOGGER.debug(
+                "maybe_cancel_adjusting: delta_time='%s' > delay='%s'",
+                delta_time,
+                delay,
+            )
             return False
 
         # Here we could just `return True` but because we want to prevent any updates
@@ -2484,23 +2520,33 @@ class AdaptiveLightingManager:
         # is 'off' or the time has passed.
 
         delay -= delta_time  # delta_time has passed since the 'off' → 'on' event
-        _LOGGER.debug("Waiting with adjusting '%s' for %s", entity_id, delay)
-
+        _LOGGER.debug(
+            "maybe_cancel_adjusting: Waiting with adjusting '%s' for %s",
+            entity_id,
+            delay,
+        )
+        total_sleep = 0
         for _ in range(3):
             # It can happen that the actual transition time is longer than the
             # specified time in the 'turn_off' service.
             coro = asyncio.sleep(delay)
+            total_sleep += delay
             task = self.sleep_tasks[entity_id] = asyncio.ensure_future(coro)
             try:
                 await task
             except asyncio.CancelledError:  # 'light.turn_on' has been called
                 _LOGGER.debug(
-                    "Sleep task is cancelled due to 'light.turn_on('%s')' call",
+                    "maybe_cancel_adjusting: Sleep task is cancelled due to 'light.turn_on('%s')' call",
                     entity_id,
                 )
                 return False
 
             if not is_on(self.hass, entity_id):
+                _LOGGER.debug(
+                    "maybe_cancel_adjusting: '%s' is off after %s seconds, cancelling adaptation",
+                    entity_id,
+                    total_sleep,
+                )
                 return True
             delay = TURNING_OFF_DELAY  # next time only wait this long
 
@@ -2511,10 +2557,12 @@ class AdaptiveLightingManager:
             return True
 
         # Now we assume that the lights are still on and they were intended
-        # to be on. In case this still gives problems for some, we might
-        # choose to **only** adapt on 'light.turn_on' events and ignore
-        # other 'off' → 'on' state switches resulting from polling. That
-        # would mean we 'return True' here.
+        # to be on.
+        _LOGGER.debug(
+            "maybe_cancel_adjusting: '%s' is still on after %s seconds, assuming it was intended to be on",
+            entity_id,
+            total_sleep,
+        )
         return False
 
 

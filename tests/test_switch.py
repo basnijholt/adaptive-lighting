@@ -1478,7 +1478,7 @@ async def test_proactive_adaptation_with_separate_commands(hass):
     )
 
     # Expect two service calls
-    assert len(event_context_ids) == 2
+    assert len(event_context_ids) == 2, event_context_ids
     assert event_context_ids[0] == "test_context"
     assert is_our_context_id(event_context_ids[1])
 
