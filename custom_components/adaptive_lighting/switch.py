@@ -2388,7 +2388,7 @@ class AdaptiveLightingManager:
         """
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
-            return None
+            return False
         compare_to = functools.partial(
             _attributes_have_changed,
             light=light,
