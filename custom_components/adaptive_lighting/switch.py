@@ -1332,7 +1332,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 data.context.id,
             )
-
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
