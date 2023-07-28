@@ -988,7 +988,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         last_state: State | None = await self.async_get_last_state()
         is_new_entry = last_state is None  # newly added to HA
-        if is_new_entry or last_state.state == STATE_ON:
+        if is_new_entry or last_state.state == STATE_ON:  # type: ignore[union-attr]
             await self.async_turn_on(adapt_lights=not self._only_once)
         else:
             self._state = False
