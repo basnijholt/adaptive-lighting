@@ -2151,7 +2151,11 @@ class AdaptiveLightingManager:
         """Cancel ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
-        if which in ("both", "brightness") and brightness_task is not None:
+        if (
+            which in ("both", "brightness")
+            and brightness_task is not None
+            and not brightness_task.done()
+        ):
             _LOGGER.debug(
                 "Cancelled ongoing brightness adaptation calls (%s) for '%s'",
                 brightness_task,
@@ -2162,6 +2166,7 @@ class AdaptiveLightingManager:
             which in ("both", "color")
             and color_task is not None
             and color_task is not brightness_task
+            and not color_task.done()
         ):
             _LOGGER.debug(
                 "Cancelled ongoing color adaptation calls (%s) for '%s'",
