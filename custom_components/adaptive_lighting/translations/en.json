@@ -44,7 +44,7 @@
           "sunset_offset": "sunset_offset: Adjust sunset time with a positive or negative offset in seconds. ⏰",
           "only_once": "only_once: Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄",
           "take_over_control": "take_over_control: Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒",
-          "detect_non_ha_changes": "detect_non_ha_changes: Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️",
+          "detect_non_ha_changes": "detect_non_ha_changes: Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.",
           "separate_turn_on_commands": "separate_turn_on_commands: Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀",
           "send_split_delay": "send_split_delay: Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
           "adapt_delay": "adapt_delay: Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️",
@@ -216,7 +216,7 @@
           "name": "take_over_control"
         },
         "detect_non_ha_changes": {
-          "description": "Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️",
+          "description": "Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.",
           "name": "detect_non_ha_changes"
         },
         "transition": {
