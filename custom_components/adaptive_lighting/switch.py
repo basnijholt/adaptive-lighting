@@ -461,10 +461,11 @@ async def async_setup_entry(  # noqa: PLR0915
         )
         await hass.config_entries.async_remove(config_entry.entry_id)
         return
-    manager = data.setdefault(
-        ATTR_ADAPTIVE_LIGHTING_MANAGER,
-        AdaptiveLightingManager(hass, config_entry),
-    )
+
+    if (manager := data.get(ATTR_ADAPTIVE_LIGHTING_MANAGER)) is None:
+        manager = AdaptiveLightingManager(hass, config_entry)
+        data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = manager
+
     sleep_mode_switch = SimpleSwitch(
         which="Sleep Mode",
         initial_state=False,
