@@ -1530,7 +1530,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
             lock = self._locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
-                if await self.manager.maybe_cancel_adjusting(
+                if await self.manager.just_turned_off(
                     entity_id,
                     off_to_on_event=event,
                     on_to_off_event=self._on_to_off_event.get(entity_id),
@@ -2451,7 +2451,7 @@ class AdaptiveLightingManager:
             and id_off_to_on == turn_on_event.context.id
         )
 
-    async def maybe_cancel_adjusting(  # noqa: PLR0911
+    async def just_turned_off(  # noqa: PLR0911
         self,
         entity_id: str,
         off_to_on_event: Event,
@@ -2471,7 +2471,7 @@ class AdaptiveLightingManager:
         """
         if on_to_off_event is None:
             _LOGGER.debug(
-                "maybe_cancel_adjusting: No 'on' → 'off' state change has been registered before for '%s'."
+                "just_turned_off: No 'on' → 'off' state change has been registered before for '%s'."
                 " It's possible that the light was already on when Home Assistant was turned on.",
                 entity_id,
             )
@@ -2487,7 +2487,7 @@ class AdaptiveLightingManager:
 
         if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
             _LOGGER.debug(
-                "maybe_cancel_adjusting: State change 'off' → 'on' triggered by 'light.turn_on'",
+                "just_turned_off: State change 'off' → 'on' triggered by 'light.turn_on'",
             )
             return False
 
@@ -2508,7 +2508,7 @@ class AdaptiveLightingManager:
         delta_time = (dt_util.utcnow() - on_to_off_event.time_fired).total_seconds()
         if delta_time > delay:
             _LOGGER.debug(
-                "maybe_cancel_adjusting: delta_time='%s' > delay='%s'",
+                "just_turned_off: delta_time='%s' > delay='%s'",
                 delta_time,
                 delay,
             )
@@ -2521,7 +2521,7 @@ class AdaptiveLightingManager:
 
         delay -= delta_time  # delta_time has passed since the 'off' → 'on' event
         _LOGGER.debug(
-            "maybe_cancel_adjusting: Waiting with adjusting '%s' for %s",
+            "just_turned_off: Waiting with adjusting '%s' for %s",
             entity_id,
             delay,
         )
@@ -2536,14 +2536,14 @@ class AdaptiveLightingManager:
                 await task
             except asyncio.CancelledError:  # 'light.turn_on' has been called
                 _LOGGER.debug(
-                    "maybe_cancel_adjusting: Sleep task is cancelled due to 'light.turn_on('%s')' call",
+                    "just_turned_off: Sleep task is cancelled due to 'light.turn_on('%s')' call",
                     entity_id,
                 )
                 return False
 
             if not is_on(self.hass, entity_id):
                 _LOGGER.debug(
-                    "maybe_cancel_adjusting: '%s' is off after %s seconds, cancelling adaptation",
+                    "just_turned_off: '%s' is off after %s seconds, cancelling adaptation",
                     entity_id,
                     total_sleep,
                 )
@@ -2559,7 +2559,7 @@ class AdaptiveLightingManager:
         # Now we assume that the lights are still on and they were intended
         # to be on.
         _LOGGER.debug(
-            "maybe_cancel_adjusting: '%s' is still on after %s seconds, assuming it was intended to be on",
+            "just_turned_off: '%s' is still on after %s seconds, assuming it was intended to be on",
             entity_id,
             total_sleep,
         )
