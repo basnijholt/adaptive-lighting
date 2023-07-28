@@ -136,10 +136,10 @@ class AdaptationData:
     context: Context
     sleep_time: float
     service_call_datas: AsyncGenerator[ServiceData, None]
+    force: bool
     max_length: int
     which: Literal["brightness", "color", "both"]
     initial_sleep: bool = False
-    force: bool = True
 
     async def next_service_call_data(self) -> ServiceData | None:
         """Return data for the next service call, or none if no more data exists."""
@@ -206,7 +206,7 @@ def prepare_adaptation_data(
         context=context,
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
+        force=force,
         max_length=service_datas_length,
         which=lighting_type,
-        force=force,
     )
