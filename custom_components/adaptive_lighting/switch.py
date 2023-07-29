@@ -2019,11 +2019,12 @@ class AdaptiveLightingManager:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
 
-        has_intercepted = False
         transition = data[CONF_PARAMS].get(
             ATTR_TRANSITION,
             adaptive_switch.initial_transition,
         )
+
+        has_intercepted = False  # Can only intercept a turn_on call once
         for adaptive_switch, entity_ids in switches.items():
             if not adaptive_switch.is_on:
                 skipped.extend(entity_ids)
