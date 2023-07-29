@@ -2009,7 +2009,7 @@ class AdaptiveLightingManager:
             service_data[ATTR_ENTITY_ID] = entity_ids
             return service_data
 
-        switches: dict[AdaptiveSwitch | None, list[str]] = {}
+        switches: dict[AdaptiveSwitch, list[str]] = {}
         skipped: list[str] = []
         for entity_id in entity_ids:
             try:
