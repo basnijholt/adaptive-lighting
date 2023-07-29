@@ -2023,6 +2023,10 @@ class AdaptiveLightingManager:
         if self.manual_control.get(entity_id, False):
             return
 
+        if (brightness := data.get(ATTR_BRIGHTNESS)) and brightness == 0:
+            # Do not adapt `light.turn_on(brightness=0)` calls.
+            return
+
         try:
             adaptive_switch = _switch_with_lights(self.hass, [entity_id])
         except NoSwitchFoundError:
