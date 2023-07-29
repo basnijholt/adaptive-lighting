@@ -2040,7 +2040,8 @@ class AdaptiveLightingManager:
                     skipped.append(entity_id)
                 else:
                     filtered_entity_ids.append(entity_id)
-
+            if not filtered_entity_ids:
+                continue
             if not has_intercepted:
                 await self._service_interceptor_turn_on_single_light_handler(
                     filtered_entity_ids,
