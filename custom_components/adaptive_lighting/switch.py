@@ -2023,7 +2023,7 @@ class AdaptiveLightingManager:
         if self.manual_control.get(entity_id, False):
             return
 
-        if (brightness := data.get(ATTR_BRIGHTNESS)) and brightness == 0:
+        if data.get(ATTR_BRIGHTNESS) == 0:
             # Do not adapt `light.turn_on(brightness=0)` calls.
             return
 
