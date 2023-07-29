@@ -2002,15 +2002,6 @@ class AdaptiveLightingManager:
 
         entity_ids = self._get_entity_list(data)
 
-        # For simplicity, only service calls affecting a single entity are currently handled.
-        #
-        # To add support for adapting multiple entities, the following properties
-        # need to hold for _all_ entities:
-        # - managed by this AL instance
-        # - not manually controlled
-        # - supporting the same relevant feature set
-        # - off state
-
         def modify_service_data(service_data, entity_ids):
             """Modify the service data to contain the entity IDs."""
             service_data.pop(ATTR_ENTITY_ID, None)
