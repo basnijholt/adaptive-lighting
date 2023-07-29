@@ -408,10 +408,10 @@ async def handle_change_switch_settings(
     switch.manager.reset(*switch.lights, reset_manual_control=False)
     if switch.is_on:
         await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
-            switch.lights,
+            context=switch.create_context("service", parent=service_call.context),
+            lights=switch.lights,
             transition=switch.initial_transition,
             force=True,
-            context=switch.create_context("service", parent=service_call.context),
         )
 
 
@@ -561,15 +561,16 @@ async def async_setup_entry(  # noqa: PLR0915
             else:
                 switch.manager.reset(*all_lights)
                 if switch.is_on:
+                    context = switch.create_context(
+                        "service",
+                        parent=service_call.context,
+                    )
                     # pylint: disable=protected-access
                     await switch._update_attrs_and_maybe_adapt_lights(
-                        all_lights,
+                        context=context,
+                        lights=all_lights,
                         transition=switch.initial_transition,
                         force=True,
-                        context=switch.create_context(
-                            "service",
-                            parent=service_call.context,
-                        ),
                     )
 
     # Register `apply` service
@@ -1124,7 +1125,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._context_cnt += 1
         return context
 
-    async def async_turn_on(  # pylint: disable=arguments-differ
+    async def async_turn_on(  # type: ignore[override]
         self,
         adapt_lights: bool = True,
     ) -> None:
@@ -1141,9 +1142,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         await self._setup_listeners()
         if adapt_lights:
             await self._update_attrs_and_maybe_adapt_lights(
+                context=self.create_context("turn_on"),
                 transition=self.initial_transition,
                 force=True,
-                context=self.create_context("turn_on"),
             )
 
     async def async_turn_off(self, **kwargs) -> None:  # noqa: ARG002
@@ -1156,9 +1157,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _async_update_at_interval_action(self, now=None) -> None:  # noqa: ARG002
         await self._update_attrs_and_maybe_adapt_lights(
+            context=self.create_context("interval"),
             transition=self._transition,
             force=False,
-            context=self.create_context("interval"),
         )
 
     async def prepare_adaptation_data(
@@ -1271,7 +1272,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
 
-        if self.manager.is_proactively_adapting(context.parent_id):
+        if context.parent_id is not None and self.manager.is_proactively_adapting(
+            context.parent_id,
+        ):
             # Skip if adaptation was already executed by the service call interceptor
             _LOGGER.debug(
                 "%s: Skipping reactive adaptation of %s",
@@ -1359,10 +1362,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
         self,
+        *,
+        context: Context,
         lights: list[str] | None = None,
         transition: int | None = None,
         force: bool = False,
-        context: Context = None,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
@@ -1470,15 +1474,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Reset the manually controlled status when the "sleep mode" changes
         self.manager.reset(*self.lights)
         await self._update_attrs_and_maybe_adapt_lights(
+            context=self.create_context("sleep", parent=event.context),
             transition=self._sleep_transition,
             force=True,
-            context=self.create_context("sleep", parent=event.context),
         )
 
     async def _light_state_event_action(self, event: Event) -> None:
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
-        entity_id = event.data.get("entity_id")
+        entity_id: str = event.data["entity_id"]
 
         if old_state is None or new_state is None:
             return
@@ -1565,10 +1569,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 )
 
             await self._update_attrs_and_maybe_adapt_lights(
+                context=self.create_context("light_event", parent=event.context),
                 lights=[entity_id],
                 transition=self.initial_transition,
                 force=True,
-                context=self.create_context("light_event", parent=event.context),
             )
 
 
@@ -1637,8 +1641,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
 
 def lerp_color_hsv(
-    rgb1: tuple[int, int, int],
-    rgb2: tuple[int, int, int],
+    rgb1: tuple[float, float, float],
+    rgb2: tuple[float, float, float],
     t: float,
 ) -> tuple[int, int, int]:
     """Linearly interpolate between two RGB colors in HSV color space."""
@@ -2163,10 +2167,10 @@ class AdaptiveLightingManager:
                 if not switch.is_on:
                     continue
                 await switch._update_attrs_and_maybe_adapt_lights(
-                    [light],
+                    context=switch.create_context("autoreset"),
+                    lights=[light],
                     transition=switch.initial_transition,
                     force=True,
-                    context=switch.create_context("autoreset"),
                 )
             _LOGGER.debug(
                 "Auto resetting 'manual_control' status of '%s' because"
@@ -2289,7 +2293,7 @@ class AdaptiveLightingManager:
                 if (
                     timer is not None
                     and timer.is_running()
-                    and event.time_fired > timer.start_time
+                    and event.time_fired > timer.start_time  # type: ignore[operator]
                 ):
                     # Restart the auto reset timer
                     timer.start()
