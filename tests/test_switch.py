@@ -479,7 +479,7 @@ async def test_light_settings(hass):
     async def patch_time_and_get_updated_states(time):
         with patch("homeassistant.util.dt.utcnow", return_value=time):
             await switch._update_attrs_and_maybe_adapt_lights(
-                transition=0, context=context, force=True
+                context=context, transition=0, force=True
             )
             await hass.async_block_till_done()
             return [hass.states.get(light) for light in lights]
@@ -558,7 +558,7 @@ async def test_manual_control(hass):
     manual_control = switch.manager.manual_control
 
     async def update():
-        await switch._update_attrs_and_maybe_adapt_lights(transition=0, context=context)
+        await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
         await hass.async_block_till_done()
 
     async def turn_light(state, **kwargs):
@@ -710,7 +710,7 @@ async def test_auto_reset_manual_control(hass):
     manual_control = switch.manager.manual_control
 
     async def update():
-        await switch._update_attrs_and_maybe_adapt_lights(transition=0, context=context)
+        await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
         await hass.async_block_till_done()
 
     async def turn_light(state, **kwargs):
@@ -834,7 +834,7 @@ async def test_switch_off_on_off(hass):
 
     async def update():
         await switch._update_attrs_and_maybe_adapt_lights(
-            transition=0, context=switch.create_context("test")
+            context=switch.create_context("test"), transition=0
         )
         await hass.async_block_till_done()
 
@@ -982,7 +982,9 @@ async def test_state_change_handlers(hass):
 
     async def update(force: bool = False):
         await switch._update_attrs_and_maybe_adapt_lights(
-            force=force, transition=0, context=context
+            context=context,
+            force=force,
+            transition=0,
         )
         await hass.async_block_till_done()
 
@@ -1005,7 +1007,7 @@ async def test_state_change_handlers(hass):
     # 2 Adapt from sleep with a 'transition'.
     await switch.sleep_mode_switch.async_turn_off()
     await switch._update_attrs_and_maybe_adapt_lights(
-        force=False, transition=0, context=context
+        context=context, force=False, transition=0
     )
     await hass.async_block_till_done()
     current_service_data = switch.manager.last_service_data
