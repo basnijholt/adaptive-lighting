@@ -2024,8 +2024,11 @@ class AdaptiveLightingManager:
             return
 
         if data.get(ATTR_BRIGHTNESS) == 0:
-            # Do not adapt `light.turn_on(brightness=0)` calls.
-            return
+            _LOGGER.warning(
+                "Turn-on call with zero brightness detected, Adaptive Lighting"
+                " intercepted this service_call and adjusted it. If you use this as"
+                " a brightness workaround, please remove it, it is no longer necessary",
+            )
 
         try:
             adaptive_switch = _switch_with_lights(self.hass, [entity_id])
