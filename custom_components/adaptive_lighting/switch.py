@@ -1991,7 +1991,7 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912
         self,
         call: ServiceCall,
         data: ServiceData,
@@ -2062,6 +2062,17 @@ class AdaptiveLightingManager:
         if skipped:
             # Modify the service data inplace
             modify_service_data(data, skipped)
+            if not has_intercepted:
+                pass  # The call will be intercepted with the modified data
+            else:
+                # Call light turn_on service for skipped entities
+                await self.hass.services.async_call(
+                    LIGHT_DOMAIN,
+                    SERVICE_TURN_ON,
+                    data,
+                    blocking=True,
+                    context=call.context,
+                )
 
     async def _service_interceptor_turn_on_single_light_handler(
         self,
