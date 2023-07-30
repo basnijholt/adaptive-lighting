@@ -21,10 +21,8 @@ ignore = [
     "PLR2004", # Magic value used in comparison, consider replacing X with a constant variable
     "S101",    # Use of assert detected
     "SLF001",  # Private member accessed
-    "TD002",   # Missing author in TODO; try: `# TODO(<author_name>): ...` or `# TODO @<author_name>: ...`
-    "TD003",   # Missing issue link on the line following this TODO
-    "FIX002",  # Line contains TODO, consider resolving the issue
 ]
+
 [per-file-ignores]
 "tests/*.py" = ["ALL"]
 ".github/*py" = ["INP001"]
