@@ -8,6 +8,7 @@ from homeassistant.util.read_only_dict import ReadOnlyDict
 from .adaptation_utils import ServiceData
 
 _LOGGER = logging.getLogger(__name__)
+_DEBUG_MODE = True
 
 
 def setup_service_call_interceptor(
@@ -58,6 +59,8 @@ def setup_service_call_interceptor(
                 call.data,
                 e,
             )
+            if _DEBUG_MODE:
+                raise
         # Call original service handler with processed data
         await existing_service.job.target(call)
 
