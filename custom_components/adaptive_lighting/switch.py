@@ -1509,6 +1509,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
 
+            if is_our_context(event.context):
+                # AFAIK this can only happen in _service_interceptor_turn_on_handler
+                # when calling _adapt_light
+                return
+
             if (
                 not self._detect_non_ha_changes
                 and not self.manager.is_proactively_adapting(event.context.id)

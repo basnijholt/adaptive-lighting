@@ -1367,13 +1367,15 @@ async def test_service_calls_task_cancellation(hass):
 
 
 async def _turn_on_and_track_event_contexts(
-    hass: HomeAssistant, context_id: str, entity_id
+    hass: HomeAssistant, context_id: str, entity_id, return_full_events: bool = False
 ):
     context = Context(id=context_id)
     event_context_ids = []
+    events = []
 
     async def turn_on_off_event_listener(event: Event) -> None:
         event_context_ids.append(event.context.id)
+        events.append(event)
 
     hass.bus.async_listen(EVENT_CALL_SERVICE, turn_on_off_event_listener)
 
@@ -1385,7 +1387,8 @@ async def _turn_on_and_track_event_contexts(
         context=context,
     )
     await hass.async_block_till_done()
-
+    if return_full_events:
+        return events
     return event_context_ids
 
 
@@ -1533,9 +1536,7 @@ async def test_proactive_adaptation_transition_override(hass):
     switch.manager.cancel_ongoing_adaptation_calls(ENTITY_LIGHT_3)
 
 
-async def test_proactive_multiple_lights(hass):
-    """Create switch and demo lights."""
-    # Setup demo lights and turn on
+async def setup_proactive_multiple_lights_two_switches(hass):
     lights_instances = await setup_lights(hass)
     # Setup switches
     lights = [
@@ -1569,21 +1570,59 @@ async def test_proactive_multiple_lights(hass):
     )
     assert hass.states.get(switch1.entity_id).state == STATE_ON
     assert hass.states.get(switch2.entity_id).state == STATE_ON
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: lights},
-        blocking=True,
-        context=Context(id="test1"),
+    return lights, switch1, switch2
+
+
+async def test_proactive_multiple_lights_all_at_once(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
+    # Setup demo lights and turn on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test1", lights, return_full_events=True
     )
+    assert len(events) == 3, events
+
+    # Original turn_on call that is intercepted
+    assert events[0].context.id == "test1"
+    assert events[0].data["service_data"][ATTR_ENTITY_ID] == lights
+
+    # The `has_intercepted` path
+    assert events[1].data["service_data"][ATTR_ENTITY_ID] == ENTITY_LIGHT_2
+    assert ":ntrc:" in events[1].context.id
+
+    # The skipped lights, the one not in a switch
+    assert events[2].data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
+    assert ":skpp:" in events[2].context.id
+
     assert switch1.manager.is_proactively_adapting("test1")
     assert switch2.manager.is_proactively_adapting("test1")
 
     await hass.async_block_till_done()
 
-    assert hass.states.get(lights[0]).state == STATE_ON, lights[0]
-    assert hass.states.get(lights[1]).state == STATE_ON, lights[1]
-    assert hass.states.get(lights[2]).state == STATE_ON, lights[2]
+    assert all(hass.states.get(light).state == STATE_ON for light in lights)
+
+
+async def test_proactive_multiple_lights_turn_on_non_managed_light(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    turn_ons = await _turn_on_and_track_event_contexts(hass, "test1", lights)
+    assert len(turn_ons) == 3, turn_ons
+    await hass.async_block_till_done()
+    assert all(hass.states.get(light).state == STATE_ON for light in lights)
+
+    # Turn off ENTITY_LIGHT_3 (which is not in a switch), leaving the other two on
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+        context=Context(id="test2"),
+    )
+
+    # Now turn on all lights again, which means the code gets to "if skipped: if not has_intercepted:"
+    turn_ons = await _turn_on_and_track_event_contexts(hass, "test2", ENTITY_LIGHT_3)
+    assert len(turn_ons) == 1, turn_ons
 
 
 async def test_two_switches_for_single_light(hass):
