@@ -1452,6 +1452,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context.id,
                     )
                 else:
+                    # Need to fire manual control event because of significant_change
                     _fire_manual_control_event(self, light, context)
             else:
                 _LOGGER.debug(
