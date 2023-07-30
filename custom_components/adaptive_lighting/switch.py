@@ -2010,6 +2010,11 @@ class AdaptiveLightingManager:
         )
 
         if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
+            _LOGGER.debug(
+                "Ignoring service call with effect or flash: '%s' with data '%s'",
+                call.service,
+                data,
+            )
             return
 
         entity_ids = self._get_entity_list(data)
