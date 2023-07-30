@@ -21,6 +21,8 @@ import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
+    ATTR_EFFECT,
+    ATTR_FLASH,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
@@ -1450,6 +1452,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context.id,
                     )
                 else:
+                    # Need to fire manual control event because of significant_change
                     _fire_manual_control_event(self, light, context)
             else:
                 _LOGGER.debug(
@@ -2371,8 +2374,11 @@ class AdaptiveLightingManager:
             and not force
         ):
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
-            if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
-                adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
+            if (
+                (adapt_color and COLOR_ATTRS.intersection(keys))
+                or (adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys))
+                or (ATTR_FLASH in keys)
+                or (ATTR_EFFECT in keys)
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
