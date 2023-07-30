@@ -2077,10 +2077,10 @@ class AdaptiveLightingManager:
             )
 
         if skipped:
+            if not has_intercepted:
+                return  # The call will be intercepted with the original data
             # Modify the service data inplace
             modify_service_data(data, skipped)
-            if not has_intercepted:
-                return  # The call will be intercepted with the modified data
             # Call light turn_on service for skipped entities
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
