@@ -20,6 +20,7 @@ import ulid_transform
 import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_COLOR_TEMP,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
@@ -2083,14 +2084,17 @@ class AdaptiveLightingManager:
             modify_service_data(data, skipped)
             # Call light turn_on service for skipped entities
             _LOGGER.debug(
-                "_service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: ",
+                "_service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s'",
                 skipped,
                 data,
             )
+            service_data = data.copy()
+            service_data.update(service_data.pop(CONF_PARAMS, {}))
+            service_data.pop(ATTR_COLOR_TEMP, None)
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
-                data,
+                service_data,
                 blocking=True,
                 context=call.context,
             )

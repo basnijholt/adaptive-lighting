@@ -1563,6 +1563,51 @@ async def test_proactive_adaptation_transition_override(hass):
     switch.manager.cancel_ongoing_adaptation_calls(ENTITY_LIGHT3)
 
 
+async def test_proactive_multiple_lights(hass):
+    """Create switch and demo lights."""
+    # Setup demo lights and turn on
+    lights_instances = await setup_lights(hass)
+    # Setup switches
+    lights = [
+        ENTITY_LIGHT,
+        "light.ceiling_lights",
+        ENTITY_LIGHT3,
+    ]
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: lights},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    defaults = {
+        CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+        CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+        CONF_INITIAL_TRANSITION: 0,
+        CONF_TRANSITION: 0,
+        CONF_DETECT_NON_HA_CHANGES: True,
+        CONF_PREFER_RGB_COLOR: False,
+        CONF_MIN_COLOR_TEMP: 2500,  # to not coincide with sleep_color_temp}
+        INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+    }
+    assert all(hass.states.get(light) is not None for light in lights)
+    _, switch1 = await setup_switch(
+        hass, {CONF_NAME: "switch1", CONF_LIGHTS: [lights[0]], **defaults}
+    )
+    _, switch2 = await setup_switch(
+        hass, {CONF_NAME: "switch2", CONF_LIGHTS: [lights[1]], **defaults}
+    )
+    await hass.async_block_till_done()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: lights},
+        blocking=True,
+        context=Context(id="test1"),
+    )
+    assert switch1.manager.is_proactively_adapting("test1")
+
+
 async def test_two_switches_for_single_light(hass):
     """Test the case where someone has two switches for a single light.
 
