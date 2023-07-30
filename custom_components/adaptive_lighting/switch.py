@@ -1448,6 +1448,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             significant_change = (
                 self._detect_non_ha_changes
                 and not force
+                and not manually_controlled  # no need to check if manually_controlled
                 and await self.manager.significant_change(
                     self,
                     light,
