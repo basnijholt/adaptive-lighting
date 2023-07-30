@@ -1509,11 +1509,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
 
-            if is_our_context(event.context):
-                # AFAIK this can only happen in _service_interceptor_turn_on_handler
-                # when calling _adapt_light
-                return
-
             if (
                 not self._detect_non_ha_changes
                 and not self.manager.is_proactively_adapting(event.context.id)
@@ -2080,10 +2075,13 @@ class AdaptiveLightingManager:
                 continue
 
             for eid in filtered_entity_ids:
+                context = switch.create_context("intercept")
+                self.clear_proactively_adapting(eid)
+                self.set_proactively_adapting(context.id, eid)
                 await switch._adapt_light(
                     light=eid,
                     # Must add a new context otherwise _adapt_light will bail out
-                    context=switch.create_context("intercept"),
+                    context=context,
                     transition=transition,
                 )
 

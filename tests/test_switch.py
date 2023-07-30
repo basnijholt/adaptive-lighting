@@ -1550,7 +1550,6 @@ async def setup_proactive_multiple_lights_two_switches(hass):
         {ATTR_ENTITY_ID: lights},
         blocking=True,
     )
-    assert all(hass.states.get(light).state == STATE_OFF for light in lights)
     defaults = {
         CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
         CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
@@ -1561,7 +1560,6 @@ async def setup_proactive_multiple_lights_two_switches(hass):
         CONF_MIN_COLOR_TEMP: 2500,  # to not coincide with sleep_color_temp}
         INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
     }
-    assert all(hass.states.get(light) is not None for light in lights)
     _, switch1 = await setup_switch(
         hass, {CONF_NAME: "switch1", CONF_LIGHTS: [ENTITY_LIGHT_1], **defaults}
     )
@@ -1570,6 +1568,7 @@ async def setup_proactive_multiple_lights_two_switches(hass):
     )
     assert hass.states.get(switch1.entity_id).state == STATE_ON
     assert hass.states.get(switch2.entity_id).state == STATE_ON
+    assert all(hass.states.get(light).state == STATE_OFF for light in lights)
     return lights, switch1, switch2
 
 
@@ -1623,6 +1622,25 @@ async def test_proactive_multiple_lights_turn_on_non_managed_light(hass):
     # Now turn on all lights again, which means the code gets to "if skipped: if not has_intercepted:"
     turn_ons = await _turn_on_and_track_event_contexts(hass, "test2", ENTITY_LIGHT_3)
     assert len(turn_ons) == 1, turn_ons
+
+
+async def test_proactive_multiple_lights_turn_on_managed_lights_only(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
+    # Setup demo lights and turn on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test1", lights[:-1], return_full_events=True
+    )
+    assert len(events) == 2, events
+
+    # Original turn_on call that is intercepted
+    assert events[0].context.id == "test1"
+    assert events[0].data["service_data"][ATTR_ENTITY_ID] == lights[:-1]
+
+    # The `has_intercepted` path
+    assert events[1].data["service_data"][ATTR_ENTITY_ID] == ENTITY_LIGHT_2
+    assert ":ntrc:" in events[1].context.id
 
 
 async def test_two_switches_for_single_light(hass):
