@@ -22,6 +22,8 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
     ATTR_COLOR_TEMP_KELVIN,
+    ATTR_EFFECT,
+    ATTR_FLASH,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
@@ -292,7 +294,7 @@ def _switches_with_lights(
         entry = data.get(config.entry_id)
         if entry is None:  # entry might be disabled and therefore missing
             continue
-        switch = data[config.entry_id]["instance"]
+        switch = data[config.entry_id][SWITCH_DOMAIN]
         switch._expand_light_groups()
         # Check if any of the lights are in the switch's lights
         if set(switch.lights) & set(all_check_lights):
@@ -366,7 +368,7 @@ def _switches_from_service_call(
             ent_entry = ent_reg.async_get(entity_id)
             assert ent_entry is not None
             config_id = ent_entry.config_entry_id
-            switches.append(hass.data[DOMAIN][config_id]["instance"])
+            switches.append(hass.data[DOMAIN][config_id][SWITCH_DOMAIN])
         return switches
 
     if lights:
@@ -496,9 +498,6 @@ async def async_setup_entry(  # noqa: PLR0915
         adapt_color_switch,
         adapt_brightness_switch,
     )
-
-    # save our switch instance, allows us to make switch's entity_id optional in service calls.
-    hass.data[DOMAIN][config_entry.entry_id]["instance"] = switch
 
     data[config_entry.entry_id][SLEEP_MODE_SWITCH] = sleep_mode_switch
     data[config_entry.entry_id][ADAPT_COLOR_SWITCH] = adapt_color_switch
@@ -1015,6 +1014,23 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: Cancelled '_setup_listeners'", self._name)
             return
 
+        while not all(
+            sw._state is not None
+            for sw in [
+                self.sleep_mode_switch,
+                self.adapt_brightness_switch,
+                self.adapt_color_switch,
+            ]
+        ):
+            # Waits until `async_added_to_hass` is done, which in SimpleSwitch
+            # is when `_state` is set to `True` or `False`.
+            # Fixes first issue in https://github.com/basnijholt/adaptive-lighting/issues/682
+            _LOGGER.debug(
+                "%s: Waiting for simple switches to be initialized",
+                self._name,
+            )
+            await asyncio.sleep(0.1)
+
         assert not self.remove_listeners
 
         self._update_time_interval_listener()
@@ -1451,6 +1467,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         context.id,
                     )
                 else:
+                    # Need to fire manual control event because of significant_change
                     _fire_manual_control_event(self, light, context)
             else:
                 _LOGGER.debug(
@@ -2000,12 +2017,17 @@ class AdaptiveLightingManager:
         # Don't adapt our own service calls
         if is_our_context(call.context):
             return
+
+        if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
+            return
+
         data_copy = data.copy()
         _LOGGER.debug(
             "_service_interceptor_turn_on_handler: call='%s', data='%s'",
             call,
             data,
         )
+
         entity_ids = self._get_entity_list(data)
 
         def modify_service_data(service_data, entity_ids):
@@ -2443,8 +2465,11 @@ class AdaptiveLightingManager:
             and not force
         ):
             keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
-            if (adapt_color and COLOR_ATTRS.intersection(keys)) or (
-                adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys)
+            if (
+                (adapt_color and COLOR_ATTRS.intersection(keys))
+                or (adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys))
+                or (ATTR_FLASH in keys)
+                or (ATTR_EFFECT in keys)
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
@@ -2525,7 +2550,16 @@ class AdaptiveLightingManager:
         off_to_on_event: Event,
     ) -> bool:
         # Adaptive Lighting should never turn on lights itself
-        assert not is_our_context(off_to_on_event.context)
+        if is_our_context(off_to_on_event.context):
+            _LOGGER.warning(
+                "Detected an 'off' → 'on' event for '%s' with context.id='%s' and"
+                " event='%s', triggered by the adaptive_lighting integration itself,"
+                " which *should* not happen. If you see this please submit an issue with"
+                " your full logs at https://github.com/basnijholt/adaptive-lighting",
+                entity_id,
+                off_to_on_event.context.id,
+                off_to_on_event,
+            )
         turn_on_event: Event | None = self.turn_on_event.get(entity_id)
         id_off_to_on = off_to_on_event.context.id
         return (
