@@ -13,6 +13,8 @@ from homeassistant.components.light import (
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
     ATTR_RGB_COLOR,
+    ATTR_RGBW_COLOR,
+    ATTR_RGBWW_COLOR,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
 )
@@ -27,7 +29,10 @@ COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
     ATTR_HS_COLOR,
     ATTR_RGB_COLOR,
     ATTR_XY_COLOR,
+    ATTR_RGBW_COLOR,
+    ATTR_RGBWW_COLOR,
 }
+
 
 BRIGHTNESS_ATTRS = {
     ATTR_BRIGHTNESS,
