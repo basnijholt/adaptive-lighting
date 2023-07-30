@@ -2009,13 +2009,38 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912, PLR0915
         self,
         call: ServiceCall,
         data: ServiceData,
     ) -> None:
-        # Don't adapt our own service calls
-        if is_our_context(call.context):
+        """Intercept `light.turn_on` and `light.toggle` service calls and adapt them.
+
+        It is possible that the calls are made for multiple lights at once,
+        which in turn might be in different switches or no switches at all.
+        If there are lights that are not all in a single switch, we need to
+        make multiple calls to `light.turn_on` with the correct entity IDs.
+        One of these calls can be intercepted and adapted, the others need to
+        be adapted by calling `_adapt_light` with the correct entity IDs or
+        by calling `light.turn_on` directly.
+
+        We create a mapping from switch to entity IDs and keep a list
+        of skipped lights which are lights in no switches or in switches that
+        are off or lights that are already on.
+
+        If there is only one switch and 0 skipped lights, we just intercept the
+        call directly.
+
+        If there are multiple switches and skipped lights, we can adapt the call
+        for one of the switches to include only the lights in that switch and
+        need to call `_adapt_light` for the other switches with their
+        entity_ids. For skipped lights, we call light.turn_on directly with the
+        entity_ids and original service data.
+
+        If there are only skipped lights, we can use the intercepted call
+        directly.
+        """
+        if is_our_context(call.context):  # Don't adapt our own service calls
             return
 
         if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
