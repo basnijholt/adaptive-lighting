@@ -1999,7 +1999,11 @@ class AdaptiveLightingManager:
         # Don't adapt our own service calls
         if is_our_context(call.context):
             return
-
+        _LOGGER.debug(
+            "_service_interceptor_turn_on_handler: call='%s', data='%s'",
+            call,
+            data,
+        )
         entity_ids = self._get_entity_list(data)
 
         def modify_service_data(service_data, entity_ids):
@@ -2018,10 +2022,10 @@ class AdaptiveLightingManager:
             except NoSwitchFoundError:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
-
-        transition = data[CONF_PARAMS].get(
-            ATTR_TRANSITION,
-            adaptive_switch.initial_transition,
+        _LOGGER.debug(
+            "_service_interceptor_turn_on_handler: switches='%s', skipped='%s'",
+            switches,
+            skipped,
         )
 
         has_intercepted = False  # Can only intercept a turn_on call once
@@ -2043,18 +2047,22 @@ class AdaptiveLightingManager:
                     filtered_entity_ids.append(entity_id)
             if not filtered_entity_ids:
                 continue
+            transition = data[CONF_PARAMS].get(
+                ATTR_TRANSITION,
+                adaptive_switch.initial_transition,
+            )
             if not has_intercepted:
                 await self._service_interceptor_turn_on_single_light_handler(
-                    filtered_entity_ids,
-                    adaptive_switch,
-                    call,
-                    modify_service_data(data.copy(), filtered_entity_ids),
-                    transition,
+                    entity_ids=filtered_entity_ids,
+                    switch=adaptive_switch,
+                    transition=transition,
+                    call=call,
+                    data=modify_service_data(data.copy(), filtered_entity_ids),
                 )
                 has_intercepted = True
                 continue
             await adaptive_switch._update_attrs_and_maybe_adapt_lights(
-                context=call.context,
+                context=adaptive_switch.create_context("intercept", call.context),
                 lights=filtered_entity_ids,
                 transition=transition,
                 force=True,
@@ -2077,7 +2085,7 @@ class AdaptiveLightingManager:
     async def _service_interceptor_turn_on_single_light_handler(
         self,
         entity_ids: list[str],
-        adaptive_switch: AdaptiveSwitch,
+        switch: AdaptiveSwitch,
         transition: int,
         call: ServiceCall,
         data: ServiceData,
@@ -2092,7 +2100,7 @@ class AdaptiveLightingManager:
         for entity_id in entity_ids:
             self.clear_proactively_adapting(entity_id)
 
-        adaptation_data = await adaptive_switch.prepare_adaptation_data(
+        adaptation_data = await switch.prepare_adaptation_data(
             entity_id,
             transition,
         )
@@ -2125,7 +2133,7 @@ class AdaptiveLightingManager:
             self.set_proactively_adapting(adaptation_data.context.id, entity_id)
         adaptation_data.initial_sleep = True
         _ = asyncio.create_task(  # Don't await to avoid blocking the service call
-            adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data),
+            switch.execute_cancellable_adaptation_calls(adaptation_data),
         )
 
     def _handle_timer(
