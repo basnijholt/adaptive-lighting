@@ -1606,6 +1606,11 @@ async def test_proactive_multiple_lights(hass):
         context=Context(id="test1"),
     )
     assert switch1.manager.is_proactively_adapting("test1")
+    assert switch2.manager.is_proactively_adapting("test1")
+
+    assert hass.states.get(ENTITY_LIGHT).state == STATE_ON
+    assert hass.states.get(ENTITY_LIGHT3).state == STATE_ON
+    assert hass.states.get("light.ceiling_lights").state == STATE_ON
 
 
 async def test_two_switches_for_single_light(hass):
