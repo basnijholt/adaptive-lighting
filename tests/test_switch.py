@@ -129,11 +129,6 @@ ENTITY_ADAPT_COLOR_SWITCH = f"{_SWITCH_FMT}_adapt_color_{DEFAULT_NAME}"
 
 ORIG_TIMEZONE = dt_util.DEFAULT_TIME_ZONE
 
-GLOBAL_TEST_DEPENDENCIES = [
-    "test_adaptive_lighting_switches",
-    "test_light_settings",
-]
-
 
 def create_random_context() -> str:
     return Context(id=ulid_transform.ulid_now(), parent_id=None)
@@ -342,7 +337,6 @@ async def test_adaptive_lighting_switches(hass):
 
 
 @pytest.mark.parametrize("lat,long,timezone", LAT_LONG_TZS)
-@pytest.mark.dependency("test_adaptive_lighting_switches")
 async def test_adaptive_lighting_time_zones_with_default_settings(
     hass, lat, long, timezone, reset_time_zone  # pylint: disable=redefined-outer-name
 ):
@@ -531,7 +525,6 @@ async def test_light_settings(hass):
         assert_expected_color_temp(state)
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_manager_not_tracking_untracked_lights(hass):
     """Test that lights that are not in a Adaptive Lighting switch aren't tracked."""
     switch, _ = await setup_lights_and_switch(hass)
@@ -551,7 +544,6 @@ async def test_manager_not_tracking_untracked_lights(hass):
     assert light not in switch.manager.lights
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_manual_control(hass):
     """Test the 'manual control' tracking."""
     switch, (light, *_) = await setup_lights_and_switch(hass)
@@ -702,7 +694,6 @@ async def test_manual_control(hass):
     assert all([not manual_control[eid] for eid in switch.lights])
 
 
-@pytest.mark.dependency(depends=[*GLOBAL_TEST_DEPENDENCIES, "test_manual_control"])
 async def test_auto_reset_manual_control(hass):
     switch, (light, *_) = await setup_lights_and_switch(
         hass, {CONF_AUTORESET_CONTROL: 0.1}
@@ -753,7 +744,6 @@ async def test_auto_reset_manual_control(hass):
     assert not manual_control[light.entity_id]
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_apply_service(hass):
     """Test adaptive_lighting.apply service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
@@ -818,9 +808,6 @@ async def test_apply_service(hass):
     assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
-@pytest.mark.dependency(
-    depends=[*GLOBAL_TEST_DEPENDENCIES, "test_apply_service", "test_manual_control"]
-)
 async def test_switch_off_on_off(hass):
     """Test switch rapid off_on_off."""
 
@@ -871,7 +858,6 @@ async def test_switch_off_on_off(hass):
             assert state == STATE_OFF
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 def test_color_difference_redmean():
     """Test color_difference_redmean function."""
     for _ in range(10):
@@ -934,7 +920,6 @@ def test_attributes_have_changed():
     )
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_state_change_handlers(hass):
     """
     Test AdaptiveLightingManager's EVENT_STATE_CHANGED listener.
@@ -1128,16 +1113,6 @@ async def test_state_change_handlers(hass):
     assert switch.manager.manual_control[ENTITY_LIGHT_1]
 
 
-@pytest.mark.dependency(
-    depends=[
-        *GLOBAL_TEST_DEPENDENCIES,
-        "test_manual_control",
-        "test_apply_service",
-        "test_attributes_have_changed",
-        "test_state_change_handling",
-    ]
-)
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 def test_is_our_context():
     """Test is_our_context function."""
     context = create_context(DOMAIN, "test", 0)
@@ -1212,7 +1187,6 @@ async def test_turn_on_and_off_when_already_at_that_state(hass):
     await hass.async_block_till_done()
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_async_update_at_interval_action(hass):
     """Test '_async_update_at_interval_action' method."""
     _, switch = await setup_switch(hass, {})
@@ -1220,7 +1194,6 @@ async def test_async_update_at_interval_action(hass):
 
 
 @pytest.mark.parametrize("separate_turn_on_commands", (True, False))
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     """Test 'separate_turn_on_commands' argument."""
     switch, (light, *_) = await setup_lights_and_switch(
@@ -1257,7 +1230,6 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     assert sleep_color_temp != color_temp
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_area(hass):
     switch, (light, *_) = await setup_lights_and_switch(hass)
 
@@ -1294,7 +1266,6 @@ async def test_area(hass):
     assert light.entity_id not in switch.manager.last_service_data
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_change_switch_settings_service(hass):
     """Test adaptive_lighting.change_switch_settings service."""
     switch, (_, _, light) = await setup_lights_and_switch(hass)
@@ -1347,7 +1318,6 @@ async def test_change_switch_settings_service(hass):
     assert switch._sun_light_settings.min_color_temp == 2500
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_cancellable_service_calls_task(hass):
     """Test the creation and execution of the task that wraps adaptation service calls."""
     (light, *_) = await setup_lights(hass)
@@ -1378,7 +1348,6 @@ async def test_cancellable_service_calls_task(hass):
     assert task.done()
 
 
-@pytest.mark.dependency(depends=GLOBAL_TEST_DEPENDENCIES)
 async def test_service_calls_task_cancellation(hass):
     """Tests if the task that wraps ongoing adaptation service calls gets cancelled."""
     _, switch = await setup_switch(hass, {})
