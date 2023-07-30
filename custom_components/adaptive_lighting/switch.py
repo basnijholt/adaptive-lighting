@@ -2003,6 +2003,9 @@ class AdaptiveLightingManager:
         if is_our_context(call.context):
             return
 
+        if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
+            return
+
         entity_ids = self._get_entity_list(data)
 
         # For simplicity, only service calls affecting a single entity are currently handled.
