@@ -2000,6 +2000,7 @@ class AdaptiveLightingManager:
         # Don't adapt our own service calls
         if is_our_context(call.context):
             return
+        data_copy = data.copy()
         _LOGGER.debug(
             "_service_interceptor_turn_on_handler: call='%s', data='%s'",
             call,
@@ -2054,8 +2055,10 @@ class AdaptiveLightingManager:
                     skipped.append(entity_id)
                 else:
                     filtered_entity_ids.append(entity_id)
+
             if not filtered_entity_ids:
                 continue
+
             transition = data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
                 switch.initial_transition,
@@ -2066,29 +2069,30 @@ class AdaptiveLightingManager:
                     switch=switch,
                     transition=transition,
                     call=call,
-                    data=modify_service_data(data.copy(), filtered_entity_ids),
+                    data=modify_service_data(data, filtered_entity_ids),
                 )
                 has_intercepted = True
                 continue
-            await switch._update_attrs_and_maybe_adapt_lights(
-                context=switch.create_context("intercept", call.context),
-                lights=filtered_entity_ids,
-                transition=transition,
-                force=True,
-            )
+
+            for eid in filtered_entity_ids:
+                await switch._adapt_light(
+                    light=eid,
+                    # Must add a new context otherwise _adapt_light will bail out
+                    context=switch.create_context("intercept"),
+                    transition=transition,
+                )
 
         if skipped:
             if not has_intercepted:
+                modify_service_data(data, skipped)
                 return  # The call will be intercepted with the original data
-            # Modify the service data inplace
-            modify_service_data(data, skipped)
             # Call light turn_on service for skipped entities
             _LOGGER.debug(
                 "_service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s'",
                 skipped,
                 data,
             )
-            service_data = data.copy()
+            service_data = modify_service_data(data_copy, skipped)
             service_data.update(service_data.pop(CONF_PARAMS, {}))
             service_data.pop(ATTR_COLOR_TEMP, None)
             await self.hass.services.async_call(
@@ -2096,7 +2100,8 @@ class AdaptiveLightingManager:
                 SERVICE_TURN_ON,
                 service_data,
                 blocking=True,
-                context=call.context,
+                # Must add a new context to avoid infinite recursion
+                context=switch.create_context("skipped"),
             )
 
     async def _service_interceptor_turn_on_single_light_handler(

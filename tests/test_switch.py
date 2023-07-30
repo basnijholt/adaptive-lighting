@@ -1615,7 +1615,6 @@ async def test_proactive_multiple_lights(hass):
     assert hass.states.get(lights[0]).state == STATE_ON, lights[0]
     assert hass.states.get(lights[1]).state == STATE_ON, lights[1]
     assert hass.states.get(lights[2]).state == STATE_ON, lights[2]
-    assert 0
 
 
 async def test_two_switches_for_single_light(hass):
