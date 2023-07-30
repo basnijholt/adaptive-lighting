@@ -119,6 +119,7 @@ LAT_LONG_TZS = [
 ]
 
 ENTITY_LIGHT_1 = "light.light_1"
+ENTITY_LIGHT_2 = "light.light_2"
 ENTITY_LIGHT_3 = "light.light_3"
 _SWITCH_FMT = f"{SWITCH_DOMAIN}.{DOMAIN}"
 ENTITY_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}"
@@ -174,7 +175,7 @@ async def setup_lights(hass: HomeAssistant):
                     "platform": "template",
                     "lights": {
                         "light_1": {
-                            "friendly_name": "Light 1",
+                            "friendly_name": "light_1",
                             "unique_id": "light_1",
                             "turn_on": None,
                             "turn_off": None,
@@ -183,7 +184,7 @@ async def setup_lights(hass: HomeAssistant):
                             "set_color": None,
                         },
                         "light_2": {
-                            "friendly_name": "Light 2",
+                            "friendly_name": "light_2",
                             "unique_id": "light_2",
                             "turn_on": None,
                             "turn_off": None,
@@ -192,7 +193,7 @@ async def setup_lights(hass: HomeAssistant):
                             "set_color": None,
                         },
                         "light_3": {
-                            "friendly_name": "Light 3",
+                            "friendly_name": "light_3",
                             "unique_id": "light_3",
                             "turn_on": None,
                             "turn_off": None,
@@ -236,7 +237,7 @@ async def setup_lights_and_switch(hass, extra_conf=None, all_lights: bool = Fals
     # Setup switch
     lights = [
         ENTITY_LIGHT_1,
-        "light.light_2",
+        ENTITY_LIGHT_2,
     ]
 
     if all_lights:
@@ -534,7 +535,7 @@ async def test_light_settings(hass):
 async def test_manager_not_tracking_untracked_lights(hass):
     """Test that lights that are not in a Adaptive Lighting switch aren't tracked."""
     switch, _ = await setup_lights_and_switch(hass)
-    light = "light.light_3"
+    light = ENTITY_LIGHT_3
     assert light not in switch.lights
     for state in [True, False]:
         await hass.services.async_call(
@@ -1570,7 +1571,7 @@ async def test_proactive_multiple_lights(hass):
     # Setup switches
     lights = [
         ENTITY_LIGHT_1,
-        "light.light_2",
+        ENTITY_LIGHT_2,
         ENTITY_LIGHT_3,
     ]
     await hass.services.async_call(
@@ -1591,14 +1592,14 @@ async def test_proactive_multiple_lights(hass):
         INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
     }
     assert all(hass.states.get(light) is not None for light in lights)
-    _, switch0 = await setup_switch(
-        hass, {CONF_NAME: "switch0", CONF_LIGHTS: [lights[0]], **defaults}
-    )
     _, switch1 = await setup_switch(
-        hass, {CONF_NAME: "switch1", CONF_LIGHTS: [lights[1]], **defaults}
+        hass, {CONF_NAME: "switch1", CONF_LIGHTS: [ENTITY_LIGHT_1], **defaults}
     )
-    assert hass.states.get(switch0.entity_id).state == STATE_ON
+    _, switch2 = await setup_switch(
+        hass, {CONF_NAME: "switch2", CONF_LIGHTS: [ENTITY_LIGHT_2], **defaults}
+    )
     assert hass.states.get(switch1.entity_id).state == STATE_ON
+    assert hass.states.get(switch2.entity_id).state == STATE_ON
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_ON,
@@ -1606,8 +1607,8 @@ async def test_proactive_multiple_lights(hass):
         blocking=True,
         context=Context(id="test1"),
     )
-    assert switch0.manager.is_proactively_adapting("test1")
     assert switch1.manager.is_proactively_adapting("test1")
+    assert switch2.manager.is_proactively_adapting("test1")
 
     await hass.async_block_till_done()
 
