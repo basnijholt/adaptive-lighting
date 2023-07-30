@@ -2013,24 +2013,32 @@ class AdaptiveLightingManager:
             service_data[ATTR_ENTITY_ID] = entity_ids
             return service_data
 
-        switches: dict[AdaptiveSwitch, list[str]] = {}
+        # AdaptiveSwitch.name → entity_ids mapping
+        switch_to_eids: dict[str, list[str]] = {}
+        # AdaptiveSwitch.name → AdaptiveSwitch mapping
+        switch_name_mapping: dict[str, AdaptiveSwitch] = {}
+        # Note: In HA≥2023.5, AdaptiveSwitch is hashable, so we can
+        # use dict[AdaptiveSwitch, list[str]]
         skipped: list[str] = []
         for entity_id in entity_ids:
             try:
-                adaptive_switch = _switch_with_lights(self.hass, [entity_id])
-                switches.setdefault(adaptive_switch, []).append(entity_id)
+                switch = _switch_with_lights(self.hass, [entity_id])
             except NoSwitchFoundError:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
+            else:
+                switch_to_eids.setdefault(switch.name, []).append(entity_id)
+                switch_name_mapping[switch.name] = switch
         _LOGGER.debug(
-            "_service_interceptor_turn_on_handler: switches='%s', skipped='%s'",
-            switches,
+            "_service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
+            switch_to_eids,
             skipped,
         )
 
         has_intercepted = False  # Can only intercept a turn_on call once
-        for adaptive_switch, entity_ids in switches.items():
-            if not adaptive_switch.is_on:
+        for adaptive_switch_name, entity_ids in switch_to_eids.items():
+            switch = switch_name_mapping[adaptive_switch_name]
+            if not switch.is_on:
                 skipped.extend(entity_ids)
                 continue
 
@@ -2049,20 +2057,20 @@ class AdaptiveLightingManager:
                 continue
             transition = data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
-                adaptive_switch.initial_transition,
+                switch.initial_transition,
             )
             if not has_intercepted:
                 await self._service_interceptor_turn_on_single_light_handler(
                     entity_ids=filtered_entity_ids,
-                    switch=adaptive_switch,
+                    switch=switch,
                     transition=transition,
                     call=call,
                     data=modify_service_data(data.copy(), filtered_entity_ids),
                 )
                 has_intercepted = True
                 continue
-            await adaptive_switch._update_attrs_and_maybe_adapt_lights(
-                context=adaptive_switch.create_context("intercept", call.context),
+            await switch._update_attrs_and_maybe_adapt_lights(
+                context=switch.create_context("intercept", call.context),
                 lights=filtered_entity_ids,
                 transition=transition,
                 force=True,
