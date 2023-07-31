@@ -1556,6 +1556,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if event.context.parent_id and not self.manager.is_proactively_adapting(
                 event.context.id,
             ):
+                # We don't reset manual_control because it might be set before
+                # the 'off' → 'on' event is fired.
                 self.manager.reset(entity_id, reset_manual_control=False)
 
             lock = self._locks.setdefault(entity_id, asyncio.Lock())
@@ -2069,7 +2071,6 @@ class AdaptiveLightingManager:
             call.context.id,
         )
 
-        self.reset(entity_id, reset_manual_control=False)
         self.clear_proactively_adapting(entity_id)
 
         transition = data[CONF_PARAMS].get(
