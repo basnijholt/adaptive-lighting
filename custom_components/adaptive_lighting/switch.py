@@ -1471,7 +1471,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
         if (
             not self._detect_non_ha_changes
-            and not self.is_proactively_adapting(event.context.id)
+            and not self.manager.is_proactively_adapting(event.context.id)
             and not self.manager._off_to_on_state_event_is_from_turn_on(
                 entity_id,
                 event,
@@ -2222,6 +2222,24 @@ class AdaptiveLightingManager:
         if not any(eid in self.lights for eid in entity_ids):
             return
 
+        def off(eid: str, event: Event):
+            self.turn_off_event[eid] = event
+            self.reset(eid)
+
+        def on(eid: str, event: Event):
+            task = self.sleep_tasks.get(eid)
+            if task is not None:
+                task.cancel()
+            self.turn_on_event[eid] = event
+            timer = self.auto_reset_manual_control_timers.get(eid)
+            if (
+                timer is not None
+                and timer.is_running()
+                and event.time_fired > timer.start_time  # type: ignore[operator]
+            ):
+                # Restart the auto reset timer
+                timer.start()
+
         if service == SERVICE_TURN_OFF:
             transition = service_data.get(ATTR_TRANSITION)
             _LOGGER.debug(
@@ -2231,8 +2249,7 @@ class AdaptiveLightingManager:
                 event.context.id,
             )
             for eid in entity_ids:
-                self.turn_off_event[eid] = event
-                self.reset(eid)
+                off(eid, event)
 
         elif service == SERVICE_TURN_ON:
             _LOGGER.debug(
@@ -2241,28 +2258,21 @@ class AdaptiveLightingManager:
                 event.context.id,
             )
             for eid in entity_ids:
-                task = self.sleep_tasks.get(eid)
-                if task is not None:
-                    task.cancel()
-                self.turn_on_event[eid] = event
-                timer = self.auto_reset_manual_control_timers.get(eid)
-                if (
-                    timer is not None
-                    and timer.is_running()
-                    and event.time_fired > timer.start_time  # type: ignore[operator]
-                ):
-                    # Restart the auto reset timer
-                    timer.start()
+                on(eid, event)
 
         elif service == SERVICE_TOGGLE:
             _LOGGER.debug(
-                "Detected an 'light.toggle('%s')' event with context.id='%s' and event.data='%s'",
+                "Detected an 'light.toggle('%s')' event with context.id='%s'",
                 entity_ids,
                 event.context.id,
-                event.data,
             )
             for eid in entity_ids:
+                state = self.hass.states.get(eid).state
                 self.toggle_event[eid] = event
+                if state == STATE_ON:  # is turning off
+                    off(eid, event)
+                elif state == STATE_OFF:  # is turning on
+                    on(eid, event)
 
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
