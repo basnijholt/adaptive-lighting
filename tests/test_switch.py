@@ -1607,6 +1607,13 @@ async def test_proactive_multiple_lights_all_at_once(hass):
 
     assert all(hass.states.get(light).state == STATE_ON for light in lights)
 
+    # Turn on second time even though already on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test2", lights, return_full_events=True
+    )
+    assert len(events) == 1, events
+    assert events[0].context.id == "test2"
+
 
 async def test_proactive_multiple_lights_turn_on_non_managed_light(hass):
     """Create switch and demo lights."""
