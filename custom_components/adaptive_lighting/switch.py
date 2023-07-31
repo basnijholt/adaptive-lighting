@@ -1411,8 +1411,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         filtered_lights = [light for light in lights if is_on(self.hass, light)]
 
+        _filtered_lights = []
         if not force:
-            filtered_lights = []
             for light in filtered_lights:
                 # Don't adapt lights that haven't finished prior transitions.
                 timer = self.manager.transition_timers.get(light)
@@ -1423,8 +1423,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         light,
                     )
                 else:
-                    filtered_lights.append(light)
-
+                    _filtered_lights.append(light)
+        filtered_lights = _filtered_lights
         _LOGGER.debug("%s: filtered_lights: '%s'", self._name, filtered_lights)
         if not filtered_lights:
             return
@@ -1452,7 +1452,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     light,
                     context.id,
                 )
-                return
+                continue
 
             significant_change = (
                 self._take_over_control
@@ -1469,7 +1469,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             if significant_change:
                 _fire_manual_control_event(self, light, context)
-                return
+                continue
 
             _LOGGER.debug(
                 "%s: Calling _adapt_light from _update_attrs_and_maybe_adapt_lights:"
