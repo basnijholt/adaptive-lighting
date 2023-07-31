@@ -2005,7 +2005,6 @@ class AdaptiveLightingManager:
         # Reset because turning on the light, this also happens in
         # `turn_on_off_event_listener`, however, this function is called
         # before that one.
-        _LOGGER.debug("first")
         self.reset(entity_id, reset_manual_control=False)
 
         self.clear_proactively_adapting(entity_id)
@@ -2355,7 +2354,9 @@ class AdaptiveLightingManager:
                 entity_id,
                 event.context.id,
             )
-            _LOGGER.debug("second")
+            # Skip resetting here because `_service_interceptor_turn_on_handler`
+            # ran *just* before this and already reset the light and populated
+            # `self.last_service_data` with the new data.
             if event.context.parent_id and not self.is_proactively_adapting(
                 event.context.id,
             ):
