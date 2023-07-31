@@ -1376,7 +1376,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
-    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
+    async def _update_attrs_and_maybe_adapt_lights(
         self,
         *,
         context: Context,
@@ -1403,17 +1403,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         self.async_write_ha_state()
 
-        if lights is None:
-            lights = self.lights
-
         if not force and self._only_once:
             return
 
+        if lights is None:
+            lights = self.lights
+
+        on_lights = [light for light in lights if is_on(self.hass, light)]
+
         if force:
-            filtered_lights = lights
+            filtered_lights = on_lights
         else:
             filtered_lights = []
-            for light in lights:
+            for light in on_lights:
                 # Don't adapt lights that haven't finished prior transitions.
                 timer = self.manager.transition_timers.get(light)
                 if timer is not None and timer.is_running():
@@ -1428,25 +1430,35 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug("%s: filtered_lights: '%s'", self._name, filtered_lights)
         if not filtered_lights:
             return
+
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
         assert isinstance(adapt_brightness, bool)
         assert isinstance(adapt_color, bool)
 
         for light in filtered_lights:
-            if not is_on(self.hass, light):
+            manually_controlled = (
+                self._take_over_control
+                and self.manager.is_manually_controlled(
+                    self,
+                    light,
+                    force,
+                    adapt_brightness,
+                    adapt_color,
+                )
+            )
+            if manually_controlled:
+                _LOGGER.debug(
+                    "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
+                    self._name,
+                    light,
+                    context.id,
+                )
                 continue
 
-            manually_controlled = self.manager.is_manually_controlled(
-                self,
-                light,
-                force,
-                adapt_brightness,
-                adapt_color,
-            )
-
             significant_change = (
-                self._detect_non_ha_changes
+                self._take_over_control
+                and self._detect_non_ha_changes
                 and not force
                 and await self.manager.significant_change(
                     self,
@@ -1456,28 +1468,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     context,
                 )
             )
+            if significant_change:
+                _fire_manual_control_event(self, light, context)
+                continue
 
-            if self._take_over_control and (manually_controlled or significant_change):
-                if manually_controlled:
-                    _LOGGER.debug(
-                        "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
-                        self._name,
-                        light,
-                        context.id,
-                    )
-                else:
-                    # Need to fire manual control event because of significant_change
-                    _fire_manual_control_event(self, light, context)
-            else:
-                _LOGGER.debug(
-                    "%s: Calling _adapt_light from _update_attrs_and_maybe_adapt_lights:"
-                    " '%s' with transition %s and context.id=%s",
-                    self._name,
-                    light,
-                    transition,
-                    context.id,
-                )
-                await self._adapt_light(light, context, transition)
+            _LOGGER.debug(
+                "%s: Calling _adapt_light from _update_attrs_and_maybe_adapt_lights:"
+                " '%s' with transition %s and context.id=%s",
+                self._name,
+                light,
+                transition,
+                context.id,
+            )
+            await self._adapt_light(light, context, transition)
 
     async def _sleep_mode_switch_state_event_action(self, event: Event) -> None:
         if not _is_state_event(event, (STATE_ON, STATE_OFF)):
@@ -2417,7 +2420,7 @@ class AdaptiveLightingManager:
         light: str,
         adapt_brightness: bool,
         adapt_color: bool,
-        context: Context,
+        context: Context,  # just for logging
     ) -> bool:
         """Has the light made a significant change since last update.
 
