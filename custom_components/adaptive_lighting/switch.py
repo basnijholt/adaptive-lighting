@@ -1469,6 +1469,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await self._adapt_light(light, context, transition)
 
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
+        if (
+            not self._detect_non_ha_changes
+            and not self.is_proactively_adapting(event.context.id)
+            and not self.manager._off_to_on_state_event_is_from_turn_on(
+                entity_id,
+                event,
+            )
+        ):
+            _LOGGER.debug(
+                "%s: The 'off' → 'on' event for '%s' with context.id='%s'"
+                " is not associated with a 'light.turn_on' event",
+                self._name,
+                entity_id,
+                event.context.id,
+            )
+            self.manager.mark_as_manual_control(entity_id)
+            return
+
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
         if self._take_over_control and self.manager.manual_control.get(entity_id):
@@ -2306,22 +2324,10 @@ class AdaptiveLightingManager:
                 event.context.id,
             )
 
-            if not self.is_proactively_adapting(event.context.id):
-                if not self._off_to_on_state_event_is_from_turn_on(
-                    entity_id,
-                    event,
-                ):
-                    # TODO: this needs to happen in switch because it requires  # noqa: TD002, FIX002, TD003
-                    # detect_non_ha_changes to be False
-                    _LOGGER.debug(
-                        "The 'off' → 'on' event for '%s' with context.id='%s'"
-                        " is not associated with a 'light.turn_on' event",
-                        entity_id,
-                        event.context.id,
-                    )
-                    self.mark_as_manual_control(entity_id)
-                if event.context.parent_id:
-                    self.reset(entity_id, reset_manual_control=False)
+            if event.context.parent_id and not self.is_proactively_adapting(
+                event.context.id,
+            ):
+                self.reset(entity_id, reset_manual_control=False)
 
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
