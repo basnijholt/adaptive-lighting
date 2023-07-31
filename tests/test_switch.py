@@ -546,6 +546,9 @@ async def test_manager_not_tracking_untracked_lights(hass):
 async def test_manual_control(hass):
     """Test the 'manual control' tracking."""
     switch, (light, *_) = await setup_lights_and_switch(hass)
+    assert switch._take_over_control
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+
     context = switch.create_context("test")  # needs to be passed to update method
     manual_control = switch.manager.manual_control
 
@@ -560,9 +563,9 @@ async def test_manual_control(hass):
             {ATTR_ENTITY_ID: ENTITY_LIGHT_1, **kwargs},
             blocking=True,
         )
+        _LOGGER.debug("Turn light %s, to %s", "on" if state else "off", kwargs)
         await hass.async_block_till_done()
         await update()
-        _LOGGER.debug("Turn light %s, to %s", state, kwargs)
 
     async def turn_switch(state, entity_id):
         await hass.services.async_call(
@@ -576,6 +579,7 @@ async def test_manual_control(hass):
     async def change_manual_control(set_to, extra_service_data=None):
         if extra_service_data is None:
             extra_service_data = {CONF_LIGHTS: [ENTITY_LIGHT_1]}
+        _LOGGER.debug(f"{switch.manager.manual_control=}")
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_MANUAL_CONTROL,
@@ -586,8 +590,11 @@ async def test_manual_control(hass):
             },
             blocking=True,
         )
+        _LOGGER.debug(f"{switch.manager.manual_control=}")
+        _LOGGER.debug("Called set_manual_control with %s", set_to)
         await hass.async_block_till_done()
         await update()
+        _LOGGER.debug("End of change_manual_control")
 
     def increased_brightness():
         return (light._attr_brightness + 100) % 255
