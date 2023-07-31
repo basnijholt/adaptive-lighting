@@ -1478,8 +1478,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         ):
             _LOGGER.debug(
-                "%s: The 'off' → 'on' event for '%s' with context.id='%s'"
-                " is not associated with a 'light.turn_on' event",
+                "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
+                " because 'light.turn_on' was not called by HA and"
+                " 'detect_non_ha_changes' is False",
                 self._name,
                 entity_id,
                 event.context.id,
@@ -1832,6 +1833,8 @@ class AdaptiveLightingManager:
         self.turn_off_event: dict[str, Event] = {}
         # Tracks 'light.turn_on' service calls
         self.turn_on_event: dict[str, Event] = {}
+        # Tracks 'light.toggle' service calls
+        self.toggle_event: dict[str, Event] = {}
         # Tracks 'on' → 'off' state changes
         self.on_to_off_event: dict[str, Event] = {}
         # Tracks 'off' → 'on' state changes
@@ -2250,6 +2253,16 @@ class AdaptiveLightingManager:
                 ):
                     # Restart the auto reset timer
                     timer.start()
+
+        elif service == SERVICE_TOGGLE:
+            _LOGGER.debug(
+                "Detected an 'light.toggle('%s')' event with context.id='%s' and event.data='%s'",
+                entity_ids,
+                event.context.id,
+                event.data,
+            )
+            for eid in entity_ids:
+                self.toggle_event[eid] = event
 
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
