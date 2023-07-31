@@ -1477,6 +1477,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event,
             )
         ):
+            # There is an edge case where 2 switches control the same light, e.g.,
+            # one for brightness and one for color. Now we will mark both switches
+            # as manually controlled, which is not 100% correct.
             _LOGGER.debug(
                 "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
                 " because 'light.turn_on' was not called by HA and"
@@ -1486,9 +1489,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
             self.manager.mark_as_manual_control(entity_id)
-            # There is an edge case where 2 switches control the same light, e.g.,
-            # one for brightness and one for color. Now we will mark both switches
-            # as manually controlled, which is not 100% correct.
             return
         # TODO: I believe I need to separate the concept of random turn ons and  # noqa: TD002, FIX002, TD003
         # manual control because take_over_control can be False which means that
@@ -2535,7 +2535,7 @@ class AdaptiveLightingManager:
 
         if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
             _LOGGER.debug(
-                "just_turned_off: State change 'off' → 'on' triggered by 'light.turn_on'",
+                "just_turned_off: State change 'off' → 'on' triggered by 'light.turn_on' or 'light.toggle'",
             )
             return False
 
