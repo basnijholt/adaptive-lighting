@@ -2342,8 +2342,7 @@ class AdaptiveLightingManager:
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
-                timer = self.auto_reset_manual_control_timers.pop(light, None)
-                if timer is not None:
+                if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.last_state_change.pop(light, None)
             self.last_service_data.pop(light, None)

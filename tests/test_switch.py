@@ -1649,6 +1649,33 @@ async def test_proactive_multiple_lights_turn_on_managed_lights_only(hass):
     assert ":ntrc:" in events[1].context.id
 
 
+async def test_proactive_multiple_lights_one_switch_and_one_skipped(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    two_lights = [lights[0], lights[-1]]
+    _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
+    # Setup demo lights and turn on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test1", two_lights, return_full_events=True
+    )
+    assert len(events) == 2, events
+
+    # Original turn_on call that is intercepted
+    assert events[0].context.id == "test1"
+    assert events[0].data["service_data"][ATTR_ENTITY_ID] == two_lights
+
+    # The skipped lights, the one not in a switch
+    assert events[1].data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
+    assert ":skpp:" in events[1].context.id
+
+    assert switch1.manager.is_proactively_adapting("test1")
+    assert switch2.manager.is_proactively_adapting("test1")
+
+    await hass.async_block_till_done()
+
+    assert all(hass.states.get(light).state == STATE_ON for light in two_lights)
+
+
 async def test_two_switches_for_single_light(hass):
     """Test the case where someone has two switches for a single light.
 
