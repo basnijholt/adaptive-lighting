@@ -1486,11 +1486,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self.manager.mark_as_manual_control(entity_id)
             return
-
+        # TODO: I believe I need to separate the concept of random turn ons and  # noqa: TD002, FIX002, TD003
+        # manual control because take_over_control can be False which means that
+        # manual control is ignored. Or deprecate take_over_contol and make it always True?
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
-        if self._take_over_control and self.manager.manual_control.get(entity_id):
-            return
+
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("light_event", parent=event.context),
             lights=[entity_id],
