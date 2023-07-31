@@ -2002,7 +2002,12 @@ class AdaptiveLightingManager:
             call.context.id,
         )
 
+        # Reset because turning on the light, this also happens in
+        # `turn_on_off_event_listener`, however, this function is called
+        # before that one.
+        _LOGGER.debug("first")
         self.reset(entity_id, reset_manual_control=False)
+
         self.clear_proactively_adapting(entity_id)
 
         transition = data[CONF_PARAMS].get(
@@ -2350,7 +2355,7 @@ class AdaptiveLightingManager:
                 entity_id,
                 event.context.id,
             )
-
+            _LOGGER.debug("second")
             if event.context.parent_id and not self.is_proactively_adapting(
                 event.context.id,
             ):
