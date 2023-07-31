@@ -1485,6 +1485,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 event.context.id,
             )
             self.manager.mark_as_manual_control(entity_id)
+            # There is an edge case where 2 switches control the same light, e.g.,
+            # one for brightness and one for color. Now we will mark both switches
+            # as manually controlled, which is not 100% correct.
             return
         # TODO: I believe I need to separate the concept of random turn ons and  # noqa: TD002, FIX002, TD003
         # manual control because take_over_control can be False which means that
@@ -2342,10 +2345,11 @@ class AdaptiveLightingManager:
 
             switches = _switches_with_lights(self.hass, [entity_id])
             for switch in switches:
-                await switch._respond_to_off_to_on_event(
-                    entity_id,
-                    event,
-                )
+                if switch.is_on:
+                    await switch._respond_to_off_to_on_event(
+                        entity_id,
+                        event,
+                    )
 
     def is_manually_controlled(
         self,
