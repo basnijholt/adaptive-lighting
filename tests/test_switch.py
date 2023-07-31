@@ -1647,6 +1647,7 @@ async def test_proactive_multiple_lights_turn_on_managed_lights_only(hass):
     # The `has_intercepted` path
     assert events[1].data["service_data"][ATTR_ENTITY_ID] == ENTITY_LIGHT_2
     assert ":ntrc:" in events[1].context.id
+    assert ATTR_BRIGHTNESS in events[1].data["service_data"]
 
 
 async def test_proactive_multiple_lights_one_switch_and_one_skipped(hass):
