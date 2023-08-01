@@ -1262,8 +1262,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        self.manager.last_service_data[light] = service_data
-
         return prepare_adaptation_data(
             self.hass,
             light,
@@ -1337,6 +1335,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 data.context.id,
             )
+            light = service_data[ATTR_ENTITY_ID]
+            self.manager.last_service_data[light] = service_data
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
@@ -2134,10 +2134,7 @@ class AdaptiveLightingManager:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        last_service_data = self.last_service_data.get(light)
-        if not last_service_data:
-            _LOGGER.debug("This should not ever happen. Please report to the devs.")
-            return
+        last_service_data = self.last_service_data[light]
         last_transition = last_service_data.get(ATTR_TRANSITION)
         if not last_transition:
             _LOGGER.debug(
