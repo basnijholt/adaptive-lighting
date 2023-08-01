@@ -1971,7 +1971,7 @@ class AdaptiveLightingManager:
 
         data_copy = data.copy()
         _LOGGER.debug(
-            "_service_interceptor_turn_on_handler: call='%s', data='%s'",
+            "(1) _service_interceptor_turn_on_handler: call='%s', data='%s'",
             call,
             data,
         )
@@ -2003,7 +2003,7 @@ class AdaptiveLightingManager:
                 switch_to_eids.setdefault(switch.name, []).append(entity_id)
                 switch_name_mapping[switch.name] = switch
         _LOGGER.debug(
-            "_service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
+            "(2) _service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
             switch_to_eids,
             skipped,
         )
@@ -2035,6 +2035,10 @@ class AdaptiveLightingManager:
                 switch.initial_transition,
             )
             if not has_intercepted:
+                _LOGGER.debug(
+                    "(3) _service_interceptor_turn_on_handler: intercepting filtered_entity_ids='%s'",
+                    filtered_entity_ids,
+                )
                 await self._service_interceptor_turn_on_single_light_handler(
                     entity_ids=filtered_entity_ids,
                     switch=switch,
@@ -2050,6 +2054,12 @@ class AdaptiveLightingManager:
                 context = switch.create_context("intercept")
                 self.clear_proactively_adapting(eid)
                 self.set_proactively_adapting(context.id, eid)
+                _LOGGER.debug(
+                    "(4) _service_interceptor_turn_on_handler: calling `_adapt_light` with eid='%s', context='%s', transition='%s'",
+                    eid,
+                    context,
+                    transition,
+                )
                 await switch._adapt_light(
                     light=eid,
                     context=context,
@@ -2062,7 +2072,7 @@ class AdaptiveLightingManager:
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
             _LOGGER.debug(
-                "_service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s'",
+                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s'",
                 skipped,
                 data,
             )
