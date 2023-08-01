@@ -1473,9 +1473,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await self._adapt_light(light, context, transition)
 
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
+        assert not self.manager.is_proactively_adapting(event.context.id)
         if (
             not self._detect_non_ha_changes
-            and not self.manager.is_proactively_adapting(event.context.id)
             and not self.manager._off_to_on_state_event_is_from_turn_on(
                 entity_id,
                 event,
