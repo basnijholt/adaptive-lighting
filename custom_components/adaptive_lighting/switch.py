@@ -1276,6 +1276,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context.parent_id,
         ):
             # Skip if adaptation was already executed by the service call interceptor
+            # The context.parent_id is the context.id of the service call that was intercepted
+            # and context.id here is from the resulting "light_event" event.
             _LOGGER.debug(
                 "%s: Skipping reactive adaptation of light %s with context.id=%s and context.parent_id=%s",
                 self._name,
