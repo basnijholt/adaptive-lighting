@@ -2356,7 +2356,8 @@ class AdaptiveLightingManager:
 
             if self.is_proactively_adapting(event.context.id):
                 _LOGGER.debug(
-                    "Skipping reactive adaptation of light %s with context.id='%s'",
+                    "Skipping responding to 'off' → 'on' event for '%s' with context.id='%s' because"
+                    " we are already proactively adapting",
                     entity_id,
                     event.context.id,
                 )
