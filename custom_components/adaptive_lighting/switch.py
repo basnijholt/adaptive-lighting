@@ -658,7 +658,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
             _LOGGER.debug("Expanded %s to %s", light, group)
         else:
             all_lights.add(light)
-    return list(all_lights)
+    return sorted(all_lights)
 
 
 @bind_hass
