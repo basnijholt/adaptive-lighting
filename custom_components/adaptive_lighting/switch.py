@@ -2360,7 +2360,7 @@ class AdaptiveLightingManager:
                 event.context.id,
             ):
                 self.reset(entity_id, reset_manual_control=False)
-
+                _LOGGER.debug("We should cancel here?")
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.just_turned_off(entity_id):
