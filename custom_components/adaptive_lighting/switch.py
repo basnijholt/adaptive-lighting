@@ -2156,7 +2156,13 @@ class AdaptiveLightingManager:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        last_service_data = self.last_service_data[light]
+        last_service_data = self.last_service_data.get(light)
+        if last_service_data is None:
+            _LOGGER.debug(
+                "No last service data for light %s, continuing...",
+                light,
+            )
+            return
         last_transition = last_service_data.get(ATTR_TRANSITION)
         if not last_transition:
             _LOGGER.debug(
