@@ -1273,21 +1273,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
 
-        if context.parent_id is not None and self.manager.is_proactively_adapting(
-            context.parent_id,
-        ):
-            # Skip if adaptation was already executed by the service call interceptor.
-            # The context.parent_id is the context.id of the service call that was intercepted
-            # and context.id here is from the resulting "light_event" event.
-            _LOGGER.debug(
-                "%s: Skipping reactive adaptation of light %s with context.id=%s and context.parent_id=%s",
-                self._name,
-                light,
-                context.id,
-                context.parent_id,
-            )
-            return
-
         data = await self.prepare_adaptation_data(
             light,
             transition,
@@ -1474,9 +1459,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await self._adapt_light(light, context, transition)
 
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
+        assert not self.manager.is_proactively_adapting(event.context.id)
         if (
             not self._detect_non_ha_changes
-            and not self.manager.is_proactively_adapting(event.context.id)
             and not self.manager._off_to_on_state_event_is_from_turn_on(
                 entity_id,
                 event,
@@ -2459,16 +2444,18 @@ class AdaptiveLightingManager:
                 entity_id,
                 event.context.id,
             )
-            # Skip resetting here because `_service_interceptor_turn_on_handler`
-            # ran *just* before this and already reset the light and populated
-            # `self.last_service_data` with the new data.
-            if not self.is_proactively_adapting(event.context.id):
-                self.reset(entity_id, reset_manual_control=False)
 
-            # We do not break out here if we are proactively adapting because
-            # we need the manual_control setting of _respond_to_off_to_on_event.
-            # It will just bail out before adapting if proactively adapting.
+            if self.is_proactively_adapting(event.context.id):
+                _LOGGER.debug(
+                    "Skipping responding to 'off' → 'on' event for '%s' with context.id='%s' because"
+                    " we are already proactively adapting",
+                    entity_id,
+                    event.context.id,
+                )
+                # Note: the reset below already happened in `_service_interceptor_turn_on_handler`
+                return
 
+            self.reset(entity_id, reset_manual_control=False)
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.just_turned_off(entity_id):
