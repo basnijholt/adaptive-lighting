@@ -646,7 +646,6 @@ def _is_state_event(event: Event, from_or_to_state: Iterable[str]):
 def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
-    include_light_groups: bool = False,
 ) -> list[str]:
     all_lights = set()
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
@@ -660,8 +659,6 @@ def _expand_light_groups(
             manager.lights.discard(light)
             all_lights.update(group)
             _LOGGER.debug("Expanded %s to %s", light, group)
-            if include_light_groups:
-                all_lights.add(light)
         else:
             all_lights.add(light)
     return sorted(all_lights)
@@ -1983,11 +1980,7 @@ class AdaptiveLightingManager:
         )
 
         entity_ids = self._get_entity_list(data)
-        entity_ids = _expand_light_groups(
-            self.hass,
-            entity_ids,
-            include_light_groups=True,
-        )
+        entity_ids = _expand_light_groups(self.hass, entity_ids)
 
         def modify_service_data(service_data, entity_ids):
             """Modify the service data to contain the entity IDs."""
