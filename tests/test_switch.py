@@ -990,8 +990,8 @@ async def test_state_change_handlers(hass):
         blocking=True,
     )
     await hass.async_block_till_done()
-    assert switch.manager.last_state_change.get(ENTITY_LIGHT_1)
-    assert len(switch.manager.last_state_change[ENTITY_LIGHT_1]) == 1
+    assert switch.manager.our_last_state_on_change.get(ENTITY_LIGHT_1)
+    assert len(switch.manager.our_last_state_on_change[ENTITY_LIGHT_1]) == 1
     assert not switch.manager.transition_timers.get(ENTITY_LIGHT_1)
     last_service_data = deepcopy(switch.manager.last_service_data)
     assert last_service_data.get(ENTITY_LIGHT_1)
@@ -1060,8 +1060,8 @@ async def test_state_change_handlers(hass):
             # asyncio.sleep(3)
     # 4. Assert the transition timer started and everything was filled.
     listener = switch.manager
-    assert listener.last_state_change.get(ENTITY_LIGHT_1)
-    assert len(listener.last_state_change[ENTITY_LIGHT_1]) == total_events
+    assert listener.our_last_state_on_change.get(ENTITY_LIGHT_1)
+    assert len(listener.our_last_state_on_change[ENTITY_LIGHT_1]) == total_events
     assert listener.transition_timers.get(ENTITY_LIGHT_1)
 
     # 5. Execute some checks during a transition
@@ -1086,8 +1086,8 @@ async def test_state_change_handlers(hass):
 
     # 6. Assert everything after the transition finishes.
     await asyncio.sleep(transition_used)
-    assert listener.last_state_change.get(ENTITY_LIGHT_1)
-    assert len(listener.last_state_change[ENTITY_LIGHT_1]) == total_events
+    assert listener.our_last_state_on_change.get(ENTITY_LIGHT_1)
+    assert len(listener.our_last_state_on_change[ENTITY_LIGHT_1]) == total_events
     # Timer should be done and reset now.
     # This is the assert that I can't fix.
     timer = listener.transition_timers.get(ENTITY_LIGHT_1)
@@ -1115,7 +1115,7 @@ async def test_state_change_handlers(hass):
     # On next update ENTITY_LIGHT_1 should be marked as manually controlled
     await update(force=False)
     assert switch.manager.last_service_data.get(ENTITY_LIGHT_1) is not None
-    assert switch.manager.last_state_change.get(ENTITY_LIGHT_1) is not None
+    assert switch.manager.our_last_state_on_change.get(ENTITY_LIGHT_1) is not None
     assert switch.manager.manual_control[ENTITY_LIGHT_1]
 
 
