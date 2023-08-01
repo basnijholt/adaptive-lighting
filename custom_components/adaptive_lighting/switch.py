@@ -1275,7 +1275,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if context.parent_id is not None and self.manager.is_proactively_adapting(
             context.parent_id,
         ):
-            # Skip if adaptation was already executed by the service call interceptor
+            # Skip if adaptation was already executed by the service call interceptor.
             # The context.parent_id is the context.id of the service call that was intercepted
             # and context.id here is from the resulting "light_event" event.
             _LOGGER.debug(
@@ -2539,8 +2539,11 @@ class AdaptiveLightingManager:
             transition = None
 
         if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
+            is_toggle = off_to_on_event == self.toggle_event[entity_id]
+            from_service = "light.toggle" if is_toggle else "light.turn_on"
             _LOGGER.debug(
-                "just_turned_off: State change 'off' → 'on' triggered by 'light.turn_on' or 'light.toggle'",
+                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
+                from_service,
             )
             return False
 
