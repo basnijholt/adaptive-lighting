@@ -2159,17 +2159,19 @@ class AdaptiveLightingManager:
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             _LOGGER.debug(
-                "No last service data for light %s, continuing...",
+                "No last service data for light %s, not starting timer.",
                 light,
             )
             return
+
         last_transition = last_service_data.get(ATTR_TRANSITION)
         if not last_transition:
             _LOGGER.debug(
-                "No transition in last adapt for light %s, continuing...",
+                "No transition in last adapt for light %s, not starting timer.",
                 light,
             )
             return
+
         _LOGGER.debug(
             "Start transition timer of %s seconds for light %s",
             last_transition,
