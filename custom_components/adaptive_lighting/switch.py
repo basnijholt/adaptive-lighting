@@ -1980,7 +1980,6 @@ class AdaptiveLightingManager:
         )
 
         entity_ids = self._get_entity_list(data)
-        entity_ids = _expand_light_groups(self.hass, entity_ids)
 
         def modify_service_data(service_data, entity_ids):
             """Modify the service data to contain the entity IDs."""
