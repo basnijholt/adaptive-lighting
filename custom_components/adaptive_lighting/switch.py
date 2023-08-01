@@ -2539,7 +2539,7 @@ class AdaptiveLightingManager:
             transition = None
 
         if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
-            is_toggle = off_to_on_event == self.toggle_event[entity_id]
+            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
             from_service = "light.toggle" if is_toggle else "light.turn_on"
             _LOGGER.debug(
                 "just_turned_off: State change 'off' → 'on' triggered by '%s'",
