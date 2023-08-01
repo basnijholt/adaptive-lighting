@@ -1268,23 +1268,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
     ) -> None:
+        # This should never happen if it's been proactively adapted.
+        # The context.parent_id is the context.id of the service call that was intercepted
+        # and context.id here is from the resulting "light_event" event.
+        assert not self.manager.is_proactively_adapting(context.parent_id)
+
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
-            return
-
-        if context.parent_id is not None and self.manager.is_proactively_adapting(
-            context.parent_id,
-        ):
-            # Skip if adaptation was already executed by the service call interceptor.
-            # The context.parent_id is the context.id of the service call that was intercepted
-            # and context.id here is from the resulting "light_event" event.
-            _LOGGER.debug(
-                "%s: Skipping reactive adaptation of light %s with context.id=%s and context.parent_id=%s",
-                self._name,
-                light,
-                context.id,
-                context.parent_id,
-            )
             return
 
         data = await self.prepare_adaptation_data(
