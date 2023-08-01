@@ -1947,7 +1947,7 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912, PLR0915
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912
         self,
         call: ServiceCall,
         data: ServiceData,
@@ -2015,8 +2015,17 @@ class AdaptiveLightingManager:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
             else:
-                switch_to_eids.setdefault(switch.name, []).append(entity_id)
-                switch_name_mapping[switch.name] = switch
+                if (
+                    not switch.is_on
+                    # Prevent adaptation of TURN_ON calls when light is already on,
+                    # and of TOGGLE calls when toggling off.
+                    or self.hass.states.is_state(entity_id, STATE_ON)
+                    or self.manual_control.get(entity_id, False)
+                ):
+                    skipped.append(entity_id)
+                else:
+                    switch_to_eids.setdefault(switch.name, []).append(entity_id)
+                    switch_name_mapping[switch.name] = switch
         _LOGGER.debug(
             "(2) _service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
             switch_to_eids,
@@ -2026,45 +2035,26 @@ class AdaptiveLightingManager:
         has_intercepted = False  # Can only intercept a turn_on call once
         for adaptive_switch_name, entity_ids in switch_to_eids.items():
             switch = switch_name_mapping[adaptive_switch_name]
-            if not switch.is_on:
-                skipped.extend(entity_ids)
-                continue
-
-            filtered_entity_ids = []
-            for entity_id in entity_ids:
-                if (
-                    # Prevent adaptation of TURN_ON calls when light is already on,
-                    # and of TOGGLE calls when toggling off.
-                    self.hass.states.is_state(entity_id, STATE_ON)
-                    or self.manual_control.get(entity_id, False)
-                ):
-                    skipped.append(entity_id)
-                else:
-                    filtered_entity_ids.append(entity_id)
-
-            if not filtered_entity_ids:
-                continue
-
             transition = data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
                 switch.initial_transition,
             )
             if not has_intercepted:
                 _LOGGER.debug(
-                    "(3) _service_interceptor_turn_on_handler: intercepting filtered_entity_ids='%s'",
-                    filtered_entity_ids,
+                    "(3) _service_interceptor_turn_on_handler: intercepting entity_ids='%s'",
+                    entity_ids,
                 )
                 await self._service_interceptor_turn_on_single_light_handler(
-                    entity_ids=filtered_entity_ids,
+                    entity_ids=entity_ids,
                     switch=switch,
                     transition=transition,
                     call=call,
-                    data=modify_service_data(data, filtered_entity_ids),
+                    data=modify_service_data(data, entity_ids),
                 )
                 has_intercepted = True
                 continue
 
-            for eid in filtered_entity_ids:
+            for eid in entity_ids:
                 # Must add a new context otherwise _adapt_light will bail out
                 context = switch.create_context("intercept")
                 self.clear_proactively_adapting(eid)
