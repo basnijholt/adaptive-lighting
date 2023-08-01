@@ -2356,11 +2356,10 @@ class AdaptiveLightingManager:
             # Skip resetting here because `_service_interceptor_turn_on_handler`
             # ran *just* before this and already reset the light and populated
             # `self.last_service_data` with the new data.
-            if event.context.parent_id and not self.is_proactively_adapting(
-                event.context.id,
-            ):
-                self.reset(entity_id, reset_manual_control=False)
+            if self.is_proactively_adapting(event.context.id):
                 _LOGGER.debug("We should cancel here?")
+            else:
+                self.reset(entity_id, reset_manual_control=False)
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.just_turned_off(entity_id):
