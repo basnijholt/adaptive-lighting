@@ -120,6 +120,7 @@ from .const import (
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_MIN_SUNSET_TIME,
+    CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_SEND_SPLIT_DELAY,
@@ -934,6 +935,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._take_over_control = True
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
+        self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
 
@@ -2011,28 +2013,15 @@ class AdaptiveLightingManager:
             except NoSwitchFoundError:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
-                _LOGGER.debug(
-                    "No switch found for entity_id='%s', skipped='%s'",
-                    entity_id,
-                    skipped,
-                )
             else:
                 if (
                     not switch.is_on
+                    or not switch._multi_light_intercept
                     # Prevent adaptation of TURN_ON calls when light is already on,
                     # and of TOGGLE calls when toggling off.
                     or self.hass.states.is_state(entity_id, STATE_ON)
                     or self.manual_control.get(entity_id, False)
                 ):
-                    _LOGGER.debug(
-                        "Switch is off or light is already on for entity_id='%s', skipped='%s'"
-                        " (is_on='%s', is_state='%s', manual_control='%s')",
-                        entity_id,
-                        skipped,
-                        switch.is_on,
-                        self.hass.states.is_state(entity_id, STATE_ON),
-                        self.manual_control.get(entity_id, False),
-                    )
                     skipped.append(entity_id)
                 else:
                     switch_to_eids.setdefault(switch.name, []).append(entity_id)
