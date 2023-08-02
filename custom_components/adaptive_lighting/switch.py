@@ -2009,6 +2009,11 @@ class AdaptiveLightingManager:
             except NoSwitchFoundError:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
+                _LOGGER.debug(
+                    "No switch found for entity_id='%s', skipped='%s'",
+                    entity_id,
+                    skipped,
+                )
             else:
                 if (
                     not switch.is_on
@@ -2017,6 +2022,15 @@ class AdaptiveLightingManager:
                     or self.hass.states.is_state(entity_id, STATE_ON)
                     or self.manual_control.get(entity_id, False)
                 ):
+                    _LOGGER.debug(
+                        "Switch is off or light is already on for entity_id='%s', skipped='%s'"
+                        " (is_on='%s', is_state='%s', manual_control='%s')",
+                        entity_id,
+                        skipped,
+                        switch.is_on,
+                        self.hass.states.is_state(entity_id, STATE_ON),
+                        self.manual_control.get(entity_id, False),
+                    )
                     skipped.append(entity_id)
                 else:
                     switch_to_eids.setdefault(switch.name, []).append(entity_id)
