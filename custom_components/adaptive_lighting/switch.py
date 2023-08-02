@@ -291,7 +291,7 @@ def _switches_with_lights(
     data = hass.data[DOMAIN]
     switches = []
     all_check_lights = (
-        _expand_light_groups(hass, lights) if expand_light_groups else set()
+        _expand_light_groups(hass, lights) if expand_light_groups else set(lights)
     )
     for config in config_entries:
         entry = data.get(config.entry_id)
