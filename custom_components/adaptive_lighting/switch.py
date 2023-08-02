@@ -284,12 +284,15 @@ def is_our_context(context: Context | None) -> bool:
 def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
+    expand_light_groups: bool = True,
 ) -> list[AdaptiveSwitch]:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
     switches = []
-    all_check_lights = _expand_light_groups(hass, lights)
+    all_check_lights = (
+        _expand_light_groups(hass, lights) if expand_light_groups else set()
+    )
     for config in config_entries:
         entry = data.get(config.entry_id)
         if entry is None:  # entry might be disabled and therefore missing
@@ -310,9 +313,10 @@ class NoSwitchFoundError(ValueError):
 def _switch_with_lights(
     hass: HomeAssistant,
     lights: list[str],
+    expand_light_groups: bool = True,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
-    switches = _switches_with_lights(hass, lights)
+    switches = _switches_with_lights(hass, lights, expand_light_groups)
     if len(switches) == 1:
         return switches[0]
     if len(switches) > 1:
@@ -1997,7 +2001,11 @@ class AdaptiveLightingManager:
         skipped: list[str] = []
         for entity_id in entity_ids:
             try:
-                switch = _switch_with_lights(self.hass, [entity_id])
+                switch = _switch_with_lights(
+                    self.hass,
+                    [entity_id],
+                    expand_light_groups=False,
+                )
             except NoSwitchFoundError:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
