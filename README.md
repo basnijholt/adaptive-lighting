@@ -148,7 +148,7 @@ adaptive_lighting:
   sunrise_time: "08:00:00"  # override the sunrise time
   sunrise_offset:
   sunset_time:
-  sunset_offset: 1800  # in seconds or '00:15:00'
+  sunset_offset: 1800  # in seconds or '00:30:00'
   take_over_control: true
   detect_non_ha_changes: false
   only_once: false
