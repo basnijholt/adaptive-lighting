@@ -1941,7 +1941,7 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912, PLR0915
         self,
         call: ServiceCall,
         data: ServiceData,
@@ -1972,13 +1972,24 @@ class AdaptiveLightingManager:
         If there are only skipped lights, we can use the intercepted call
         directly.
         """
-        if is_our_context(call.context):  # Don't adapt our own service calls
+        is_skipped_hash = (
+            call.context is not None
+            and f':{_remove_vowels("skipped")}:' in call.context.id
+        )
+        _LOGGER.debug(
+            "(0) _service_interceptor_turn_on_handler: call.context.id='%s', is_skipped_hash='%s'",
+            call.context.id,
+            is_skipped_hash,
+        )
+        if is_our_context(call.context) and not is_skipped_hash:
+            # Don't adapt our own service calls, but do re-adapt calls that
+            # were skipped by us
             return
 
         if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
             return
 
-        data_copy = data.copy()
+        data_copy = deepcopy(data)
         _LOGGER.debug(
             "(1) _service_interceptor_turn_on_handler: call='%s', data='%s'",
             call,
@@ -2013,6 +2024,11 @@ class AdaptiveLightingManager:
             except NoSwitchFoundError:
                 # Needs to make the original call but without adaptation
                 skipped.append(entity_id)
+                _LOGGER.debug(
+                    "No switch found for entity_id='%s', skipped='%s'",
+                    entity_id,
+                    skipped,
+                )
             else:
                 if (
                     not switch.is_on
@@ -2022,6 +2038,15 @@ class AdaptiveLightingManager:
                     or self.hass.states.is_state(entity_id, STATE_ON)
                     or self.manual_control.get(entity_id, False)
                 ):
+                    _LOGGER.debug(
+                        "Switch is off or light is already on for entity_id='%s', skipped='%s'"
+                        " (is_on='%s', is_state='%s', manual_control='%s')",
+                        entity_id,
+                        skipped,
+                        switch.is_on,
+                        self.hass.states.is_state(entity_id, STATE_ON),
+                        self.manual_control.get(entity_id, False),
+                    )
                     skipped.append(entity_id)
                 else:
                     switch_to_eids.setdefault(switch.name, []).append(entity_id)
@@ -2073,13 +2098,26 @@ class AdaptiveLightingManager:
 
         if skipped:
             if not has_intercepted:
-                modify_service_data(data, skipped)
+                modify_service_data(
+                    data,
+                    skipped,
+                )  # XXX: Is this needed?  # noqa: TD001, FIX003, TD003, TD002
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
+            context = switch.create_context("skipped")
             _LOGGER.debug(
-                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s'",
+                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s', context='%s'",
                 skipped,
                 data,
+                context.id,
+            )
+            # Need to expand light groups here because otherwise this interceptor loop will happen twice more
+            skipped = _expand_light_groups(self.hass, skipped)
+            _LOGGER.debug(
+                "(6) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s', context='%s'",
+                skipped,
+                data,
+                context.id,
             )
             service_data = modify_service_data(data_copy, skipped)
             service_data.update(service_data.pop(CONF_PARAMS, {}))
@@ -2089,8 +2127,7 @@ class AdaptiveLightingManager:
                 SERVICE_TURN_ON,
                 service_data,
                 blocking=True,
-                # Must add a new context to avoid infinite recursion
-                context=switch.create_context("skipped"),
+                context=context,
             )
 
     async def _service_interceptor_turn_on_single_light_handler(
@@ -2146,7 +2183,10 @@ class AdaptiveLightingManager:
             self.set_proactively_adapting(call.context.id, entity_id)
             self.set_proactively_adapting(adaptation_data.context.id, entity_id)
         adaptation_data.initial_sleep = True
-        _ = asyncio.create_task(  # Don't await to avoid blocking the service call
+
+        # Don't await to avoid blocking the service call.
+        # Assign to a variable only to await in tests.
+        self._execute_cancellable_adaptation_calls_task = asyncio.create_task(
             switch.execute_cancellable_adaptation_calls(adaptation_data),
         )
 
