@@ -161,7 +161,7 @@ async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitc
 
 async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     """Set up 3 light entities using the 'template' platform."""
-    n = 3 if not with_group else 5
+    n = 3 if not with_group else 5  # last 2 will be put in a group
     template_lights = {
         f"light_{i}": {
             "unique_id": f"light_{i}",
@@ -188,7 +188,7 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
             LIGHT_DOMAIN,
             {
                 LIGHT_DOMAIN: {
-                    "platform": DOMAIN,
+                    "platform": "group",
                     "entities": ["light.light_4", "light.light_5"],
                     "name": "Light Group",
                     "unique_id": "light_group",
