@@ -2004,6 +2004,8 @@ class AdaptiveLightingManager:
                 switch = _switch_with_lights(
                     self.hass,
                     [entity_id],
+                    # Do not expand light groups, because HA will make a separate light.turn_on
+                    # call where the lights are expanded, and that call will be intercepted.
                     expand_light_groups=False,
                 )
             except NoSwitchFoundError:
