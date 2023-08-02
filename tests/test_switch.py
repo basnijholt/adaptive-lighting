@@ -159,51 +159,45 @@ async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitc
     return entry, switch
 
 
-async def setup_lights(hass: HomeAssistant):
+async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     """Set up 3 light entities using the 'template' platform."""
+    n = 3 if not with_group else 5
+    template_lights = {
+        f"light_{i}": {
+            "unique_id": f"light_{i}",
+            "friendly_name": f"light_{i}",
+            "turn_on": None,
+            "turn_off": None,
+            "set_level": None,
+            "set_temperature": None,
+            "set_color": None,
+        }
+        for i in range(1, n + 1)
+    }
+    template_lights["light_3"]["supports_transition_template"] = True
     await async_setup_component(
         hass,
         LIGHT_DOMAIN,
-        {
-            LIGHT_DOMAIN: [
-                {
-                    "platform": "template",
-                    "lights": {
-                        "light_1": {
-                            "friendly_name": "light_1",
-                            "unique_id": "light_1",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                        },
-                        "light_2": {
-                            "friendly_name": "light_2",
-                            "unique_id": "light_2",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                        },
-                        "light_3": {
-                            "friendly_name": "light_3",
-                            "unique_id": "light_3",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                            "supports_transition_template": True,
-                        },
-                    },
-                },
-            ]
-        },
+        {LIGHT_DOMAIN: [{"platform": "template", "lights": template_lights}]},
     )
 
     await hass.async_block_till_done()
+    if with_group:
+        await async_setup_component(
+            hass,
+            LIGHT_DOMAIN,
+            {
+                LIGHT_DOMAIN: {
+                    "platform": DOMAIN,
+                    "entities": ["light.light_4", "light.light_5"],
+                    "name": "Light Group",
+                    "unique_id": "light_group",
+                    "all": "false",
+                }
+            },
+        )
+        await hass.async_block_till_done()
+
     platform = async_get_platforms(hass, "template")
     lights = list(platform[0].entities.values())
 
