@@ -1873,3 +1873,14 @@ async def test_light_group(hass, proactive_service_call_adaptation):
 
     assert switch.manager.manual_control["light.light_4"]
     assert switch.manager.manual_control["light.light_5"]
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert not switch.manager.manual_control["light.light_4"]
+    assert not switch.manager.manual_control["light.light_5"]
