@@ -55,6 +55,7 @@ from custom_components.adaptive_lighting.adaptation_utils import (
 from custom_components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
+    CONF_TAKE_OVER_CONTROL,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
@@ -1838,8 +1839,11 @@ def test_lerp_color_hsv():
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
 
 
-@pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
-async def test_light_group(hass, proactive_service_call_adaptation):
+@pytest.mark.parametrize(
+    "proactive_service_call_adaptation, take_over_control",
+    [(True, False), (False, True)],
+)
+async def test_light_group(hass, proactive_service_call_adaptation, take_over_control):
     lights = await setup_lights(hass, with_group=True)
     all_entity_ids = [light.entity_id for light in lights]
     entity_ids = all_entity_ids[:3]  # the last two are in the group
@@ -1849,6 +1853,7 @@ async def test_light_group(hass, proactive_service_call_adaptation):
         {
             CONF_LIGHTS: entity_ids,
             INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
+            CONF_TAKE_OVER_CONTROL: take_over_control,
         },
     )
     await hass.async_block_till_done()
@@ -1871,8 +1876,12 @@ async def test_light_group(hass, proactive_service_call_adaptation):
     )
     await hass.async_block_till_done()
 
-    assert switch.manager.manual_control["light.light_4"]
-    assert switch.manager.manual_control["light.light_5"]
+    if take_over_control:
+        assert switch.manager.manual_control["light.light_4"]
+        assert switch.manager.manual_control["light.light_5"]
+    else:
+        assert not switch.manager.manual_control["light.light_4"]
+        assert not switch.manager.manual_control["light.light_5"]
 
     await hass.services.async_call(
         LIGHT_DOMAIN,
