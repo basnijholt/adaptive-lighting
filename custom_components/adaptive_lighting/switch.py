@@ -20,6 +20,7 @@ import ulid_transform
 import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_COLOR_TEMP,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_EFFECT,
     ATTR_FLASH,
@@ -119,6 +120,7 @@ from .const import (
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_MIN_SUNSET_TIME,
+    CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_SEND_SPLIT_DELAY,
@@ -283,12 +285,15 @@ def is_our_context(context: Context | None) -> bool:
 def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
+    expand_light_groups: bool = True,
 ) -> list[AdaptiveSwitch]:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
     switches = []
-    all_check_lights = _expand_light_groups(hass, lights)
+    all_check_lights = (
+        _expand_light_groups(hass, lights) if expand_light_groups else set(lights)
+    )
     for config in config_entries:
         entry = data.get(config.entry_id)
         if entry is None:  # entry might be disabled and therefore missing
@@ -309,9 +314,10 @@ class NoSwitchFoundError(ValueError):
 def _switch_with_lights(
     hass: HomeAssistant,
     lights: list[str],
+    expand_light_groups: bool = True,
 ) -> AdaptiveSwitch:
     """Find the switch that controls the lights in 'lights'."""
-    switches = _switches_with_lights(hass, lights)
+    switches = _switches_with_lights(hass, lights, expand_light_groups)
     if len(switches) == 1:
         return switches[0]
     if len(switches) > 1:
@@ -642,7 +648,10 @@ def _is_state_event(event: Event, from_or_to_state: Iterable[str]):
 
 
 @bind_hass
-def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
+def _expand_light_groups(
+    hass: HomeAssistant,
+    lights: list[str],
+) -> list[str]:
     all_lights = set()
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
     for light in lights:
@@ -657,7 +666,7 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
             _LOGGER.debug("Expanded %s to %s", light, group)
         else:
             all_lights.add(light)
-    return list(all_lights)
+    return sorted(all_lights)
 
 
 @bind_hass
@@ -926,6 +935,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._take_over_control = True
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
+        self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
 
@@ -1268,11 +1278,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
     ) -> None:
-        # This should never happen if it's been proactively adapted.
-        # The context.parent_id is the context.id of the service call that was intercepted
-        # and context.id here is from the resulting "light_event" event.
-        assert not self.manager.is_proactively_adapting(context.parent_id)
-
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
@@ -1936,58 +1941,166 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(  # noqa: PLR0911
+    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912
         self,
         call: ServiceCall,
         data: ServiceData,
-    ):
-        # Don't adapt our own service calls
-        if is_our_context(call.context):
+    ) -> None:
+        """Intercept `light.turn_on` and `light.toggle` service calls and adapt them.
+
+        It is possible that the calls are made for multiple lights at once,
+        which in turn might be in different switches or no switches at all.
+        If there are lights that are not all in a single switch, we need to
+        make multiple calls to `light.turn_on` with the correct entity IDs.
+        One of these calls can be intercepted and adapted, the others need to
+        be adapted by calling `_adapt_light` with the correct entity IDs or
+        by calling `light.turn_on` directly.
+
+        We create a mapping from switch to entity IDs and keep a list
+        of skipped lights which are lights in no switches or in switches that
+        are off or lights that are already on.
+
+        If there is only one switch and 0 skipped lights, we just intercept the
+        call directly.
+
+        If there are multiple switches and skipped lights, we can adapt the call
+        for one of the switches to include only the lights in that switch and
+        need to call `_adapt_light` for the other switches with their
+        entity_ids. For skipped lights, we call light.turn_on directly with the
+        entity_ids and original service data.
+
+        If there are only skipped lights, we can use the intercepted call
+        directly.
+        """
+        if is_our_context(call.context):  # Don't adapt our own service calls
             return
 
         if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
             return
 
+        data_copy = data.copy()
+        _LOGGER.debug(
+            "(1) _service_interceptor_turn_on_handler: call='%s', data='%s'",
+            call,
+            data,
+        )
+
         entity_ids = self._get_entity_list(data)
 
-        # For simplicity, only service calls affecting a single entity are currently handled.
-        #
-        # To add support for adapting multiple entities, the following properties
-        # need to hold for _all_ entities:
-        # - managed by this AL instance
-        # - not manually controlled
-        # - supporting the same relevant feature set
-        # - off state
-        if len(entity_ids) != 1:
-            return
+        def modify_service_data(service_data, entity_ids):
+            """Modify the service data to contain the entity IDs."""
+            service_data.pop(ATTR_ENTITY_ID, None)
+            service_data.pop(ATTR_AREA_ID, None)
+            service_data[ATTR_ENTITY_ID] = entity_ids
+            return service_data
 
-        entity_id = entity_ids[0]
+        # AdaptiveSwitch.name → entity_ids mapping
+        switch_to_eids: dict[str, list[str]] = {}
+        # AdaptiveSwitch.name → AdaptiveSwitch mapping
+        switch_name_mapping: dict[str, AdaptiveSwitch] = {}
+        # Note: In HA≥2023.5, AdaptiveSwitch is hashable, so we can
+        # use dict[AdaptiveSwitch, list[str]]
+        skipped: list[str] = []
+        for entity_id in entity_ids:
+            try:
+                switch = _switch_with_lights(
+                    self.hass,
+                    [entity_id],
+                    # Do not expand light groups, because HA will make a separate light.turn_on
+                    # call where the lights are expanded, and that call will be intercepted.
+                    expand_light_groups=False,
+                )
+            except NoSwitchFoundError:
+                # Needs to make the original call but without adaptation
+                skipped.append(entity_id)
+            else:
+                if (
+                    not switch.is_on
+                    or not switch._multi_light_intercept
+                    # Prevent adaptation of TURN_ON calls when light is already on,
+                    # and of TOGGLE calls when toggling off.
+                    or self.hass.states.is_state(entity_id, STATE_ON)
+                    or self.manual_control.get(entity_id, False)
+                ):
+                    skipped.append(entity_id)
+                else:
+                    switch_to_eids.setdefault(switch.name, []).append(entity_id)
+                    switch_name_mapping[switch.name] = switch
+        _LOGGER.debug(
+            "(2) _service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
+            switch_to_eids,
+            skipped,
+        )
 
-        # Prevent adaptation of TURN_ON calls when light is already on,
-        # and of TOGGLE calls when toggling off.
-        if self.hass.states.is_state(entity_id, STATE_ON):
-            return
-
-        if self.manual_control.get(entity_id, False):
-            return
-
-        try:
-            adaptive_switch = _switch_with_lights(self.hass, [entity_id])
-        except NoSwitchFoundError:
-            # This might be a light that is not managed by this AL instance.
-            _LOGGER.debug(
-                "No (or multiple) adaptive switch(es) found for entity %s,"
-                " skipping adaptation by intercepting service call",
-                entity_id,
+        has_intercepted = False  # Can only intercept a turn_on call once
+        for adaptive_switch_name, entity_ids in switch_to_eids.items():
+            switch = switch_name_mapping[adaptive_switch_name]
+            transition = data[CONF_PARAMS].get(
+                ATTR_TRANSITION,
+                switch.initial_transition,
             )
-            return
+            if not has_intercepted:
+                _LOGGER.debug(
+                    "(3) _service_interceptor_turn_on_handler: intercepting entity_ids='%s'",
+                    entity_ids,
+                )
+                await self._service_interceptor_turn_on_single_light_handler(
+                    entity_ids=entity_ids,
+                    switch=switch,
+                    transition=transition,
+                    call=call,
+                    data=modify_service_data(data, entity_ids),
+                )
+                has_intercepted = True
+                continue
 
-        if not adaptive_switch.is_on:
-            return
+            for eid in entity_ids:
+                # Must add a new context otherwise _adapt_light will bail out
+                context = switch.create_context("intercept")
+                self.clear_proactively_adapting(eid)
+                self.set_proactively_adapting(context.id, eid)
+                _LOGGER.debug(
+                    "(4) _service_interceptor_turn_on_handler: calling `_adapt_light` with eid='%s', context='%s', transition='%s'",
+                    eid,
+                    context,
+                    transition,
+                )
+                await switch._adapt_light(
+                    light=eid,
+                    context=context,
+                    transition=transition,
+                )
 
-        if entity_id not in adaptive_switch.lights:
-            return
+        if skipped:
+            if not has_intercepted:
+                modify_service_data(data, skipped)
+                return  # The call will be intercepted with the original data
+            # Call light turn_on service for skipped entities
+            _LOGGER.debug(
+                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s'",
+                skipped,
+                data,
+            )
+            service_data = modify_service_data(data_copy, skipped)
+            service_data.update(service_data.pop(CONF_PARAMS, {}))
+            service_data.pop(ATTR_COLOR_TEMP, None)
+            await self.hass.services.async_call(
+                LIGHT_DOMAIN,
+                SERVICE_TURN_ON,
+                service_data,
+                blocking=True,
+                # Must add a new context to avoid infinite recursion
+                context=switch.create_context("skipped"),
+            )
 
+    async def _service_interceptor_turn_on_single_light_handler(
+        self,
+        entity_ids: list[str],
+        switch: AdaptiveSwitch,
+        transition: int,
+        call: ServiceCall,
+        data: ServiceData,
+    ):
         _LOGGER.debug(
             "Intercepted TURN_ON call with data %s (%s)",
             data,
@@ -1995,18 +2108,13 @@ class AdaptiveLightingManager:
         )
 
         # Reset because turning on the light, this also happens in
-        # `turn_on_off_event_listener`, however, this function is called
+        # `state_changed_event_listener`, however, this function is called
         # before that one.
-        self.reset(entity_id, reset_manual_control=False)
+        self.reset(*entity_ids, reset_manual_control=False)
+        for entity_id in entity_ids:
+            self.clear_proactively_adapting(entity_id)
 
-        self.clear_proactively_adapting(entity_id)
-
-        transition = data[CONF_PARAMS].get(
-            ATTR_TRANSITION,
-            adaptive_switch.initial_transition,
-        )
-
-        adaptation_data = await adaptive_switch.prepare_adaptation_data(
+        adaptation_data = await switch.prepare_adaptation_data(
             entity_id,
             transition,
         )
@@ -2034,11 +2142,12 @@ class AdaptiveLightingManager:
         # We cannot know here whether there is another call to follow (since the
         # state can change until the next call), so we just schedule it and let
         # it sort out by itself.
-        self.set_proactively_adapting(call.context.id, entity_id)
-        self.set_proactively_adapting(adaptation_data.context.id, entity_id)
+        for entity_id in entity_ids:
+            self.set_proactively_adapting(call.context.id, entity_id)
+            self.set_proactively_adapting(adaptation_data.context.id, entity_id)
         adaptation_data.initial_sleep = True
         _ = asyncio.create_task(  # Don't await to avoid blocking the service call
-            adaptive_switch.execute_cancellable_adaptation_calls(adaptation_data),
+            switch.execute_cancellable_adaptation_calls(adaptation_data),
         )
 
     def _handle_timer(
@@ -2063,14 +2172,22 @@ class AdaptiveLightingManager:
 
     def start_transition_timer(self, light: str) -> None:
         """Mark a light as manually controlled."""
-        last_service_data = self.last_service_data[light]
-        last_transition = last_service_data.get(ATTR_TRANSITION)
-        if not last_transition:
+        last_service_data = self.last_service_data.get(light)
+        if last_service_data is None:
             _LOGGER.debug(
-                "No transition in last adapt for light %s, continuing...",
+                "No last service data for light %s, not starting timer.",
                 light,
             )
             return
+
+        last_transition = last_service_data.get(ATTR_TRANSITION)
+        if not last_transition:
+            _LOGGER.debug(
+                "No transition in last adapt for light %s, not starting timer.",
+                light,
+            )
+            return
+
         _LOGGER.debug(
             "Start transition timer of %s seconds for light %s",
             last_transition,
@@ -2169,8 +2286,7 @@ class AdaptiveLightingManager:
         for light in lights:
             if reset_manual_control:
                 self.manual_control[light] = False
-                timer = self.auto_reset_manual_control_timers.pop(light, None)
-                if timer is not None:
+                if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
@@ -2351,6 +2467,7 @@ class AdaptiveLightingManager:
                     entity_id,
                     event.context.id,
                 )
+                # Note: the reset below already happened in `_service_interceptor_turn_on_handler`
                 return
 
             self.reset(entity_id, reset_manual_control=False)
