@@ -175,28 +175,29 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
         for i in range(1, n + 1)
     }
     template_lights["light_3"]["supports_transition_template"] = True
+    platforms = [{"platform": "template", "lights": template_lights}]
+
+    if with_group:
+        platforms.append(
+            {
+                "platform": "group",
+                "entities": ["light.light_4", "light.light_5"],
+                "name": "Light Group",
+                "unique_id": "light_group",
+                "all": "false",
+            }
+        )
+
     await async_setup_component(
         hass,
         LIGHT_DOMAIN,
-        {LIGHT_DOMAIN: [{"platform": "template", "lights": template_lights}]},
+        {LIGHT_DOMAIN: platforms},
     )
-
     await hass.async_block_till_done()
+
     if with_group:
-        await async_setup_component(
-            hass,
-            LIGHT_DOMAIN,
-            {
-                LIGHT_DOMAIN: {
-                    "platform": "group",
-                    "entities": ["light.light_4", "light.light_5"],
-                    "name": "Light Group",
-                    "unique_id": "light_group",
-                    "all": "false",
-                }
-            },
-        )
-        await hass.async_block_till_done()
+        state = hass.states.get("light.light_group")
+        assert state.attributes["entity_id"] == ["light.light_4", "light.light_5"]
 
     platform = async_get_platforms(hass, "template")
     lights = list(platform[0].entities.values())
@@ -1835,3 +1836,40 @@ def test_lerp_color_hsv():
 
     with pytest.raises(AssertionError):
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
+
+
+@pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
+async def test_light_group(hass, proactive_service_call_adaptation):
+    lights = await setup_lights(hass, with_group=True)
+    all_entity_ids = [light.entity_id for light in lights]
+    entity_ids = all_entity_ids[:3]  # the last two are in the group
+    entity_ids.append("light.light_group")
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: entity_ids,
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
+        },
+    )
+    await hass.async_block_till_done()
+    assert switch.is_on
+    assert all(eid in switch.lights for eid in all_entity_ids)
+
+    # Set the brightness of the group twice, once to turn it on and once to
+    # trigger manual control
+    for _ in range(2):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "light.light_group", ATTR_BRIGHTNESS_PCT: 50},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test")
+    )
+    await hass.async_block_till_done()
+
+    assert switch.manager.manual_control["light.light_4"]
+    assert switch.manager.manual_control["light.light_5"]
