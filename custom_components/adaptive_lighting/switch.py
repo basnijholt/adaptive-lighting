@@ -2018,7 +2018,6 @@ class AdaptiveLightingManager:
         if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
             return
 
-        data_copy = deepcopy(data)
         _LOGGER.debug(
             "(1) _service_interceptor_turn_on_handler: call='%s', data='%s'",
             call,
@@ -2149,9 +2148,13 @@ class AdaptiveLightingManager:
                 data,
                 context.id,
             )
-            service_data = modify_service_data(data_copy, skipped)
-            service_data.update(service_data.pop(CONF_PARAMS, {}))
-            service_data.pop(ATTR_COLOR_TEMP, None)
+            service_data = {ATTR_ENTITY_ID: skipped, **data[CONF_PARAMS]}
+            if (
+                ATTR_COLOR_TEMP in service_data
+                and ATTR_COLOR_TEMP_KELVIN in service_data
+            ):
+                # ATTR_COLOR_TEMP and ATTR_COLOR_TEMP_KELVIN cannot be used both
+                del service_data[ATTR_COLOR_TEMP]
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
