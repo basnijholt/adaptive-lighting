@@ -55,6 +55,7 @@ from custom_components.adaptive_lighting.adaptation_utils import (
 from custom_components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
+    CONF_TAKE_OVER_CONTROL,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
@@ -90,6 +91,7 @@ from custom_components.adaptive_lighting.switch import (
     _attributes_have_changed,
     color_difference_redmean,
     create_context,
+    AdaptiveLightingManager,
     is_our_context,
     is_our_context_id,
     lerp_color_hsv,
@@ -141,6 +143,18 @@ def reset_time_zone():
     dt_util.DEFAULT_TIME_ZONE = ORIG_TIMEZONE
 
 
+@pytest.fixture
+async def cleanup(hass):
+    yield
+    manager: AdaptiveLightingManager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    for timer in manager.auto_reset_manual_control_timers.values():
+        timer.cancel()
+    for timer in manager.transition_timers.values():
+        timer.cancel()
+    for task in manager.adaptation_tasks:
+        task.cancel()
+
+
 async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitch]:
     """Create the switch entry."""
     entry = MockConfigEntry(
@@ -159,51 +173,46 @@ async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitc
     return entry, switch
 
 
-async def setup_lights(hass: HomeAssistant):
+async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     """Set up 3 light entities using the 'template' platform."""
+    n = 3 if not with_group else 5  # last 2 will be put in a group
+    template_lights = {
+        f"light_{i}": {
+            "unique_id": f"light_{i}",
+            "friendly_name": f"light_{i}",
+            "turn_on": None,
+            "turn_off": None,
+            "set_level": None,
+            "set_temperature": None,
+            "set_color": None,
+        }
+        for i in range(1, n + 1)
+    }
+    template_lights["light_3"]["supports_transition_template"] = True
+    platforms = [{"platform": "template", "lights": template_lights}]
+
+    if with_group:
+        platforms.append(
+            {
+                "platform": "group",
+                "entities": ["light.light_4", "light.light_5"],
+                "name": "Light Group",
+                "unique_id": "light_group",
+                "all": "false",
+            }
+        )
+
     await async_setup_component(
         hass,
         LIGHT_DOMAIN,
-        {
-            LIGHT_DOMAIN: [
-                {
-                    "platform": "template",
-                    "lights": {
-                        "light_1": {
-                            "friendly_name": "light_1",
-                            "unique_id": "light_1",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                        },
-                        "light_2": {
-                            "friendly_name": "light_2",
-                            "unique_id": "light_2",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                        },
-                        "light_3": {
-                            "friendly_name": "light_3",
-                            "unique_id": "light_3",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                            "supports_transition_template": True,
-                        },
-                    },
-                },
-            ]
-        },
+        {LIGHT_DOMAIN: platforms},
     )
-
     await hass.async_block_till_done()
+
+    if with_group:
+        state = hass.states.get("light.light_group")
+        assert state.attributes["entity_id"] == ["light.light_4", "light.light_5"]
+
     platform = async_get_platforms(hass, "template")
     lights = list(platform[0].entities.values())
 
@@ -1374,13 +1383,15 @@ async def test_service_calls_task_cancellation(hass):
 
 
 async def _turn_on_and_track_event_contexts(
-    hass: HomeAssistant, context_id: str, entity_id
+    hass: HomeAssistant, context_id: str, entity_id, return_full_events: bool = False
 ):
     context = Context(id=context_id)
     event_context_ids = []
+    events = []
 
     async def turn_on_off_event_listener(event: Event) -> None:
         event_context_ids.append(event.context.id)
+        events.append(event)
 
     hass.bus.async_listen(EVENT_CALL_SERVICE, turn_on_off_event_listener)
 
@@ -1392,7 +1403,8 @@ async def _turn_on_and_track_event_contexts(
         context=context,
     )
     await hass.async_block_till_done()
-
+    if return_full_events:
+        return events
     return event_context_ids
 
 
