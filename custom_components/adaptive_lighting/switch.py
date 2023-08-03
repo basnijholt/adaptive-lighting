@@ -659,7 +659,7 @@ def _expand_light_groups(
         if state is None:
             _LOGGER.debug("State of %s is None", light)
             all_lights.add(light)
-        elif "entity_id" in state.attributes:  # it's a light group
+        elif _is_light_group(state):
             group = state.attributes["entity_id"]
             manager.lights.discard(light)
             all_lights.update(group)
@@ -667,6 +667,10 @@ def _expand_light_groups(
         else:
             all_lights.add(light)
     return sorted(all_lights)
+
+
+def _is_light_group(state: State) -> bool:
+    return "entity_id" in state.attributes
 
 
 @bind_hass
@@ -2033,6 +2037,8 @@ class AdaptiveLightingManager:
                 if (
                     not switch.is_on
                     or not switch._multi_light_intercept
+                    # Never adapt on light groups, because HA will make a separate light.turn_on
+                    or _is_light_group(self.hass.states.get(entity_id))
                     # Prevent adaptation of TURN_ON calls when light is already on,
                     # and of TOGGLE calls when toggling off.
                     or self.hass.states.is_state(entity_id, STATE_ON)
@@ -2040,12 +2046,13 @@ class AdaptiveLightingManager:
                 ):
                     _LOGGER.debug(
                         "Switch is off or light is already on for entity_id='%s', skipped='%s'"
-                        " (is_on='%s', is_state='%s', manual_control='%s')",
+                        " (is_on='%s', is_state='%s', manual_control='%s', is_light_group='%s')",
                         entity_id,
                         skipped,
                         switch.is_on,
                         self.hass.states.is_state(entity_id, STATE_ON),
                         self.manual_control.get(entity_id, False),
+                        _is_light_group(self.hass.states.get(entity_id)),
                     )
                     skipped.append(entity_id)
                 else:
@@ -2112,7 +2119,6 @@ class AdaptiveLightingManager:
                 context.id,
             )
             # Need to expand light groups here because otherwise this interceptor loop will happen twice more
-            skipped = _expand_light_groups(self.hass, skipped)
             _LOGGER.debug(
                 "(6) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s', context='%s'",
                 skipped,

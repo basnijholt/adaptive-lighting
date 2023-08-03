@@ -1840,11 +1840,20 @@ def test_lerp_color_hsv():
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
 
 
+@pytest.mark.parametrize("expected_lingering_tasks", [True])
 @pytest.mark.parametrize(
-    "proactive_service_call_adaptation, take_over_control",
-    [[True, True], [True, False]],
+    "proactive_service_call_adaptation",
+    [True, False],
 )
-async def test_light_group(hass, proactive_service_call_adaptation, take_over_control):
+@pytest.mark.parametrize(
+    "take_over_control",
+    [True, False],
+)
+async def test_light_group(
+    hass,
+    proactive_service_call_adaptation,
+    take_over_control,
+):
     lights = await setup_lights(hass, with_group=True)
     all_entity_ids = [light.entity_id for light in lights]
     entity_ids = all_entity_ids[:3]  # the last two are in the group
@@ -1894,8 +1903,8 @@ async def test_light_group(hass, proactive_service_call_adaptation, take_over_co
 
     assert not switch.manager.manual_control["light.light_4"]
     assert not switch.manager.manual_control["light.light_5"]
-    contexts = await _turn_on_and_track_event_contexts(
-        hass, "testing", "light.light_group"
+    events = await _turn_on_and_track_event_contexts(
+        hass, "testing", "light.light_group", return_full_events=True
     )
     if proactive_service_call_adaptation:
         # Both lights should be adapted via interception, so with the original context
@@ -1904,15 +1913,38 @@ async def test_light_group(hass, proactive_service_call_adaptation, take_over_co
         #     "testing",  # original call light 5
         # ]
         await switch.manager._execute_cancellable_adaptation_calls_task
-        assert len(contexts) == 2
+
+        assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
+        assert events[0].context.id == "testing"
+        assert events[1].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_4",
+            "light.light_5",
+        ]
+        assert events[1].context.id == "testing"
+        assert len(events) == 2
+        assert switch.manager.is_proactively_adapting(events[0].context.id)
+        assert switch.manager.is_proactively_adapting(events[1].context.id)
     else:
-        # [
-        #     "testing",  # original call light 4
-        #     "testing",  # original call light 5
-        #     "...:lght:...",  # for light 4
-        #     "...:lght:...",  # for light 5
-        # ]
-        assert len(contexts) == 4
+        assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
+        assert events[0].context.id == "testing"
+        assert events[1].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_4",
+            "light.light_5",
+        ]
+        assert events[1].context.id == "testing"
+        e1 = events[2].data["service_data"][ATTR_ENTITY_ID]
+        e2 = events[3].data["service_data"][ATTR_ENTITY_ID]
+        assert (
+            e1 == "light.light_4"
+            and e2 == "light.light_5"
+            or e1 == "light.light_5"
+            and e2 == "light.light_4"
+        )
+        assert ":lght:" in events[2].context.id
+        assert ":lght:" in events[3].context.id
+        assert len(events) == 4
+        assert not switch.manager.is_proactively_adapting(events[0].context.id)
+        assert not switch.manager.is_proactively_adapting(events[1].context.id)
 
     # Turn off all lights, and then turn on all lights
     await hass.services.async_call(
@@ -1928,15 +1960,26 @@ async def test_light_group(hass, proactive_service_call_adaptation, take_over_co
     # and skip the light_group first. Then on a second light.turn_on where the
     # light_group is expanded, with a :skpp: context_id, this goes trhough another iteration,
     # and then the light_group is adapted.
-    _LOGGER.debug("yolo")
-    contexts = await _turn_on_and_track_event_contexts(hass, "testing", entity_ids)
+    events = await _turn_on_and_track_event_contexts(
+        hass, "testing", entity_ids, return_full_events=True
+    )
     if proactive_service_call_adaptation:
         await switch.manager._execute_cancellable_adaptation_calls_task
-        # [
-        #     "testing",  # original call
-        #     "...:skpp:...",  # for light 4
-        #     "...:skpp:...",  # for light 5
-        #     "...:lght:...",  # for light
-        #     "...:lght:...",
-        # ]
-        assert 0, contexts
+        # Original call
+        assert events[0].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_1",
+            "light.light_2",
+            "light.light_3",
+            "light.light_group",
+        ]
+        assert events[0].context.id == "testing"
+        # Skipped call with light_group
+        assert events[1].data["service_data"][ATTR_ENTITY_ID] == ["light.light_group"]
+        assert ":skpp:" in events[1].context.id
+        # HA automatically forwarded call with light_group expanded with same context
+        assert events[2].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_4",
+            "light.light_5",
+        ]
+        assert ":skpp:" in events[2].context.id
+        assert len(events) == 3
