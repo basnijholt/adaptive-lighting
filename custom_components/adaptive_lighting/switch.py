@@ -2026,6 +2026,9 @@ class AdaptiveLightingManager:
         )
 
         entity_ids = self._get_entity_list(data)
+        # Note: we do not expand light groups anywhere in this method, instead
+        # we skip them and rely on the followup call that HA will make
+        # with the expanded entity IDs.
 
         def modify_service_data(service_data, entity_ids):
             """Modify the service data to contain the entity IDs."""
@@ -2089,7 +2092,7 @@ class AdaptiveLightingManager:
         )
 
         has_intercepted = False  # Can only intercept a turn_on call once
-        for adaptive_switch_name, entity_ids in switch_to_eids.items():
+        for adaptive_switch_name, _entity_ids in switch_to_eids.items():
             switch = switch_name_mapping[adaptive_switch_name]
             transition = data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
@@ -2098,19 +2101,19 @@ class AdaptiveLightingManager:
             if not has_intercepted:
                 _LOGGER.debug(
                     "(3) _service_interceptor_turn_on_handler: intercepting entity_ids='%s'",
-                    entity_ids,
+                    _entity_ids,
                 )
                 await self._service_interceptor_turn_on_single_light_handler(
-                    entity_ids=entity_ids,
+                    entity_ids=_entity_ids,
                     switch=switch,
                     transition=transition,
                     call=call,
-                    data=modify_service_data(data, entity_ids),
+                    data=modify_service_data(data, _entity_ids),
                 )
                 has_intercepted = True
                 continue
 
-            for eid in entity_ids:
+            for eid in _entity_ids:
                 # Must add a new context otherwise _adapt_light will bail out
                 context = switch.create_context("intercept")
                 self.clear_proactively_adapting(eid)
@@ -2129,10 +2132,7 @@ class AdaptiveLightingManager:
 
         if skipped:
             if not has_intercepted:
-                modify_service_data(
-                    data,
-                    skipped,
-                )  # XXX: Is this needed?  # noqa: TD001, FIX003, TD003, TD002
+                assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
             context = switch.create_context("skipped")
