@@ -1855,7 +1855,6 @@ def test_lerp_color_hsv():
 
 @pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
 @pytest.mark.parametrize("take_over_control", [True, False])
-@pytest.mark.parametrize("take_over_control", [True, False])
 async def test_light_group(
     hass,
     proactive_service_call_adaptation,
