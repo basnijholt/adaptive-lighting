@@ -267,18 +267,24 @@ def create_context(
     return Context(id=context_id, parent_id=parent_id)
 
 
-def is_our_context_id(context_id: str | None) -> bool:
+def is_our_context_id(context_id: str | None, which: str | None = None) -> bool:
     """Check whether this integration created 'context_id'."""
     if context_id is None:
         return False
-    return f":{_DOMAIN_SHORT}:" in context_id
+
+    is_al = f":{_DOMAIN_SHORT}:" in context_id
+    if not is_al:
+        return False
+    if which is None:
+        return True
+    return f":{_remove_vowels(which)}:" in context_id
 
 
-def is_our_context(context: Context | None) -> bool:
+def is_our_context(context: Context | None, which: str | None = None) -> bool:
     """Check whether this integration created 'context'."""
     if context is None:
         return False
-    return is_our_context_id(context.id)
+    return is_our_context_id(context.id, which)
 
 
 @bind_hass
@@ -2001,10 +2007,7 @@ class AdaptiveLightingManager:
         If there are only skipped lights, we can use the intercepted call
         directly.
         """
-        is_skipped_hash = (
-            call.context is not None
-            and f':{_remove_vowels("skipped")}:' in call.context.id
-        )
+        is_skipped_hash = is_our_context(call.context, "skipped")
         _LOGGER.debug(
             "(0) _service_interceptor_turn_on_handler: call.context.id='%s', is_skipped_hash='%s'",
             call.context.id,
@@ -2153,7 +2156,7 @@ class AdaptiveLightingManager:
                 ATTR_COLOR_TEMP in service_data
                 and ATTR_COLOR_TEMP_KELVIN in service_data
             ):
-                # ATTR_COLOR_TEMP and ATTR_COLOR_TEMP_KELVIN cannot be used both
+                # ATTR_COLOR_TEMP and ATTR_COLOR_TEMP_KELVIN are mutually exclusive
                 del service_data[ATTR_COLOR_TEMP]
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
