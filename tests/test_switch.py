@@ -1342,6 +1342,7 @@ async def test_cancellable_service_calls_task(hass):
         context,
         0,
         _create_service_call_data_iterator(hass, [service_data], False),
+        force=False,
         max_length=1,
         which="both",
     )

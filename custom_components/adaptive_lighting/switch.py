@@ -537,6 +537,7 @@ async def async_setup_entry(  # noqa: PLR0915
                         adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
                         adapt_color=data[ATTR_ADAPT_COLOR],
                         prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
+                        force=True,
                     )
 
     @callback
@@ -1171,6 +1172,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: bool | None = None,
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
+        force: bool = False,
         context: Context | None = None,
     ) -> AdaptationData | None:
         """Prepare `AdaptationData` for adapting a light."""
@@ -1257,6 +1259,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data,
             split=self._separate_turn_on_commands,
             filter_by_state=self._skip_redundant_commands,
+            force=force,
         )
 
     async def _adapt_light(
@@ -1267,6 +1270,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_brightness: bool | None = None,
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
+        force: bool = False,
     ) -> None:
         # This should never happen if it's been proactively adapted.
         # The context.parent_id is the context.id of the service call that was intercepted
@@ -1283,6 +1287,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             adapt_brightness,
             adapt_color,
             prefer_rgb_color,
+            force,
             context,
         )
         if data is None:
@@ -1307,6 +1312,20 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if not service_data:
                 # All service datas processed
                 break
+
+            if (
+                not data.force
+                and not is_on(self.hass, data.entity_id)
+                # if proactively adapting, we are sure that it came from a `light.turn_on`
+                and not self.manager.is_proactively_adapting(data.context.id)
+            ):
+                # Do a last-minute check if the entity is still on.
+                _LOGGER.debug(
+                    "%s: Skipping adaptation of %s because it is now off",
+                    self._name,
+                    data.entity_id,
+                )
+                return
 
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
@@ -1440,6 +1459,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._take_over_control
                 and self._detect_non_ha_changes
                 and not force
+                # Note: This call updates the state of the light
+                # so it might suddenly be off.
                 and await self.manager.significant_change(
                     self,
                     light,
@@ -1460,7 +1481,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 transition,
                 context.id,
             )
-            await self._adapt_light(light, context, transition)
+            await self._adapt_light(light, context, transition, force=force)
 
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
         assert not self.manager.is_proactively_adapting(event.context.id)

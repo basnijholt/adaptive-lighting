@@ -312,6 +312,7 @@ async def test_prepare_adaptation_data(
         service_data,
         split,
         filter_by_state,
+        force=False,
     )
 
     generated_service_datas = [item async for item in data.service_call_datas]
