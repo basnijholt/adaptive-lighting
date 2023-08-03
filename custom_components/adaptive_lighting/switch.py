@@ -2497,7 +2497,7 @@ class AdaptiveLightingManager:
             and id_off_to_on == turn_on_event.context.id
         )
 
-    async def just_turned_off(  # noqa: PLR0911
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2523,6 +2523,14 @@ class AdaptiveLightingManager:
                 entity_id,
             )
             return False
+
+        if off_to_on_event.context.id == on_to_off_event.context.id:
+            _LOGGER.debug(
+                "just_turned_off: 'on' → 'off' state change has the same context.id as the"
+                " 'off' → 'on' state change for '%s'. This is probably a false positive.",
+                entity_id,
+            )
+            return True
 
         id_on_to_off = on_to_off_event.context.id
 
