@@ -2497,7 +2497,7 @@ class AdaptiveLightingManager:
             and id_off_to_on == turn_on_event.context.id
         )
 
-    async def just_turned_off(  # noqa: PLR0911
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2523,6 +2523,11 @@ class AdaptiveLightingManager:
                 entity_id,
             )
             return False
+
+        if off_to_on_event.context.id == on_to_off_event.context.id:
+            # Light was just turned off, and after a update_entity call
+            # it reports as 'on' again with the same context.id.
+            return True
 
         id_on_to_off = on_to_off_event.context.id
 
