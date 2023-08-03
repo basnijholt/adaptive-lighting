@@ -92,6 +92,7 @@ from custom_components.adaptive_lighting.switch import (
     _attributes_have_changed,
     color_difference_redmean,
     create_context,
+    AdaptiveLightingManager,
     is_our_context,
     is_our_context_id,
     lerp_color_hsv,
@@ -141,6 +142,18 @@ def reset_time_zone():
     """Reset time zone."""
     yield
     dt_util.DEFAULT_TIME_ZONE = ORIG_TIMEZONE
+
+
+@pytest.fixture
+async def cleanup(hass):
+    yield
+    manager: AdaptiveLightingManager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    for timer in manager.auto_reset_manual_control_timers.values():
+        timer.cancel()
+    for timer in manager.transition_timers.values():
+        timer.cancel()
+    for task in manager.adaptation_tasks:
+        task.cancel()
 
 
 async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitch]:
@@ -1840,7 +1853,6 @@ def test_lerp_color_hsv():
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
 
 
-@pytest.mark.parametrize("expected_lingering_tasks", [True])
 @pytest.mark.parametrize(
     "proactive_service_call_adaptation",
     [True, False],
@@ -1853,6 +1865,7 @@ async def test_light_group(
     hass,
     proactive_service_call_adaptation,
     take_over_control,
+    cleanup,
 ):
     lights = await setup_lights(hass, with_group=True)
     all_entity_ids = [light.entity_id for light in lights]
@@ -1912,7 +1925,7 @@ async def test_light_group(
         #     "testing",  # original call light 4
         #     "testing",  # original call light 5
         # ]
-        await switch.manager._execute_cancellable_adaptation_calls_task
+        await asyncio.gather(*switch.manager.adaptation_tasks)
 
         assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
         assert events[0].context.id == "testing"
@@ -1964,7 +1977,7 @@ async def test_light_group(
         hass, "testing", entity_ids, return_full_events=True
     )
     if proactive_service_call_adaptation:
-        await switch.manager._execute_cancellable_adaptation_calls_task
+        await asyncio.gather(*switch.manager.adaptation_tasks)
         # Original call
         assert events[0].data["service_data"][ATTR_ENTITY_ID] == [
             "light.light_1",

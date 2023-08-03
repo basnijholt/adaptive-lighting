@@ -1861,6 +1861,9 @@ class AdaptiveLightingManager:
         # Track light transitions
         self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
 
+        # Track _execute_cancellable_adaptation_calls tasks
+        self.adaptation_tasks = set()
+
         # Setup listeners and its callbacks to remove them later
         self.listener_removers = [
             self.hass.bus.async_listen(
@@ -2046,13 +2049,12 @@ class AdaptiveLightingManager:
                 ):
                     _LOGGER.debug(
                         "Switch is off or light is already on for entity_id='%s', skipped='%s'"
-                        " (is_on='%s', is_state='%s', manual_control='%s', is_light_group='%s')",
+                        " (is_on='%s', is_state='%s', manual_control='%s')",
                         entity_id,
                         skipped,
                         switch.is_on,
                         self.hass.states.is_state(entity_id, STATE_ON),
                         self.manual_control.get(entity_id, False),
-                        _is_light_group(self.hass.states.get(entity_id)),
                     )
                     skipped.append(entity_id)
                 else:
@@ -2192,9 +2194,14 @@ class AdaptiveLightingManager:
 
         # Don't await to avoid blocking the service call.
         # Assign to a variable only to await in tests.
-        self._execute_cancellable_adaptation_calls_task = asyncio.create_task(
-            switch.execute_cancellable_adaptation_calls(adaptation_data),
+        self.adaptation_tasks.add(
+            asyncio.create_task(
+                switch.execute_cancellable_adaptation_calls(adaptation_data),
+            ),
         )
+        # Remove tasks that are done
+        if done_tasks := [t for t in self.adaptation_tasks if t.done()]:
+            self.adaptation_tasks.difference_update(done_tasks)
 
     def _handle_timer(
         self,
