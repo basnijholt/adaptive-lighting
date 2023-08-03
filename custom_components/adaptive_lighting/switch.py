@@ -1474,7 +1474,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
         assert not self.manager.is_proactively_adapting(event.context.id)
         if (
-            not self._detect_non_ha_changes
+            self._take_over_control
+            and not self._detect_non_ha_changes
             and not self.manager._off_to_on_state_event_is_from_turn_on(
                 entity_id,
                 event,
@@ -2666,7 +2667,7 @@ class AdaptiveLightingManager:
             and id_off_to_on == turn_on_event.context.id
         )
 
-    async def just_turned_off(  # noqa: PLR0911
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2692,6 +2693,14 @@ class AdaptiveLightingManager:
                 entity_id,
             )
             return False
+
+        if off_to_on_event.context.id == on_to_off_event.context.id:
+            _LOGGER.debug(
+                "just_turned_off: 'on' → 'off' state change has the same context.id as the"
+                " 'off' → 'on' state change for '%s'. This is probably a false positive.",
+                entity_id,
+            )
+            return True
 
         id_on_to_off = on_to_off_event.context.id
 
