@@ -2525,8 +2525,11 @@ class AdaptiveLightingManager:
             return False
 
         if off_to_on_event.context.id == on_to_off_event.context.id:
-            # Light was just turned off, and after a update_entity call
-            # it reports as 'on' again with the same context.id.
+            _LOGGER.debug(
+                "just_turned_off: 'on' → 'off' state change has the same context.id as the"
+                " 'off' → 'on' state change for '%s'. This is probably a false positive.",
+                entity_id,
+            )
             return True
 
         id_on_to_off = on_to_off_event.context.id
