@@ -20,6 +20,9 @@ In addition to its regular mode, Adaptive Lighting also offers a "sleep mode" �
 
 ## :bulb: Features
 
+When initially turning on a light that is controlled by Adaptive Lighting, the `light.turn_on` service call is intercepted, and the light's brightness and color are automatically adjusted based on the sun's position.
+After that, the light's brightness and color are automatically adjusted at a regular interval.
+
 Adaptive Lighting provides four switches (using "living_room" as an example component name):
 
 - `switch.adaptive_lighting_living_room`: Turn Adaptive Lighting on or off and view current light settings through its attributes.
@@ -124,7 +127,8 @@ The YAML and frontend configuration methods support all of the options listed be
 | `send_split_delay`             | Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️                                                                                                                                                        | `0`            | `int` 0-10000                        |
 | `adapt_delay`                  | Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️                                                                                                                                                              | `0`            | `float > 0`                          |
 | `autoreset_control_seconds`    | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                                                                                                                         | `0`            | `int` 0-31536000                     |
-| `skip_redundant_commands`      | Skip sending adaptation commands whose target state already equals the light's known state. Minimizes network traffic and improves the adaptation responsivity in some situations. Disable if physical light states get out of sync with HA's recorded state.                     | `False`        | `bool`                               |
+| `skip_redundant_commands`      | Skip sending adaptation commands whose target state already equals the light's known state. Minimizes network traffic and improves the adaptation responsivity in some situations. 📉Disable if physical light states get out of sync with HA's recorded state.                    | `False`        | `bool`                               |
+| `multi_light_intercept`        | Intercept and adapt `light.turn_on` calls that target multiple lights. ➗⚠️ This might result in splitting up a single `light.turn_on` call into multiple calls, e.g., when lights are in different switches.                                                                      | `True`         | `bool`                               |
 
 <!-- END_OUTPUT -->
 

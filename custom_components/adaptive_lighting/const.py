@@ -186,8 +186,18 @@ CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
 DOCS[CONF_SKIP_REDUNDANT_COMMANDS] = (
     "Skip sending adaptation commands whose target state already "
     "equals the light's known state. Minimizes network traffic and improves the "
-    "adaptation responsivity in some situations. "
+    "adaptation responsivity in some situations. 📉"
     "Disable if physical light states get out of sync with HA's recorded state."
+)
+
+CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT = (
+    "multi_light_intercept",
+    True,
+)
+DOCS[CONF_MULTI_LIGHT_INTERCEPT] = (
+    "Intercept and adapt `light.turn_on` calls that target multiple lights. ➗"
+    "⚠️ This might result in splitting up a single `light.turn_on` call "
+    "into multiple calls, e.g., when lights are in different switches."
 )
 
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
@@ -290,6 +300,7 @@ VALIDATION_TUPLES = [
         DEFAULT_SKIP_REDUNDANT_COMMANDS,
         bool,
     ),
+    (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
 ]
 
 

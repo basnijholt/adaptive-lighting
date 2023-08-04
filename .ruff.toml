@@ -16,7 +16,7 @@ ignore = [
     "FBT002",  # Boolean default value in function definition
     "FIX004",  # Line contains HACK, consider resolving the issue
     "PD901",   # df is a bad variable name. Be kinder to your future self.
-    "PERF203",# `try`-`except` within a loop incurs performance overhead
+    "PERF203", # `try`-`except` within a loop incurs performance overhead
     "PLR0913", # Too many arguments to function call (N > 5)
     "PLR2004", # Magic value used in comparison, consider replacing X with a constant variable
     "S101",    # Use of assert detected

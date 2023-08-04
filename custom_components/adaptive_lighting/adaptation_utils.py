@@ -150,6 +150,20 @@ class AdaptationData:
         """Return data for the next service call, or none if no more data exists."""
         return await anext(self.service_call_datas, None)
 
+    def __str__(self) -> str:
+        """Return a string representation of the data."""
+        return (
+            f"{self.__class__.__name__}("
+            f"entity_id={self.entity_id}, "
+            f"context_id={self.context.id}, "
+            f"sleep_time={self.sleep_time}, "
+            f"force={self.force}, "
+            f"max_length={self.max_length}, "
+            f"which={self.which}, "
+            f"initial_sleep={self.initial_sleep}"
+            ")"
+        )
+
 
 class NoColorOrBrightnessInServiceDataError(Exception):
     """Exception raised when no color or brightness attributes are found in service data."""
