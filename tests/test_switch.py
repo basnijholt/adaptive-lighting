@@ -1,6 +1,7 @@
 """Tests for Adaptive Lighting switches."""
 # pylint: disable=protected-access
 import asyncio
+import itertools
 from copy import deepcopy
 import datetime
 import logging
@@ -55,6 +56,7 @@ from custom_components.adaptive_lighting.adaptation_utils import (
 from custom_components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
+    CONF_TAKE_OVER_CONTROL,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
@@ -64,6 +66,7 @@ from custom_components.adaptive_lighting.const import (
     CONF_MAX_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_PREFER_RGB_COLOR,
+    CONF_MULTI_LIGHT_INTERCEPT,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
@@ -90,6 +93,7 @@ from custom_components.adaptive_lighting.switch import (
     _attributes_have_changed,
     color_difference_redmean,
     create_context,
+    AdaptiveLightingManager,
     is_our_context,
     is_our_context_id,
     lerp_color_hsv,
@@ -141,6 +145,18 @@ def reset_time_zone():
     dt_util.DEFAULT_TIME_ZONE = ORIG_TIMEZONE
 
 
+@pytest.fixture
+async def cleanup(hass):
+    yield
+    manager: AdaptiveLightingManager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    for timer in manager.auto_reset_manual_control_timers.values():
+        timer.cancel()
+    for timer in manager.transition_timers.values():
+        timer.cancel()
+    for task in manager.adaptation_tasks:
+        task.cancel()
+
+
 async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitch]:
     """Create the switch entry."""
     entry = MockConfigEntry(
@@ -159,51 +175,46 @@ async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitc
     return entry, switch
 
 
-async def setup_lights(hass: HomeAssistant):
+async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     """Set up 3 light entities using the 'template' platform."""
+    n = 3 if not with_group else 5  # last 2 will be put in a group
+    template_lights = {
+        f"light_{i}": {
+            "unique_id": f"light_{i}",
+            "friendly_name": f"light_{i}",
+            "turn_on": None,
+            "turn_off": None,
+            "set_level": None,
+            "set_temperature": None,
+            "set_color": None,
+        }
+        for i in range(1, n + 1)
+    }
+    template_lights["light_3"]["supports_transition_template"] = True
+    platforms = [{"platform": "template", "lights": template_lights}]
+
+    if with_group:
+        platforms.append(
+            {
+                "platform": "group",
+                "entities": ["light.light_4", "light.light_5"],
+                "name": "Light Group",
+                "unique_id": "light_group",
+                "all": "false",
+            }
+        )
+
     await async_setup_component(
         hass,
         LIGHT_DOMAIN,
-        {
-            LIGHT_DOMAIN: [
-                {
-                    "platform": "template",
-                    "lights": {
-                        "light_1": {
-                            "friendly_name": "light_1",
-                            "unique_id": "light_1",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                        },
-                        "light_2": {
-                            "friendly_name": "light_2",
-                            "unique_id": "light_2",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                        },
-                        "light_3": {
-                            "friendly_name": "light_3",
-                            "unique_id": "light_3",
-                            "turn_on": None,
-                            "turn_off": None,
-                            "set_level": None,
-                            "set_temperature": None,
-                            "set_color": None,
-                            "supports_transition_template": True,
-                        },
-                    },
-                },
-            ]
-        },
+        {LIGHT_DOMAIN: platforms},
     )
-
     await hass.async_block_till_done()
+
+    if with_group:
+        state = hass.states.get("light.light_group")
+        assert state.attributes["entity_id"] == ["light.light_4", "light.light_5"]
+
     platform = async_get_platforms(hass, "template")
     lights = list(platform[0].entities.values())
 
@@ -1374,13 +1385,15 @@ async def test_service_calls_task_cancellation(hass):
 
 
 async def _turn_on_and_track_event_contexts(
-    hass: HomeAssistant, context_id: str, entity_id
+    hass: HomeAssistant, context_id: str, entity_id, return_full_events: bool = False
 ):
     context = Context(id=context_id)
     event_context_ids = []
+    events = []
 
     async def turn_on_off_event_listener(event: Event) -> None:
         event_context_ids.append(event.context.id)
+        events.append(event)
 
     hass.bus.async_listen(EVENT_CALL_SERVICE, turn_on_off_event_listener)
 
@@ -1392,7 +1405,8 @@ async def _turn_on_and_track_event_contexts(
         context=context,
     )
     await hass.async_block_till_done()
-
+    if return_full_events:
+        return events
     return event_context_ids
 
 
@@ -1538,6 +1552,148 @@ async def test_proactive_adaptation_transition_override(hass):
 
     # Cleanup
     switch.manager.cancel_ongoing_adaptation_calls(ENTITY_LIGHT_3)
+
+
+async def setup_proactive_multiple_lights_two_switches(hass):
+    lights_instances = await setup_lights(hass)
+    # Setup switches
+    lights = [
+        ENTITY_LIGHT_1,
+        ENTITY_LIGHT_2,
+        ENTITY_LIGHT_3,
+    ]
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: lights},
+        blocking=True,
+    )
+    defaults = {
+        CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+        CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+        CONF_INITIAL_TRANSITION: 0,
+        CONF_TRANSITION: 0,
+        CONF_DETECT_NON_HA_CHANGES: True,
+        CONF_PREFER_RGB_COLOR: False,
+        CONF_MIN_COLOR_TEMP: 2500,  # to not coincide with sleep_color_temp}
+        INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+    }
+    _, switch1 = await setup_switch(
+        hass, {CONF_NAME: "switch1", CONF_LIGHTS: [ENTITY_LIGHT_1], **defaults}
+    )
+    _, switch2 = await setup_switch(
+        hass, {CONF_NAME: "switch2", CONF_LIGHTS: [ENTITY_LIGHT_2], **defaults}
+    )
+    assert hass.states.get(switch1.entity_id).state == STATE_ON
+    assert hass.states.get(switch2.entity_id).state == STATE_ON
+    assert all(hass.states.get(light).state == STATE_OFF for light in lights)
+    return lights, switch1, switch2
+
+
+async def test_proactive_multiple_lights_all_at_once(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
+    # Setup demo lights and turn on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test1", lights, return_full_events=True
+    )
+    assert len(events) == 3, events
+
+    # Original turn_on call that is intercepted
+    assert events[0].context.id == "test1"
+    assert events[0].data["service_data"][ATTR_ENTITY_ID] == lights
+
+    # The `has_intercepted` path
+    assert events[1].data["service_data"][ATTR_ENTITY_ID] == ENTITY_LIGHT_2
+    assert ":ntrc:" in events[1].context.id
+
+    # The skipped lights, the one not in a switch
+    assert events[2].data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
+    assert ":skpp:" in events[2].context.id
+
+    assert switch1.manager.is_proactively_adapting("test1")
+    assert switch2.manager.is_proactively_adapting("test1")
+
+    await hass.async_block_till_done()
+
+    assert all(hass.states.get(light).state == STATE_ON for light in lights)
+
+    # Turn on second time even though already on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test2", lights, return_full_events=True
+    )
+    assert len(events) == 1, events
+    assert events[0].context.id == "test2"
+
+
+async def test_proactive_multiple_lights_turn_on_non_managed_light(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    turn_ons = await _turn_on_and_track_event_contexts(hass, "test1", lights)
+    assert len(turn_ons) == 3, turn_ons
+    await hass.async_block_till_done()
+    assert all(hass.states.get(light).state == STATE_ON for light in lights)
+
+    # Turn off ENTITY_LIGHT_3 (which is not in a switch), leaving the other two on
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+        context=Context(id="test2"),
+    )
+
+    # Now turn on all lights again, which means the code gets to "if skipped: if not has_intercepted:"
+    turn_ons = await _turn_on_and_track_event_contexts(hass, "test2", ENTITY_LIGHT_3)
+    assert len(turn_ons) == 1, turn_ons
+
+
+async def test_proactive_multiple_lights_turn_on_managed_lights_only(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
+    # Setup demo lights and turn on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test1", lights[:-1], return_full_events=True
+    )
+    assert len(events) == 2, events
+
+    # Original turn_on call that is intercepted
+    assert events[0].context.id == "test1"
+    assert events[0].data["service_data"][ATTR_ENTITY_ID] == lights[:-1]
+
+    # The `has_intercepted` path
+    assert events[1].data["service_data"][ATTR_ENTITY_ID] == ENTITY_LIGHT_2
+    assert ":ntrc:" in events[1].context.id
+    assert ATTR_BRIGHTNESS in events[1].data["service_data"]
+
+
+async def test_proactive_multiple_lights_one_switch_and_one_skipped(hass):
+    """Create switch and demo lights."""
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    two_lights = [lights[0], lights[-1]]
+    _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
+    # Setup demo lights and turn on
+    events = await _turn_on_and_track_event_contexts(
+        hass, "test1", two_lights, return_full_events=True
+    )
+    assert len(events) == 2, events
+
+    # Original turn_on call that is intercepted
+    assert events[0].context.id == "test1"
+    assert events[0].data["service_data"][ATTR_ENTITY_ID] == two_lights
+
+    # The skipped lights, the one not in a switch
+    assert events[1].data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
+    assert ":skpp:" in events[1].context.id
+
+    assert switch1.manager.is_proactively_adapting("test1")
+    assert switch2.manager.is_proactively_adapting("test1")
+
+    await hass.async_block_till_done()
+
+    assert all(hass.states.get(light).state == STATE_ON for light in two_lights)
 
 
 async def test_two_switches_for_single_light(hass):
@@ -1697,3 +1853,142 @@ def test_lerp_color_hsv():
 
     with pytest.raises(AssertionError):
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
+
+
+@pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
+@pytest.mark.parametrize("take_over_control", [True, False])
+@pytest.mark.parametrize("multi_light_intercept", [True, False])
+async def test_light_group(
+    hass,
+    proactive_service_call_adaptation,
+    take_over_control,
+    multi_light_intercept,
+    cleanup,
+):
+    lights = await setup_lights(hass, with_group=True)
+    all_entity_ids = [light.entity_id for light in lights]
+    entity_ids = all_entity_ids[:3]  # the last two are in the group
+    entity_ids.append("light.light_group")
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: entity_ids,
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
+            CONF_TAKE_OVER_CONTROL: take_over_control,
+            CONF_MULTI_LIGHT_INTERCEPT: multi_light_intercept,
+        },
+    )
+    await hass.async_block_till_done()
+    assert switch.is_on
+    assert all(eid in switch.lights for eid in all_entity_ids)
+
+    # Set the brightness of the group twice, once to turn it on and once to
+    # trigger manual control
+    for _ in range(2):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "light.light_group", ATTR_BRIGHTNESS_PCT: 50},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test")
+    )
+    await hass.async_block_till_done()
+
+    if take_over_control:
+        assert switch.manager.manual_control["light.light_4"]
+        assert switch.manager.manual_control["light.light_5"]
+    else:
+        assert not switch.manager.manual_control["light.light_4"]
+        assert not switch.manager.manual_control["light.light_5"]
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert not switch.manager.manual_control["light.light_4"]
+    assert not switch.manager.manual_control["light.light_5"]
+    events = await _turn_on_and_track_event_contexts(
+        hass, "testing", "light.light_group", return_full_events=True
+    )
+    if proactive_service_call_adaptation and multi_light_intercept:
+        await asyncio.gather(*switch.manager.adaptation_tasks)
+        # Both lights should be adapted via interception, so with the original context
+        # [
+        #     "testing",  # original call light 4
+        #     "testing",  # original call light 5
+        # ]
+
+        assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
+        assert events[0].context.id == "testing"
+        assert events[1].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_4",
+            "light.light_5",
+        ]
+        assert events[1].context.id == "testing"
+    else:
+        assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
+        assert events[0].context.id == "testing"
+        assert events[1].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_4",
+            "light.light_5",
+        ]
+        assert events[1].context.id == "testing"
+        e1 = events[2].data["service_data"][ATTR_ENTITY_ID]
+        e2 = events[3].data["service_data"][ATTR_ENTITY_ID]
+        assert (
+            e1 == "light.light_4"
+            and e2 == "light.light_5"
+            or e1 == "light.light_5"
+            and e2 == "light.light_4"
+        )
+        assert ":lght:" in events[2].context.id
+        assert ":lght:" in events[3].context.id
+        assert len(events) == 4
+        assert not switch.manager.is_proactively_adapting(events[0].context.id)
+        assert not switch.manager.is_proactively_adapting(events[1].context.id)
+
+    # Turn off all lights, and then turn on all lights
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: all_entity_ids},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # This turns on light_1, light_2, light_3, light_group (which is light_4 and light_5)
+    # This should result in the intercepted adaptation of light_1, light_2, light_3
+    # and skip the light_group first. Then on a second light.turn_on where the
+    # light_group is expanded, with a :skpp: context_id, this goes trhough another iteration,
+    # and then the light_group is adapted.
+    events = await _turn_on_and_track_event_contexts(
+        hass, "testing", entity_ids, return_full_events=True
+    )
+    if proactive_service_call_adaptation and multi_light_intercept:
+        await asyncio.gather(*switch.manager.adaptation_tasks)
+        # Original call
+        assert events[0].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_1",
+            "light.light_2",
+            "light.light_3",
+            "light.light_group",
+        ]
+        assert events[0].context.id == "testing"
+        # Skipped call with light_group
+        assert events[1].data["service_data"][ATTR_ENTITY_ID] == ["light.light_group"]
+        assert ":skpp:" in events[1].context.id
+        # HA automatically forwarded call with light_group expanded with same context
+        assert events[2].data["service_data"][ATTR_ENTITY_ID] == [
+            "light.light_4",
+            "light.light_5",
+        ]
+        assert ":skpp:" in events[2].context.id
+        assert len(events) == 3
