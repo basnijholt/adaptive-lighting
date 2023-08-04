@@ -197,7 +197,7 @@ CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT = (
 DOCS[CONF_MULTI_LIGHT_INTERCEPT] = (
     "Intercept and adapt `light.turn_on` calls that target multiple lights. ➗"
     "⚠️ This might result in splitting up a single `light.turn_on` call "
-    "into multiple calls."
+    "into multiple calls, e.g., when lights are in different switches."
 )
 
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
