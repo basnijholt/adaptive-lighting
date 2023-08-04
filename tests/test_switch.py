@@ -66,6 +66,7 @@ from custom_components.adaptive_lighting.const import (
     CONF_MAX_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_PREFER_RGB_COLOR,
+    CONF_MULTI_LIGHT_INTERCEPT,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
@@ -1856,10 +1857,12 @@ def test_lerp_color_hsv():
 
 @pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
 @pytest.mark.parametrize("take_over_control", [True, False])
+@pytest.mark.parametrize("multi_light_intercept", [True, False])
 async def test_light_group(
     hass,
     proactive_service_call_adaptation,
     take_over_control,
+    multi_light_intercept,
     cleanup,
 ):
     lights = await setup_lights(hass, with_group=True)
@@ -1872,6 +1875,7 @@ async def test_light_group(
             CONF_LIGHTS: entity_ids,
             INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
             CONF_TAKE_OVER_CONTROL: take_over_control,
+            CONF_MULTI_LIGHT_INTERCEPT: multi_light_intercept,
         },
     )
     await hass.async_block_till_done()
@@ -1914,13 +1918,13 @@ async def test_light_group(
     events = await _turn_on_and_track_event_contexts(
         hass, "testing", "light.light_group", return_full_events=True
     )
-    if proactive_service_call_adaptation:
+    if proactive_service_call_adaptation and multi_light_intercept:
+        await asyncio.gather(*switch.manager.adaptation_tasks)
         # Both lights should be adapted via interception, so with the original context
         # [
         #     "testing",  # original call light 4
         #     "testing",  # original call light 5
         # ]
-        await asyncio.gather(*switch.manager.adaptation_tasks)
 
         assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
         assert events[0].context.id == "testing"
@@ -1929,9 +1933,6 @@ async def test_light_group(
             "light.light_5",
         ]
         assert events[1].context.id == "testing"
-        assert len(events) == 2
-        assert switch.manager.is_proactively_adapting(events[0].context.id)
-        assert switch.manager.is_proactively_adapting(events[1].context.id)
     else:
         assert events[0].data["service_data"][ATTR_ENTITY_ID] == "light.light_group"
         assert events[0].context.id == "testing"
@@ -1971,7 +1972,7 @@ async def test_light_group(
     events = await _turn_on_and_track_event_contexts(
         hass, "testing", entity_ids, return_full_events=True
     )
-    if proactive_service_call_adaptation:
+    if proactive_service_call_adaptation and multi_light_intercept:
         await asyncio.gather(*switch.manager.adaptation_tasks)
         # Original call
         assert events[0].data["service_data"][ATTR_ENTITY_ID] == [

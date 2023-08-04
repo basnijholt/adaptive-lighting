@@ -2066,7 +2066,6 @@ class AdaptiveLightingManager:
             else:
                 if (
                     not switch.is_on
-                    or not switch._multi_light_intercept
                     # Never adapt on light groups, because HA will make a separate light.turn_on
                     or _is_light_group(self.hass.states.get(entity_id))
                     # Prevent adaptation of TURN_ON calls when light is already on,
@@ -2087,6 +2086,35 @@ class AdaptiveLightingManager:
                 else:
                     switch_to_eids.setdefault(switch.name, []).append(entity_id)
                     switch_name_mapping[switch.name] = switch
+
+        # Check for `multi_light_intercept: true/false`
+        mli = [sw._multi_light_intercept for sw in switch_name_mapping.values()]
+        more_than_one_switch = len(switch_to_eids) > 1
+        single_switch_with_multiple_lights = (
+            len(switch_to_eids) == 1 and len(next(iter(switch_to_eids.values()))) > 1
+        )
+        switch_without_multi_light_intercept = not all(mli)
+        if more_than_one_switch and switch_without_multi_light_intercept:
+            _LOGGER.warning(
+                "Multiple switches (%s) targeted, but not all have"
+                " `multi_light_intercept: true`, so skipping intercept"
+                " for all lights.",
+                switch_to_eids,
+            )
+            skipped = entity_ids
+            switch_to_eids = {}
+        elif (
+            single_switch_with_multiple_lights and switch_without_multi_light_intercept
+        ):
+            _LOGGER.warning(
+                "Single switch with multiple lights targeted, but"
+                " `multi_light_intercept: true` is not set, so skipping intercept"
+                " for all lights.",
+                switch_to_eids,
+            )
+            skipped = entity_ids
+            switch_to_eids = {}
+
         _LOGGER.debug(
             "(2) _service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
             switch_to_eids,
