@@ -208,13 +208,13 @@ change_switch_settings:
       selector:
         time: null
     max_sunrise_time:
-      description: Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier real sunrises. 🌅
+      description: Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier sunrises. 🌅
       example: ''
       required: false
       selector:
         time: null
     min_sunset_time:
-      description: Set the earliest virtual sunset time (HH:MM:SS), allowing for later real sunsets. 🌇
+      description: Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇
       example: ''
       required: false
       selector:
