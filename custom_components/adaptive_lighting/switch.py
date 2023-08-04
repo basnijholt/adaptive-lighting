@@ -2039,6 +2039,7 @@ class AdaptiveLightingManager:
             service_data[ATTR_ENTITY_ID] = entity_ids
             return service_data
 
+        # Create a mapping from switch to entity IDs
         # AdaptiveSwitch.name → entity_ids mapping
         switch_to_eids: dict[str, list[str]] = {}
         # AdaptiveSwitch.name → AdaptiveSwitch mapping
@@ -2121,6 +2122,7 @@ class AdaptiveLightingManager:
             skipped,
         )
 
+        # Intercept the call for first switch and call _adapt_light for the rest
         has_intercepted = False  # Can only intercept a turn_on call once
         for adaptive_switch_name, _entity_ids in switch_to_eids.items():
             switch = switch_name_mapping[adaptive_switch_name]
@@ -2160,6 +2162,7 @@ class AdaptiveLightingManager:
                     transition=transition,
                 )
 
+        # Call light.turn_on service for skipped entities
         if skipped:
             if not has_intercepted:
                 assert set(skipped) == set(entity_ids)
