@@ -2032,13 +2032,6 @@ class AdaptiveLightingManager:
         # we skip them and rely on the followup call that HA will make
         # with the expanded entity IDs.
 
-        def modify_service_data(service_data, entity_ids):
-            """Modify the service data to contain the entity IDs."""
-            service_data.pop(ATTR_ENTITY_ID, None)
-            service_data.pop(ATTR_AREA_ID, None)
-            service_data[ATTR_ENTITY_ID] = entity_ids
-            return service_data
-
         # Create a mapping from switch to entity IDs
         # AdaptiveSwitch.name → entity_ids mapping
         switch_to_eids: dict[str, list[str]] = {}
@@ -2121,6 +2114,13 @@ class AdaptiveLightingManager:
             switch_to_eids,
             skipped,
         )
+
+        def modify_service_data(service_data, entity_ids):
+            """Modify the service data to contain the entity IDs."""
+            service_data.pop(ATTR_ENTITY_ID, None)
+            service_data.pop(ATTR_AREA_ID, None)
+            service_data[ATTR_ENTITY_ID] = entity_ids
+            return service_data
 
         # Intercept the call for first switch and call _adapt_light for the rest
         has_intercepted = False  # Can only intercept a turn_on call once
