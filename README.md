@@ -20,6 +20,9 @@ In addition to its regular mode, Adaptive Lighting also offers a "sleep mode" ðŸ
 
 ## :bulb: Features
 
+When initially turning on a light that is controlled by Adaptive Lighting, the `light.turn_on` service call is intercepted, and the light's brightness and color are automatically adjusted based on the sun's position.
+After that, the light's brightness and color are automatically adjusted at a regular interval.
+
 Adaptive Lighting provides four switches (using "living_room" as an example component name):
 
 - `switch.adaptive_lighting_living_room`: Turn Adaptive Lighting on or off and view current light settings through its attributes.
