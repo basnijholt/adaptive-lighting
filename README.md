@@ -408,20 +408,19 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 ### Custom brightness ramps using `brightness_mode` with `"linear"` and `"tanh"`
 
 <details>
-<summary>Customize the way the brightness changes around sunset and sunrise using <code>brightness_mode</code> (click here to see more 🧠).</summary>
+<summary>Enhance your control over brightness transitions during sunrise and sunset with <code>brightness_mode</code> (click here to learn more 🧠).</summary>
 
-AL allows settings a `brightness_mode`, which determines how the brightness changes around sunrise and sunset.
-Here `brightness_mode` can be either `"default"` (see other graphs), `"linear"`, or `"tanh"`.
-When **not** using `"default"`, you can set `brightness_mode_time_dark` and `brightness_mode_time_light`.
+With Adaptive Lighting, you can set a `brightness_mode` to specify how the brightness changes during sunrise and sunset. The `brightness_mode` can be set to `"default"` (as illustrated in other graphs), `"linear"`, or `"tanh"`. If you choose to deviate from the `"default"` mode, you can adjust `brightness_mode_time_dark` and `brightness_mode_time_light` to further customize the lighting transitions.
 
-with `brightness_mode: "linear"`:
-- During **_sunset_** the brightness will start adapting constantly from `max_brightness` at `time=sunset_time - brightness_mode_time_light` to `min_brightness` at `time=sunset_time + brightness_mode_time_dark`.
-- During **_sunrise_** the brightness will start adapting constantly from `min_brightness` at `time=sunrise_time - brightness_mode_time_dark` to `max_brightness` at `time=sunrise_time + brightness_mode_time_light`.
+When `brightness_mode` is set to `"linear"`:
 
-with `brightness_mode: "tanh"` it uses the smooth shape of a [hyperbolic tangent function](https://mathworld.wolfram.com/HyperbolicTangent.html):
-- During **_sunset_** the brightness will start adapting from 95% of the `max_brightness` at `time=sunset_time - brightness_mode_time_light` to 5% of the `min_brightness` at `time=sunset_time + brightness_mode_time_dark`.
-- During **_sunrise_** the brightness will start adapting from 5% of the `min_brightness` at `time=sunrise_time - brightness_mode_time_dark` to 95% of the `max_brightness` at `time=sunrise_time + brightness_mode_time_light`.
+- During **_sunset_**, the brightness begins to gradually decrease from `max_brightness` starting at `time=sunset_time - brightness_mode_time_light`, until it reaches `min_brightness` at `time=sunset_time + brightness_mode_time_dark`.
+- During **_sunrise_**, the brightness begins to gradually increase from `min_brightness` starting at `time=sunrise_time - brightness_mode_time_dark`, until it reaches `max_brightness` at `time=sunrise_time + brightness_mode_time_light`.
 
+When `brightness_mode` is set to `"tanh"`, it uses the smooth transition of a [hyperbolic tangent function](https://mathworld.wolfram.com/HyperbolicTangent.html):
+
+- During **_sunset_**, the brightness starts to decrease from 95% of `max_brightness` starting at `time=sunset_time - brightness_mode_time_light`, until it reaches 5% of `min_brightness` at `time=sunset_time + brightness_mode_time_dark`.
+- During **_sunrise_**, the brightness starts to increase from 5% of `min_brightness` starting at `time=sunrise_time - brightness_mode_time_dark`, until it reaches 95% of `max_brightness` at `time=sunrise_time + brightness_mode_time_light`.
 </details>
 
 ![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/b5d142c7-798c-4f38-9acb-d38d7e38e36d)
