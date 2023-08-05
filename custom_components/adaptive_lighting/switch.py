@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import bisect
-import colorsys
 import datetime
 import functools
 import logging
@@ -12,7 +10,7 @@ import math
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
@@ -108,6 +106,9 @@ from .const import (
     CONF_ADAPT_DELAY,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
+    CONF_BRIGHTNESS_MODE,
+    CONF_BRIGHTNESS_MODE_TIME_DARK,
+    CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -158,6 +159,17 @@ from .const import (
     replace_none_str,
 )
 from .hass_utils import setup_service_call_interceptor
+from .helpers import (
+    clamp,
+    color_difference_redmean,
+    find_a_b,
+    int_to_base36,
+    lerp,
+    lerp_color_hsv,
+    remove_vowels,
+    scaled_tanh,
+    short_hash,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine, Iterable
@@ -195,56 +207,6 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 _DOMAIN_SHORT = "al"
 
 
-def _int_to_base36(num: int) -> str:
-    """Convert an integer to its base-36 representation using numbers and uppercase letters.
-
-    Base-36 encoding uses digits 0-9 and uppercase letters A-Z, providing a case-insensitive
-    alphanumeric representation. The function takes an integer `num` as input and returns
-    its base-36 representation as a string.
-
-    Parameters
-    ----------
-    num
-        The integer to convert to base-36.
-
-    Returns
-    -------
-    str
-        The base-36 representation of the input integer.
-
-    Examples
-    --------
-    >>> num = 123456
-    >>> base36_num = int_to_base36(num)
-    >>> print(base36_num)
-    '2N9'
-    """
-    alphanumeric_chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-    if num == 0:
-        return alphanumeric_chars[0]
-
-    base36_str = ""
-    base = len(alphanumeric_chars)
-
-    while num:
-        num, remainder = divmod(num, base)
-        base36_str = alphanumeric_chars[remainder] + base36_str
-
-    return base36_str
-
-
-def _short_hash(string: str, length: int = 4) -> str:
-    """Create a hash of 'string' with length 'length'."""
-    return base64.b32encode(string.encode()).decode("utf-8").zfill(length)[:length]
-
-
-def _remove_vowels(input_str: str, length: int = 4) -> str:
-    vowels = "aeiouAEIOU"
-    output_str = "".join([char for char in input_str if char not in vowels])
-    return output_str.zfill(length)[:length]
-
-
 def create_context(
     name: str,
     which: str,
@@ -257,11 +219,11 @@ def create_context(
     # Pack index with base85 to maximize the number of contexts we can create
     # before we exceed the 26-character limit and are forced to wrap.
     time_stamp = ulid_transform.ulid_now()[:10]  # time part of a ULID
-    name_hash = _short_hash(name)
-    which_short = _remove_vowels(which)
+    name_hash = short_hash(name)
+    which_short = remove_vowels(which)
     context_id_start = f"{time_stamp}:{_DOMAIN_SHORT}:{name_hash}:{which_short}:"
     chars_left = 26 - len(context_id_start)
-    index_packed = _int_to_base36(index).zfill(chars_left)[-chars_left:]
+    index_packed = int_to_base36(index).zfill(chars_left)[-chars_left:]
     context_id = context_id_start + index_packed
     parent_id = parent.id if parent else None
     return Context(id=context_id, parent_id=parent_id)
@@ -277,7 +239,7 @@ def is_our_context_id(context_id: str | None, which: str | None = None) -> bool:
         return False
     if which is None:
         return True
-    return f":{_remove_vowels(which)}:" in context_id
+    return f":{remove_vowels(which)}:" in context_id
 
 
 def is_our_context(context: Context | None, which: str | None = None) -> bool:
@@ -716,28 +678,6 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     return supported
 
 
-def color_difference_redmean(
-    rgb1: tuple[float, float, float],
-    rgb2: tuple[float, float, float],
-) -> float:
-    """Distance between colors in RGB space (redmean metric).
-
-    The maximal distance between (255, 255, 255) and (0, 0, 0) ≈ 765.
-
-    Sources:
-    - https://en.wikipedia.org/wiki/Color_difference#Euclidean
-    - https://www.compuphase.com/cmetric.htm
-    """
-    r_hat = (rgb1[0] + rgb2[0]) / 2
-    delta_r, delta_g, delta_b = (
-        (col1 - col2) for col1, col2 in zip(rgb1, rgb2, strict=True)
-    )
-    red_term = (2 + r_hat / 256) * delta_r**2
-    green_term = 4 * delta_g**2
-    blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
-    return math.sqrt(red_term + green_term + blue_term)
-
-
 # All comparisons should be done with RGB since
 # converting anything to color temp is inaccurate.
 def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
@@ -968,6 +908,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
             min_sunset_time=data[CONF_MIN_SUNSET_TIME],
+            brightness_mode=data[CONF_BRIGHTNESS_MODE],
+            brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
+            brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
             transition=data[CONF_TRANSITION],
         )
         _LOGGER.debug(
@@ -1251,7 +1194,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_kelvin = attributes["min_color_temp_kelvin"]
             max_kelvin = attributes["max_color_temp_kelvin"]
             color_temp_kelvin = self._settings["color_temp_kelvin"]
-            color_temp_kelvin = max(min(color_temp_kelvin, max_kelvin), min_kelvin)
+            color_temp_kelvin = clamp(color_temp_kelvin, min_kelvin, max_kelvin)
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
@@ -1614,32 +1557,6 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
-def lerp_color_hsv(
-    rgb1: tuple[float, float, float],
-    rgb2: tuple[float, float, float],
-    t: float,
-) -> tuple[int, int, int]:
-    """Linearly interpolate between two RGB colors in HSV color space."""
-    t = abs(t)
-    assert 0 <= t <= 1
-
-    # Convert RGB to HSV
-    hsv1 = colorsys.rgb_to_hsv(*[x / 255.0 for x in rgb1])
-    hsv2 = colorsys.rgb_to_hsv(*[x / 255.0 for x in rgb2])
-
-    # Linear interpolation in HSV space
-    hsv = (
-        hsv1[0] + t * (hsv2[0] - hsv1[0]),
-        hsv1[1] + t * (hsv2[1] - hsv1[1]),
-        hsv1[2] + t * (hsv2[2] - hsv1[2]),
-    )
-
-    # Convert back to RGB
-    rgb = tuple(int(round(x * 255)) for x in colorsys.hsv_to_rgb(*hsv))
-    assert all(0 <= x <= 255 for x in rgb), f"Invalid RGB color: {rgb}"
-    return cast(tuple[int, int, int], rgb)
-
-
 @dataclass(frozen=True)
 class SunLightSettings:
     """Track the state of the sun and associated light settings."""
@@ -1661,17 +1578,46 @@ class SunLightSettings:
     sunset_offset: datetime.timedelta | None
     sunset_time: datetime.time | None
     min_sunset_time: datetime.time | None
+    brightness_mode: Literal["default", "linear", "tanh"]
+    brightness_mode_time_dark: datetime.timedelta | None
+    brightness_mode_time_light: datetime.timedelta | None
     transition: int
+
+    def sunrise(self, date: datetime.datetime) -> datetime.datetime:
+        """Return the (adjusted) sunrise time for the given date."""
+        sunrise = (
+            self.astral_location.sunrise(date, local=False)
+            if self.sunrise_time is None
+            else self._replace_time(date, "sunrise")
+        ) + self.sunrise_offset
+        if self.max_sunrise_time is not None:
+            max_sunrise = self._replace_time(date, "max_sunrise")
+            if max_sunrise < sunrise:
+                sunrise = max_sunrise
+        return sunrise
+
+    def sunset(self, date: datetime.datetime) -> datetime.datetime:
+        """Return the (adjusted) sunset time for the given date."""
+        sunset = (
+            self.astral_location.sunset(date, local=False)
+            if self.sunset_time is None
+            else self._replace_time(date, "sunset")
+        ) + self.sunset_offset
+        if self.min_sunset_time is not None:
+            min_sunset = self._replace_time(date, "min_sunset")
+            if min_sunset > sunset:
+                sunset = min_sunset
+        return sunset
+
+    def _replace_time(self, date: datetime.datetime, key: str) -> datetime.datetime:
+        time = getattr(self, f"{key}_time")
+        date_time = datetime.datetime.combine(date, time)
+        return date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
+            dt_util.UTC,
+        )
 
     def get_sun_events(self, date: datetime.datetime) -> list[tuple[str, float]]:
         """Get the four sun event's timestamps at 'date'."""
-
-        def _replace_time(date: datetime.datetime, key: str) -> datetime.datetime:
-            time = getattr(self, f"{key}_time")
-            date_time = datetime.datetime.combine(date, time)
-            return date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
-                dt_util.UTC,
-            )
 
         def calculate_noon_and_midnight(
             sunset: datetime.datetime,
@@ -1689,27 +1635,8 @@ class SunLightSettings:
             return noon, midnight
 
         location = self.astral_location
-
-        sunrise = (
-            location.sunrise(date, local=False)
-            if self.sunrise_time is None
-            else _replace_time(date, "sunrise")
-        ) + self.sunrise_offset
-        sunset = (
-            location.sunset(date, local=False)
-            if self.sunset_time is None
-            else _replace_time(date, "sunset")
-        ) + self.sunset_offset
-
-        if self.max_sunrise_time is not None:
-            max_sunrise = _replace_time(date, "max_sunrise")
-            if max_sunrise < sunrise:
-                sunrise = max_sunrise
-
-        if self.min_sunset_time is not None:
-            min_sunset = _replace_time(date, "min_sunset")
-            if min_sunset > sunset:
-                sunset = min_sunset
+        sunrise = self.sunrise(date)
+        sunset = self.sunset(date)
 
         if (
             self.sunrise_time is None
@@ -1774,11 +1701,75 @@ class SunLightSettings:
         """Calculate the brightness in %."""
         if is_sleep:
             return self.sleep_brightness
-        if percent > 0:
-            return self.max_brightness
-        delta_brightness = self.max_brightness - self.min_brightness
-        percent = 1 + percent
-        return (delta_brightness * percent) + self.min_brightness
+        assert self.brightness_mode in ("default", "linear", "tanh")
+
+        if self.brightness_mode == "default":
+            if percent > 0:
+                return self.max_brightness
+            delta_brightness = self.max_brightness - self.min_brightness
+            percent = 1 + percent
+            return (delta_brightness * percent) + self.min_brightness
+
+        now = dt_util.utcnow()
+        (prev_event, prev_ts), (next_event, next_ts) = self.relevant_events(now)
+
+        # at ts_event - dt_start, brightness == start_brightness
+        # at ts_event + dt_end, brightness == end_brightness
+        dark = (self.brightness_mode_time_dark or timedelta()).total_seconds()
+        light = (self.brightness_mode_time_light or timedelta()).total_seconds()
+        # Handle sunrise
+        if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
+            if self.brightness_mode == "linear":
+                brightness = lerp(
+                    now.timestamp(),
+                    x1=ts_event - dark,
+                    x2=ts_event + light,
+                    y1=self.min_brightness,
+                    y2=self.max_brightness,
+                )
+            else:
+                assert self.brightness_mode == "tanh"
+                a, b = find_a_b(
+                    x1=-dark,
+                    x2=+light,
+                    y1=0.05,  # be at 5% of range at x1
+                    y2=0.95,  # be at 95% of range at x2
+                )
+                brightness = scaled_tanh(
+                    now.timestamp() - ts_event,
+                    a=a,
+                    b=b,
+                    y_min=self.min_brightness,
+                    y_max=self.max_brightness,
+                )
+        # Handle sunset
+        elif prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
+            if self.brightness_mode == "linear":
+                brightness = lerp(
+                    now.timestamp(),
+                    x1=ts_event - light,
+                    x2=ts_event + dark,
+                    y1=self.max_brightness,
+                    y2=self.min_brightness,
+                )
+            else:
+                assert self.brightness_mode == "tanh"
+                a, b = find_a_b(
+                    x1=-light,  # shifted timestamp for the start of sunset
+                    x2=+dark,  # shifted timestamp for the end of sunset
+                    y1=0.95,  # be at 95% of range at the start of sunset
+                    y2=0.05,  # be at 5% of range at the end of sunset
+                )
+                brightness = scaled_tanh(
+                    now.timestamp() - ts_event,
+                    a=a,
+                    b=b,
+                    y_min=self.min_brightness,
+                    y_max=self.max_brightness,
+                )
+        return clamp(brightness, self.min_brightness, self.max_brightness)
 
     def calc_color_temp_kelvin(self, percent: float) -> int:
         """Calculate the color temperature in Kelvin."""
