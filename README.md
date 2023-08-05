@@ -424,9 +424,12 @@ When `brightness_mode` is set to `"tanh"`, it uses the smooth transition of a [h
 </details>
 
 Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark` in the text box.
-![](https://github.com/basnijholt/adaptive-lighting/assets/6897215/8cc28872-6ba6-4dd3-8f77-47fb61cd5719)
-![](https://github.com/basnijholt/adaptive-lighting/assets/6897215/d3fa375e-78be-4d3e-b1c2-896dac5e8a24)
-![](https://github.com/basnijholt/adaptive-lighting/assets/6897215/1ba4ec60-03a2-469c-9f64-ad3f81b9c789)
+![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/15143580-13cd-4ab2-a603-89f2b7830afd)
+![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/f61fdac9-6d47-48c9-84ed-cbb451d5de5d)
+![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/e5fc5d27-3c37-4e3d-93d1-6e7cf4b48e7c)
+![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/3dcbdc42-63c4-49df-8651-d2fae53dd08d)
+
+> [*Code to make the plots*](https://github.com/basnijholt/adaptive-lighting/pull/699#issuecomment-1666232555)
 
 ## :eyes: See also
 
