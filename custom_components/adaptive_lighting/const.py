@@ -141,6 +141,28 @@ DOCS[
     CONF_MIN_SUNSET_TIME
 ] = "Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇"
 
+CONF_BRIGHTNESS_MODE, DEFAULT_BRIGHTNESS_MODE = "brightness_mode", "default"
+DOCS[CONF_BRIGHTNESS_MODE] = (
+    "Brightness mode to use. Possible values are `default`, `linear`, and `tanh` "
+    "(uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈"
+)
+CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK = (
+    "brightness_mode_time_dark",
+    900,
+)
+DOCS[CONF_BRIGHTNESS_MODE_TIME_DARK] = (
+    "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down "
+    "the brightness before/after sunrise/sunset. 📈📉"
+)
+CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT = (
+    "brightness_mode_time_light",
+    3600,
+)
+DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
+    "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down "
+    "the brightness after/before sunrise/sunset. 📈📉."
+)
+
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
     "Disable Adaptive Lighting if another source calls `light.turn_on` while lights "
@@ -282,6 +304,20 @@ VALIDATION_TUPLES = [
     (CONF_SUNSET_TIME, NONE_STR, str),
     (CONF_MIN_SUNSET_TIME, NONE_STR, str),
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
+    (
+        CONF_BRIGHTNESS_MODE,
+        DEFAULT_BRIGHTNESS_MODE,
+        selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=["default", "linear", "tanh"],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        ),
+    ),
+    (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
+    (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
+    (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (
@@ -321,6 +357,8 @@ EXTRA_VALIDATION = {
     CONF_SUNSET_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNSET_TIME: (cv.time, str),
     CONF_MIN_SUNSET_TIME: (cv.time, str),
+    CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
+    CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
 }
 
 
