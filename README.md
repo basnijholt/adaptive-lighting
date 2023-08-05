@@ -366,11 +366,21 @@ Ensure your light bulbs have a strong WiFi connection. If the signal strength is
 
 #### :spider_web: Zigbee, Z-Wave, and Other Mesh Networks
 
-Mesh networks typically require powered devices to act as routers, relaying messages back to the central coordinator (the radio connected to Home Assistant). Philips lights usually function as routers, while Ikea, Sengled, and generic Tuya bulbs often do not. If devices become unresponsive or fail to respond to commands, Adaptive Lighting can exacerbate the issue. Use network maps (available in ZHA, zigbee2mqtt, deCONZ, and ZWaveJS UI) to evaluate your network health. Smart plugs can be an affordable way to add more routers to your network.
+Mesh networks typically require powered devices to act as routers, relaying messages back to the central coordinator (the radio connected to Home Assistant).
+Philips lights usually function as routers, while Ikea, Sengled, and generic Tuya bulbs often do not.
+If devices become unresponsive or fail to respond to commands, Adaptive Lighting can exacerbate the issue.
+Use network maps (available in ZHA, zigbee2mqtt, deCONZ, and ZWaveJS UI) to evaluate your network health.
+Smart plugs can be an affordable way to add more routers to your network.
 
-For most Zigbee networks, **using groups is essential for optimal performance**. For example, if you want to use Adaptive Lighting in a hallway with six bulbs, adding each bulb individually to the Adaptive Lighting configuration could overwhelm the network with commands. Instead, create a group in your Zigbee software (not a regular Home Assistant group) and add that single group to the Adaptive Lighting configuration. This sends a single broadcast command to adjust all bulbs, improving response times and keeping the bulbs in sync.
+For most Zigbee networks, **using groups is essential for optimal performance**.
+For example, if you want to use Adaptive Lighting in a hallway with six bulbs, adding each bulb individually to the Adaptive Lighting configuration could overwhelm the network with commands.
+Instead, create a group in your Zigbee software (not a regular Home Assistant group) and add that single group to the Adaptive Lighting configuration.
+This sends a single broadcast command to adjust all bulbs, improving response times and keeping the bulbs in sync.
 
-As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group. Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
+As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group.
+Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
+
+> :warning: **If you control lights individually, `manual_control` cannot behave correctly! If you need to control lights individually as well, use a [Home Assistant Light Group](https://www.home-assistant.io/integrations/group/).**
 
 #### :rainbow: Light Colors Not Matching
 
