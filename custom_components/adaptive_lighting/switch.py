@@ -1731,8 +1731,8 @@ class SunLightSettings:
             else:
                 assert self.brightness_mode == "tanh"
                 a, b = find_a_b(
-                    x1=-light,
-                    x2=+dark,
+                    x1=-dark,
+                    x2=+light,
                     y1=0.05,  # be at 5% of range at x1
                     y2=0.95,  # be at 95% of range at x2
                 )

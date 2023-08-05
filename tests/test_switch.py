@@ -2002,14 +2002,13 @@ async def test_light_group(
 
 
 @pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])
-async def test_brightness_mode(hass, brightness_mode):
+@pytest.mark.parametrize("dark,light", ([900, 1800], [1800, 900], [1800, 1800]))
+async def test_brightness_mode(hass, brightness_mode, dark, light):
     """Test brightness mode.
 
     We are not testing the "default" mode because that is tested in all other tests.
     """
-    # only test symmetric case
-    dark = 1800
-    light = 1800
+    is_symmetric = dark == light
     _, switch = await setup_switch(
         hass,
         {
@@ -2025,7 +2024,7 @@ async def test_brightness_mode(hass, brightness_mode):
     min_brightness = switch._sun_light_settings.min_brightness
     max_brightness = switch._sun_light_settings.max_brightness
     brightness_range = max_brightness - min_brightness
-    brightness_mid = min_brightness + brightness_range / 2
+    brightness_event = min_brightness + brightness_range / 2
     dark = switch._sun_light_settings.brightness_mode_time_dark
     light = switch._sun_light_settings.brightness_mode_time_light
 
@@ -2055,26 +2054,28 @@ async def test_brightness_mode(hass, brightness_mode):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
             await hass.async_block_till_done()
 
-    # At sunset the brightness should be 50%
-    await patch_time_and_update(sunset)
-    assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], brightness_mid)
+    if is_symmetric:
+        # At sunset the brightness should be 50%
+        await patch_time_and_update(sunset)
+        assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], brightness_event)
 
-    # One hour before sunset the brightness should be max
+    # Before sunset the brightness should be max
     await patch_time_and_update(before_sunset)
     assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], light_brightness)
 
-    # One hour after sunset the brightness should be dark_brightness
+    # After sunset the brightness should be dark_brightness
     await patch_time_and_update(after_sunset)
     assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], dark_brightness)
 
-    # At sunrise the brightness should be 50%
-    await patch_time_and_update(sunrise)
-    assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], brightness_mid)
+    if is_symmetric:
+        # At sunrise the brightness should be 50%
+        await patch_time_and_update(sunrise)
+        assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], brightness_event)
 
-    # One hour before sunrise the brightness should be min
+    # Before sunrise the brightness should be min
     await patch_time_and_update(before_sunrise)
     assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], dark_brightness)
 
-    # One hour after sunrise the brightness should be light_brightness
+    # After sunrise the brightness should be light_brightness
     await patch_time_and_update(after_sunrise)
     assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], light_brightness)

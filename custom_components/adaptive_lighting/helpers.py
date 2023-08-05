@@ -17,23 +17,26 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
 
 
 def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:
-    """Find 'a' and 'b' for a scaled and shifted tanh function.
+    """Compute the values of 'a' and 'b' for a scaled and shifted tanh function.
 
-    Given two points (x1, y1) and (x2, y2), this function solves for 'a' and 'b' such that
-    the scaled and shifted tanh function passes through these points. The function is
-    defined as: y = 0.5 * (tanh(a * (x - b)) + 1)
+    Given two points (x1, y1) and (x2, y2), this function calculates the coefficients 'a' and 'b'
+    for a tanh function of the form y = 0.5 * (tanh(a * (x - b)) + 1) that passes through these points.
 
-    The steps to find 'a' and 'b' are as follows:
-    1. Set up two equations based on the definition of the scaled and shifted tanh function:
-        y1 = 0.5 * (tanh(a * (x1 - b)) + 1)
-        y2 = 0.5 * (tanh(a * (x2 - b)) + 1)
-    2. Rearrange these equations:
-        tanh(a * (x1 - b)) = 2*y1 - 1
-        tanh(a * (x2 - b)) = 2*y2 - 1
-    3. Take the inverse tanh (or artanh) of both sides:
-        a * (x1 - b) = artanh(2*y1 - 1)
-        a * (x2 - b) = artanh(2*y2 - 1)
-    4. Solve these linear equations to find the values of 'a' and 'b'.
+    The derivation is as follows:
+
+    1. Start with the equation of the tanh function:
+       y = 0.5 * (tanh(a * (x - b)) + 1)
+
+    2. Rearrange the equation to isolate tanh:
+       tanh(a * (x - b)) = 2*y - 1
+
+    3. Take the inverse tanh (or artanh) on both sides to solve for 'a' and 'b':
+       a * (x - b) = artanh(2*y - 1)
+
+    4. Plug in the points (x1, y1) and (x2, y2) to get two equations.
+       Using these, we can solve for 'a' and 'b' as:
+       a = (artanh(2*y2 - 1) - artanh(2*y1 - 1)) / (x2 - x1)
+       b = x1 - (artanh(2*y1 - 1) / a)
 
     Parameters
     ----------
@@ -48,27 +51,17 @@ def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:
 
     Returns
     -------
-    tuple
-        A tuple containing the values of 'a' and 'b'.
+    a
+        Coefficient 'a' for the tanh function.
+    b
+        Coefficient 'b' for the tanh function.
 
-    Raises
-    ------
-    ValueError
-        If 'y1' or 'y2' is not between 0 and 1.
+    Notes
+    -----
+    The values of y1 and y2 should lie between 0 and 1, inclusive.
     """
-    # Check the y values
-    if not (0 <= y1 <= 1) or not (0 <= y2 <= 1):
-        msg = "y1 and y2 should be between 0 and 1."
-        raise ValueError(msg)
-
-    # Calculate the inverse tanh values
-    z1 = math.atanh(2 * y1 - 1)
-    z2 = math.atanh(2 * y2 - 1)
-
-    # Solve the equations to find 'a' and 'b'
-    a = (z2 - z1) / (x2 - x1)
-    b = (x1 * z2 - x2 * z1) / (x1 - x2)
-
+    a = (math.atanh(2 * y2 - 1) - math.atanh(2 * y1 - 1)) / (x2 - x1)
+    b = x1 - (math.atanh(2 * y1 - 1) / a)
     return a, b
 
 
