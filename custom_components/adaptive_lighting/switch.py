@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import bisect
 import datetime
-import functools
 import logging
 import math
 from copy import deepcopy
@@ -2330,6 +2329,12 @@ class AdaptiveLightingManager:
         delay = self.auto_reset_manual_control_times.get(light)
 
         async def reset():
+            _LOGGER.debug(
+                "Auto resetting 'manual_control' status of '%s' because"
+                " it was not manually controlled for %s seconds.",
+                light,
+                delay,
+            )
             self.reset(light)
             switches = _switches_with_lights(self.hass, [light])
             for switch in switches:
@@ -2341,12 +2346,6 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            _LOGGER.debug(
-                "Auto resetting 'manual_control' status of '%s' because"
-                " it was not manually controlled for %s seconds.",
-                light,
-                delay,
-            )
             assert not self.manual_control[light]
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
@@ -2384,7 +2383,7 @@ class AdaptiveLightingManager:
             # color_task might be the same as brightness_task
             color_task.cancel()
 
-    def reset(self, *lights, reset_manual_control=True) -> None:
+    def reset(self, *lights, reset_manual_control: bool = True) -> None:
         """Reset the 'manual_control' status of the lights."""
         for light in lights:
             if reset_manual_control:
@@ -2653,13 +2652,6 @@ class AdaptiveLightingManager:
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             return False
-        compare_to = functools.partial(
-            _attributes_have_changed,
-            light=light,
-            adapt_brightness=adapt_brightness,
-            adapt_color=adapt_color,
-            context=context,
-        )
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
@@ -2668,13 +2660,17 @@ class AdaptiveLightingManager:
         refreshed_state = self.hass.states.get(light)
         assert refreshed_state is not None
 
-        changed = compare_to(
+        changed = _attributes_have_changed(
             old_attributes=last_service_data,
             new_attributes=refreshed_state.attributes,
+            light=light,
+            adapt_brightness=adapt_brightness,
+            adapt_color=adapt_color,
+            context=context,
         )
         if changed:
             _LOGGER.debug(
-                "%s: State attributes of '%s' (%s) didn't change wrt 'last_service_data' (%s) (context.id=%s)",
+                "%s: State attributes of '%s' changed (%s) wrt 'last_service_data' (%s) (context.id=%s)",
                 switch._name,
                 light,
                 refreshed_state.attributes,
@@ -2683,7 +2679,7 @@ class AdaptiveLightingManager:
             )
             return True
         _LOGGER.debug(
-            "%s: State attributes of '%s' (%s) changed wrt 'last_service_data' (%s) (context.id=%s)",
+            "%s: State attributes of '%s' did not change (%s) wrt 'last_service_data' (%s) (context.id=%s)",
             switch._name,
             light,
             refreshed_state.attributes,
