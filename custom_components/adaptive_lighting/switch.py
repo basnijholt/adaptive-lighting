@@ -2694,7 +2694,10 @@ class AdaptiveLightingManager:
         off_to_on_event: Event,
     ) -> bool:
         # Adaptive Lighting should never turn on lights itself
-        if is_our_context(off_to_on_event.context):
+        if is_our_context(off_to_on_event.context) and not is_our_context(
+            off_to_on_event.context,
+            "service",  # adaptive_lighting.apply is allowed to turn on lights
+        ):
             _LOGGER.warning(
                 "Detected an 'off' → 'on' event for '%s' with context.id='%s' and"
                 " event='%s', triggered by the adaptive_lighting integration itself,"
