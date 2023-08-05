@@ -122,6 +122,11 @@ DOCS[
 CONF_SUNRISE_TIME = "sunrise_time"
 DOCS[CONF_SUNRISE_TIME] = "Set a fixed time (HH:MM:SS) for sunrise. 🌅"
 
+CONF_MIN_SUNRISE_TIME = "min_sunrise_time"
+DOCS[
+    CONF_MIN_SUNRISE_TIME
+] = "Set the earliest virtual sunrise time (HH:MM:SS), allowing for later sunrises. 🌅"
+
 CONF_MAX_SUNRISE_TIME = "max_sunrise_time"
 DOCS[CONF_MAX_SUNRISE_TIME] = (
     "Set the latest virtual sunrise time (HH:MM:SS), allowing"
@@ -140,6 +145,11 @@ CONF_MIN_SUNSET_TIME = "min_sunset_time"
 DOCS[
     CONF_MIN_SUNSET_TIME
 ] = "Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇"
+
+CONF_MAX_SUNSET_TIME = "max_sunset_time"
+DOCS[
+    CONF_MAX_SUNSET_TIME
+] = "Set the latest virtual sunset time (HH:MM:SS), allowing for earlier sunsets. 🌇"
 
 CONF_BRIGHTNESS_MODE, DEFAULT_BRIGHTNESS_MODE = "brightness_mode", "default"
 DOCS[CONF_BRIGHTNESS_MODE] = (
@@ -299,10 +309,12 @@ VALIDATION_TUPLES = [
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
     (CONF_SUNRISE_TIME, NONE_STR, str),
+    (CONF_MIN_SUNRISE_TIME, NONE_STR, str),
     (CONF_MAX_SUNRISE_TIME, NONE_STR, str),
     (CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET, int),
     (CONF_SUNSET_TIME, NONE_STR, str),
     (CONF_MIN_SUNSET_TIME, NONE_STR, str),
+    (CONF_MAX_SUNSET_TIME, NONE_STR, str),
     (CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET, int),
     (
         CONF_BRIGHTNESS_MODE,

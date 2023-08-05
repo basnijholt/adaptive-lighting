@@ -117,8 +117,10 @@ from .const import (
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
     CONF_MAX_SUNRISE_TIME,
+    CONF_MAX_SUNSET_TIME,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
+    CONF_MIN_SUNRISE_TIME,
     CONF_MIN_SUNSET_TIME,
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ONLY_ONCE,
@@ -903,10 +905,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
             sunrise_offset=data[CONF_SUNRISE_OFFSET],
             sunrise_time=data[CONF_SUNRISE_TIME],
+            min_sunrise_time=data[CONF_MIN_SUNRISE_TIME],
             max_sunrise_time=data[CONF_MAX_SUNRISE_TIME],
             sunset_offset=data[CONF_SUNSET_OFFSET],
             sunset_time=data[CONF_SUNSET_TIME],
             min_sunset_time=data[CONF_MIN_SUNSET_TIME],
+            max_sunset_time=data[CONF_MAX_SUNSET_TIME],
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
@@ -1571,12 +1575,14 @@ class SunLightSettings:
     sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
     sleep_color_temp: int
     sleep_rgb_color: tuple[int, int, int]
-    sunrise_offset: datetime.timedelta | None
     sunrise_time: datetime.time | None
+    sunrise_offset: datetime.timedelta | None
+    min_sunrise_time: datetime.time | None
     max_sunrise_time: datetime.time | None
-    sunset_offset: datetime.timedelta | None
     sunset_time: datetime.time | None
+    sunset_offset: datetime.timedelta | None
     min_sunset_time: datetime.time | None
+    max_sunset_time: datetime.time | None
     brightness_mode: Literal["default", "linear", "tanh"]
     brightness_mode_time_dark: datetime.timedelta | None
     brightness_mode_time_light: datetime.timedelta | None
@@ -1589,6 +1595,10 @@ class SunLightSettings:
             if self.sunrise_time is None
             else self._replace_time(date, "sunrise")
         ) + self.sunrise_offset
+        if self.min_sunrise_time is not None:
+            min_sunrise = self._replace_time(date, "min_sunrise")
+            if min_sunrise > sunrise:
+                sunrise = min_sunrise
         if self.max_sunrise_time is not None:
             max_sunrise = self._replace_time(date, "max_sunrise")
             if max_sunrise < sunrise:
@@ -1606,6 +1616,10 @@ class SunLightSettings:
             min_sunset = self._replace_time(date, "min_sunset")
             if min_sunset > sunset:
                 sunset = min_sunset
+        if self.max_sunset_time is not None:
+            max_sunset = self._replace_time(date, "max_sunset")
+            if max_sunset < sunset:
+                sunset = max_sunset
         return sunset
 
     def _replace_time(self, date: datetime.datetime, key: str) -> datetime.datetime:
