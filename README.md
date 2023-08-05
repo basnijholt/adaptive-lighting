@@ -423,10 +423,10 @@ When `brightness_mode` is set to `"tanh"`, it uses the smooth transition of a [h
 - During **_sunrise_**, the brightness starts to increase from 5% of `min_brightness` starting at `time=sunrise_time - brightness_mode_time_dark`, until it reaches 95% of `max_brightness` at `time=sunrise_time + brightness_mode_time_light`.
 </details>
 
-![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/b5d142c7-798c-4f38-9acb-d38d7e38e36d)
-![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/1f2ce2bd-509b-4c7b-b14c-fb3ab872e6a7)
-![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/89609013-302e-422c-930a-e438fe427658)
-
+Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark` in the text box.
+![](https://github.com/basnijholt/adaptive-lighting/assets/6897215/8cc28872-6ba6-4dd3-8f77-47fb61cd5719)
+![](https://github.com/basnijholt/adaptive-lighting/assets/6897215/d3fa375e-78be-4d3e-b1c2-896dac5e8a24)
+![](https://github.com/basnijholt/adaptive-lighting/assets/6897215/1ba4ec60-03a2-469c-9f64-ad3f81b9c789)
 
 ## :eyes: See also
 
