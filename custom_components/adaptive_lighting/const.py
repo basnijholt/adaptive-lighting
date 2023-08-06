@@ -77,6 +77,18 @@ DOCS[CONF_ONLY_ONCE] = (
     "(`false`). 🔄"
 )
 
+CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON = (
+    "adapt_only_on_bare_turn_on",
+    False,
+)
+DOCS[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = (
+    "When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is "
+    "invoked without specifying color or brightness. ❌🌈 "
+    "This e.g., prevents adaptation when activating a scene. "
+    "If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. "
+    "Needs `take_over_control` enabled. 🕵️ "
+)
+
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
 DOCS[CONF_PREFER_RGB_COLOR] = (
     "Whether to prefer RGB color adjustment over "
@@ -329,7 +341,6 @@ VALIDATION_TUPLES = [
     ),
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
-    (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (
@@ -338,6 +349,7 @@ VALIDATION_TUPLES = [
         int_between(0, 365 * 24 * 60 * 60),  # 1 year max
     ),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
+    (CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),

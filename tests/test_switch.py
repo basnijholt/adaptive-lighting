@@ -88,6 +88,7 @@ from custom_components.adaptive_lighting.const import (
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
+    CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     UNDO_UPDATE_LISTENER,
 )
 from custom_components.adaptive_lighting.switch import (
@@ -561,9 +562,19 @@ async def test_manager_not_tracking_untracked_lights(hass):
     assert light not in switch.manager.lights
 
 
-async def test_manual_control(hass):
+@pytest.mark.parametrize("adapt_only_on_bare_turn_on", [True, False])
+@pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
+async def test_manual_control(
+    hass, adapt_only_on_bare_turn_on, proactive_service_call_adaptation
+):
     """Test the 'manual control' tracking."""
-    switch, (light, *_) = await setup_lights_and_switch(hass)
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_ADAPT_ONLY_ON_BARE_TURN_ON: adapt_only_on_bare_turn_on,
+            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
+        },
+    )
     assert switch._take_over_control
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
 
@@ -639,9 +650,14 @@ async def test_manual_control(hass):
     await change_manual_control(True)
     assert manual_control[ENTITY_LIGHT_1]
     await turn_light(False)
+    assert not manual_control[ENTITY_LIGHT_1], manual_control
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    assert not manual_control[ENTITY_LIGHT_1], manual_control
+    if adapt_only_on_bare_turn_on:
+        # Marks as manually controlled beacuse we turned it on with brightness
+        assert manual_control[ENTITY_LIGHT_1], manual_control
+    else:
+        assert not manual_control[ENTITY_LIGHT_1], manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
     for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:

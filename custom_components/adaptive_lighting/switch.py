@@ -103,6 +103,7 @@ from .const import (
     ATTR_ADAPT_COLOR,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_DELAY,
+    CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_BRIGHTNESS_MODE,
@@ -876,15 +877,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
-        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
-        if not data[CONF_TAKE_OVER_CONTROL] and data[CONF_DETECT_NON_HA_CHANGES]:
+        if not data[CONF_TAKE_OVER_CONTROL] and (
+            data[CONF_DETECT_NON_HA_CHANGES] or data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
+        ):
             _LOGGER.warning(
-                "%s: Config mismatch: 'detect_non_ha_changes: true' "
-                "requires 'take_over_control' to be enabled. Adjusting config "
+                "%s: Config mismatch: `detect_non_ha_changes` or `adapt_only_on_bare_turn_on` "
+                "set to `true` requires `take_over_control` to be enabled. Adjusting config "
                 "and continuing setup with `take_over_control: true`.",
                 self._name,
             )
             self._take_over_control = True
+        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
@@ -1446,13 +1450,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
         assert not self.manager.is_proactively_adapting(event.context.id)
+        from_turn_on = self.manager._off_to_on_state_event_is_from_turn_on(
+            entity_id,
+            event,
+        )
         if (
             self._take_over_control
             and not self._detect_non_ha_changes
-            and not self.manager._off_to_on_state_event_is_from_turn_on(
-                entity_id,
-                event,
-            )
+            and not from_turn_on
         ):
             # There is an edge case where 2 switches control the same light, e.g.,
             # one for brightness and one for color. Now we will mark both switches
@@ -1467,6 +1472,25 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self.manager.mark_as_manual_control(entity_id)
             return
+
+        if (
+            self._take_over_control
+            and self._adapt_only_on_bare_turn_on
+            and from_turn_on
+        ):
+            service_data = self.manager.turn_on_event[entity_id].data[ATTR_SERVICE_DATA]
+            if self.manager._mark_manual_control_if_non_bare_turn_on(
+                entity_id,
+                service_data,
+            ):
+                _LOGGER.debug(
+                    "Skipping responding to 'off' → 'on' event for '%s' with context.id='%s' because"
+                    " we only adapt on bare `light.turn_on` events and not on service_data: '%s'",
+                    entity_id,
+                    event.context.id,
+                    service_data,
+                )
+                return
 
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
@@ -2070,6 +2094,14 @@ class AdaptiveLightingManager:
                     # and of TOGGLE calls when toggling off.
                     or self.hass.states.is_state(entity_id, STATE_ON)
                     or self.manual_control.get(entity_id, False)
+                    or (
+                        switch._take_over_control
+                        and switch._adapt_only_on_bare_turn_on
+                        and self._mark_manual_control_if_non_bare_turn_on(
+                            entity_id,
+                            data[CONF_PARAMS],
+                        )
+                    )
                 ):
                     _LOGGER.debug(
                         "Switch is off or light is already on for entity_id='%s', skipped='%s'"
@@ -2622,6 +2654,7 @@ class AdaptiveLightingManager:
         turn_on_event = self.turn_on_event.get(light)
         if (
             turn_on_event is not None
+            and not self.is_proactively_adapting(turn_on_event.context.id)
             and not is_our_context(turn_on_event.context)
             and not force
         ):
@@ -2853,6 +2886,21 @@ class AdaptiveLightingManager:
             entity_id,
             total_sleep,
         )
+        return False
+
+    def _mark_manual_control_if_non_bare_turn_on(
+        self,
+        entity_id: str,
+        service_data: ServiceData,
+    ) -> bool:
+        _LOGGER.debug(
+            "_mark_manual_control_if_non_bare_turn_on: entity_id='%s', service_data='%s'",
+            entity_id,
+            service_data,
+        )
+        if any(attr in service_data for attr in COLOR_ATTRS | BRIGHTNESS_ATTRS):
+            self.mark_as_manual_control(entity_id)
+            return True
         return False
 
 
