@@ -97,6 +97,7 @@ from custom_components.adaptive_lighting.switch import (
     INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
     AdaptiveSwitch,
     _attributes_have_changed,
+    _expand_light_groups,
     color_difference_redmean,
     create_context,
     AdaptiveLightingManager,
