@@ -1,4 +1,5 @@
 {
     "name": "Adaptive Lighting",
-    "render_readme": true
+    "render_readme": true,
+    "homeassistant": "2022.11.0"
 }

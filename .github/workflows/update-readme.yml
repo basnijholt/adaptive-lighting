@@ -1,4 +1,4 @@
-name: Update README.md
+name: Update README.md, strings.json, and services.yaml
 
 on:
   push:
@@ -20,11 +20,11 @@ jobs:
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies
         with:
-          python_version: "3.10"
+          python-version: "3.11"
 
       - name: Install markdown-code-runner and README code dependencies
         run: |
-          pip install markdown-code-runner pandas tabulate
+          pip install markdown-code-runner==1.0.0 pandas tabulate
 
       - name: Link custom_components/adaptive_lighting
         run: |
@@ -34,11 +34,11 @@ jobs:
       - name: Run markdown-code-runner
         run: markdown-code-runner --debug README.md
 
-      - name: Run update strings.json
-        run: python .github/update-strings.py
-
       - name: Run update services.yaml
         run: python .github/update-services.py
+
+      - name: Run update strings.json
+        run: python .github/update-strings.py
 
       - name: Commit updated README.md, strings.json, and services.yaml
         id: commit

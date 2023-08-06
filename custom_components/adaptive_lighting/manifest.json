@@ -1,12 +1,12 @@
 {
   "domain": "adaptive_lighting",
   "name": "Adaptive Lighting",
-  "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1"],
+  "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1", "@protyposis"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
-  "requirements": [],
-  "version": "1.10.0"
+  "requirements": ["ulid-transform"],
+  "version": "1.19.0b1"
 }
