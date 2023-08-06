@@ -370,11 +370,12 @@ async def handle_change_switch_settings(
         defaults = None
     elif which == "configuration":
         # use whatever's in the config flow or configuration.yaml
-        defaults = switch._config_backup  # pylint: disable=protected-access
+        defaults = switch._config_backup
     else:
         defaults = None
 
-    switch._set_changeable_settings(data=data, defaults=defaults)
+    # deep copy the defaults so we don't modify the original dicts
+    switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
     switch._update_time_interval_listener()
 
     _LOGGER.debug(
@@ -588,7 +589,7 @@ def validate(
     if defaults is None:
         data = {key: default for key, default, _ in VALIDATION_TUPLES}
     else:
-        data = defaults
+        data = deepcopy(defaults)
 
     if config_entry is not None:
         assert service_data is None
