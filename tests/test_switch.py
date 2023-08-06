@@ -1353,11 +1353,15 @@ async def test_change_switch_settings_service(hass):
     await change_switch_settings(**{CONF_USE_DEFAULTS: "current"})
     assert switch._sun_light_settings.min_color_temp == 2000
 
+    # testing with "configuration" and setting a new value
+    await change_switch_settings(
+        **{CONF_USE_DEFAULTS: "configuration", CONF_MIN_COLOR_TEMP: 3000}
+    )
+    assert switch._sun_light_settings.min_color_temp == 3000
+
     # testing with "configuration" should revert back to 2500
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
-
-    assert 0
 
 
 async def test_cancellable_service_calls_task(hass):
