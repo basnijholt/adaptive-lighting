@@ -1,3 +1,5 @@
+"""Simple web app to visualize brightness over time."""
+
 import math
 
 import matplotlib.pyplot as plt
