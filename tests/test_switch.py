@@ -1357,6 +1357,8 @@ async def test_change_switch_settings_service(hass):
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
 
+    assert 0
+
 
 async def test_cancellable_service_calls_task(hass):
     """Test the creation and execution of the task that wraps adaptation service calls."""

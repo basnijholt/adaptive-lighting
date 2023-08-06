@@ -363,12 +363,11 @@ async def handle_change_switch_settings(
 ) -> None:
     """Allows HASS to change config values via a service call."""
     data = service_call.data
-
     which = data.get(CONF_USE_DEFAULTS, "current")
     if which == "current":  # use whatever we're already using.
         defaults = switch._current_settings  # pylint: disable=protected-access
     elif which == "factory":  # use actual defaults listed in the documentation
-        defaults = {key: default for key, default, _ in VALIDATION_TUPLES}
+        defaults = None
     elif which == "configuration":
         # use whatever's in the config flow or configuration.yaml
         defaults = switch._config_backup  # pylint: disable=protected-access
@@ -598,7 +597,12 @@ def validate(
         data.update(config_entry.data)  # all yaml settings come from data
     else:
         assert service_data is not None
-        data.update(service_data)
+        changed_settings = {
+            key: value
+            for key, value in service_data.items()
+            if key not in (CONF_USE_DEFAULTS, ATTR_ENTITY_ID)
+        }
+        data.update(changed_settings)
     data = {key: replace_none_str(value) for key, value in data.items()}
     for key, (validate_value, _) in EXTRA_VALIDATION.items():
         value = data.get(key)
@@ -844,8 +848,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def _set_changeable_settings(
         self,
-        data: dict,
-        defaults: dict | None = None,
+        data: dict[str, Any],
+        defaults: dict[str, Any] | None = None,
     ):
         # Only pass settings users can change during runtime
         data = validate(
@@ -853,6 +857,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data=data,
             defaults=defaults,
         )
+        _LOGGER.debug("_set_changeable_settings: %s", data)
 
         # backup data for use in change_switch_settings "current" CONF_USE_DEFAULTS
         self._current_settings = data
