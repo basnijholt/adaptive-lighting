@@ -1399,7 +1399,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color = self.adapt_color_switch.is_on
         assert isinstance(adapt_brightness, bool)
         assert isinstance(adapt_color, bool)
-
+        tasks = []
         for light in filtered_lights:
             manually_controlled = (
                 self._take_over_control
@@ -1446,7 +1446,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 transition,
                 context.id,
             )
-            await self._adapt_light(light, context, transition, force=force)
+            coro = self._adapt_light(light, context, transition, force=force)
+            task = self.hass.async_create_task(
+                coro,
+            )
+            tasks.append(task)
+        if tasks:
+            await asyncio.gather(*tasks)
 
     async def _respond_to_off_to_on_event(self, entity_id: str, event: Event) -> None:
         assert not self.manager.is_proactively_adapting(event.context.id)
