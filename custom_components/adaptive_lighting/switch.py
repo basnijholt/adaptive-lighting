@@ -815,6 +815,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
+        _LOGGER.debug("config_backup: %s", self._config_backup)
         self._set_changeable_settings(data=data, defaults=None)
 
         # Set other attributes
