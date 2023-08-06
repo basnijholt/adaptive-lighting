@@ -1,0 +1,19 @@
+# https://www.home-assistant.io/integrations/default_config/
+default_config:
+
+# https://www.home-assistant.io/integrations/logger/
+logger:
+  default: info
+  logs:
+    custom_components.adaptive_lighting: debug
+
+light:
+  - platform: template
+    lights:
+      dummylight:
+        friendly_name: "Dummy Light"
+        turn_on:
+        turn_off:
+        set_level:
+        set_temperature:
+        supports_transition_template: "{{ true }}"

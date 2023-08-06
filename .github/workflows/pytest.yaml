@@ -13,8 +13,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10"]
-        core-version: ["2023.2.5", "2023.3.6", "2023.4.6", "dev"]
+        include:
+          - python-version: "3.10"
+            core-version: "2022.11.5"
+          - python-version: "3.10"
+            core-version: "2022.12.9"
+          - python-version: "3.10"
+            core-version: "2023.1.7"
+          - python-version: "3.10"
+            core-version: "2023.2.5"
+          - python-version: "3.10"
+            core-version: "2023.3.6"
+          - python-version: "3.10"
+            core-version: "2023.4.6"
+          - python-version: "3.10"
+            core-version: "2023.5.2"
+          - python-version: "3.11"
+            core-version: "2023.6.1"
+          - python-version: "3.11"
+            core-version: "dev"
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3
@@ -39,11 +56,6 @@ jobs:
         run: |
           cd core
 
-          # Link homeassitant.components.adaptive_lighting
-          cd homeassistant/components
-          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
-          cd -
-
           # Link adaptive_lighting tests
           cd tests/components/
           ln -fs ../../../tests adaptive_lighting
@@ -52,13 +64,17 @@ jobs:
       - name: Run pytest
         timeout-minutes: 60
         run: |
+          export PYTHONPATH=${PYTHONPATH}:${PWD}
           cd core
           python3 -X dev -m pytest \
+            -vvv \
             -qq \
             --timeout=9 \
             --durations=10 \
-            --cov="homeassistant" \
+            --cov="custom_components.adaptive_lighting" \
             --cov-report=xml \
             -o console_output_style=count \
             -p no:sugar \
             tests/components/adaptive_lighting
+        env:
+          HA_CLONE: true

@@ -23,12 +23,11 @@ RUN pip3 install -r /core/requirements.txt --use-pep517 && \
     pip3 install -r /core/requirements_test.txt --use-pep517 && \
     pip3 install -e /core/ --use-pep517
 
-# Clone the Adaptive Lighting repository
-RUN git clone https://github.com/basnijholt/adaptive-lighting.git /app
+# Copy the Adaptive Lighting repository
+COPY . /app/
 
 # Setup symlinks in core
-RUN ln -s /app/custom_components/adaptive_lighting /core/homeassistant/components/adaptive_lighting && \
-    ln -s /app/tests /core/tests/components/adaptive_lighting && \
+RUN ln -s /app/tests /core/tests/components/adaptive_lighting && \
     # For test_dependencies.py
     ln -s /core /app/core
 
@@ -36,6 +35,11 @@ RUN ln -s /app/custom_components/adaptive_lighting /core/homeassistant/component
 RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
 
 WORKDIR /core
+
+# Make 'custom_components/adaptive_lighting' imports available to tests
+ENV PYTHONPATH="${PYTHONPATH}:/app"
+# Enable testing against HA clone (instead of pytest_homeassistant_custom_component)
+ENV HA_CLONE=true
 
 ENTRYPOINT ["python3", \
     # Enable Python development mode
@@ -49,7 +53,7 @@ ENTRYPOINT ["python3", \
     # Print the 10 slowest tests
     "--durations=10", \
     # Measure code coverage for the 'homeassistant' package
-    "--cov='homeassistant'", \
+    "--cov=custom_components.adaptive_lighting", \
     # Generate an XML report of the code coverage
     "--cov-report=xml", \
     # Generate an HTML report of the code coverage
