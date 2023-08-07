@@ -1845,11 +1845,8 @@ class SunLightSettings:
 
         Calculating all values takes <0.5ms.
         """
-        percent = (
-            self.calc_percent(transition)
-            if transition is not None
-            else self.calc_percent(0)
-        )
+        transition = transition or 0
+        percent = self.calc_percent(transition)
         rgb_color: tuple[float, float, float]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
