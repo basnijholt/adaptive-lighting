@@ -1793,15 +1793,7 @@ class SunLightSettings:
         delta_brightness = self.max_brightness - self.min_brightness
         return (delta_brightness * (1 + sun_position)) + self.min_brightness
 
-    def brightness_pct(self, sun_position: float, is_sleep: bool) -> float:
-        """Calculate the brightness in %."""
-        if is_sleep:
-            return self.sleep_brightness
-        assert self.brightness_mode in ("default", "linear", "tanh")
-
-        if self.brightness_mode == "default":
-            return self._brightness_pct_default(sun_position)
-
+    def _brightness_pct_tanh(self) -> float:
         now = dt_util.utcnow()
         sun_events = self.sun.prev_and_next_events(now)
         (prev_event, prev_ts), (next_event, next_ts) = sun_events
@@ -1813,48 +1805,74 @@ class SunLightSettings:
         # Handle sunrise
         if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
-            if self.brightness_mode == "linear":
-                brightness = lerp(
-                    now.timestamp() - ts_event,
-                    x1=-dark,
-                    x2=+light,
-                    y1=self.min_brightness,
-                    y2=self.max_brightness,
-                )
-            else:
-                assert self.brightness_mode == "tanh"
-                brightness = scaled_tanh(
-                    now.timestamp() - ts_event,
-                    x1=-dark,
-                    x2=+light,
-                    y1=0.05,  # be at 5% of range at x1
-                    y2=0.95,  # be at 95% of range at x2
-                    y_min=self.min_brightness,
-                    y_max=self.max_brightness,
-                )
+            assert self.brightness_mode == "tanh"
+            brightness = scaled_tanh(
+                now.timestamp() - ts_event,
+                x1=-dark,
+                x2=+light,
+                y1=0.05,  # be at 5% of range at x1
+                y2=0.95,  # be at 95% of range at x2
+                y_min=self.min_brightness,
+                y_max=self.max_brightness,
+            )
         # Handle sunset
         elif prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
-            if self.brightness_mode == "linear":
-                brightness = lerp(
-                    now.timestamp() - ts_event,
-                    x1=-light,
-                    x2=+dark,
-                    y1=self.max_brightness,
-                    y2=self.min_brightness,
-                )
-            else:
-                assert self.brightness_mode == "tanh"
-                brightness = scaled_tanh(
-                    now.timestamp() - ts_event,
-                    x1=-light,  # shifted timestamp for the start of sunset
-                    x2=+dark,  # shifted timestamp for the end of sunset
-                    y1=0.95,  # be at 95% of range at the start of sunset
-                    y2=0.05,  # be at 5% of range at the end of sunset
-                    y_min=self.min_brightness,
-                    y_max=self.max_brightness,
-                )
+            brightness = scaled_tanh(
+                now.timestamp() - ts_event,
+                x1=-light,  # shifted timestamp for the start of sunset
+                x2=+dark,  # shifted timestamp for the end of sunset
+                y1=0.95,  # be at 95% of range at the start of sunset
+                y2=0.05,  # be at 5% of range at the end of sunset
+                y_min=self.min_brightness,
+                y_max=self.max_brightness,
+            )
         return clamp(brightness, self.min_brightness, self.max_brightness)
+
+    def _brightness_pct_linear(self) -> float:
+        now = dt_util.utcnow()
+        sun_events = self.sun.prev_and_next_events(now)
+        (prev_event, prev_ts), (next_event, next_ts) = sun_events
+
+        # at ts_event - dt_start, brightness == start_brightness
+        # at ts_event + dt_end, brightness == end_brightness
+        dark = self.brightness_mode_time_dark.total_seconds()
+        light = self.brightness_mode_time_light.total_seconds()
+        # Handle sunrise
+        if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
+            brightness = lerp(
+                now.timestamp() - ts_event,
+                x1=-dark,
+                x2=+light,
+                y1=self.min_brightness,
+                y2=self.max_brightness,
+            )
+        # Handle sunset
+        elif prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
+            brightness = lerp(
+                now.timestamp() - ts_event,
+                x1=-light,
+                x2=+dark,
+                y1=self.max_brightness,
+                y2=self.min_brightness,
+            )
+        return clamp(brightness, self.min_brightness, self.max_brightness)
+
+    def brightness_pct(self, sun_position: float, is_sleep: bool) -> float:
+        """Calculate the brightness in %."""
+        if is_sleep:
+            return self.sleep_brightness
+        assert self.brightness_mode in ("default", "linear", "tanh")
+
+        if self.brightness_mode == "default":
+            return self._brightness_pct_default(sun_position)
+        if self.brightness_mode == "linear":
+            return self._brightness_pct_linear()
+        if self.brightness_mode == "tanh":
+            return self._brightness_pct_tanh()
+        return None
 
     def calc_color_temp_kelvin(self, percent: float) -> int:
         """Calculate the color temperature in Kelvin."""
