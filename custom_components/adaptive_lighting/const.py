@@ -377,10 +377,12 @@ EXTRA_VALIDATION = {
     CONF_INTERVAL: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_TIME: (cv.time, str),
+    CONF_MIN_SUNRISE_TIME: (cv.time, str),
     CONF_MAX_SUNRISE_TIME: (cv.time, str),
     CONF_SUNSET_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNSET_TIME: (cv.time, str),
     CONF_MIN_SUNSET_TIME: (cv.time, str),
+    CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
 }

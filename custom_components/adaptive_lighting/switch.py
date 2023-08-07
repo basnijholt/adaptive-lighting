@@ -1689,8 +1689,10 @@ class SunLightSettings:
         if (
             self.sunrise_time is None
             and self.sunset_time is None
+            and self.min_sunrise_time is None
             and self.max_sunrise_time is None
             and self.min_sunset_time is None
+            and self.max_sunset_time is None
         ):
             solar_noon = location.noon(date, local=False)
             solar_midnight = location.midnight(date, local=False)
