@@ -119,68 +119,6 @@ def brightness_tanh(
     return clamp(brightness, min_brightness, max_brightness)
 
 
-SEC_PER_HR = 60 * 60
-
-# Shiny UI
-app_ui = ui.page_fluid(
-    ui.layout_sidebar(
-        ui.panel_sidebar(
-            ui.input_slider("min_brightness", "min_brightness", 0, 100, 30, post="%"),
-            ui.input_slider("max_brightness", "max_brightness", 0, 100, 100, post="%"),
-            ui.input_slider(
-                "dark_time",
-                "brightness_mode_time_dark",
-                0,
-                5 * SEC_PER_HR,
-                3 * SEC_PER_HR,
-                post=" sec",
-            ),
-            ui.input_slider(
-                "light_time",
-                "brightness_mode_time_light",
-                0,
-                5 * SEC_PER_HR,
-                0.5 * SEC_PER_HR,
-                post=" sec",
-            ),
-            ui.input_slider(
-                "sunrise_time",
-                "sunrise_time",
-                0,
-                24,
-                6,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "sunset_time",
-                "sunset_time",
-                0,
-                24,
-                18,
-                step=0.5,
-                post=" hr",
-            ),
-        ),
-        ui.panel_main(ui.output_plot(id="brightness_plot")),
-    ),
-)
-
-
-def server(input, output, session):
-    @output
-    @render.plot
-    def brightness_plot():
-        return plot_brightness(
-            min_brightness=input.min_brightness() / 100,
-            max_brightness=input.max_brightness() / 100,
-            brightness_mode_time_dark=input.dark_time() / SEC_PER_HR,
-            brightness_mode_time_light=input.light_time() / SEC_PER_HR,
-            sunrise_time=input.sunrise_time(),
-            sunset_time=input.sunset_time(),
-        )
-
-
 def plot_brightness(
     min_brightness,
     max_brightness,
@@ -263,6 +201,84 @@ def plot_brightness(
     )
 
     return plt.gcf()
+
+
+SEC_PER_HR = 60 * 60
+desc = """
+**Experience the Dynamics of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) in Real-Time.**
+
+Have you ever wondered how the intricate settings of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) impact your home ambiance? The Adaptive Lighting Simulator WebApp is here to demystify just that.
+
+Harnessing the technology of the popular Adaptive Lighting integration for Home Assistant, this webapp provides a hands-on, visual platform to explore, tweak, and understand the myriad of parameters that dictate the behavior of your smart lights. Whether you're aiming for a subtle morning glow or a cozy evening warmth, observe firsthand how each tweak changes the ambiance.
+
+**Why Use the Simulator?**
+- **Interactive Exploration**: No more guesswork. See in real-time how changes to settings influence the lighting dynamics.
+- **Circadian Cycle Preview**: Understand how Adaptive Lighting adjusts throughout the day based on specific parameters, ensuring your lighting aligns with your circadian rhythms.
+- **Tailored Testing**: Play with parameters and find the perfect combination that suits your personal or family's needs.
+- **Educational Experience**: For both newbies and experts, delve deep into the intricacies of Adaptive Lighting's logic and potential.
+
+Dive into the simulator, experiment with different settings, and fine-tune the behavior of Adaptive Lighting to perfection. Whether you're setting it up for the first time or optimizing an existing setup, this tool ensures you get the most out of your smart lighting experience.
+"""
+
+# Shiny UI
+app_ui = ui.page_fluid(
+    ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
+    ui.layout_sidebar(
+        ui.panel_sidebar(
+            ui.input_slider("min_brightness", "min_brightness", 0, 100, 30, post="%"),
+            ui.input_slider("max_brightness", "max_brightness", 0, 100, 100, post="%"),
+            ui.input_slider(
+                "dark_time",
+                "brightness_mode_time_dark",
+                0,
+                5 * SEC_PER_HR,
+                3 * SEC_PER_HR,
+                post=" sec",
+            ),
+            ui.input_slider(
+                "light_time",
+                "brightness_mode_time_light",
+                0,
+                5 * SEC_PER_HR,
+                0.5 * SEC_PER_HR,
+                post=" sec",
+            ),
+            ui.input_slider(
+                "sunrise_time",
+                "sunrise_time",
+                0,
+                24,
+                6,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "sunset_time",
+                "sunset_time",
+                0,
+                24,
+                18,
+                step=0.5,
+                post=" hr",
+            ),
+        ),
+        ui.panel_main(ui.markdown(desc), ui.output_plot(id="brightness_plot")),
+    ),
+)
+
+
+def server(input, output, session):
+    @output
+    @render.plot
+    def brightness_plot():
+        return plot_brightness(
+            min_brightness=input.min_brightness() / 100,
+            max_brightness=input.max_brightness() / 100,
+            brightness_mode_time_dark=input.dark_time() / SEC_PER_HR,
+            brightness_mode_time_light=input.light_time() / SEC_PER_HR,
+            sunrise_time=input.sunrise_time(),
+            sunset_time=input.sunset_time(),
+        )
 
 
 app = App(app_ui, server)
