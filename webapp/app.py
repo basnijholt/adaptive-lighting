@@ -205,9 +205,9 @@ def plot_brightness(
 
 SEC_PER_HR = 60 * 60
 desc = """
-**Experience the Dynamics of Adaptive Lighting in Real-Time.**
+**Experience the Dynamics of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) in Real-Time.**
 
-Have you ever wondered how the intricate settings of Adaptive Lighting impact your home ambiance? The Adaptive Lighting Simulator WebApp is here to demystify just that.
+Have you ever wondered how the intricate settings of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) impact your home ambiance? The Adaptive Lighting Simulator WebApp is here to demystify just that.
 
 Harnessing the technology of the popular Adaptive Lighting integration for Home Assistant, this webapp provides a hands-on, visual platform to explore, tweak, and understand the myriad of parameters that dictate the behavior of your smart lights. Whether you're aiming for a subtle morning glow or a cozy evening warmth, observe firsthand how each tweak changes the ambiance.
 
