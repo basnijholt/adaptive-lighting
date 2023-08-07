@@ -1786,23 +1786,21 @@ class SunLightSettings:
             self.max_sunset_time,
         )
 
-    def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
+    def calc_brightness_pct(self, sun_position: float, is_sleep: bool) -> float:
         """Calculate the brightness in %."""
         if is_sleep:
             return self.sleep_brightness
         assert self.brightness_mode in ("default", "linear", "tanh")
 
         if self.brightness_mode == "default":
-            if percent > 0:
+            if sun_position > 0:
                 return self.max_brightness
             delta_brightness = self.max_brightness - self.min_brightness
-            percent = 1 + percent
-            return (delta_brightness * percent) + self.min_brightness
+            return (delta_brightness * (1 + sun_position)) + self.min_brightness
 
         now = dt_util.utcnow()
-        (prev_event, prev_ts), (next_event, next_ts) = self.sun.prev_and_next_events(
-            now,
-        )
+        sun_events = self.sun.prev_and_next_events(now)
+        (prev_event, prev_ts), (next_event, next_ts) = sun_events
 
         # at ts_event - dt_start, brightness == start_brightness
         # at ts_event + dt_end, brightness == end_brightness
@@ -1887,29 +1885,33 @@ class SunLightSettings:
         Calculating all values takes <0.5ms.
         """
         transition = transition or 0
-        percent = self.sun.sun_position(transition)
+        sun_position = self.sun.sun_position(transition)
         rgb_color: tuple[float, float, float]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
-        brightness_pct = self.calc_brightness_pct(percent, is_sleep)
+        brightness_pct = self.calc_brightness_pct(sun_position, is_sleep)
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
         elif (
             self.sleep_rgb_or_color_temp == "rgb_color"
             and self.adapt_until_sleep
-            and percent < 0
+            and sun_position < 0
         ):
             # Feature requested in
             # https://github.com/basnijholt/adaptive-lighting/issues/624
             # This will result in a perceptible jump in color at sunset and sunrise
             # because the `color_temperature_to_rgb` function is not 100% accurate.
             min_color_rgb = color_temperature_to_rgb(self.min_color_temp)
-            rgb_color = lerp_color_hsv(min_color_rgb, self.sleep_rgb_color, percent)
-            color_temp_kelvin = self.calc_color_temp_kelvin(percent)
+            rgb_color = lerp_color_hsv(
+                min_color_rgb,
+                self.sleep_rgb_color,
+                sun_position,
+            )
+            color_temp_kelvin = self.calc_color_temp_kelvin(sun_position)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.calc_color_temp_kelvin(percent)
+            color_temp_kelvin = self.calc_color_temp_kelvin(sun_position)
             rgb_color = color_temperature_to_rgb(color_temp_kelvin)
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
@@ -1922,7 +1924,7 @@ class SunLightSettings:
             "rgb_color": rgb_color,
             "xy_color": xy_color,
             "hs_color": hs_color,
-            "sun_position": percent,
+            "sun_position": sun_position,
             "force_rgb_color": force_rgb_color,
         }
 
