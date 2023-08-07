@@ -1808,8 +1808,8 @@ class SunLightSettings:
 
         # at ts_event - dt_start, brightness == start_brightness
         # at ts_event + dt_end, brightness == end_brightness
-        dark = (self.brightness_mode_time_dark or timedelta()).total_seconds()
-        light = (self.brightness_mode_time_light or timedelta()).total_seconds()
+        dark = self.brightness_mode_time_dark.total_seconds()
+        light = self.brightness_mode_time_light.total_seconds()
         # Handle sunrise
         if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
