@@ -9,6 +9,7 @@ import math
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal
 
 import homeassistant.helpers.config_validation as cv
@@ -1596,20 +1597,11 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
 
 @dataclass(frozen=True)
-class SunLightSettings:
+class SunEvents:
     """Track the state of the sun and associated light settings."""
 
     name: str
     astral_location: astral.Location
-    adapt_until_sleep: bool
-    max_brightness: int
-    max_color_temp: int
-    min_brightness: int
-    min_color_temp: int
-    sleep_brightness: int
-    sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
-    sleep_color_temp: int
-    sleep_rgb_color: tuple[int, int, int]
     sunrise_time: datetime.time | None
     sunrise_offset: datetime.timedelta | None
     min_sunrise_time: datetime.time | None
@@ -1618,10 +1610,6 @@ class SunLightSettings:
     sunset_offset: datetime.timedelta | None
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
-    brightness_mode: Literal["default", "linear", "tanh"]
-    brightness_mode_time_dark: datetime.timedelta | None
-    brightness_mode_time_light: datetime.timedelta | None
-    transition: int
 
     def sunrise(self, date: datetime.datetime) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given date."""
@@ -1738,21 +1726,65 @@ class SunLightSettings:
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
         return events[i_now - 1 : i_now + 1]
 
-    def calc_percent(self, transition: int) -> float:
-        """Calculate the position of the sun in %."""
+    def sun_position(self, transition: int) -> float:
+        """Calculate the position of the sun, between [-1, 1]."""
         now = dt_util.utcnow()
-
         target_time = now + timedelta(seconds=transition)
         target_ts = target_time.timestamp()
         today = self.prev_and_next_events(target_time)
         (_, prev_ts), (next_event, next_ts) = today
-        h, x = (  # pylint: disable=invalid-name
+        h, x = (
             (prev_ts, next_ts)
             if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_SUNRISE)
             else (next_ts, prev_ts)
         )
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
         return (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
+
+
+@dataclass(frozen=True)
+class SunLightSettings:
+    """Track the state of the sun and associated light settings."""
+
+    name: str
+    astral_location: astral.Location
+    adapt_until_sleep: bool
+    max_brightness: int
+    max_color_temp: int
+    min_brightness: int
+    min_color_temp: int
+    sleep_brightness: int
+    sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
+    sleep_color_temp: int
+    sleep_rgb_color: tuple[int, int, int]
+    sunrise_time: datetime.time | None
+    sunrise_offset: datetime.timedelta | None
+    min_sunrise_time: datetime.time | None
+    max_sunrise_time: datetime.time | None
+    sunset_time: datetime.time | None
+    sunset_offset: datetime.timedelta | None
+    min_sunset_time: datetime.time | None
+    max_sunset_time: datetime.time | None
+    brightness_mode: Literal["default", "linear", "tanh"]
+    brightness_mode_time_dark: datetime.timedelta | None
+    brightness_mode_time_light: datetime.timedelta | None
+    transition: int
+
+    @cached_property
+    def sun(self) -> SunEvents:
+        """Return the SunEvents object."""
+        return SunEvents(
+            self.name,
+            self.astral_location,
+            self.sunrise_time,
+            self.sunrise_offset,
+            self.min_sunrise_time,
+            self.max_sunrise_time,
+            self.sunset_time,
+            self.sunset_offset,
+            self.min_sunset_time,
+            self.max_sunset_time,
+        )
 
     def calc_brightness_pct(self, percent: float, is_sleep: bool) -> float:
         """Calculate the brightness in %."""
@@ -1768,7 +1800,9 @@ class SunLightSettings:
             return (delta_brightness * percent) + self.min_brightness
 
         now = dt_util.utcnow()
-        (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(now)
+        (prev_event, prev_ts), (next_event, next_ts) = self.sun.prev_and_next_events(
+            now,
+        )
 
         # at ts_event - dt_start, brightness == start_brightness
         # at ts_event + dt_end, brightness == end_brightness
@@ -1853,7 +1887,7 @@ class SunLightSettings:
         Calculating all values takes <0.5ms.
         """
         transition = transition or 0
-        percent = self.calc_percent(transition)
+        percent = self.sun.sun_position(transition)
         rgb_color: tuple[float, float, float]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
