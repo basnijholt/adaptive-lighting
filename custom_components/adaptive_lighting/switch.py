@@ -1731,15 +1731,17 @@ class SunEvents:
         now = dt_util.utcnow()
         target_time = now + timedelta(seconds=transition)
         target_ts = target_time.timestamp()
-        today = self.prev_and_next_events(target_time)
-        (_, prev_ts), (next_event, next_ts) = today
+        sun_events = self.prev_and_next_events(target_time)
+        (_, prev_ts), (next_event, next_ts) = sun_events
         h, x = (
             (prev_ts, next_ts)
             if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_SUNRISE)
             else (next_ts, prev_ts)
         )
+        # k = -1 between sunset and sunrise (sun below horizon)
+        # k = 1 between sunrise and sunset (sun above horizon)
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
-        return (0 - k) * ((target_ts - h) / (h - x)) ** 2 + k
+        return k * (1 - ((target_ts - h) / (h - x)) ** 2)
 
 
 @dataclass(frozen=True)
@@ -1786,17 +1788,20 @@ class SunLightSettings:
             self.max_sunset_time,
         )
 
-    def calc_brightness_pct(self, sun_position: float, is_sleep: bool) -> float:
+    def _brightness_pct_default(self, sun_position: float) -> float:
+        if sun_position > 0:
+            return self.max_brightness
+        delta_brightness = self.max_brightness - self.min_brightness
+        return (delta_brightness * (1 + sun_position)) + self.min_brightness
+
+    def brightness_pct(self, sun_position: float, is_sleep: bool) -> float:
         """Calculate the brightness in %."""
         if is_sleep:
             return self.sleep_brightness
         assert self.brightness_mode in ("default", "linear", "tanh")
 
         if self.brightness_mode == "default":
-            if sun_position > 0:
-                return self.max_brightness
-            delta_brightness = self.max_brightness - self.min_brightness
-            return (delta_brightness * (1 + sun_position)) + self.min_brightness
+            return self._brightness_pct_default(sun_position)
 
         now = dt_util.utcnow()
         sun_events = self.sun.prev_and_next_events(now)
@@ -1811,9 +1816,9 @@ class SunLightSettings:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
             if self.brightness_mode == "linear":
                 brightness = lerp(
-                    now.timestamp(),
-                    x1=ts_event - dark,
-                    x2=ts_event + light,
+                    now.timestamp() - ts_event,
+                    x1=-dark,
+                    x2=+light,
                     y1=self.min_brightness,
                     y2=self.max_brightness,
                 )
@@ -1837,9 +1842,9 @@ class SunLightSettings:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
             if self.brightness_mode == "linear":
                 brightness = lerp(
-                    now.timestamp(),
-                    x1=ts_event - light,
-                    x2=ts_event + dark,
+                    now.timestamp() - ts_event,
+                    x1=-light,
+                    x2=+dark,
                     y1=self.max_brightness,
                     y2=self.min_brightness,
                 )
@@ -1889,7 +1894,7 @@ class SunLightSettings:
         rgb_color: tuple[float, float, float]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
-        brightness_pct = self.calc_brightness_pct(sun_position, is_sleep)
+        brightness_pct = self.brightness_pct(sun_position, is_sleep)
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
