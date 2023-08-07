@@ -1767,8 +1767,8 @@ class SunLightSettings:
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
     brightness_mode: Literal["default", "linear", "tanh"]
-    brightness_mode_time_dark: datetime.timedelta | None
-    brightness_mode_time_light: datetime.timedelta | None
+    brightness_mode_time_dark: datetime.timedelta
+    brightness_mode_time_light: datetime.timedelta
     transition: int
 
     @cached_property
@@ -1793,19 +1793,24 @@ class SunLightSettings:
         delta_brightness = self.max_brightness - self.min_brightness
         return (delta_brightness * (1 + sun_position)) + self.min_brightness
 
-    def _brightness_pct_tanh(self) -> float:
-        now = dt_util.utcnow()
+    def _closest_event(self, now: datetime.datetime) -> tuple[str, float]:
+        """Get the closest sunset or sunrise event."""
         sun_events = self.sun.prev_and_next_events(now)
         (prev_event, prev_ts), (next_event, next_ts) = sun_events
-
-        # at ts_event - dt_start, brightness == start_brightness
-        # at ts_event + dt_end, brightness == end_brightness
-        dark = self.brightness_mode_time_dark.total_seconds()
-        light = self.brightness_mode_time_light.total_seconds()
-        # Handle sunrise
         if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
-            assert self.brightness_mode == "tanh"
+            return SUN_EVENT_SUNRISE, ts_event
+        if prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
+            return SUN_EVENT_SUNSET, ts_event
+        return None
+
+    def _brightness_pct_tanh(self) -> float:
+        now = dt_util.utcnow()
+        event, ts_event = self._closest_event(now)
+        dark = self.brightness_mode_time_dark.total_seconds()
+        light = self.brightness_mode_time_light.total_seconds()
+        if event == SUN_EVENT_SUNRISE:
             brightness = scaled_tanh(
                 now.timestamp() - ts_event,
                 x1=-dark,
@@ -1815,9 +1820,7 @@ class SunLightSettings:
                 y_min=self.min_brightness,
                 y_max=self.max_brightness,
             )
-        # Handle sunset
-        elif prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
+        elif event == SUN_EVENT_SUNSET:
             brightness = scaled_tanh(
                 now.timestamp() - ts_event,
                 x1=-light,  # shifted timestamp for the start of sunset
@@ -1831,16 +1834,12 @@ class SunLightSettings:
 
     def _brightness_pct_linear(self) -> float:
         now = dt_util.utcnow()
-        sun_events = self.sun.prev_and_next_events(now)
-        (prev_event, prev_ts), (next_event, next_ts) = sun_events
-
+        event, ts_event = self._closest_event(now)
         # at ts_event - dt_start, brightness == start_brightness
         # at ts_event + dt_end, brightness == end_brightness
         dark = self.brightness_mode_time_dark.total_seconds()
         light = self.brightness_mode_time_light.total_seconds()
-        # Handle sunrise
-        if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
+        if event == SUN_EVENT_SUNRISE:
             brightness = lerp(
                 now.timestamp() - ts_event,
                 x1=-dark,
@@ -1848,9 +1847,7 @@ class SunLightSettings:
                 y1=self.min_brightness,
                 y2=self.max_brightness,
             )
-        # Handle sunset
-        elif prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
+        elif event == SUN_EVENT_SUNSET:
             brightness = lerp(
                 now.timestamp() - ts_event,
                 x1=-light,
