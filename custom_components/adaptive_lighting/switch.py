@@ -1628,14 +1628,14 @@ class SunLightSettings:
         sunrise = (
             self.astral_location.sunrise(date, local=False)
             if self.sunrise_time is None
-            else self._replace_time(date, "sunrise")
+            else self._replace_time(date, self.sunrise_time)
         ) + self.sunrise_offset
         if self.min_sunrise_time is not None:
-            min_sunrise = self._replace_time(date, "min_sunrise")
+            min_sunrise = self._replace_time(date, self.min_sunrise_time)
             if min_sunrise > sunrise:
                 sunrise = min_sunrise
         if self.max_sunrise_time is not None:
-            max_sunrise = self._replace_time(date, "max_sunrise")
+            max_sunrise = self._replace_time(date, self.max_sunrise_time)
             if max_sunrise < sunrise:
                 sunrise = max_sunrise
         return sunrise
@@ -1645,47 +1645,34 @@ class SunLightSettings:
         sunset = (
             self.astral_location.sunset(date, local=False)
             if self.sunset_time is None
-            else self._replace_time(date, "sunset")
+            else self._replace_time(date, self.sunset_time)
         ) + self.sunset_offset
         if self.min_sunset_time is not None:
-            min_sunset = self._replace_time(date, "min_sunset")
+            min_sunset = self._replace_time(date, self.min_sunset_time)
             if min_sunset > sunset:
                 sunset = min_sunset
         if self.max_sunset_time is not None:
-            max_sunset = self._replace_time(date, "max_sunset")
+            max_sunset = self._replace_time(date, self.max_sunset_time)
             if max_sunset < sunset:
                 sunset = max_sunset
         return sunset
 
-    def _replace_time(self, date: datetime.datetime, key: str) -> datetime.datetime:
-        time = getattr(self, f"{key}_time")
+    def _replace_time(
+        self,
+        date: datetime.datetime,
+        time: datetime.time,
+    ) -> datetime.datetime:
         date_time = datetime.datetime.combine(date, time)
-        return date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
-            dt_util.UTC,
-        )
+        dt_with_tz = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        return dt_with_tz.astimezone(dt_util.UTC)
 
-    def get_sun_events(self, date: datetime.datetime) -> list[tuple[str, float]]:
-        """Get the four sun event's timestamps at 'date'."""
-
-        def calculate_noon_and_midnight(
-            sunset: datetime.datetime,
-            sunrise: datetime.datetime,
-        ) -> tuple[datetime.datetime, datetime.datetime]:
-            middle = abs(sunset - sunrise) / 2
-            if sunset > sunrise:
-                noon = sunrise + middle
-                midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
-            else:
-                midnight = sunset + middle
-                noon = midnight + timedelta(hours=12) * (
-                    1 if midnight.hour < 12 else -1
-                )
-            return noon, midnight
-
-        location = self.astral_location
-        sunrise = self.sunrise(date)
-        sunset = self.sunset(date)
-
+    def noon_and_midnight(
+        self,
+        date: datetime.datetime,
+        sunset: datetime.datetime | None = None,
+        sunrise: datetime.datetime | None = None,
+    ) -> tuple[datetime.datetime, datetime.datetime]:
+        """Return the (adjusted) noon and midnight times for the given date."""
         if (
             self.sunrise_time is None
             and self.sunset_time is None
@@ -1694,18 +1681,40 @@ class SunLightSettings:
             and self.min_sunset_time is None
             and self.max_sunset_time is None
         ):
-            solar_noon = location.noon(date, local=False)
-            solar_midnight = location.midnight(date, local=False)
-        else:
-            solar_noon, solar_midnight = calculate_noon_and_midnight(sunset, sunrise)
+            solar_noon = self.astral_location.noon(date, local=False)
+            solar_midnight = self.astral_location.midnight(date, local=False)
+            return solar_noon, solar_midnight
 
+        if sunset is None:
+            sunset = self.sunset(date)
+        if sunrise is None:
+            sunrise = self.sunrise(date)
+
+        middle = abs(sunset - sunrise) / 2
+        if sunset > sunrise:
+            noon = sunrise + middle
+            midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
+        else:
+            midnight = sunset + middle
+            noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
+        return noon, midnight
+
+    def sun_events(self, date: datetime.datetime) -> list[tuple[str, float]]:
+        """Get the four sun event's timestamps at 'date'."""
+        sunrise = self.sunrise(date)
+        sunset = self.sunset(date)
+        solar_noon, solar_midnight = self.noon_and_midnight(date, sunset, sunrise)
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
             (SUN_EVENT_SUNSET, sunset.timestamp()),
             (SUN_EVENT_NOON, solar_noon.timestamp()),
             (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
         ]
-        # Check whether order is correct
+        self._validate_sun_event_order(events)
+        return events
+
+    def _validate_sun_event_order(self, events: list[tuple[str, float]]) -> None:
+        """Check if the sun events are in the expected order."""
         events = sorted(events, key=lambda x: x[1])
         events_names, _ = zip(*events, strict=True)
         if events_names not in _ALLOWED_ORDERS:
@@ -1718,14 +1727,12 @@ class SunLightSettings:
             _LOGGER.error(msg)
             raise ValueError(msg)
 
-        return events
-
-    def relevant_events(self, now: datetime.datetime) -> list[tuple[str, float]]:
+    def prev_and_next_events(self, now: datetime.datetime) -> list[tuple[str, float]]:
         """Get the previous and next sun event."""
         events = [
             event
             for days in [-1, 0, 1]
-            for event in self.get_sun_events(now + timedelta(days=days))
+            for event in self.sun_events(now + timedelta(days=days))
         ]
         events = sorted(events, key=lambda x: x[1])
         i_now = bisect.bisect([ts for _, ts in events], now.timestamp())
@@ -1737,7 +1744,7 @@ class SunLightSettings:
 
         target_time = now + timedelta(seconds=transition)
         target_ts = target_time.timestamp()
-        today = self.relevant_events(target_time)
+        today = self.prev_and_next_events(target_time)
         (_, prev_ts), (next_event, next_ts) = today
         h, x = (  # pylint: disable=invalid-name
             (prev_ts, next_ts)
@@ -1761,7 +1768,7 @@ class SunLightSettings:
             return (delta_brightness * percent) + self.min_brightness
 
         now = dt_util.utcnow()
-        (prev_event, prev_ts), (next_event, next_ts) = self.relevant_events(now)
+        (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(now)
 
         # at ts_event - dt_start, brightness == start_brightness
         # at ts_event + dt_end, brightness == end_brightness
