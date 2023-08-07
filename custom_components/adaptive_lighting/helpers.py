@@ -67,8 +67,10 @@ def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:
 
 def scaled_tanh(
     x: float,
-    a: float,
-    b: float,
+    x1: float,
+    x2: float,
+    y1: float = 0.05,
+    y2: float = 0.95,
     y_min: float = 0.0,
     y_max: float = 100.0,
 ) -> float:
@@ -86,10 +88,14 @@ def scaled_tanh(
     ----------
     x
         The input to the function.
-    a
-        The scale factor for the tanh function, found using 'find_a_b' function.
-    b
-        The shift factor for the tanh function, found using 'find_a_b' function.
+    x1
+        x-coordinate of the first point.
+    x2
+        x-coordinate of the second point.
+    y1
+        y-coordinate of the first point (should be between 0 and 1). Defaults to 0.05.
+    y2
+        y-coordinate of the second point (should be between 0 and 1). Defaults to 0.95.
     y_min
         The minimum value of the output range. Defaults to 0.
     y_max
@@ -99,6 +105,7 @@ def scaled_tanh(
     -------
         float: The output of the function, which lies in the range [y_min, y_max].
     """
+    a, b = find_a_b(x1, x2, y1, y2)
     return y_min + (y_max - y_min) * 0.5 * (math.tanh(a * (x - b)) + 1)
 
 

@@ -165,7 +165,6 @@ from .hass_utils import setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
-    find_a_b,
     int_to_base36,
     lerp,
     lerp_color_hsv,
@@ -1824,16 +1823,12 @@ class SunLightSettings:
                 )
             else:
                 assert self.brightness_mode == "tanh"
-                a, b = find_a_b(
+                brightness = scaled_tanh(
+                    now.timestamp() - ts_event,
                     x1=-dark,
                     x2=+light,
                     y1=0.05,  # be at 5% of range at x1
                     y2=0.95,  # be at 95% of range at x2
-                )
-                brightness = scaled_tanh(
-                    now.timestamp() - ts_event,
-                    a=a,
-                    b=b,
                     y_min=self.min_brightness,
                     y_max=self.max_brightness,
                 )
@@ -1850,16 +1845,12 @@ class SunLightSettings:
                 )
             else:
                 assert self.brightness_mode == "tanh"
-                a, b = find_a_b(
+                brightness = scaled_tanh(
+                    now.timestamp() - ts_event,
                     x1=-light,  # shifted timestamp for the start of sunset
                     x2=+dark,  # shifted timestamp for the end of sunset
                     y1=0.95,  # be at 95% of range at the start of sunset
                     y2=0.05,  # be at 5% of range at the end of sunset
-                )
-                brightness = scaled_tanh(
-                    now.timestamp() - ts_event,
-                    a=a,
-                    b=b,
                     y_min=self.min_brightness,
                     y_max=self.max_brightness,
                 )
