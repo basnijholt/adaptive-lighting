@@ -12,8 +12,6 @@ ICON_COLOR_TEMP = "mdi:sun-thermometer"
 ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
-SUN_EVENT_NOON = "solar_noon"
-SUN_EVENT_MIDNIGHT = "solar_midnight"
 
 DOCS = {CONF_ENTITY_ID: "Entity ID of the switch. 📝"}
 

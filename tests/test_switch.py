@@ -100,8 +100,8 @@ from custom_components.adaptive_lighting.switch import (
     AdaptiveLightingManager,
     is_our_context,
     is_our_context_id,
-    lerp_color_hsv,
 )
+from custom_components.adaptive_lighting.sun import lerp_color_hsv
 
 _LOGGER = logging.getLogger(__name__)
 
