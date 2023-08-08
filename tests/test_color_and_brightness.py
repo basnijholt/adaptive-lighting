@@ -1,14 +1,9 @@
-import pytest
 from custom_components.adaptive_lighting.color_and_brightness import (
     SunEvents,
     SUN_EVENT_SUNRISE,
-    SUN_EVENT_SUNSET,
     SUN_EVENT_NOON,
-    SUN_EVENT_MIDNIGHT,
 )
-from datetime import datetime
 import datetime as dt
-from unittest.mock import MagicMock
 from astral import LocationInfo
 from astral.location import Location
 
