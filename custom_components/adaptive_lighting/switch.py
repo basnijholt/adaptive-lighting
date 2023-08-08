@@ -1803,7 +1803,8 @@ class SunLightSettings:
         if prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
             return SUN_EVENT_SUNSET, ts_event
-        return None
+        msg = "No sunrise or sunset event found."
+        raise ValueError(msg)
 
     def _brightness_pct_tanh(self) -> float:
         now = dt_util.utcnow()
