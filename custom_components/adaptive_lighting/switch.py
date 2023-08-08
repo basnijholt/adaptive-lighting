@@ -1738,6 +1738,18 @@ class SunEvents:
         k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
         return k * (1 - ((target_ts - h) / (h - x)) ** 2)
 
+    def closest_event(self, dt: datetime.datetime) -> tuple[str, float]:
+        """Get the closest sunset or sunrise event."""
+        (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
+        if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
+            return SUN_EVENT_SUNRISE, ts_event
+        if prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
+            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
+            return SUN_EVENT_SUNSET, ts_event
+        msg = "No sunrise or sunset event found."
+        raise ValueError(msg)
+
 
 @dataclass(frozen=True)
 class SunLightSettings:
@@ -1790,20 +1802,8 @@ class SunLightSettings:
         delta_brightness = self.max_brightness - self.min_brightness
         return (delta_brightness * (1 + sun_position)) + self.min_brightness
 
-    def _closest_event(self, dt: datetime.datetime) -> tuple[str, float]:
-        """Get the closest sunset or sunrise event."""
-        (prev_event, prev_ts), (next_event, next_ts) = self.sun.prev_and_next_events(dt)
-        if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
-            return SUN_EVENT_SUNRISE, ts_event
-        if prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
-            return SUN_EVENT_SUNSET, ts_event
-        msg = "No sunrise or sunset event found."
-        raise ValueError(msg)
-
     def _brightness_pct_tanh(self, dt: datetime.datetime) -> float:
-        event, ts_event = self._closest_event(dt)
+        event, ts_event = self.sun.closest_event(dt)
         dark = self.brightness_mode_time_dark.total_seconds()
         light = self.brightness_mode_time_light.total_seconds()
         if event == SUN_EVENT_SUNRISE:
@@ -1829,7 +1829,7 @@ class SunLightSettings:
         return clamp(brightness, self.min_brightness, self.max_brightness)
 
     def _brightness_pct_linear(self, dt: datetime.datetime) -> float:
-        event, ts_event = self._closest_event(dt)
+        event, ts_event = self.sun.closest_event(dt)
         # at ts_event - dt_start, brightness == start_brightness
         # at ts_event + dt_end, brightness == end_brightness
         dark = self.brightness_mode_time_dark.total_seconds()
@@ -1865,7 +1865,7 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
-    def calc_color_temp_kelvin(self, percent: float) -> int:
+    def color_temp_kelvin(self, percent: float) -> int:
         """Calculate the color temperature in Kelvin."""
         if percent > 0:
             delta = self.max_color_temp - self.min_color_temp
@@ -1913,10 +1913,10 @@ class SunLightSettings:
                 self.sleep_rgb_color,
                 sun_position,
             )
-            color_temp_kelvin = self.calc_color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(sun_position)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.calc_color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(sun_position)
             rgb_color = color_temperature_to_rgb(color_temp_kelvin)
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
