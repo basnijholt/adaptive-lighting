@@ -19,7 +19,7 @@ def date_range(tzinfo):
     hours_range = [start_of_day]
     while hours_range[-1] < end_of_day:
         hours_range.append(hours_range[-1] + dt.timedelta(minutes=5))
-    return hours_range
+    return hours_range[:-1]
 
 
 def copy_color_and_brightness_module():
@@ -145,7 +145,7 @@ def plot_color_temp(kw, sleep_mode: bool):
         origin="upper",
     )
     # Plot a curve on top of the imshow
-    ax.plot(time_range[:-1], sun_position[:-1], color="k", label="Sun Position")
+    ax.plot(time_range, sun_position, color="k", label="Sun Position")
 
     sunrise_time = sun.sun.sunrise(dt.date.today())
     sunset_time = sun.sun.sunset(dt.date.today())
