@@ -98,8 +98,8 @@ def plot_brightness(kw, sleep_mode: bool):
     # Add text box
     textstr = "\n".join(
         (
-            f"Sunrise Time = {sunrise_time}",
-            f"Sunset Time = {sunset_time}",
+            f"Sunrise Time = {sunrise_time.time()}",
+            f"Sunset Time = {sunset_time.time()}",
             f"Max Brightness = {sun.max_brightness:.0f}%",
             f"Min Brightness = {sun.min_brightness:.0f}%",
             f"Time Light = {sun.brightness_mode_time_light}",
@@ -270,6 +270,7 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 
 def _kw(input):
+    location = Location(LocationInfo(timezone=dt.timezone.utc))
     return dict(
         name="Adaptive Lighting Simulator",
         adapt_until_sleep=input.adapt_until_sleep(),
@@ -297,7 +298,8 @@ def _kw(input):
         max_sunrise_time=None,
         min_sunset_time=None,
         max_sunset_time=None,
-        astral_location=Location(LocationInfo()),
+        astral_location=location,
+        timezone=location.timezone,
     )
 
 

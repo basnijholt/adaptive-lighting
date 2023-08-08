@@ -50,8 +50,8 @@ class SunEvents:
     sunset_time: datetime.time | None
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
-    sunrise_offset: datetime.timedelta = datetime.timedelta(0)
-    sunset_offset: datetime.timedelta = datetime.timedelta(0)
+    sunrise_offset: datetime.timedelta = datetime.timedelta()
+    sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
 
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
@@ -220,25 +220,25 @@ class SunLightSettings:
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
     brightness_mode: Literal["default", "linear", "tanh"] = "default"
-    sunrise_offset: datetime.timedelta = datetime.timedelta(0)
-    sunset_offset: datetime.timedelta = datetime.timedelta(0)
+    sunrise_offset: datetime.timedelta = datetime.timedelta()
+    sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
 
     @cached_property
     def sun(self) -> SunEvents:
         """Return the SunEvents object."""
         return SunEvents(
-            self.name,
-            self.astral_location,
-            self.sunrise_time,
-            self.sunrise_offset,
-            self.min_sunrise_time,
-            self.max_sunrise_time,
-            self.sunset_time,
-            self.sunset_offset,
-            self.min_sunset_time,
-            self.max_sunset_time,
-            self.timezone,
+            name=self.name,
+            astral_location=self.astral_location,
+            sunrise_time=self.sunrise_time,
+            sunrise_offset=self.sunrise_offset,
+            min_sunrise_time=self.min_sunrise_time,
+            max_sunrise_time=self.max_sunrise_time,
+            sunset_time=self.sunset_time,
+            sunset_offset=self.sunset_offset,
+            min_sunset_time=self.min_sunset_time,
+            max_sunset_time=self.max_sunset_time,
+            timezone=self.timezone,
         )
 
     def _brightness_pct_default(self, dt: datetime.datetime) -> float:
