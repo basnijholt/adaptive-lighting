@@ -78,10 +78,6 @@ from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.template import area_entities
 from homeassistant.loader import bind_hass
 from homeassistant.util import slugify
-from homeassistant.util.color import (
-    color_temperature_to_rgb,
-    color_xy_to_RGB,
-)
 
 from .adaptation_utils import (
     BRIGHTNESS_ATTRS,
@@ -159,6 +155,10 @@ from .helpers import (
     int_to_base36,
     remove_vowels,
     short_hash,
+)
+from .homeassistant_util_color import (
+    color_temperature_to_rgb,
+    color_xy_to_RGB,
 )
 from .sun import SunLightSettings
 
