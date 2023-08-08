@@ -1880,16 +1880,12 @@ class SunLightSettings:
         msg = "Should not happen"
         raise ValueError(msg)
 
-    def get_settings(
+    def brightness_and_color(
         self,
-        is_sleep,
-        transition,
-    ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
-        """Get all light settings.
-
-        Calculating all values takes <0.5ms.
-        """
-        dt = dt_util.utcnow() + timedelta(seconds=transition or 0)
+        dt: datetime.datetime,
+        is_sleep: bool,
+    ) -> dict[str, Any]:
+        """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[float, float, float]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
@@ -1932,6 +1928,18 @@ class SunLightSettings:
             "sun_position": sun_position,
             "force_rgb_color": force_rgb_color,
         }
+
+    def get_settings(
+        self,
+        is_sleep,
+        transition,
+    ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
+        """Get all light settings.
+
+        Calculating all values takes <0.5ms.
+        """
+        dt = dt_util.utcnow() + timedelta(seconds=transition or 0)
+        return self.brightness_and_color(dt, is_sleep)
 
 
 class AdaptiveLightingManager:
