@@ -18,7 +18,7 @@ def date_range(tzinfo):
     end_of_day = start_of_day + dt.timedelta(days=1) - dt.timedelta(seconds=1)
     hours_range = [start_of_day]
     while hours_range[-1] < end_of_day:
-        hours_range.append(hours_range[-1] + dt.timedelta(minutes=5))
+        hours_range.append(hours_range[-1] + dt.timedelta(minutes=1))
     return hours_range[:-1]
 
 
