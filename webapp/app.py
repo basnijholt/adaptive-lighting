@@ -284,10 +284,8 @@ def _kw(input):
         sleep_rgb_or_color_temp=input.sleep_rgb_or_color_temp(),
         sleep_color_temp=input.sleep_color_temp(),
         sleep_rgb_color=[int(x) for x in input.sleep_rgb_color().split(",")],
-        # sunrise_time=float_to_time(input.sunrise_time()),
-        # sunset_time=float_to_time(input.sunset_time()),
-        sunrise_time=None,
-        sunset_time=None,
+        sunrise_time=float_to_time(input.sunrise_time()),
+        sunset_time=float_to_time(input.sunset_time()),
         brightness_mode_time_dark=dt.timedelta(
             seconds=input.brightness_mode_time_dark()
         ),
