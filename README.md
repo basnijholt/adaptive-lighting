@@ -441,7 +441,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
 ![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/e5fc5d27-3c37-4e3d-93d1-6e7cf4b48e7c)
 ![image](https://github.com/basnijholt/adaptive-lighting/assets/6897215/3dcbdc42-63c4-49df-8651-d2fae53dd08d)
 
-> [*Code to make the plots*](https://github.com/basnijholt/adaptive-lighting/pull/699#issuecomment-1666232555)
+> Check out the interactive webapp on https://basnijholt.github.io/adaptive-lighting/ to play with the parameters and see how the brightness changes!
 
 ## :eyes: See also
 

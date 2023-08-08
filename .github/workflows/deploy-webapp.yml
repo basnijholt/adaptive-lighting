@@ -45,6 +45,9 @@ jobs:
 
       - name: Build the WebAssembly app
         run: |
+          set -ex
+          cp custom_components/adaptive_lighting/color_and_brightness.py webapp/color_and_brightness.py
+          sed -i 's/homeassistant.util.color/homeassistant_util_color/g' "webapp/color_and_brightness.py"
           shinylive export webapp site
 
       - name: Setup Pages

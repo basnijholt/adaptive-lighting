@@ -27,6 +27,7 @@ ignore = [
 "tests/*.py" = ["ALL"]
 ".github/*py" = ["INP001"]
 "webapp/*py" = ["ALL"]
+"custom_components/adaptive_lighting/homeassistant_util_color.py" = ["ALL"]
 
 [flake8-pytest-style]
 fixture-parentheses = false
