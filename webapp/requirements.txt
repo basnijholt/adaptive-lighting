@@ -1,2 +1,4 @@
 shinylive
 astral==2.2
+mplcyberpunk
+shinyswatch

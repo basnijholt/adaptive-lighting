@@ -8,6 +8,11 @@ from contextlib import suppress
 import datetime as dt
 from astral import LocationInfo
 from astral.location import Location
+import shinyswatch
+
+import mplcyberpunk
+
+plt.style.use("cyberpunk")
 
 
 def date_range(tzinfo):
@@ -69,7 +74,7 @@ def plot_brightness(kw, sleep_mode: bool):
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(time_range, brightness_linear_values, label="Linear Mode")
     ax.plot(time_range, brightness_tanh_values, label="Tanh Mode")
-    ax.plot(time_range, brightness_default_values, label="Default Mode")
+    ax.plot(time_range, brightness_default_values, label="Default Mode", c="C5")
     sunrise_time = sun.sun.sunrise(dt.date.today())
     sunset_time = sun.sun.sunset(dt.date.today())
     ax.vlines(
@@ -121,6 +126,7 @@ def plot_brightness(kw, sleep_mode: bool):
         verticalalignment="center",
         bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
     )
+    mplcyberpunk.add_glow_effects()
 
     return fig
 
@@ -174,16 +180,21 @@ def plot_color_temp(kw, sleep_mode: bool):
     ax.legend()
     ax.set_ylabel("Sun position (%)")
     ax.set_title("RGB Color Intensity over Time")
-
+    mplcyberpunk.make_lines_glow(ax)
+    ax.grid(False)
     return fig
 
 
 SEC_PER_HR = 60 * 60
-desc = """
+desc_top = """
 **Experience the Dynamics of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) in Real-Time.**
 
 Have you ever wondered how the intricate settings of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) impact your home ambiance? The Adaptive Lighting Simulator WebApp is here to demystify just that.
 
+(More text below the plots)
+"""
+
+desc_bottom = """
 Harnessing the technology of the popular Adaptive Lighting integration for Home Assistant, this webapp provides a hands-on, visual platform to explore, tweak, and understand the myriad of parameters that dictate the behavior of your smart lights. Whether you're aiming for a subtle morning glow or a cozy evening warmth, observe firsthand how each tweak changes the ambiance.
 
 **Why Use the Simulator?**
@@ -197,6 +208,14 @@ Dive into the simulator, experiment with different settings, and fine-tune the b
 
 # Shiny UI
 app_ui = ui.page_fluid(
+    shinyswatch.theme.darkly(),
+    ui.tags.style(
+        """
+        .irs-min, .irs-max{
+            background-color: #434343 !important;
+            }
+        """
+    ),
     ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
     ui.layout_sidebar(
         ui.panel_sidebar(
@@ -252,9 +271,10 @@ app_ui = ui.page_fluid(
             ),
         ),
         ui.panel_main(
-            ui.markdown(desc),
+            ui.markdown(desc_top),
             ui.output_plot(id="brightness_plot"),
             ui.output_plot(id="color_temp_plot"),
+            ui.markdown(desc_bottom),
         ),
     ),
 )
