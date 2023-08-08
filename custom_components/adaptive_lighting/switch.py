@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import zoneinfo
 from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
@@ -908,6 +909,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
+            timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",

@@ -8,17 +8,14 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import cached_property
+from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-import homeassistant.util.dt as dt_util
-from homeassistant.util.color import (
+from ._color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
-
-from .helpers import clamp
 
 if TYPE_CHECKING:
     import astral
@@ -31,9 +28,12 @@ SUN_EVENT_SUNSET = "sunset"
 SUN_EVENT_NOON = "solar_noon"
 SUN_EVENT_MIDNIGHT = "solar_midnight"
 
-
 _ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
+
+UTC = datetime.timezone.utc
+utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
+utcnow.__doc__ = "Get now in UTC time."
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ class SunEvents:
     sunset_offset: datetime.timedelta | None
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
+    timezone: datetime.tzinfo = UTC
 
     def sunrise(self, dt: datetime.datetime) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
@@ -93,8 +94,8 @@ class SunEvents:
         time: datetime.time,
     ) -> datetime.datetime:
         date_time = datetime.datetime.combine(dt, time)
-        dt_with_tz = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
-        return dt_with_tz.astimezone(dt_util.UTC)
+        dt_with_tz = date_time.replace(tzinfo=self.timezone)
+        return dt_with_tz.astimezone(UTC)
 
     def noon_and_midnight(
         self,
@@ -221,6 +222,7 @@ class SunLightSettings:
     brightness_mode: Literal["default", "linear", "tanh"]
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
+    timezone: datetime.tzinfo
 
     @cached_property
     def sun(self) -> SunEvents:
@@ -236,6 +238,7 @@ class SunLightSettings:
             self.sunset_offset,
             self.min_sunset_time,
             self.max_sunset_time,
+            self.timezone,
         )
 
     def _brightness_pct_default(self, dt: datetime.datetime) -> float:
@@ -382,7 +385,7 @@ class SunLightSettings:
 
         Calculating all values takes <0.5ms.
         """
-        dt = dt_util.utcnow() + timedelta(seconds=transition or 0)
+        dt = utcnow() + timedelta(seconds=transition or 0)
         return self.brightness_and_color(dt, is_sleep)
 
 
@@ -508,3 +511,8 @@ def lerp_color_hsv(
 def lerp(x, x1, x2, y1, y2):
     """Linearly interpolate between two values."""
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
+
+
+def clamp(value: float, minimum: float, maximum: float) -> float:
+    """Clamp value between minimum and maximum."""
+    return max(minimum, min(value, maximum))

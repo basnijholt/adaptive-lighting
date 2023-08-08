@@ -401,7 +401,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
     after_sunrise = sunrise + datetime.timedelta(hours=1)
 
     async def patch_time_and_update(time):
-        with patch("homeassistant.util.dt.utcnow", return_value=time):
+        with patch("custom_components.adaptive_lighting.sun.utcnow", return_value=time):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
             await hass.async_block_till_done()
 
@@ -490,7 +490,7 @@ async def test_light_settings(hass):
     context = switch.create_context("test")  # needs to be passed to update method
 
     async def patch_time_and_get_updated_states(time):
-        with patch("homeassistant.util.dt.utcnow", return_value=time):
+        with patch("custom_components.adaptive_lighting.sun.utcnow", return_value=time):
             await switch._update_attrs_and_maybe_adapt_lights(
                 context=context, transition=0, force=True
             )
@@ -1818,7 +1818,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     after_sunrise = sunrise + datetime.timedelta(hours=1)
 
     async def patch_time_and_update(time):
-        with patch("homeassistant.util.dt.utcnow", return_value=time):
+        with patch("custom_components.adaptive_lighting.sun.utcnow", return_value=time):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
             await hass.async_block_till_done()
 
@@ -2072,7 +2072,7 @@ async def test_brightness_mode(hass, brightness_mode, dark, light):
         return abs(a - b) < 0.01
 
     async def patch_time_and_update(time):
-        with patch("homeassistant.util.dt.utcnow", return_value=time):
+        with patch("custom_components.adaptive_lighting.sun.utcnow", return_value=time):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
             await hass.async_block_till_done()
 
