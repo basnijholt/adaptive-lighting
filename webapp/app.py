@@ -10,9 +10,9 @@ from astral import LocationInfo
 from astral.location import Location
 import shinyswatch
 
-import mplcyberpunk
+# import mplcyberpunk
 
-plt.style.use("cyberpunk")
+plt.style.use("dark_background")
 
 
 def date_range(tzinfo):
@@ -126,7 +126,7 @@ def plot_brightness(kw, sleep_mode: bool):
         verticalalignment="center",
         bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
     )
-    mplcyberpunk.add_glow_effects()
+    # mplcyberpunk.add_glow_effects()
 
     return fig
 
@@ -180,7 +180,7 @@ def plot_color_temp(kw, sleep_mode: bool):
     ax.legend()
     ax.set_ylabel("Sun position (%)")
     ax.set_title("RGB Color Intensity over Time")
-    mplcyberpunk.make_lines_glow(ax)
+    # mplcyberpunk.make_lines_glow(ax)
     ax.grid(False)
     return fig
 
