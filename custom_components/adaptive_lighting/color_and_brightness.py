@@ -45,14 +45,14 @@ class SunEvents:
     name: str
     astral_location: astral.Location
     sunrise_time: datetime.time | None
-    sunrise_offset: datetime.timedelta | None
     min_sunrise_time: datetime.time | None
     max_sunrise_time: datetime.time | None
     sunset_time: datetime.time | None
-    sunset_offset: datetime.timedelta | None
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
-    timezone: datetime.tzinfo
+    sunrise_offset: datetime.timedelta = datetime.timedelta(0)
+    sunset_offset: datetime.timedelta = datetime.timedelta(0)
+    timezone: datetime.tzinfo = UTC
 
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
@@ -212,16 +212,16 @@ class SunLightSettings:
     sleep_color_temp: int
     sleep_rgb_color: tuple[int, int, int]
     sunrise_time: datetime.time | None
-    sunrise_offset: datetime.timedelta | None
     min_sunrise_time: datetime.time | None
     max_sunrise_time: datetime.time | None
     sunset_time: datetime.time | None
-    sunset_offset: datetime.timedelta | None
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
-    brightness_mode: Literal["default", "linear", "tanh"]
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
+    brightness_mode: Literal["default", "linear", "tanh"] = "default"
+    sunrise_offset: datetime.timedelta = datetime.timedelta(0)
+    sunset_offset: datetime.timedelta = datetime.timedelta(0)
     timezone: datetime.tzinfo = UTC
 
     @cached_property

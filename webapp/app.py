@@ -128,8 +128,9 @@ def plot_color_temp(kw, sleep_mode: bool):
     dt_range = date_range()
     time_range = [time_to_float(dt) for dt in dt_range]
     settings = [sun.brightness_and_color(dt, sleep_mode) for dt in dt_range]
-    color_temp_values = [(*setting["rgb_color"], 255) for setting in settings]
-    color_temp_values = np.array(color_temp_values) / 255
+    color_temp_values = (
+        np.array([(*setting["rgb_color"], 255) for setting in settings]) / 255
+    )
     color_temp_values = color_temp_values.reshape(-1, 1, 4)
     sun_position = [setting["sun_position"] for setting in settings]
     fig, ax = plt.subplots(figsize=(10, 6))
