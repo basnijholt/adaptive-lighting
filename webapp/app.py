@@ -10,8 +10,10 @@ from astral import LocationInfo
 from astral.location import Location
 
 
-def date_range():
-    start_of_day = dt.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+def date_range(tzinfo):
+    start_of_day = dt.datetime.now(tzinfo).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     # one second before the next day
     end_of_day = start_of_day + dt.timedelta(days=1) - dt.timedelta(seconds=1)
     hours_range = [start_of_day]
@@ -53,7 +55,7 @@ def plot_brightness(kw, sleep_mode: bool):
     sun_tanh = SunLightSettings(**kw, brightness_mode="tanh")
     sun = SunLightSettings(**kw, brightness_mode="default")
     # Calculate the brightness for each time in the time range for all modes
-    dt_range = date_range()
+    dt_range = date_range(sun.timezone)
     time_range = [time_to_float(dt) for dt in dt_range]
     brightness_linear_values = [
         sun_linear.brightness_pct(dt, sleep_mode) for dt in dt_range
@@ -125,7 +127,7 @@ def plot_brightness(kw, sleep_mode: bool):
 
 def plot_color_temp(kw, sleep_mode: bool):
     sun = SunLightSettings(**kw, brightness_mode="default")
-    dt_range = date_range()
+    dt_range = date_range(tzinfo=sun.timezone)
     time_range = [time_to_float(dt) for dt in dt_range]
     settings = [sun.brightness_and_color(dt, sleep_mode) for dt in dt_range]
     color_temp_values = (
