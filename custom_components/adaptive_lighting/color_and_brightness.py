@@ -312,17 +312,17 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
-    def color_temp_kelvin(self, percent: float) -> int:
+    def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""
-        if percent > 0:
+        if sun_position > 0:
             delta = self.max_color_temp - self.min_color_temp
-            ct = (delta * percent) + self.min_color_temp
+            ct = (delta * sun_position) + self.min_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
-        if percent == 0 or not self.adapt_until_sleep:
+        if sun_position == 0 or not self.adapt_until_sleep:
             return self.min_color_temp
-        if self.adapt_until_sleep and percent < 0:
+        if self.adapt_until_sleep and sun_position < 0:
             delta = abs(self.min_color_temp - self.sleep_color_temp)
-            ct = (delta * abs(1 + percent)) + self.sleep_color_temp
+            ct = (delta * abs(1 + sun_position)) + self.sleep_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
         msg = "Should not happen"
         raise ValueError(msg)

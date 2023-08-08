@@ -53,9 +53,8 @@ def plot_brightness(kw, sleep_mode: bool):
     sun_linear = SunLightSettings(**kw, brightness_mode="linear")
     sun_tanh = SunLightSettings(**kw, brightness_mode="tanh")
     sun = SunLightSettings(**kw, brightness_mode="default")
-    # Calculate the brightness for each time in the time range for both modes
+    # Calculate the brightness for each time in the time range for all modes
     dt_range = date_range()
-    assert 0, dt_range
     time_range = [time_to_float(dt) for dt in dt_range]
     brightness_linear_values = [
         sun_linear.brightness_pct(dt, sleep_mode) for dt in dt_range
@@ -66,11 +65,11 @@ def plot_brightness(kw, sleep_mode: bool):
     brightness_default_values = [sun.brightness_pct(dt, sleep_mode) for dt in dt_range]
 
     # Plot the brightness over time for both modes
-    plt.figure(figsize=(10, 6))
-    plt.plot(time_range, brightness_linear_values, label="Linear Mode")
-    plt.plot(time_range, brightness_tanh_values, label="Tanh Mode")
-    plt.plot(time_range, brightness_default_values, label="Default Mode")
-    plt.vlines(
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    ax1.plot(time_range, brightness_linear_values, label="Linear Mode")
+    ax1.plot(time_range, brightness_tanh_values, label="Tanh Mode")
+    ax1.plot(time_range, brightness_default_values, label="Default Mode")
+    ax1.vlines(
         time_to_float(sun.sunrise_time),
         0,
         100,
@@ -78,7 +77,7 @@ def plot_brightness(kw, sleep_mode: bool):
         label="Sunrise",
         linestyles="dashed",
     )
-    plt.vlines(
+    ax1.vlines(
         time_to_float(sun.sunset_time),
         0,
         100,
@@ -86,14 +85,14 @@ def plot_brightness(kw, sleep_mode: bool):
         label="Sunset",
         linestyles="dashed",
     )
-    plt.xlim(0, 24)
-    plt.xticks(np.arange(0, 25, 1))
+    ax1.set_xlim(0, 24)
+    ax1.set_xticks(np.arange(0, 25, 1))
     yticks = np.arange(0, 105, 5)
     ytick_labels = [f"{label:.0f}%" for label in yticks]
-    plt.yticks(yticks, ytick_labels)
-    plt.xlabel("Time (hours)")
-    plt.ylabel("Brightness")
-    plt.title("Brightness over Time for Different Modes")
+    ax1.set_yticks(yticks, ytick_labels)
+    ax1.set_xlabel("Time (hours)")
+    ax1.set_ylabel("Brightness")
+    ax1.set_title("Brightness over Time for Different Modes")
 
     # Add text box
     textstr = "\n".join(
@@ -102,29 +101,52 @@ def plot_brightness(kw, sleep_mode: bool):
             f"Sunset Time = {sun.sunset_time}",
             f"Max Brightness = {sun.max_brightness:.0f}%",
             f"Min Brightness = {sun.min_brightness:.0f}%",
-            f"Time Light = {sun.brightness_mode_time_light} hours",
-            f"Time Dark = {sun.brightness_mode_time_dark} hours",
+            f"Time Light = {sun.brightness_mode_time_light}",
+            f"Time Dark = {sun.brightness_mode_time_dark}",
         ),
     )
 
-    # these are matplotlib.patch.Patch properties
-    props = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5}
-
-    plt.legend()
-    plt.grid(True)
+    ax1.legend()
+    ax1.grid(True)
 
     # place a text box in upper left in axes coords
-    plt.gca().text(
+    ax1.text(
         0.4,
         0.55,
         textstr,
         transform=plt.gca().transAxes,
         fontsize=10,
         verticalalignment="center",
-        bbox=props,
+        bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
     )
 
-    return plt.gcf()
+    return fig
+
+
+def plot_color_temp(kw, sleep_mode: bool):
+    sun = SunLightSettings(**kw, brightness_mode="default")
+    dt_range = date_range()
+    settings = [sun.brightness_and_color(dt, sleep_mode) for dt in dt_range]
+    color_temp_values = [(*setting["rgb_color"], 255) for setting in settings]
+    color_temp_values = np.array(color_temp_values) / 255
+    color_temp_values = color_temp_values.reshape(-1, 1, 4)
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Display as a horizontal bar
+    ax.imshow(
+        np.rot90(color_temp_values)[:, ::-1],
+        aspect="auto",
+        extent=[0, 24, 0, 1],
+        origin="upper",
+    )
+
+    ax.set_xlim(0, 24)
+    ax.set_xticks(np.arange(0, 25, 1))
+    ax.set_yticks([])
+    ax.set_xlabel("Time (hours)")
+    ax.set_title("RGB Color Intensity over Time")
+
+    return fig
 
 
 SEC_PER_HR = 60 * 60
@@ -200,7 +222,11 @@ app_ui = ui.page_fluid(
                 post=" hr",
             ),
         ),
-        ui.panel_main(ui.markdown(desc), ui.output_plot(id="brightness_plot")),
+        ui.panel_main(
+            ui.markdown(desc),
+            ui.output_plot(id="brightness_plot"),
+            ui.output_plot(id="color_temp_plot"),
+        ),
     ),
 )
 
@@ -216,40 +242,48 @@ def time_to_float(time: dt.time) -> float:
     return time.hour + time.minute / 60
 
 
+def _kw(input):
+    return dict(
+        name="Adaptive Lighting Simulator",
+        adapt_until_sleep=input.adapt_until_sleep(),
+        max_brightness=input.max_brightness(),
+        min_brightness=input.min_brightness(),
+        min_color_temp=input.min_color_temp(),
+        max_color_temp=input.max_color_temp(),
+        sleep_brightness=input.sleep_brightness(),
+        sleep_rgb_or_color_temp=input.sleep_rgb_or_color_temp(),
+        sleep_color_temp=input.sleep_color_temp(),
+        sleep_rgb_color=map(int, input.sleep_rgb_color().split(",")),
+        sunrise_time=float_to_time(input.sunrise_time()),
+        sunset_time=float_to_time(input.sunset_time()),
+        # sunrise_time=None,
+        # sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(
+            seconds=input.brightness_mode_time_dark()
+        ),
+        brightness_mode_time_light=dt.timedelta(
+            seconds=input.brightness_mode_time_light()
+        ),
+        sunrise_offset=dt.timedelta(0),
+        sunset_offset=dt.timedelta(0),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        min_sunset_time=None,
+        max_sunset_time=None,
+        astral_location=Location(LocationInfo()),
+    )
+
+
 def server(input, output, session):
     @output
     @render.plot
     def brightness_plot():
-        kw = dict(
-            name="Adaptive Lighting Simulator",
-            adapt_until_sleep=input.adapt_until_sleep(),
-            max_brightness=input.max_brightness(),
-            min_brightness=input.min_brightness(),
-            min_color_temp=input.min_color_temp(),
-            max_color_temp=input.max_color_temp(),
-            sleep_brightness=input.sleep_brightness(),
-            sleep_rgb_or_color_temp=input.sleep_rgb_or_color_temp(),
-            sleep_color_temp=input.sleep_color_temp(),
-            sleep_rgb_color=input.sleep_rgb_color(),
-            sunrise_time=float_to_time(input.sunrise_time()),
-            sunset_time=float_to_time(input.sunset_time()),
-            # sunrise_time=None,
-            # sunset_time=None,
-            brightness_mode_time_dark=dt.timedelta(
-                seconds=input.brightness_mode_time_dark()
-            ),
-            brightness_mode_time_light=dt.timedelta(
-                seconds=input.brightness_mode_time_light()
-            ),
-            sunrise_offset=dt.timedelta(0),
-            sunset_offset=dt.timedelta(0),
-            min_sunrise_time=None,
-            max_sunrise_time=None,
-            min_sunset_time=None,
-            max_sunset_time=None,
-            astral_location=Location(LocationInfo()),
-        )
-        return plot_brightness(kw, sleep_mode=input.sleep_mode())
+        return plot_brightness(_kw(input), sleep_mode=input.sleep_mode())
+
+    @output
+    @render.plot
+    def color_temp_plot():
+        return plot_color_temp(_kw(input), sleep_mode=input.sleep_mode())
 
 
 app = App(app_ui, server)
