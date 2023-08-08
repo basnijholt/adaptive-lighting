@@ -394,6 +394,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
     min_color_temp = switch._sun_light_settings.min_color_temp
 
     sunset = SUNSET.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+
     before_sunset = sunset - datetime.timedelta(hours=1)
     after_sunset = sunset + datetime.timedelta(hours=1)
     sunrise = SUNRISE.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)

@@ -12,9 +12,8 @@ from astral.location import Location
 
 def date_range():
     start_of_day = dt.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_day = (
-        start_of_day + dt.timedelta(days=1) - dt.timedelta(seconds=1)
-    )  # one second before the next day
+    # one second before the next day
+    end_of_day = start_of_day + dt.timedelta(days=1) - dt.timedelta(seconds=1)
     hours_range = [start_of_day]
     while hours_range[-1] < end_of_day:
         hours_range.append(hours_range[-1] + dt.timedelta(minutes=5))
@@ -65,40 +64,42 @@ def plot_brightness(kw, sleep_mode: bool):
     brightness_default_values = [sun.brightness_pct(dt, sleep_mode) for dt in dt_range]
 
     # Plot the brightness over time for both modes
-    fig, ax1 = plt.subplots(figsize=(10, 6))
-    ax1.plot(time_range, brightness_linear_values, label="Linear Mode")
-    ax1.plot(time_range, brightness_tanh_values, label="Tanh Mode")
-    ax1.plot(time_range, brightness_default_values, label="Default Mode")
-    ax1.vlines(
-        time_to_float(sun.sunrise_time),
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(time_range, brightness_linear_values, label="Linear Mode")
+    ax.plot(time_range, brightness_tanh_values, label="Tanh Mode")
+    ax.plot(time_range, brightness_default_values, label="Default Mode")
+    sunrise_time = sun.sun.sunrise(dt.date.today())
+    sunset_time = sun.sun.sunset(dt.date.today())
+    ax.vlines(
+        time_to_float(sunrise_time),
         0,
         100,
         color="C2",
         label="Sunrise",
         linestyles="dashed",
     )
-    ax1.vlines(
-        time_to_float(sun.sunset_time),
+    ax.vlines(
+        time_to_float(sunset_time),
         0,
         100,
         color="C3",
         label="Sunset",
         linestyles="dashed",
     )
-    ax1.set_xlim(0, 24)
-    ax1.set_xticks(np.arange(0, 25, 1))
+    ax.set_xlim(0, 24)
+    ax.set_xticks(np.arange(0, 25, 1))
     yticks = np.arange(0, 105, 5)
     ytick_labels = [f"{label:.0f}%" for label in yticks]
-    ax1.set_yticks(yticks, ytick_labels)
-    ax1.set_xlabel("Time (hours)")
-    ax1.set_ylabel("Brightness")
-    ax1.set_title("Brightness over Time for Different Modes")
+    ax.set_yticks(yticks, ytick_labels)
+    ax.set_xlabel("Time (hours)")
+    ax.set_ylabel("Brightness")
+    ax.set_title("Brightness over Time for Different Modes")
 
     # Add text box
     textstr = "\n".join(
         (
-            f"Sunrise Time = {sun.sunrise_time}",
-            f"Sunset Time = {sun.sunset_time}",
+            f"Sunrise Time = {sunrise_time}",
+            f"Sunset Time = {sunset_time}",
             f"Max Brightness = {sun.max_brightness:.0f}%",
             f"Min Brightness = {sun.min_brightness:.0f}%",
             f"Time Light = {sun.brightness_mode_time_light}",
@@ -106,15 +107,14 @@ def plot_brightness(kw, sleep_mode: bool):
         ),
     )
 
-    ax1.legend()
-    ax1.grid(True)
+    ax.legend()
+    ax.grid(True)
 
-    # place a text box in upper left in axes coords
-    ax1.text(
+    ax.text(
         0.4,
         0.55,
         textstr,
-        transform=plt.gca().transAxes,
+        transform=ax.transAxes,
         fontsize=10,
         verticalalignment="center",
         bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
@@ -126,24 +126,50 @@ def plot_brightness(kw, sleep_mode: bool):
 def plot_color_temp(kw, sleep_mode: bool):
     sun = SunLightSettings(**kw, brightness_mode="default")
     dt_range = date_range()
+    time_range = [time_to_float(dt) for dt in dt_range]
     settings = [sun.brightness_and_color(dt, sleep_mode) for dt in dt_range]
     color_temp_values = [(*setting["rgb_color"], 255) for setting in settings]
     color_temp_values = np.array(color_temp_values) / 255
     color_temp_values = color_temp_values.reshape(-1, 1, 4)
+    sun_position = [setting["sun_position"] for setting in settings]
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Display as a horizontal bar
     ax.imshow(
-        np.rot90(color_temp_values)[:, ::-1],
+        np.rot90(color_temp_values)[:, ::1],
         aspect="auto",
-        extent=[0, 24, 0, 1],
+        extent=[0, 24, -1, 1],
         origin="upper",
+    )
+    # Plot a curve on top of the imshow
+    ax.plot(time_range[:-1], sun_position[:-1], color="k", label="Sun Position")
+
+    sunrise_time = sun.sun.sunrise(dt.date.today())
+    sunset_time = sun.sun.sunset(dt.date.today())
+    ax.vlines(
+        time_to_float(sunrise_time),
+        -1,
+        1,
+        color="C2",
+        label="Sunrise",
+        linestyles="dashed",
+    )
+    ax.vlines(
+        time_to_float(sunset_time),
+        -1,
+        1,
+        color="C3",
+        label="Sunset",
+        linestyles="dashed",
     )
 
     ax.set_xlim(0, 24)
     ax.set_xticks(np.arange(0, 25, 1))
-    ax.set_yticks([])
+    yticks = np.arange(-1, 1.1, 0.1)
+    ax.set_yticks(yticks, [f"{label*100:.0f}%" for label in yticks])
     ax.set_xlabel("Time (hours)")
+    ax.legend()
+    ax.set_ylabel("Sun position (%)")
     ax.set_title("RGB Color Intensity over Time")
 
     return fig
@@ -238,7 +264,7 @@ def float_to_time(value: float) -> dt.time:
     return time
 
 
-def time_to_float(time: dt.time) -> float:
+def time_to_float(time: dt.time | dt.datetime) -> float:
     return time.hour + time.minute / 60
 
 
@@ -253,11 +279,11 @@ def _kw(input):
         sleep_brightness=input.sleep_brightness(),
         sleep_rgb_or_color_temp=input.sleep_rgb_or_color_temp(),
         sleep_color_temp=input.sleep_color_temp(),
-        sleep_rgb_color=map(int, input.sleep_rgb_color().split(",")),
-        sunrise_time=float_to_time(input.sunrise_time()),
-        sunset_time=float_to_time(input.sunset_time()),
-        # sunrise_time=None,
-        # sunset_time=None,
+        sleep_rgb_color=[int(x) for x in input.sleep_rgb_color().split(",")],
+        # sunrise_time=float_to_time(input.sunrise_time()),
+        # sunset_time=float_to_time(input.sunset_time()),
+        sunrise_time=None,
+        sunset_time=None,
         brightness_mode_time_dark=dt.timedelta(
             seconds=input.brightness_mode_time_dark()
         ),

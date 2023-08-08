@@ -54,7 +54,7 @@ class SunEvents:
     max_sunset_time: datetime.time | None
     timezone: datetime.tzinfo
 
-    def sunrise(self, dt: datetime.datetime) -> datetime.datetime:
+    def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
         sunrise = (
             self.astral_location.sunrise(dt, local=False)
@@ -71,7 +71,7 @@ class SunEvents:
                 sunrise = max_sunrise
         return sunrise
 
-    def sunset(self, dt: datetime.datetime) -> datetime.datetime:
+    def sunset(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunset time for the given datetime."""
         sunset = (
             self.astral_location.sunset(dt, local=False)
@@ -90,7 +90,7 @@ class SunEvents:
 
     def _replace_time(
         self,
-        dt: datetime.datetime,
+        dt: datetime.date,
         time: datetime.time,
     ) -> datetime.datetime:
         date_time = datetime.datetime.combine(dt, time)
