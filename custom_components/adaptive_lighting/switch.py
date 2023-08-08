@@ -923,7 +923,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
-            transition=data[CONF_TRANSITION],
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",
@@ -1610,56 +1609,56 @@ class SunEvents:
     min_sunset_time: datetime.time | None
     max_sunset_time: datetime.time | None
 
-    def sunrise(self, date: datetime.datetime) -> datetime.datetime:
-        """Return the (adjusted) sunrise time for the given date."""
+    def sunrise(self, dt: datetime.datetime) -> datetime.datetime:
+        """Return the (adjusted) sunrise time for the given datetime."""
         sunrise = (
-            self.astral_location.sunrise(date, local=False)
+            self.astral_location.sunrise(dt, local=False)
             if self.sunrise_time is None
-            else self._replace_time(date, self.sunrise_time)
+            else self._replace_time(dt, self.sunrise_time)
         ) + self.sunrise_offset
         if self.min_sunrise_time is not None:
-            min_sunrise = self._replace_time(date, self.min_sunrise_time)
+            min_sunrise = self._replace_time(dt, self.min_sunrise_time)
             if min_sunrise > sunrise:
                 sunrise = min_sunrise
         if self.max_sunrise_time is not None:
-            max_sunrise = self._replace_time(date, self.max_sunrise_time)
+            max_sunrise = self._replace_time(dt, self.max_sunrise_time)
             if max_sunrise < sunrise:
                 sunrise = max_sunrise
         return sunrise
 
-    def sunset(self, date: datetime.datetime) -> datetime.datetime:
-        """Return the (adjusted) sunset time for the given date."""
+    def sunset(self, dt: datetime.datetime) -> datetime.datetime:
+        """Return the (adjusted) sunset time for the given datetime."""
         sunset = (
-            self.astral_location.sunset(date, local=False)
+            self.astral_location.sunset(dt, local=False)
             if self.sunset_time is None
-            else self._replace_time(date, self.sunset_time)
+            else self._replace_time(dt, self.sunset_time)
         ) + self.sunset_offset
         if self.min_sunset_time is not None:
-            min_sunset = self._replace_time(date, self.min_sunset_time)
+            min_sunset = self._replace_time(dt, self.min_sunset_time)
             if min_sunset > sunset:
                 sunset = min_sunset
         if self.max_sunset_time is not None:
-            max_sunset = self._replace_time(date, self.max_sunset_time)
+            max_sunset = self._replace_time(dt, self.max_sunset_time)
             if max_sunset < sunset:
                 sunset = max_sunset
         return sunset
 
     def _replace_time(
         self,
-        date: datetime.datetime,
+        dt: datetime.datetime,
         time: datetime.time,
     ) -> datetime.datetime:
-        date_time = datetime.datetime.combine(date, time)
+        date_time = datetime.datetime.combine(dt, time)
         dt_with_tz = date_time.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
         return dt_with_tz.astimezone(dt_util.UTC)
 
     def noon_and_midnight(
         self,
-        date: datetime.datetime,
+        dt: datetime.datetime,
         sunset: datetime.datetime | None = None,
         sunrise: datetime.datetime | None = None,
     ) -> tuple[datetime.datetime, datetime.datetime]:
-        """Return the (adjusted) noon and midnight times for the given date."""
+        """Return the (adjusted) noon and midnight times for the given datetime."""
         if (
             self.sunrise_time is None
             and self.sunset_time is None
@@ -1668,14 +1667,14 @@ class SunEvents:
             and self.min_sunset_time is None
             and self.max_sunset_time is None
         ):
-            solar_noon = self.astral_location.noon(date, local=False)
-            solar_midnight = self.astral_location.midnight(date, local=False)
+            solar_noon = self.astral_location.noon(dt, local=False)
+            solar_midnight = self.astral_location.midnight(dt, local=False)
             return solar_noon, solar_midnight
 
         if sunset is None:
-            sunset = self.sunset(date)
+            sunset = self.sunset(dt)
         if sunrise is None:
-            sunrise = self.sunrise(date)
+            sunrise = self.sunrise(dt)
 
         middle = abs(sunset - sunrise) / 2
         if sunset > sunrise:
@@ -1686,11 +1685,11 @@ class SunEvents:
             noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
         return noon, midnight
 
-    def sun_events(self, date: datetime.datetime) -> list[tuple[str, float]]:
-        """Get the four sun event's timestamps at 'date'."""
-        sunrise = self.sunrise(date)
-        sunset = self.sunset(date)
-        solar_noon, solar_midnight = self.noon_and_midnight(date, sunset, sunrise)
+    def sun_events(self, dt: datetime.datetime) -> list[tuple[str, float]]:
+        """Get the four sun event's timestamps at 'dt'."""
+        sunrise = self.sunrise(dt)
+        sunset = self.sunset(dt)
+        solar_noon, solar_midnight = self.noon_and_midnight(dt, sunset, sunrise)
         events = [
             (SUN_EVENT_SUNRISE, sunrise.timestamp()),
             (SUN_EVENT_SUNSET, sunset.timestamp()),
@@ -1725,13 +1724,10 @@ class SunEvents:
         i_now = bisect.bisect([ts for _, ts in events], dt.timestamp())
         return events[i_now - 1 : i_now + 1]
 
-    def sun_position(self, dt: datetime.datetime, transition: int = 0) -> float:
+    def sun_position(self, dt: datetime.datetime) -> float:
         """Calculate the position of the sun, between [-1, 1]."""
-        dt = dt_util.utcnow()
-        target_time = dt + timedelta(seconds=transition)
-        target_ts = target_time.timestamp()
-        sun_events = self.prev_and_next_events(target_time)
-        (_, prev_ts), (next_event, next_ts) = sun_events
+        target_ts = dt.timestamp()
+        (_, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
         h, x = (
             (prev_ts, next_ts)
             if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_SUNRISE)
@@ -1769,7 +1765,6 @@ class SunLightSettings:
     brightness_mode: Literal["default", "linear", "tanh"]
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
-    transition: int
 
     @cached_property
     def sun(self) -> SunEvents:
@@ -1789,7 +1784,7 @@ class SunLightSettings:
 
     def _brightness_pct_default(self, dt: datetime.datetime) -> float:
         """Calculate the brightness percentage using the default method."""
-        sun_position = self.sun.sun_position(dt, self.transition)
+        sun_position = self.sun.sun_position(dt)
         if sun_position > 0:
             return self.max_brightness
         delta_brightness = self.max_brightness - self.min_brightness
@@ -1797,8 +1792,7 @@ class SunLightSettings:
 
     def _closest_event(self, dt: datetime.datetime) -> tuple[str, float]:
         """Get the closest sunset or sunrise event."""
-        sun_events = self.sun.prev_and_next_events(dt)
-        (prev_event, prev_ts), (next_event, next_ts) = sun_events
+        (prev_event, prev_ts), (next_event, next_ts) = self.sun.prev_and_next_events(dt)
         if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
             return SUN_EVENT_SUNRISE, ts_event
@@ -1895,9 +1889,8 @@ class SunLightSettings:
 
         Calculating all values takes <0.5ms.
         """
-        dt = dt_util.utcnow()
-        transition = transition or 0
-        sun_position = self.sun.sun_position(dt, transition)
+        dt = dt_util.utcnow() + timedelta(seconds=transition or 0)
+        sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[float, float, float]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
