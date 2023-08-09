@@ -16,8 +16,17 @@ with strings_fname.open() as f:
     strings = json.load(f)
 
 # Set "options"
-data = {k: f"{k}: {const.DOCS[k]}" for k, _, _ in const.VALIDATION_TUPLES}
+data = {}
+data_description = {}
+for k, _, typ in const.VALIDATION_TUPLES:
+    desc = const.DOCS[k]
+    if len(desc) > 40 and typ != bool:
+        data[k] = k
+        data_description[k] = desc
+    else:
+        data[k] = f"{k}: {const.DOCS[k]}"
 strings["options"]["step"]["init"]["data"] = data
+strings["options"]["step"]["init"]["data_description"] = data_description
 
 # Set "services"
 services_filename = Path("custom_components") / "adaptive_lighting" / "services.yaml"
