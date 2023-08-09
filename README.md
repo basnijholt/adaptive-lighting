@@ -18,6 +18,8 @@ In addition to its regular mode, Adaptive Lighting also offers a "sleep mode" �
 
 > 🌈 Visualize Adaptive Lighting's settings with the [_🌞 Adaptive Lighting Simulator WebApp 🌛_](https://basnijholt.github.io/adaptive-lighting)
 
+https://github.com/basnijholt/adaptive-lighting/assets/6897215/68908f7d-fbf1-4991-98ce-3f2af6df996f
+
 [[ToC](#books-table-of-contents)]
 
 ## :bulb: Features
