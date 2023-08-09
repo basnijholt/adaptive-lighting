@@ -26,7 +26,8 @@ ignore = [
 [per-file-ignores]
 "tests/*.py" = ["ALL"]
 ".github/*py" = ["INP001"]
-"webapp/*py" = ["ALL"]
+"webapp/homeassistant_util_color.py" = ["ALL"]
+"webapp/app.py" = ["INP001", "DTZ011", "A002"]
 "custom_components/adaptive_lighting/homeassistant_util_color.py" = ["ALL"]
 
 [flake8-pytest-style]

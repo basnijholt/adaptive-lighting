@@ -1,28 +1,36 @@
 """Simple web app to visualize brightness over time."""
 
+import datetime as dt
+from contextlib import suppress
+from pathlib import Path
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
-from shiny import App, render, ui
-from pathlib import Path
-from contextlib import suppress
-import datetime as dt
+import shinyswatch
 from astral import LocationInfo
 from astral.location import Location
+from shiny import App, render, ui
 
 
-def date_range(tzinfo):
+def date_range(tzinfo: dt.tzinfo) -> list[dt.datetime]:
+    """Return a list of datetimes for the current day."""
     start_of_day = dt.datetime.now(tzinfo).replace(
-        hour=0, minute=0, second=0, microsecond=0
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
     # one second before the next day
     end_of_day = start_of_day + dt.timedelta(days=1) - dt.timedelta(seconds=1)
     hours_range = [start_of_day]
     while hours_range[-1] < end_of_day:
-        hours_range.append(hours_range[-1] + dt.timedelta(minutes=5))
+        hours_range.append(hours_range[-1] + dt.timedelta(minutes=1))
     return hours_range[:-1]
 
 
-def copy_color_and_brightness_module():
+def copy_color_and_brightness_module() -> None:
+    """Copy the color_and_brightness module to the webapp folder."""
     with suppress(Exception):
         webapp_folder = Path(__file__).parent.absolute()
         module = (
@@ -46,14 +54,15 @@ def copy_color_and_brightness_module():
 
 copy_color_and_brightness_module()
 
-from color_and_brightness import SunLightSettings
+from color_and_brightness import SunLightSettings  # noqa: E402
 
 
-def plot_brightness(kw, sleep_mode: bool):
+def plot_brightness(inputs: dict[str, Any], sleep_mode: bool):
+    """Plot the brightness over time for different modes."""
     # Define the time range for our simulation
-    sun_linear = SunLightSettings(**kw, brightness_mode="linear")
-    sun_tanh = SunLightSettings(**kw, brightness_mode="tanh")
-    sun = SunLightSettings(**kw, brightness_mode="default")
+    sun_linear = SunLightSettings(**inputs, brightness_mode="linear")
+    sun_tanh = SunLightSettings(**inputs, brightness_mode="tanh")
+    sun = SunLightSettings(**inputs, brightness_mode="default")
     # Calculate the brightness for each time in the time range for all modes
     dt_range = date_range(sun.timezone)
     time_range = [time_to_float(dt) for dt in dt_range]
@@ -69,7 +78,7 @@ def plot_brightness(kw, sleep_mode: bool):
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(time_range, brightness_linear_values, label="Linear Mode")
     ax.plot(time_range, brightness_tanh_values, label="Tanh Mode")
-    ax.plot(time_range, brightness_default_values, label="Default Mode")
+    ax.plot(time_range, brightness_default_values, label="Default Mode", c="C5")
     sunrise_time = sun.sun.sunrise(dt.date.today())
     sunset_time = sun.sun.sunset(dt.date.today())
     ax.vlines(
@@ -110,7 +119,6 @@ def plot_brightness(kw, sleep_mode: bool):
     )
 
     ax.legend()
-    ax.grid(True)
 
     ax.text(
         0.4,
@@ -121,12 +129,14 @@ def plot_brightness(kw, sleep_mode: bool):
         verticalalignment="center",
         bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
     )
+    ax.grid(visible=True)
 
     return fig
 
 
-def plot_color_temp(kw, sleep_mode: bool):
-    sun = SunLightSettings(**kw, brightness_mode="default")
+def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
+    """Plot the color temperature over time for different modes."""
+    sun = SunLightSettings(**inputs, brightness_mode="default")
     dt_range = date_range(tzinfo=sun.timezone)
     time_range = [time_to_float(dt) for dt in dt_range]
     settings = [sun.brightness_and_color(dt, sleep_mode) for dt in dt_range]
@@ -174,16 +184,20 @@ def plot_color_temp(kw, sleep_mode: bool):
     ax.legend()
     ax.set_ylabel("Sun position (%)")
     ax.set_title("RGB Color Intensity over Time")
-
+    ax.grid(visible=False)
     return fig
 
 
 SEC_PER_HR = 60 * 60
-desc = """
+desc_top = """
 **Experience the Dynamics of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) in Real-Time.**
 
 Have you ever wondered how the intricate settings of [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) impact your home ambiance? The Adaptive Lighting Simulator WebApp is here to demystify just that.
 
+(More text below the plots)
+"""
+
+desc_bottom = """
 Harnessing the technology of the popular Adaptive Lighting integration for Home Assistant, this webapp provides a hands-on, visual platform to explore, tweak, and understand the myriad of parameters that dictate the behavior of your smart lights. Whether you're aiming for a subtle morning glow or a cozy evening warmth, observe firsthand how each tweak changes the ambiance.
 
 **Why Use the Simulator?**
@@ -197,17 +211,23 @@ Dive into the simulator, experiment with different settings, and fine-tune the b
 
 # Shiny UI
 app_ui = ui.page_fluid(
+    shinyswatch.theme.sandstone(),
     ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
     ui.layout_sidebar(
         ui.panel_sidebar(
-            ui.input_switch("adapt_until_sleep", "adapt_until_sleep", False),
-            ui.input_switch("sleep_mode", "sleep_mode", False),
+            ui.input_switch("adapt_until_sleep", "adapt_until_sleep", value=False),
+            ui.input_switch("sleep_mode", "sleep_mode", value=False),
             ui.input_slider("min_brightness", "min_brightness", 1, 100, 30, post="%"),
             ui.input_slider("max_brightness", "max_brightness", 1, 100, 100, post="%"),
             ui.input_numeric("min_color_temp", "min_color_temp", 2000),
             ui.input_numeric("max_color_temp", "max_color_temp", 6666),
             ui.input_slider(
-                "sleep_brightness", "sleep_brightness", 1, 100, 1, post="%"
+                "sleep_brightness",
+                "sleep_brightness",
+                1,
+                100,
+                1,
+                post="%",
             ),
             ui.input_radio_buttons(
                 "sleep_rgb_or_color_temp",
@@ -252,58 +272,62 @@ app_ui = ui.page_fluid(
             ),
         ),
         ui.panel_main(
-            ui.markdown(desc),
+            ui.markdown(desc_top),
             ui.output_plot(id="brightness_plot"),
             ui.output_plot(id="color_temp_plot"),
+            ui.markdown(desc_bottom),
         ),
     ),
 )
 
 
 def float_to_time(value: float) -> dt.time:
+    """Convert a float to a time object."""
     hours = int(value)
     minutes = int((value - hours) * 60)
-    time = dt.time(hours, minutes)
-    return time
+    return dt.time(hours, minutes)
 
 
 def time_to_float(time: dt.time | dt.datetime) -> float:
+    """Convert a time object to a float."""
     return time.hour + time.minute / 60
 
 
 def _kw(input):
     location = Location(LocationInfo(timezone=dt.timezone.utc))
-    return dict(
-        name="Adaptive Lighting Simulator",
-        adapt_until_sleep=input.adapt_until_sleep(),
-        max_brightness=input.max_brightness(),
-        min_brightness=input.min_brightness(),
-        min_color_temp=input.min_color_temp(),
-        max_color_temp=input.max_color_temp(),
-        sleep_brightness=input.sleep_brightness(),
-        sleep_rgb_or_color_temp=input.sleep_rgb_or_color_temp(),
-        sleep_color_temp=input.sleep_color_temp(),
-        sleep_rgb_color=[int(x) for x in input.sleep_rgb_color().split(",")],
-        sunrise_time=float_to_time(input.sunrise_time()),
-        sunset_time=float_to_time(input.sunset_time()),
-        brightness_mode_time_dark=dt.timedelta(
-            seconds=input.brightness_mode_time_dark()
+    return {
+        "name": "Adaptive Lighting Simulator",
+        "adapt_until_sleep": input.adapt_until_sleep(),
+        "max_brightness": input.max_brightness(),
+        "min_brightness": input.min_brightness(),
+        "min_color_temp": input.min_color_temp(),
+        "max_color_temp": input.max_color_temp(),
+        "sleep_brightness": input.sleep_brightness(),
+        "sleep_rgb_or_color_temp": input.sleep_rgb_or_color_temp(),
+        "sleep_color_temp": input.sleep_color_temp(),
+        "sleep_rgb_color": [int(x) for x in input.sleep_rgb_color().split(",")],
+        "sunrise_time": float_to_time(input.sunrise_time()),
+        "sunset_time": float_to_time(input.sunset_time()),
+        "brightness_mode_time_dark": dt.timedelta(
+            seconds=input.brightness_mode_time_dark(),
         ),
-        brightness_mode_time_light=dt.timedelta(
-            seconds=input.brightness_mode_time_light()
+        "brightness_mode_time_light": dt.timedelta(
+            seconds=input.brightness_mode_time_light(),
         ),
-        sunrise_offset=dt.timedelta(0),
-        sunset_offset=dt.timedelta(0),
-        min_sunrise_time=None,
-        max_sunrise_time=None,
-        min_sunset_time=None,
-        max_sunset_time=None,
-        astral_location=location,
-        timezone=location.timezone,
-    )
+        "sunrise_offset": dt.timedelta(0),
+        "sunset_offset": dt.timedelta(0),
+        "min_sunrise_time": None,
+        "max_sunrise_time": None,
+        "min_sunset_time": None,
+        "max_sunset_time": None,
+        "astral_location": location,
+        "timezone": location.timezone,
+    }
 
 
-def server(input, output, session):
+def server(input, output, session):  # noqa: ARG001
+    """Shiny server."""
+
     @output
     @render.plot
     def brightness_plot():

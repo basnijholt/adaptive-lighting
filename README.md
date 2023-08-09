@@ -16,6 +16,8 @@ By automatically adapting the settings of your lights throughout the day, Adapti
 
 In addition to its regular mode, Adaptive Lighting also offers a "sleep mode" 🌜 which sets your lights to minimal brightness and a very warm color, perfect for winding down at night.
 
+> 🌈 Visualize Adaptive Lighting's settings with the [_🌞 Adaptive Lighting Simulator WebApp 🌛_](https://basnijholt.github.io/adaptive-lighting)
+
 [[ToC](#books-table-of-contents)]
 
 ## :bulb: Features
