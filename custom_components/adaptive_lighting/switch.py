@@ -1376,9 +1376,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 timer = self.manager.transition_timers.get(light)
                 if timer is not None and timer.is_running():
                     _LOGGER.debug(
-                        "%s: Light '%s' is still transitioning",
+                        "%s: Light '%s' is still transitioning, context.id='%s'",
                         self._name,
                         light,
+                        context.id,
                     )
                 elif (
                     # This is to prevent lights immediately turning on after
@@ -1390,9 +1391,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     and turn_off.time_fired > turn_on.time_fired
                 ):
                     _LOGGER.debug(
-                        "%s: Light '%s' was turned just turned off",
+                        "%s: Light '%s' was turned just turned off, context.id='%s'",
                         self._name,
                         light,
+                        context.id,
                     )
                 else:
                     filtered_lights.append(light)

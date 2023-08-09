@@ -740,6 +740,22 @@ async def test_manual_control(
     await change_manual_control(False, {})
     assert all([not manual_control[eid] for eid in switch.lights])
 
+    # Turn off light and turn on using adaptive_lighting.apply
+    await turn_light(False)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: ENTITY_SWITCH,
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_TURN_ON_LIGHTS: True,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    assert not manual_control[ENTITY_LIGHT_1]
+
 
 async def test_auto_reset_manual_control(hass):
     switch, (light, *_) = await setup_lights_and_switch(
