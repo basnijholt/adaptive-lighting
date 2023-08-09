@@ -1120,6 +1120,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.manager.reset(*self.lights)
 
     async def _async_update_at_interval_action(self, now=None) -> None:  # noqa: ARG002
+        """Update the attributes and maybe adapt the lights."""
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("interval"),
             transition=self._transition,
@@ -1331,7 +1332,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
-    async def _update_attrs_and_maybe_adapt_lights(
+    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
         self,
         *,
         context: Context,
@@ -1376,6 +1377,20 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 if timer is not None and timer.is_running():
                     _LOGGER.debug(
                         "%s: Light '%s' is still transitioning",
+                        self._name,
+                        light,
+                    )
+                elif (
+                    # This is to prevent lights immediately turning on after
+                    # being turned off in 'interval' update, see #726
+                    not self._detect_non_ha_changes
+                    and is_our_context(context, "interval")
+                    and (turn_on := self.manager.turn_on_event.get(light))
+                    and (turn_off := self.manager.turn_off_event.get(light))
+                    and turn_off.time_fired > turn_on.time_fired
+                ):
+                    _LOGGER.debug(
+                        "%s: Light '%s' was turned just turned off",
                         self._name,
                         light,
                     )
