@@ -115,7 +115,6 @@ def plot_brightness(kw, sleep_mode: bool):
     )
 
     ax.legend()
-    ax.grid(True)
 
     ax.text(
         0.4,
@@ -127,6 +126,7 @@ def plot_brightness(kw, sleep_mode: bool):
         bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
     )
     # mplcyberpunk.add_glow_effects()
+    ax.grid(True)
 
     return fig
 
