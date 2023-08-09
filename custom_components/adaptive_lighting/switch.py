@@ -1491,6 +1491,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._take_over_control
             and self._adapt_only_on_bare_turn_on
             and from_turn_on
+            # adaptive_lighting.apply can turn on light, so check this is not our context
+            and not is_our_context(event.context)
         ):
             service_data = self.manager.turn_on_event[entity_id].data[ATTR_SERVICE_DATA]
             if self.manager._mark_manual_control_if_non_bare_turn_on(
