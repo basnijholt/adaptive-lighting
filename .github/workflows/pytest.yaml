@@ -33,19 +33,9 @@ jobs:
           - python-version: "3.11"
             core-version: "2023.7.3"
           - python-version: "3.11"
-            core-version: "31d6b615b44afa9ad87cd0adf7412a93b769157a" # working
+            core-version: "40b5605cafcf81925c6066545b0bc226ee78a4e4" # 2023.7.3
           - python-version: "3.11"
-            core-version: "fe0fe19be9a0c0e0e426dd7d2e206dc836162a54" # ?
-          - python-version: "3.11"
-            core-version: "d4f301f4a3ecdf5af222eb7e0dfc14251b7b8e41" # ?
-          - python-version: "3.11"
-            core-version: "11fd43b1fc33c35b68858878f94bfb49a407f3e6" # ?
-          - python-version: "3.11"
-            core-version: "4bc57c0466c6162f20b6dc3a34e11b142802d4a7" # ?
-          - python-version: "3.11"
-            core-version: "a2b18e46b9c04352f0c95d44f62369cce16c3d7e" # ?
-          - python-version: "3.11"
-            core-version: "0b0f072faf5a08b6ab5e4543419e972b7d125a43" # ?
+            core-version: "4e300568303c34019ed26f25881591af80e60f99" # 2023.7.3
           - python-version: "3.11"
             core-version: "2023.8.0b0"
           - python-version: "3.11"
