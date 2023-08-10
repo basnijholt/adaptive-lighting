@@ -33,8 +33,13 @@ jobs:
           - python-version: "3.11"
             core-version: "2023.7.3"
           - python-version: "3.11"
+            # One commit before 2023.7.3
+            core-version: "0b0f072faf5a08b6ab5e4543419e972b7d125a43" # 2023.7.3
+          - python-version: "3.11"
+            # 2023.7.3
             core-version: "40b5605cafcf81925c6066545b0bc226ee78a4e4" # 2023.7.3
           - python-version: "3.11"
+            # One commit after 2023.7.3
             core-version: "4e300568303c34019ed26f25881591af80e60f99" # 2023.7.3
           - python-version: "3.11"
             core-version: "2023.8.0b0"
