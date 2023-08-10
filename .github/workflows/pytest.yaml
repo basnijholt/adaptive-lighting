@@ -33,11 +33,21 @@ jobs:
           - python-version: "3.11"
             core-version: "2023.7.3"
           - python-version: "3.11"
-            core-version: "6ef7c5ece6e317737901c482ccac8f4875bb3c73"
+            core-version: "31d6b615b44afa9ad87cd0adf7412a93b769157a" # working
           - python-version: "3.11"
-            core-version: "31d6b615b44afa9ad87cd0adf7412a93b769157a"
+            core-version: "0c4e3411891e1dec4dc937979749abfccef11f77" # ?
           - python-version: "3.11"
-            core-version: "33f2453f334a170fe874cb005cb9f4bac2525862"
+            core-version: "84220e92ea5bc185a071a01e25d0eadcadc7e113" # ?
+          - python-version: "3.11"
+            core-version: "34dcd984402b13ff5fd6d1b34242d2bcf342066b" # ?
+          - python-version: "3.11"
+            core-version: "2618bfc073da3ae3747f3ab6f5a81b0c64370f23" # ?
+          - python-version: "3.11"
+            core-version: "86708b5590ebf79ba00895c2ae4f245b43ceee2c" # ?
+          - python-version: "3.11"
+            core-version: "bfbdebd0f75507b44847dfeb5b05b33c720d6bf8" # ?
+          - python-version: "3.11"
+            core-version: "33f2453f334a170fe874cb005cb9f4bac2525862" # not working
           - python-version: "3.11"
             core-version: "2023.8.0b0"
           - python-version: "3.11"
