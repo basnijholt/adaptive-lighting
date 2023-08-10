@@ -39,7 +39,7 @@ jobs:
           - python-version: "3.11"
             core-version: "00e78fbf192c8c9b197cbdfa5638160935eff385"
           - python-version: "3.11"
-            core-version: "3f5a21dce4"
+            core-version: "3f5a21dce41907616a82e3c36449e8992cf48636"
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3
