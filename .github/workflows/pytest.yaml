@@ -31,11 +31,15 @@ jobs:
           - python-version: "3.11"
             core-version: "2023.6.1"
           - python-version: "3.11"
+            core-version: "2023.8.0"
+          - python-version: "3.11"
             core-version: "dev"
           - python-version: "3.11"
             core-version: "42bca0f94a393ed841f03f7d60d99d2881851b47"
           - python-version: "3.11"
             core-version: "00e78fbf192c8c9b197cbdfa5638160935eff385"
+          - python-version: "3.11"
+            core-version: "3f5a21dce4"
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3
