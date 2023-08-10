@@ -766,6 +766,7 @@ async def test_auto_reset_manual_control(hass):
 
     async def update():
         await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
+        await asyncio.gather(*switch.manager.adaptation_tasks)
         await hass.async_block_till_done()
 
     async def turn_light(state, **kwargs):
