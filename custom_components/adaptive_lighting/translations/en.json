@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Adaptive Lighting options",
-        "description": "All settings for an Adaptive Lighting component. The option names correspond with the YAML settings. No options are shown if you have this entry defined in YAML. Check out https://basnijholt.github.io/adaptive-lighting an interactive webapp which graphs that show the effects of the parameters.",
+        "description": "Configure an Adaptive Lighting component. Option names align with the YAML settings. If you've defined this entry in YAML, no options will appear here. For interactive graphs that demonstrate parameter effects, visit [this web app](https://basnijholt.github.io/adaptive-lighting). For further details, see the [official documentation](https://github.com/basnijholt/adaptive-lighting).",
         "data": {
           "lights": "lights: List of light entity_ids to be controlled (may be empty). 🌟",
           "interval": "interval",
