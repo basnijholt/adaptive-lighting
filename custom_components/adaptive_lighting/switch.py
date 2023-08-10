@@ -1299,6 +1299,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 context=data.context,
             )
+            _LOGGER.debug("%s: 'light.turn_on' awaited", self._name)
 
     async def execute_cancellable_adaptation_calls(
         self,
