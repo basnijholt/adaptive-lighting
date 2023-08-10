@@ -2259,6 +2259,8 @@ class AdaptiveLightingManager:
                 elif state == STATE_OFF:  # is turning on
                     on(eid, event)
 
+        _LOGGER.debug("end of turn_on_off_event_listener()")
+
     async def state_changed_event_listener(self, event: Event) -> None:
         """Track 'state_changed' events."""
         entity_id = event.data.get(ATTR_ENTITY_ID, "")
