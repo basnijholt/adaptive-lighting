@@ -590,6 +590,7 @@ async def test_manual_control(
 
     async def update():
         await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
+        await asyncio.gather(*switch.manager.adaptation_tasks)
         await hass.async_block_till_done()
 
     async def turn_light(state, **kwargs):
