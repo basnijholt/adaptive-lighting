@@ -1,7 +1,6 @@
 """Switch for the Adaptive Lighting integration."""
 from __future__ import annotations
 
-import bisect
 import colorsys
 import datetime
 import logging
@@ -160,14 +159,23 @@ class SunEvents:
 
     def prev_and_next_events(self, dt: datetime.datetime) -> list[tuple[str, float]]:
         """Get the previous and next sun event."""
-        events = [
-            event
-            for days in [-1, 0, 1]
-            for event in self.sun_events(dt + timedelta(days=days))
-        ]
-        events = sorted(events, key=lambda x: x[1])
-        i_now = bisect.bisect([ts for _, ts in events], dt.timestamp())
-        return events[i_now - 1 : i_now + 1]
+        today_events = self.sun_events(dt)
+        # If sun_events returns events in chronological order
+        for i, (_, ts) in enumerate(today_events):
+            if ts > dt.timestamp():
+                # If the first event today is after dt, we need the last event from yesterday
+                if i == 0:
+                    prev_event = self.sun_events(dt - timedelta(days=1))[-1]
+                    next_event = today_events[0]
+                # If the last event today is before dt, we need the first event from tomorrow
+                elif i == len(today_events) - 1:
+                    prev_event = today_events[-1]
+                    next_event = self.sun_events(dt + timedelta(days=1))[0]
+                else:
+                    prev_event = today_events[i - 1]
+                    next_event = today_events[i]
+                return [prev_event, next_event]
+        return None
 
     def sun_position(self, dt: datetime.datetime) -> float:
         """Calculate the position of the sun, between [-1, 1]."""

@@ -135,3 +135,6 @@ dmypy.json
 # Home Assistant configuration
 config/*
 !config/configuration.yaml
+
+# Generated files
+webapp/color_and_brightness.py
