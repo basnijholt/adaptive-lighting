@@ -814,6 +814,7 @@ async def test_auto_reset_manual_control(hass):
     await update()
     await asyncio.sleep(0.3)  # Wait the auto reset time
     assert not manual_control[light.entity_id]
+    assert 0, switch.extra_state_attributes["autoreset_time_remaining"]
 
 
 async def test_apply_service(hass):
