@@ -799,7 +799,7 @@ async def test_auto_reset_manual_control(hass):
     for i in range(3):
         _LOGGER.debug("Quick change %s", i)
         await turn_light(True, brightness=(i + 1) * 20)
-        await asyncio.sleep(0.05)  # Less than 0.1
+        await asyncio.sleep(0.04)  # Less than 0.1, but 3x0.04 > 0.1
         assert manual_control[light.entity_id]
 
     await update()
