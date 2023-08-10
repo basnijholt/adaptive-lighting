@@ -39,7 +39,6 @@ jobs:
             # 2023.7.3
             core-version: "40b5605cafcf81925c6066545b0bc226ee78a4e4" # 2023.7.3
           - python-version: "3.11"
-            # One commit after 2023.7.3
             core-version: "4e300568303c34019ed26f25881591af80e60f99" # 2023.7.3
           - python-version: "3.11"
             core-version: "2023.8.0b0"
@@ -47,6 +46,374 @@ jobs:
             core-version: "2023.8.0"
           - python-version: "3.11"
             core-version: "dev"
+          - python-version: "3.11"
+            core-version: 4e300568303c34019ed26f25881591af80e60f99
+          - python-version: "3.11"
+            core-version: 9f98a418cdf1a9f7552b561f178979b5109dc105
+          - python-version: "3.11"
+            core-version: 530556015f98097664d02372701efb15442c6949
+          - python-version: "3.11"
+            core-version: be7818fafb3ef9d5b0df1d87f256c58d64be698f
+          - python-version: "3.11"
+            core-version: fe140bdca30356411c23861ab422e8b9459f0c54
+          - python-version: "3.11"
+            core-version: 4644355eff8095abd2839ccedd047e3e3c1dd57c
+          - python-version: "3.11"
+            core-version: fd3bdeaef141b113a8dbbd5121390cdb2478b7e6
+          - python-version: "3.11"
+            core-version: 26584e366074a53fc1a4abe85f6f33844b457310
+          - python-version: "3.11"
+            core-version: b3da2ea9a602336946f5fb752dc8e72f47f547a5
+          - python-version: "3.11"
+            core-version: 9434a64b8766076dc3c61c8860afb842a05ffee5
+          - python-version: "3.11"
+            core-version: 9954208d3ac0f4948ccb22e4a787bdd90fa4afc8
+          - python-version: "3.11"
+            core-version: 7d173bf4e5b6189052e1a33a23528b9ede551911
+          - python-version: "3.11"
+            core-version: 2e156e56bf47d5b00b632be82cfe6494c0396452
+          - python-version: "3.11"
+            core-version: 878a4f1bb9af119576b970872aad396bc2d2a967
+          - python-version: "3.11"
+            core-version: 58ce35787087e1c199b1ae2192e7c11f745c686d
+          - python-version: "3.11"
+            core-version: 9b0d4c8c03377626c50f492614e998e60752725f
+          - python-version: "3.11"
+            core-version: 447fbf58c98b860bde283d2918dcad3917e08704
+          - python-version: "3.11"
+            core-version: 747f4d4a7328a2d0b4fd7083ac2d7cd45a21bdf7
+          - python-version: "3.11"
+            core-version: 4916351d9ae8eb62814ff3ed90103a6e33fe230d
+          - python-version: "3.11"
+            core-version: 33c2fc008ad2fb7841bbb87d552ffd5b363f74a4
+          - python-version: "3.11"
+            core-version: e4d65cbae1447b93b2f9c2be96e229ee886e7b8e
+          - python-version: "3.11"
+            core-version: 52313bfce5ac6f29157cf34eac50c83f244d6e68
+          - python-version: "3.11"
+            core-version: 4fa9f25e38a0b5625cb10acac092aa5650ecea6e
+          - python-version: "3.11"
+            core-version: d935c18f38010845d9e5b7526b63b4a378a8a622
+          - python-version: "3.11"
+            core-version: b39f7d6a71aaf2480a34a5fea9124a3071c60bfe
+          - python-version: "3.11"
+            core-version: e9eb8a475473cc823ada7022e55f0e2d7f5e2578
+          - python-version: "3.11"
+            core-version: e2394b34bd37bd86bec659cc2581cb5355f89c65
+          - python-version: "3.11"
+            core-version: 32d63ae890f6277b877539c2da9049fc26410888
+          - python-version: "3.11"
+            core-version: 92eaef9b18bde1da4829b120c9efd4801ddcc206
+          - python-version: "3.11"
+            core-version: 4e964c3819a74e8abbdfb10477ad62af678e3e9a
+          - python-version: "3.11"
+            core-version: 28ff173f164cb80fe9e7e25268e311334abb0531
+          - python-version: "3.11"
+            core-version: b504665b56dbbf19c616d0f21c32b1b1d5a4b1d9
+          - python-version: "3.11"
+            core-version: c067c52cf486e79b11cb70d6aac1d7543094a2bb
+          - python-version: "3.11"
+            core-version: 9fba6870fe85afcdf0986222acad0d67a3ed03cb
+          - python-version: "3.11"
+            core-version: 99def97ed976e65bddb9e54d2b3642b4912c5668
+          - python-version: "3.11"
+            core-version: 6818cae0722f4ef41b69569eb643d09e58a69d91
+          - python-version: "3.11"
+            core-version: e9a63b7501887533088d77f83c87b448b4d5f006
+          - python-version: "3.11"
+            core-version: b7bcc1eae4ec89f8d35a2011e815280a2f5cc743
+          - python-version: "3.11"
+            core-version: 7389fea22348d2d784e12f3a444192d2ff1bd9c3
+          - python-version: "3.11"
+            core-version: 55e5947330332d632b95b4e346ba7774eed87c3f
+          - python-version: "3.11"
+            core-version: 35ab024298560346d67d8c97720ec4c1e1ca3a9e
+          - python-version: "3.11"
+            core-version: 71ca976d589ff485bbb47c697d983dfee25607e7
+          - python-version: "3.11"
+            core-version: e9620c62b8dc091d572234963f855bc437764ce0
+          - python-version: "3.11"
+            core-version: 2a13515759d909eae06c0ecaf09eaa03a12c937e
+          - python-version: "3.11"
+            core-version: da5cba8083b29bdcdc5ef99c3f5463fb794b0f50
+          - python-version: "3.11"
+            core-version: d36d2338856e631fee4943ae96cb25ab59e222be
+          - python-version: "3.11"
+            core-version: c99adf54b42fdf6baadab476e2f7a85288ce9372
+          - python-version: "3.11"
+            core-version: fff254e0dc79883e9f56446534f913948e399b1d
+          - python-version: "3.11"
+            core-version: a381ceed86b0b8ca39260cfb022ddbdcd6807ab9
+          - python-version: "3.11"
+            core-version: f809ce90337693abe9e337f1491a4727dd678e2e
+          - python-version: "3.11"
+            core-version: 86d9d9cea5465de11f835992e2856a9db7a95e07
+          - python-version: "3.11"
+            core-version: 14b553ddbc3074d3e0ce44ea7757929f50c6f39b
+          - python-version: "3.11"
+            core-version: df46179d26fd46a41dc18ccaf0075f77e7d7fe07
+          - python-version: "3.11"
+            core-version: 8896c164be2ed5cb495a4614767c63d36b347d2d
+          - python-version: "3.11"
+            core-version: db83dc9accc62c712db1e77454e32c88b85ac74e
+          - python-version: "3.11"
+            core-version: c433b251fa125789a2b8a68e67014d0eeb7bf6e0
+          - python-version: "3.11"
+            core-version: 0ba2531ca4ef613115125359670b97a482106e02
+          - python-version: "3.11"
+            core-version: 7105b4b28bd044771a92b79f9fb32cfdd90243cc
+          - python-version: "3.11"
+            core-version: db32aa7c5ee073f69061aab23f6d1a74fa403c51
+          - python-version: "3.11"
+            core-version: 0c10005270b2be395b14818343f6dec7b555de1b
+          - python-version: "3.11"
+            core-version: 58c3c8a7a8052b621d88dbb9743ea30ca311ab34
+          - python-version: "3.11"
+            core-version: c118574bf48fdf0e4b34dac59f3da8cf4f7b5e96
+          - python-version: "3.11"
+            core-version: 7f5a141f6978df3518440778ffc915c79fb8dbc9
+          - python-version: "3.11"
+            core-version: 3890d8d1320f1692ea2e7a8b43330f568e891a8c
+          - python-version: "3.11"
+            core-version: 72073b28cc5d01ddbcd2957190e683098e8c15c7
+          - python-version: "3.11"
+            core-version: 4501bdb5bffba7b99fc09c43986406e3c26b887d
+          - python-version: "3.11"
+            core-version: 77480000263209714ad7a597c54066f7dac3e187
+          - python-version: "3.11"
+            core-version: 38d58b4d91eeb6ebd27d046b7061e53c07994904
+          - python-version: "3.11"
+            core-version: fff04a5e9b69b26e2a8faf210814b51768e5f9a4
+          - python-version: "3.11"
+            core-version: 4e2b00a44369365066868d78f4664b1b93e5b057
+          - python-version: "3.11"
+            core-version: d866cdb9cf4003ab55ea7c734e7192b389c69ca1
+          - python-version: "3.11"
+            core-version: 653b1e5ad8d6d98250f6813c83cb67f8aa0912d3
+          - python-version: "3.11"
+            core-version: f5ba9af4948b98eacef9c9a38fa86e1b3ef451a7
+          - python-version: "3.11"
+            core-version: cfcdf866ddb0010bf757593bef0ca376bc15b3b7
+          - python-version: "3.11"
+            core-version: b193b5667bfa45fa3112bfaa7a8ab31fc4ebc2cd
+          - python-version: "3.11"
+            core-version: 173a61bdff2064360a47a3644b361aca9460d5aa
+          - python-version: "3.11"
+            core-version: 7425d97ee18c472cb0c2e6b434e9e1a591f9f1e9
+          - python-version: "3.11"
+            core-version: 8382feeff41a9e76193e907e9402a36c397eb083
+          - python-version: "3.11"
+            core-version: 2967a00bc663ec60935a700780bb62ec2a0564f2
+          - python-version: "3.11"
+            core-version: a9902a21bf4b86b40a02c54324128e23cf3a8761
+          - python-version: "3.11"
+            core-version: a50a96b687024a0c3ca71413ec68e19b67b30388
+          - python-version: "3.11"
+            core-version: bc795f4953e10437734e32738be62f4159813ad9
+          - python-version: "3.11"
+            core-version: 1f11a75ab1354ecec88cf4f026ee3275bf954081
+          - python-version: "3.11"
+            core-version: 6ed119006deeebc8c326b98c11e651837dcd1a75
+          - python-version: "3.11"
+            core-version: 3fbdf4a184d43ae0382210baa03d5fbac68003d9
+          - python-version: "3.11"
+            core-version: effa90272d6068bdc444bc341bd76feaab3bd718
+          - python-version: "3.11"
+            core-version: 34e30570c159d51c469c64d420d5648c1996fe1d
+          - python-version: "3.11"
+            core-version: fa0d68b1d73211f52c33462add67558bcb4135bd
+          - python-version: "3.11"
+            core-version: db76bf3a9ffb61eefe8f4987f2e23c03e81e387f
+          - python-version: "3.11"
+            core-version: 4e460f71f8960b7de4caf71d842d96a691365186
+          - python-version: "3.11"
+            core-version: ce0027a84e0bc1c45e414b2a74bd9364601cde8d
+          - python-version: "3.11"
+            core-version: df19d4fd155eb08646d92bf7ad7194a222526806
+          - python-version: "3.11"
+            core-version: 5ffffd8dbc0d8b0e27d1532404998f8683766edf
+          - python-version: "3.11"
+            core-version: 0349e47372257c8a58deb379f13f4f2caa5bb18d
+          - python-version: "3.11"
+            core-version: 660c95d78409ebe828e8c231ab774e8f19d162cd
+          - python-version: "3.11"
+            core-version: 1c19c54e380539e303e58382087a59be9fbd25b4
+          - python-version: "3.11"
+            core-version: 9da155955ab1b1b3d20a64f495ae3d18e17b9bb8
+          - python-version: "3.11"
+            core-version: 23810752edfea60129bcb61e8edaed4651321cbd
+          - python-version: "3.11"
+            core-version: 822d840f81238a820244a76a8378f8d2211abc90
+          - python-version: "3.11"
+            core-version: 6bb81b862cbd47a019341c2d056a5837e8c9dbd1
+          - python-version: "3.11"
+            core-version: 955bed0128e3e04177a0526a8eda4c75f5c63fb4
+          - python-version: "3.11"
+            core-version: f310d6ca582b9111642cc131fbc7daf4dafe01eb
+          - python-version: "3.11"
+            core-version: daa53118b3ae9a2509dd909cc2e6cae63418aefe
+          - python-version: "3.11"
+            core-version: deafdc3005ca8150a5f777776d37beaf836046ce
+          - python-version: "3.11"
+            core-version: 0f4c71f9934681c2a20f9f7cf14e78755b5125a5
+          - python-version: "3.11"
+            core-version: 29aa89bea095d174fae39d1cf33b45eb2a54c297
+          - python-version: "3.11"
+            core-version: 39b242f1549df0e653e1d6418d556b49aaec65cb
+          - python-version: "3.11"
+            core-version: dae264f79e74266b4779ff7f6c58556f2afe94a3
+          - python-version: "3.11"
+            core-version: c80085367df3b60574dfeb255ed7a0a4e7e4d93e
+          - python-version: "3.11"
+            core-version: 3b501fd2d7495b0336a5e254dc0c508daec189a1
+          - python-version: "3.11"
+            core-version: 06aeacc324a2b853cdca0b5d0e41df50238fde3c
+          - python-version: "3.11"
+            core-version: 93ac340d54a731a06de7b7c639f3f01d90ac4362
+          - python-version: "3.11"
+            core-version: e449f8e0e5ba0fe97770cffc3914ca88c10e4a12
+          - python-version: "3.11"
+            core-version: 0502879d10a3eac03929ddc1d409075517459049
+          - python-version: "3.11"
+            core-version: a305a9fe9c2a1fc76168b6d5c9dd5ad4f1e7ddbc
+          - python-version: "3.11"
+            core-version: 33b3b8947a806065b7abed5a12d6ccf60a4e121d
+          - python-version: "3.11"
+            core-version: f0953dde95a69d5bba763893f466c8009bb411e3
+          - python-version: "3.11"
+            core-version: e18da97670aebc76fb99bb697dd04038157677c9
+          - python-version: "3.11"
+            core-version: efbd82b5fb0218a322cd193755f30342dcd51362
+          - python-version: "3.11"
+            core-version: 6ffb1c3c2de0af2c928e36923963fd4b76b16224
+          - python-version: "3.11"
+            core-version: 90bdbf503a399e822c0d984f5c83c2c098f0383a
+          - python-version: "3.11"
+            core-version: f4bc32ea089b3a6709e0e103bad23d8308fabd43
+          - python-version: "3.11"
+            core-version: e39187423f4292593859644db413fafa194490bf
+          - python-version: "3.11"
+            core-version: b53eae2846e0fb53bf720a23f14826ef07b56140
+          - python-version: "3.11"
+            core-version: 80a74470306850817ce9292b7f6f10eaa818c405
+          - python-version: "3.11"
+            core-version: 67e3203d004e39614dd54119e3100333a5524bcd
+          - python-version: "3.11"
+            core-version: 87d0b026c248f8661e96bd3ce6c256bba610163f
+          - python-version: "3.11"
+            core-version: 01e66d6fb2671fcbfba296a020e11e497a82bb50
+          - python-version: "3.11"
+            core-version: 3e58e1987c318399d02ebdd683c8b68b0529b08a
+          - python-version: "3.11"
+            core-version: f2bd122fde12f20dc8cf1189d6cb24254c7801fd
+          - python-version: "3.11"
+            core-version: 22d0f4ff0af055d95ce90e9ff42953a0347b43fa
+          - python-version: "3.11"
+            core-version: b45369bb35c97fd508476cf3bfbe8d16ec8e1c83
+          - python-version: "3.11"
+            core-version: 9b839041fa288f84a539f8c157d91821c9e86ff0
+          - python-version: "3.11"
+            core-version: 1449df5649749541b31e47f93b9a74db1f1da3fe
+          - python-version: "3.11"
+            core-version: 22fbd2294336ad9f4365a2a0d6b2183f3ef0e16d
+          - python-version: "3.11"
+            core-version: 0d69ba6797720856c97f29594d6cfde3da793794
+          - python-version: "3.11"
+            core-version: 727a72fbaa54a6d3a65f24616acdb65a26d6d874
+          - python-version: "3.11"
+            core-version: 4b2cbbe8c2ce998c7ffaeea8654d3c9900c386b3
+          - python-version: "3.11"
+            core-version: 4fefbf0408de1d0c2a3de49dcd3a0395cbc932ee
+          - python-version: "3.11"
+            core-version: fdb69efd67d18871251dc84070bde2101aec2402
+          - python-version: "3.11"
+            core-version: c853010f80de7e296fca5849447c441ededca0dd
+          - python-version: "3.11"
+            core-version: 3c072e50c7ae3dd7dc15d6fd9aaf7d103019b0e8
+          - python-version: "3.11"
+            core-version: 3681816a43ad32164ee46551d5cfb0996e4e4fff
+          - python-version: "3.11"
+            core-version: c2d66cc14ac2095a904a7b68d878d6384b78ebdd
+          - python-version: "3.11"
+            core-version: 2b3a379b8e8cca4687b9b2252567ed449fa2d44a
+          - python-version: "3.11"
+            core-version: a2495f494b2634104ca56c02aa8c6a091bad223a
+          - python-version: "3.11"
+            core-version: 6f880ec83764064116e4e82ebc83ad95e04dacc2
+          - python-version: "3.11"
+            core-version: 89ed630af94744f9b0734aed6bdb1110a1378217
+          - python-version: "3.11"
+            core-version: fa59b7f8ac89f0aa5caf5eedfea08ed453a87299
+          - python-version: "3.11"
+            core-version: 46675560d29883fa13a897234ba5f893d48a2c2a
+          - python-version: "3.11"
+            core-version: 36b4b5b887e38cd9fad1a5252f7d17da40b56b33
+          - python-version: "3.11"
+            core-version: e29598ecaa581e789987d855781fd9f6daef2baf
+          - python-version: "3.11"
+            core-version: c94c7fae1b10a7f7759182fd17b6922d0a28651c
+          - python-version: "3.11"
+            core-version: 8675bc6554bf0248c3cd88ab42417c0ddbb83d6b
+          - python-version: "3.11"
+            core-version: 1ceb536dfb9e5e3122c7e0a3d82f420b6a4ec4a2
+          - python-version: "3.11"
+            core-version: 0ff8371953e29a1584fc5a7ab9db540f1c8a5d04
+          - python-version: "3.11"
+            core-version: 499c7491af9abf3f4dcbb908ba1e73965f17bc92
+          - python-version: "3.11"
+            core-version: 344f349371d593652fef0fcdfc47932be7b3501b
+          - python-version: "3.11"
+            core-version: 6afa49a441de6ce4fc8871fdf9406d853bd2035b
+          - python-version: "3.11"
+            core-version: ac06905b1c96587c57728086db50c665ffc9912c
+          - python-version: "3.11"
+            core-version: 0ca4da559238ae12d4b26a922451bc2c4864ea93
+          - python-version: "3.11"
+            core-version: cb1f365482b1e8b69d42e30b84f8cfb28411d0c3
+          - python-version: "3.11"
+            core-version: da5455c454eada12c8d887a40be8319fb07c5858
+          - python-version: "3.11"
+            core-version: 701c8a376835963ef0513c22c99f4fd448bb5178
+          - python-version: "3.11"
+            core-version: 4e9ce235e8cfbbfe47c5b4b862df25b533d7251d
+          - python-version: "3.11"
+            core-version: c989e56d3cffd911e150cdfff3d3ae3658f469e5
+          - python-version: "3.11"
+            core-version: 1422a4f8c6f4eaada2195c6bd875c6fa5f497253
+          - python-version: "3.11"
+            core-version: d8c989f7326cc65bd6ae8eccf4ab0c28b2a2e844
+          - python-version: "3.11"
+            core-version: 6bd4ace3c3b4ab05e1fdb85c27d55ac09c39d950
+          - python-version: "3.11"
+            core-version: 9a8fe0490749e440577c0211b2e460c72baf0904
+          - python-version: "3.11"
+            core-version: 67eeed67036248ed4c9fb7dbe4bcb7e90c1dfc11
+          - python-version: "3.11"
+            core-version: 0bdfb95d1d765bd218d43adbb4c9c68482fb5db2
+          - python-version: "3.11"
+            core-version: 7c22225cd19ddd4e84d71781794876e6715a854d
+          - python-version: "3.11"
+            core-version: f9a0877bb9887e638c6940bc6aa10a48b2f317c8
+          - python-version: "3.11"
+            core-version: 4ae69787a2f20649b5dec3124251ae057b4264e4
+          - python-version: "3.11"
+            core-version: 1ace9ab82e76985bbd158714d7685d74c389c788
+          - python-version: "3.11"
+            core-version: 8dc5f737895c01c431445b3333dcdd5cf435a949
+          - python-version: "3.11"
+            core-version: 8a9f117bdcd7424969783707538e2197f5060e3d
+          - python-version: "3.11"
+            core-version: d46a72e5abf00ac7f4831564b251d0aaa1cd34be
+          - python-version: "3.11"
+            core-version: 5c54fa1ce1e36388b82367b9163094b2f3110924
+          - python-version: "3.11"
+            core-version: 2a18d0a764eaa5eaf02180081b5809e06fc77f12
+          - python-version: "3.11"
+            core-version: 9a2a920fd4a6007b7041f1ecfa352e67feb20cb3
+          - python-version: "3.11"
+            core-version: c253549e6883fc8c62aeb5b77d1c415d844f5629
+          - python-version: "3.11"
+            core-version: faa67a40c453e7fbef9e3e8ff8af7ab1b974a697
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3
