@@ -1299,7 +1299,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 context=data.context,
             )
-            _LOGGER.debug("%s: 'light.turn_on' awaited", self._name)
 
     async def execute_cancellable_adaptation_calls(
         self,
@@ -2015,7 +2014,7 @@ class AdaptiveLightingManager:
         # Don't await to avoid blocking the service call.
         # Assign to a variable only to await in tests.
         self.adaptation_tasks.add(
-            asyncio.create_task(
+            self.hass.async_create_task(
                 switch.execute_cancellable_adaptation_calls(adaptation_data),
             ),
         )
