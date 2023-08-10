@@ -2013,11 +2013,9 @@ class AdaptiveLightingManager:
 
         # Don't await to avoid blocking the service call.
         # Assign to a variable only to await in tests.
-        self.adaptation_tasks.add(
-            self.hass.async_create_task(
-                switch.execute_cancellable_adaptation_calls(adaptation_data),
-            ),
-        )
+        coro = switch.execute_cancellable_adaptation_calls(adaptation_data)
+        task = self.hass.async_create_task(coro)
+        self.adaptation_tasks.add(task)
         # Remove tasks that are done
         if done_tasks := [t for t in self.adaptation_tasks if t.done()]:
             self.adaptation_tasks.difference_update(done_tasks)
@@ -2219,10 +2217,6 @@ class AdaptiveLightingManager:
                 and event.time_fired > timer.start_time  # type: ignore[operator]
             ):
                 # Restart the auto reset timer
-                _LOGGER.debug(
-                    "Restarting auto reset timer for '%s' because it was turned on manually.",
-                    eid,
-                )
                 timer.start()
 
         if service == SERVICE_TURN_OFF:
