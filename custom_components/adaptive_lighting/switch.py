@@ -2030,14 +2030,33 @@ class AdaptiveLightingManager:
         reset_coroutine: Callable[[], Coroutine[Any, Any, None]],
     ) -> None:
         timer = timers_dict.get(light)
+        _LOGGER.debug(
+            "Timer for light %s: %s",
+            light,
+            timer,
+        )
         if timer is not None:
             if delay is None:  # Timer object exists, but should not anymore
+                _LOGGER.debug(
+                    "Cancelling timer for light %s",
+                    light,
+                )
                 timer.cancel()
                 timers_dict.pop(light)
             else:  # Timer object already exists, just update the delay and restart it
+                _LOGGER.debug(
+                    "Timer for light %s already exists, updating delay to %s",
+                    light,
+                    delay,
+                )
                 timer.delay = delay
                 timer.start()
         elif delay is not None:  # Timer object does not exist, create it
+            _LOGGER.debug(
+                "Creating timer for light %s with delay %s",
+                light,
+                delay,
+            )
             timer = _AsyncSingleShotTimer(delay, reset_coroutine)
             timers_dict[light] = timer
             timer.start()
