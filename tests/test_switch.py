@@ -765,17 +765,23 @@ async def test_auto_reset_manual_control(hass):
     manual_control = switch.manager.manual_control
 
     async def update():
+        _LOGGER.debug("start update")
         await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
+        _LOGGER.debug("end update")
         await hass.async_block_till_done()
+        _LOGGER.debug("end block in update  ")
 
     async def turn_light(state, **kwargs):
+        _LOGGER.debug("start turn light")
         await hass.services.async_call(
             LIGHT_DOMAIN,
             SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
             {ATTR_ENTITY_ID: light.entity_id, **kwargs},
             blocking=True,
         )
+        _LOGGER.debug("end turn light")
         await hass.async_block_till_done()
+        _LOGGER.debug("end block in turn light")
         await update()
         _LOGGER.debug(
             "Turn light %s to state %s, to %s", light.entity_id, state, kwargs
@@ -799,7 +805,9 @@ async def test_auto_reset_manual_control(hass):
     for i in range(3):
         _LOGGER.debug("Quick change %s", i)
         await turn_light(True, brightness=(i + 1) * 20)
+        _LOGGER.debug("yolo 1")
         await asyncio.sleep(0.04)  # Less than 0.1, but 3x0.04 > 0.1
+        _LOGGER.debug("yolo 2")
         assert manual_control[light.entity_id]
 
     await update()

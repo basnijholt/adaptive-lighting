@@ -2219,6 +2219,10 @@ class AdaptiveLightingManager:
                 and event.time_fired > timer.start_time  # type: ignore[operator]
             ):
                 # Restart the auto reset timer
+                _LOGGER.debug(
+                    "Restarting auto reset timer for '%s' because it was turned on manually.",
+                    eid,
+                )
                 timer.start()
 
         if service == SERVICE_TURN_OFF:
