@@ -10,6 +10,7 @@ import numpy as np
 import shinyswatch
 from astral import LocationInfo
 from astral.location import Location
+from homeassistant_util_color import color_temperature_to_rgb
 from shiny import App, render, ui
 
 
@@ -140,9 +141,14 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
     dt_range = date_range(tzinfo=sun.timezone)
     time_range = [time_to_float(dt) for dt in dt_range]
     settings = [sun.brightness_and_color(dt, sleep_mode) for dt in dt_range]
-    color_temp_values = (
-        np.array([(*setting["rgb_color"], 255) for setting in settings]) / 255
-    )
+    if sleep_mode and sun.sleep_rgb_or_color_temp == "color_temp":
+        colors = [
+            color_temperature_to_rgb(setting["color_temp_kelvin"])
+            for setting in settings
+        ]
+    else:
+        colors = [setting["rgb_color"] for setting in settings]
+    color_temp_values = np.array([(*col, 255) for col in colors]) / 255
     color_temp_values = color_temp_values.reshape(-1, 1, 4)
     sun_position = [setting["sun_position"] for setting in settings]
     fig, ax = plt.subplots(figsize=(10, 6))
