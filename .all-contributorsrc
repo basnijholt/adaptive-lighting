@@ -449,8 +449,18 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "KTibow",
+      "name": "Kendell R",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10727862?v=4",
+      "profile": "https://ktibow.github.io/",
+      "contributions": [
+        "design"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "linkToUsage": true
+  "linkToUsage": true,
+  "commitType": "docs"
 }
