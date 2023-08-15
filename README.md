@@ -540,3 +540,14 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+
+## Translating Adaptive Lighting
+
+Help translating Adaptive Lighting into your language on [Hosted
+
+Translating can be done from your webbrowser, no programming knowledge
+is needed!
+
+<a href="https://hosted.weblate.org/engage/adaptive-lighting/">
+<img src="https://hosted.weblate.org/widget/adaptive-lighting/multi-auto.svg" alt="Translation status" />
+</a>
