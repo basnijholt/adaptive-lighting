@@ -410,9 +410,9 @@ async def async_setup_entry(  # noqa: PLR0915
         data,
         config_entry,
     )
-    if (  # Skip deleted YAML config entries
+    if (  # Skip deleted YAML config entries or first time YAML config entries
         config_entry.source == SOURCE_IMPORT
-        and config_entry.unique_id not in data.get("__yaml__", [])
+        and config_entry.unique_id not in data.get("__yaml__", set())
     ):
         _LOGGER.warning(
             "Deleting AdaptiveLighting switch '%s' because YAML"
@@ -1680,8 +1680,6 @@ class AdaptiveLightingManager:
                     self._service_interceptor_turn_on_handler,
                 ),
             )
-
-            _LOGGER.debug("Proactive adaptation enabled")
         except RuntimeError:
             _LOGGER.warning(
                 "Failed to set up service call interceptors, "
