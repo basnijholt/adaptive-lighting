@@ -882,8 +882,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
         if not data[CONF_INTERCEPT] and data[CONF_MULTI_LIGHT_INTERCEPT]:
             _LOGGER.warning(
-                "%s: Config mismatch: `multi_light_intercept` set to `true` requires `intercept` "
-                "to be enabled. Adjusting config and continuing setup with"
+                "%s: Config mismatch: `multi_light_intercept` set to `true` requires `intercept`"
+                " to be enabled. Adjusting config and continuing setup with"
                 " `multi_light_intercept: false`.",
                 self._name,
             )
