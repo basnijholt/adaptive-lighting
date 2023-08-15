@@ -412,7 +412,6 @@ async def async_setup_entry(  # noqa: PLR0915
     )
     if (  # Skip deleted YAML config entries or first time YAML config entries
         config_entry.source == SOURCE_IMPORT
-        and config_entry.unique_id not in data.get("__first_time_yaml__", set())
         and config_entry.unique_id not in data.get("__yaml__", set())
     ):
         _LOGGER.warning(
