@@ -107,6 +107,7 @@ from .const import (
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
+    CONF_INTERCEPT,
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
@@ -179,11 +180,6 @@ _SUPPORT_OPTS = {
 _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=10)
-
-# A (non-user-configurable, thus internal) flag to control the proactive adaptation mode.
-# This exists to disable the proactive adaptation in the unit tests and enable it
-# only for specific unit tests and when running as integration."""
-CONF_INTERCEPT = "proactive_adaptation"
 
 # Consider it a significant change when attribute changes more than
 BRIGHTNESS_CHANGE = 25  # ≈10% of total range
