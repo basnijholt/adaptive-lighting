@@ -1964,15 +1964,14 @@ class AdaptiveLightingManager:
                 assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
-            service_data = service_data_copy
             context = switch.create_context("skipped")
             _LOGGER.debug(
                 "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
-                service_data,
+                service_data_copy,  # This is the original service data
                 context.id,
             )
-            service_data = {ATTR_ENTITY_ID: skipped, **service_data[CONF_PARAMS]}
+            service_data = {ATTR_ENTITY_ID: skipped, **service_data_copy[CONF_PARAMS]}
             if (
                 ATTR_COLOR_TEMP in service_data
                 and ATTR_COLOR_TEMP_KELVIN in service_data
