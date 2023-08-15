@@ -883,10 +883,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not data[CONF_INTERCEPT] and data[CONF_MULTI_LIGHT_INTERCEPT]:
             _LOGGER.warning(
                 "%s: Config mismatch: `multi_light_intercept` set to `true` requires `intercept` "
-                "to be enabled. Adjusting config and continuing setup with `intercept: true`.",
+                "to be enabled. Adjusting config and continuing setup with"
+                " `multi_light_intercept: false`.",
                 self._name,
             )
-            self._intercept = True
+            self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
 
