@@ -423,7 +423,7 @@ async def async_setup_entry(  # noqa: PLR0915
         return
 
     if (manager := data.get(ATTR_ADAPTIVE_LIGHTING_MANAGER)) is None:
-        manager = AdaptiveLightingManager(hass, config_entry)
+        manager = AdaptiveLightingManager(hass)
         data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = manager
 
     sleep_mode_switch = SimpleSwitch(
@@ -1608,11 +1608,10 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 class AdaptiveLightingManager:
     """Track 'light.turn_off' and 'light.turn_on' service calls."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the AdaptiveLightingManager that is shared among all switches."""
         assert hass is not None
         self.hass = hass
-        validate(config_entry)
         self.lights: set[str] = set()
 
         # Tracks 'light.turn_off' service calls
