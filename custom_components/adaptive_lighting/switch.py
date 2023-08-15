@@ -107,6 +107,7 @@ from .const import (
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
+    CONF_INTERCEPT,
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
@@ -179,11 +180,6 @@ _SUPPORT_OPTS = {
 _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=10)
-
-# A (non-user-configurable, thus internal) flag to control the proactive adaptation mode.
-# This exists to disable the proactive adaptation in the unit tests and enable it
-# only for specific unit tests and when running as integration."""
-INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION = "proactive_adaptation"
 
 # Consider it a significant change when attribute changes more than
 BRIGHTNESS_CHANGE = 25  # ≈10% of total range
@@ -427,7 +423,7 @@ async def async_setup_entry(  # noqa: PLR0915
         return
 
     if (manager := data.get(ATTR_ADAPTIVE_LIGHTING_MANAGER)) is None:
-        manager = AdaptiveLightingManager(hass, config_entry)
+        manager = AdaptiveLightingManager(hass)
         data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = manager
 
     sleep_mode_switch = SimpleSwitch(
@@ -882,7 +878,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
+        self._intercept = data[CONF_INTERCEPT]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
+        if not data[CONF_INTERCEPT] and data[CONF_MULTI_LIGHT_INTERCEPT]:
+            _LOGGER.warning(
+                "%s: Config mismatch: `multi_light_intercept` set to `true` requires `intercept`"
+                " to be enabled. Adjusting config and continuing setup with"
+                " `multi_light_intercept: false`.",
+                self._name,
+            )
+            self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
 
@@ -1603,11 +1608,10 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 class AdaptiveLightingManager:
     """Track 'light.turn_off' and 'light.turn_on' service calls."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the AdaptiveLightingManager that is shared among all switches."""
         assert hass is not None
         self.hass = hass
-        data = validate(config_entry)
         self.lights: set[str] = set()
 
         # Tracks 'light.turn_off' service calls
@@ -1658,38 +1662,32 @@ class AdaptiveLightingManager:
 
         self._proactively_adapting_contexts: dict[str, str] = {}
 
-        is_proactive_adaptation_enabled = data.get(
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
-            True,
-        )
+        try:
+            self.listener_removers.append(
+                setup_service_call_interceptor(
+                    hass,
+                    LIGHT_DOMAIN,
+                    SERVICE_TURN_ON,
+                    self._service_interceptor_turn_on_handler,
+                ),
+            )
 
-        if is_proactive_adaptation_enabled:
-            try:
-                self.listener_removers.append(
-                    setup_service_call_interceptor(
-                        hass,
-                        LIGHT_DOMAIN,
-                        SERVICE_TURN_ON,
-                        self._service_interceptor_turn_on_handler,
-                    ),
-                )
+            self.listener_removers.append(
+                setup_service_call_interceptor(
+                    hass,
+                    LIGHT_DOMAIN,
+                    SERVICE_TOGGLE,
+                    self._service_interceptor_turn_on_handler,
+                ),
+            )
 
-                self.listener_removers.append(
-                    setup_service_call_interceptor(
-                        hass,
-                        LIGHT_DOMAIN,
-                        SERVICE_TOGGLE,
-                        self._service_interceptor_turn_on_handler,
-                    ),
-                )
-
-                _LOGGER.debug("Proactive adaptation enabled")
-            except RuntimeError:
-                _LOGGER.warning(
-                    "Failed to set up service call interceptors, "
-                    "falling back to event-reactive mode",
-                    exc_info=True,
-                )
+            _LOGGER.debug("Proactive adaptation enabled")
+        except RuntimeError:
+            _LOGGER.warning(
+                "Failed to set up service call interceptors, "
+                "falling back to event-reactive mode",
+                exc_info=True,
+            )
 
     def disable(self):
         """Disable the listener by removing all subscribed handlers."""
@@ -1812,6 +1810,7 @@ class AdaptiveLightingManager:
             else:
                 if (
                     not switch.is_on
+                    or not switch._intercept
                     # Never adapt on light groups, because HA will make a separate light.turn_on
                     or _is_light_group(self.hass.states.get(entity_id))
                     # Prevent adaptation of TURN_ON calls when light is already on,
@@ -1829,12 +1828,13 @@ class AdaptiveLightingManager:
                 ):
                     _LOGGER.debug(
                         "Switch is off or light is already on for entity_id='%s', skipped='%s'"
-                        " (is_on='%s', is_state='%s', manual_control='%s')",
+                        " (is_on='%s', is_state='%s', manual_control='%s', switch._intercept='%s')",
                         entity_id,
                         skipped,
                         switch.is_on,
                         self.hass.states.is_state(entity_id, STATE_ON),
                         self.manual_control.get(entity_id, False),
+                        switch._intercept,
                     )
                     skipped.append(entity_id)
                 else:

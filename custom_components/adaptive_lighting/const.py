@@ -231,6 +231,13 @@ DOCS[CONF_SKIP_REDUNDANT_COMMANDS] = (
     "Disable if physical light states get out of sync with HA's recorded state."
 )
 
+CONF_INTERCEPT, DEFAULT_INTERCEPT = "intercept", True
+DOCS[CONF_INTERCEPT] = (
+    "Intercept and adapt `light.turn_on` calls to enabling instantaneous color "
+    "and brightness adaptation. 🏎️ Disable for lights that do not "
+    "support `light.turn_on` with color and brightness."
+)
+
 CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT = (
     "multi_light_intercept",
     True,
@@ -238,7 +245,8 @@ CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT = (
 DOCS[CONF_MULTI_LIGHT_INTERCEPT] = (
     "Intercept and adapt `light.turn_on` calls that target multiple lights. ➗"
     "⚠️ This might result in splitting up a single `light.turn_on` call "
-    "into multiple calls, e.g., when lights are in different switches."
+    "into multiple calls, e.g., when lights are in different switches. "
+    "Requires `intercept` to be enabled."
 )
 
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
@@ -356,6 +364,7 @@ VALIDATION_TUPLES = [
         DEFAULT_SKIP_REDUNDANT_COMMANDS,
         bool,
     ),
+    (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
 ]
