@@ -183,7 +183,7 @@ SCAN_INTERVAL = timedelta(seconds=10)
 # A (non-user-configurable, thus internal) flag to control the proactive adaptation mode.
 # This exists to disable the proactive adaptation in the unit tests and enable it
 # only for specific unit tests and when running as integration."""
-INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION = "proactive_adaptation"
+CONF_INTERCEPT = "proactive_adaptation"
 
 # Consider it a significant change when attribute changes more than
 BRIGHTNESS_CHANGE = 25  # ≈10% of total range
@@ -1659,7 +1659,7 @@ class AdaptiveLightingManager:
         self._proactively_adapting_contexts: dict[str, str] = {}
 
         is_proactive_adaptation_enabled = data.get(
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
+            CONF_INTERCEPT,
             True,
         )
 
