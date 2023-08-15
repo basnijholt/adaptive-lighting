@@ -681,7 +681,7 @@ def _convert_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
 
     if rgb is not None:
         attributes[ATTR_RGB_COLOR] = rgb
-        _LOGGER.debug(f"Converted {attributes} to rgb {rgb}")
+        _LOGGER.debug("Converted attributes %s to rgb %s", attributes, rgb)
     else:
         _LOGGER.debug("No suitable color conversion found for %s", attributes)
 
@@ -1041,11 +1041,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         try:
             # HACK: this is a private method in `Entity` which can change
             super()._call_on_remove_callbacks()
-        except AttributeError as err:
-            _LOGGER.error(
-                "%s: Caught AttributeError in `_call_on_remove_callbacks`: %s",
+        except AttributeError:
+            _LOGGER.exception(
+                "%s: Caught AttributeError in `_call_on_remove_callbacks`",
                 self._name,
-                err,
             )
 
     def _remove_interval_listener(self) -> None:
@@ -1816,7 +1815,7 @@ class AdaptiveLightingManager:
             single_switch_with_multiple_lights and switch_without_multi_light_intercept
         ):
             _LOGGER.warning(
-                "Single switch with multiple lights targeted, but"
+                "Single switch with multiple lights targeted (%s), but"
                 " `multi_light_intercept: true` is not set, so skipping intercept"
                 " for all lights.",
                 switch_to_eids,
