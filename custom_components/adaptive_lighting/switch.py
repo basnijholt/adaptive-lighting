@@ -1830,7 +1830,7 @@ class AdaptiveLightingManager:
     async def _service_interceptor_turn_on_handler(
         self,
         call: ServiceCall,
-        data: ServiceData,
+        service_data: ServiceData,
     ) -> None:
         """Intercept `light.turn_on` and `light.toggle` service calls and adapt them.
 
@@ -1869,23 +1869,30 @@ class AdaptiveLightingManager:
             # were skipped by us
             return
 
-        if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
+        if (
+            ATTR_EFFECT in service_data[CONF_PARAMS]
+            or ATTR_FLASH in service_data[CONF_PARAMS]
+        ):
             return
 
         _LOGGER.debug(
-            "(1) _service_interceptor_turn_on_handler: call='%s', data='%s'",
+            "(1) _service_interceptor_turn_on_handler: call='%s', service_data='%s'",
             call,
-            data,
+            service_data,
         )
 
-        entity_ids = self._get_entity_list(data)
+        # Because `_service_interceptor_turn_on_single_light_handler` modifies the
+        # original service data, we need to make a copy of it to use in the `skipped` call
+        service_data_copy = deepcopy(service_data)
+
+        entity_ids = self._get_entity_list(service_data)
         # Note: we do not expand light groups anywhere in this method, instead
         # we skip them and rely on the followup call that HA will make
         # with the expanded entity IDs.
 
         switch_to_eids, switch_name_mapping, skipped = self._separate_entity_ids(
             entity_ids,
-            data,
+            service_data,
         )
 
         (
@@ -1915,7 +1922,7 @@ class AdaptiveLightingManager:
         has_intercepted = False  # Can only intercept a turn_on call once
         for adaptive_switch_name, _entity_ids in switch_to_eids.items():
             switch = switch_name_mapping[adaptive_switch_name]
-            transition = data[CONF_PARAMS].get(
+            transition = service_data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
                 switch.initial_transition,
             )
@@ -1929,7 +1936,7 @@ class AdaptiveLightingManager:
                     switch=switch,
                     transition=transition,
                     call=call,
-                    data=modify_service_data(data, _entity_ids),
+                    data=modify_service_data(service_data, _entity_ids),
                 )
                 has_intercepted = True
                 continue
@@ -1957,14 +1964,15 @@ class AdaptiveLightingManager:
                 assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
+            service_data = service_data_copy
             context = switch.create_context("skipped")
             _LOGGER.debug(
-                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s', context='%s'",
+                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
-                data,
+                service_data,
                 context.id,
             )
-            service_data = {ATTR_ENTITY_ID: skipped, **data[CONF_PARAMS]}
+            service_data = {ATTR_ENTITY_ID: skipped, **service_data[CONF_PARAMS]}
             if (
                 ATTR_COLOR_TEMP in service_data
                 and ATTR_COLOR_TEMP_KELVIN in service_data
