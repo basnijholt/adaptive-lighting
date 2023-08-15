@@ -107,6 +107,7 @@ from .const import (
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
+    CONF_INTERCEPT,
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
@@ -179,11 +180,6 @@ _SUPPORT_OPTS = {
 _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=10)
-
-# A (non-user-configurable, thus internal) flag to control the proactive adaptation mode.
-# This exists to disable the proactive adaptation in the unit tests and enable it
-# only for specific unit tests and when running as integration."""
-INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION = "proactive_adaptation"
 
 # Consider it a significant change when attribute changes more than
 BRIGHTNESS_CHANGE = 25  # ≈10% of total range
@@ -414,9 +410,9 @@ async def async_setup_entry(  # noqa: PLR0915
         data,
         config_entry,
     )
-    if (  # Skip deleted YAML config entries
+    if (  # Skip deleted YAML config entries or first time YAML config entries
         config_entry.source == SOURCE_IMPORT
-        and config_entry.unique_id not in data.get("__yaml__", [])
+        and config_entry.unique_id not in data.get("__yaml__", set())
     ):
         _LOGGER.warning(
             "Deleting AdaptiveLighting switch '%s' because YAML"
@@ -427,7 +423,7 @@ async def async_setup_entry(  # noqa: PLR0915
         return
 
     if (manager := data.get(ATTR_ADAPTIVE_LIGHTING_MANAGER)) is None:
-        manager = AdaptiveLightingManager(hass, config_entry)
+        manager = AdaptiveLightingManager(hass)
         data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = manager
 
     sleep_mode_switch = SimpleSwitch(
@@ -882,7 +878,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
+        self._intercept = data[CONF_INTERCEPT]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
+        if not data[CONF_INTERCEPT] and data[CONF_MULTI_LIGHT_INTERCEPT]:
+            _LOGGER.warning(
+                "%s: Config mismatch: `multi_light_intercept` set to `true` requires `intercept`"
+                " to be enabled. Adjusting config and continuing setup with"
+                " `multi_light_intercept: false`.",
+                self._name,
+            )
+            self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
 
@@ -1602,11 +1607,10 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 class AdaptiveLightingManager:
     """Track 'light.turn_off' and 'light.turn_on' service calls."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the AdaptiveLightingManager that is shared among all switches."""
         assert hass is not None
         self.hass = hass
-        data = validate(config_entry)
         self.lights: set[str] = set()
 
         # Tracks 'light.turn_off' service calls
@@ -1657,38 +1661,30 @@ class AdaptiveLightingManager:
 
         self._proactively_adapting_contexts: dict[str, str] = {}
 
-        is_proactive_adaptation_enabled = data.get(
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
-            True,
-        )
+        try:
+            self.listener_removers.append(
+                setup_service_call_interceptor(
+                    hass,
+                    LIGHT_DOMAIN,
+                    SERVICE_TURN_ON,
+                    self._service_interceptor_turn_on_handler,
+                ),
+            )
 
-        if is_proactive_adaptation_enabled:
-            try:
-                self.listener_removers.append(
-                    setup_service_call_interceptor(
-                        hass,
-                        LIGHT_DOMAIN,
-                        SERVICE_TURN_ON,
-                        self._service_interceptor_turn_on_handler,
-                    ),
-                )
-
-                self.listener_removers.append(
-                    setup_service_call_interceptor(
-                        hass,
-                        LIGHT_DOMAIN,
-                        SERVICE_TOGGLE,
-                        self._service_interceptor_turn_on_handler,
-                    ),
-                )
-
-                _LOGGER.debug("Proactive adaptation enabled")
-            except RuntimeError:
-                _LOGGER.warning(
-                    "Failed to set up service call interceptors, "
-                    "falling back to event-reactive mode",
-                    exc_info=True,
-                )
+            self.listener_removers.append(
+                setup_service_call_interceptor(
+                    hass,
+                    LIGHT_DOMAIN,
+                    SERVICE_TOGGLE,
+                    self._service_interceptor_turn_on_handler,
+                ),
+            )
+        except RuntimeError:
+            _LOGGER.warning(
+                "Failed to set up service call interceptors, "
+                "falling back to event-reactive mode",
+                exc_info=True,
+            )
 
     def disable(self):
         """Disable the listener by removing all subscribed handlers."""
@@ -1727,10 +1723,111 @@ class AdaptiveLightingManager:
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
 
-    async def _service_interceptor_turn_on_handler(  # noqa: PLR0912, PLR0915
+    def _separate_entity_ids(
+        self,
+        entity_ids: list[str],
+        data,
+    ) -> tuple[list[str], list[str]]:
+        # Create a mapping from switch to entity IDs
+        # AdaptiveSwitch.name → entity_ids mapping
+        switch_to_eids: dict[str, list[str]] = {}
+        # AdaptiveSwitch.name → AdaptiveSwitch mapping
+        switch_name_mapping: dict[str, AdaptiveSwitch] = {}
+        # Note: In HA≥2023.5, AdaptiveSwitch is hashable, so we can
+        # use dict[AdaptiveSwitch, list[str]]
+        skipped: list[str] = []
+        for entity_id in entity_ids:
+            try:
+                switch = _switch_with_lights(
+                    self.hass,
+                    [entity_id],
+                    # Do not expand light groups, because HA will make a separate light.turn_on
+                    # call where the lights are expanded, and that call will be intercepted.
+                    expand_light_groups=False,
+                )
+            except NoSwitchFoundError:
+                # Needs to make the original call but without adaptation
+                skipped.append(entity_id)
+                _LOGGER.debug(
+                    "No switch found for entity_id='%s', skipped='%s'",
+                    entity_id,
+                    skipped,
+                )
+            else:
+                if (
+                    not switch.is_on
+                    or not switch._intercept
+                    # Never adapt on light groups, because HA will make a separate light.turn_on
+                    or _is_light_group(self.hass.states.get(entity_id))
+                    # Prevent adaptation of TURN_ON calls when light is already on,
+                    # and of TOGGLE calls when toggling off.
+                    or self.hass.states.is_state(entity_id, STATE_ON)
+                    or self.manual_control.get(entity_id, False)
+                    or (
+                        switch._take_over_control
+                        and switch._adapt_only_on_bare_turn_on
+                        and self._mark_manual_control_if_non_bare_turn_on(
+                            entity_id,
+                            data[CONF_PARAMS],
+                        )
+                    )
+                ):
+                    _LOGGER.debug(
+                        "Switch is off or light is already on for entity_id='%s', skipped='%s'"
+                        " (is_on='%s', is_state='%s', manual_control='%s', switch._intercept='%s')",
+                        entity_id,
+                        skipped,
+                        switch.is_on,
+                        self.hass.states.is_state(entity_id, STATE_ON),
+                        self.manual_control.get(entity_id, False),
+                        switch._intercept,
+                    )
+                    skipped.append(entity_id)
+                else:
+                    switch_to_eids.setdefault(switch.name, []).append(entity_id)
+                    switch_name_mapping[switch.name] = switch
+        return switch_to_eids, switch_name_mapping, skipped
+
+    def _correct_for_multi_light_intercept(
+        self,
+        entity_ids,
+        switch_to_eids,
+        switch_name_mapping,
+        skipped,
+    ):
+        # Check for `multi_light_intercept: true/false`
+        mli = [sw._multi_light_intercept for sw in switch_name_mapping.values()]
+        more_than_one_switch = len(switch_to_eids) > 1
+        single_switch_with_multiple_lights = (
+            len(switch_to_eids) == 1 and len(next(iter(switch_to_eids.values()))) > 1
+        )
+        switch_without_multi_light_intercept = not all(mli)
+        if more_than_one_switch and switch_without_multi_light_intercept:
+            _LOGGER.warning(
+                "Multiple switches (%s) targeted, but not all have"
+                " `multi_light_intercept: true`, so skipping intercept"
+                " for all lights.",
+                switch_to_eids,
+            )
+            skipped = entity_ids
+            switch_to_eids = {}
+        elif (
+            single_switch_with_multiple_lights and switch_without_multi_light_intercept
+        ):
+            _LOGGER.warning(
+                "Single switch with multiple lights targeted (%s), but"
+                " `multi_light_intercept: true` is not set, so skipping intercept"
+                " for all lights.",
+                switch_to_eids,
+            )
+            skipped = entity_ids
+            switch_to_eids = {}
+        return switch_to_eids, switch_name_mapping, skipped
+
+    async def _service_interceptor_turn_on_handler(
         self,
         call: ServiceCall,
-        data: ServiceData,
+        service_data: ServiceData,
     ) -> None:
         """Intercept `light.turn_on` and `light.toggle` service calls and adapt them.
 
@@ -1769,105 +1866,42 @@ class AdaptiveLightingManager:
             # were skipped by us
             return
 
-        if ATTR_EFFECT in data[CONF_PARAMS] or ATTR_FLASH in data[CONF_PARAMS]:
+        if (
+            ATTR_EFFECT in service_data[CONF_PARAMS]
+            or ATTR_FLASH in service_data[CONF_PARAMS]
+        ):
             return
 
         _LOGGER.debug(
-            "(1) _service_interceptor_turn_on_handler: call='%s', data='%s'",
+            "(1) _service_interceptor_turn_on_handler: call='%s', service_data='%s'",
             call,
-            data,
+            service_data,
         )
 
-        entity_ids = self._get_entity_list(data)
+        # Because `_service_interceptor_turn_on_single_light_handler` modifies the
+        # original service data, we need to make a copy of it to use in the `skipped` call
+        service_data_copy = deepcopy(service_data)
+
+        entity_ids = self._get_entity_list(service_data)
         # Note: we do not expand light groups anywhere in this method, instead
         # we skip them and rely on the followup call that HA will make
         # with the expanded entity IDs.
 
-        # Create a mapping from switch to entity IDs
-        # AdaptiveSwitch.name → entity_ids mapping
-        switch_to_eids: dict[str, list[str]] = {}
-        # AdaptiveSwitch.name → AdaptiveSwitch mapping
-        switch_name_mapping: dict[str, AdaptiveSwitch] = {}
-        # Note: In HA≥2023.5, AdaptiveSwitch is hashable, so we can
-        # use dict[AdaptiveSwitch, list[str]]
-        skipped: list[str] = []
-        for entity_id in entity_ids:
-            try:
-                switch = _switch_with_lights(
-                    self.hass,
-                    [entity_id],
-                    # Do not expand light groups, because HA will make a separate light.turn_on
-                    # call where the lights are expanded, and that call will be intercepted.
-                    expand_light_groups=False,
-                )
-            except NoSwitchFoundError:
-                # Needs to make the original call but without adaptation
-                skipped.append(entity_id)
-                _LOGGER.debug(
-                    "No switch found for entity_id='%s', skipped='%s'",
-                    entity_id,
-                    skipped,
-                )
-            else:
-                if (
-                    not switch.is_on
-                    # Never adapt on light groups, because HA will make a separate light.turn_on
-                    or _is_light_group(self.hass.states.get(entity_id))
-                    # Prevent adaptation of TURN_ON calls when light is already on,
-                    # and of TOGGLE calls when toggling off.
-                    or self.hass.states.is_state(entity_id, STATE_ON)
-                    or self.manual_control.get(entity_id, False)
-                    or (
-                        switch._take_over_control
-                        and switch._adapt_only_on_bare_turn_on
-                        and self._mark_manual_control_if_non_bare_turn_on(
-                            entity_id,
-                            data[CONF_PARAMS],
-                        )
-                    )
-                ):
-                    _LOGGER.debug(
-                        "Switch is off or light is already on for entity_id='%s', skipped='%s'"
-                        " (is_on='%s', is_state='%s', manual_control='%s')",
-                        entity_id,
-                        skipped,
-                        switch.is_on,
-                        self.hass.states.is_state(entity_id, STATE_ON),
-                        self.manual_control.get(entity_id, False),
-                    )
-                    skipped.append(entity_id)
-                else:
-                    switch_to_eids.setdefault(switch.name, []).append(entity_id)
-                    switch_name_mapping[switch.name] = switch
-
-        # Check for `multi_light_intercept: true/false`
-        mli = [sw._multi_light_intercept for sw in switch_name_mapping.values()]
-        more_than_one_switch = len(switch_to_eids) > 1
-        single_switch_with_multiple_lights = (
-            len(switch_to_eids) == 1 and len(next(iter(switch_to_eids.values()))) > 1
+        switch_to_eids, switch_name_mapping, skipped = self._separate_entity_ids(
+            entity_ids,
+            service_data,
         )
-        switch_without_multi_light_intercept = not all(mli)
-        if more_than_one_switch and switch_without_multi_light_intercept:
-            _LOGGER.warning(
-                "Multiple switches (%s) targeted, but not all have"
-                " `multi_light_intercept: true`, so skipping intercept"
-                " for all lights.",
-                switch_to_eids,
-            )
-            skipped = entity_ids
-            switch_to_eids = {}
-        elif (
-            single_switch_with_multiple_lights and switch_without_multi_light_intercept
-        ):
-            _LOGGER.warning(
-                "Single switch with multiple lights targeted (%s), but"
-                " `multi_light_intercept: true` is not set, so skipping intercept"
-                " for all lights.",
-                switch_to_eids,
-            )
-            skipped = entity_ids
-            switch_to_eids = {}
 
+        (
+            switch_to_eids,
+            switch_name_mapping,
+            skipped,
+        ) = self._correct_for_multi_light_intercept(
+            entity_ids,
+            switch_to_eids,
+            switch_name_mapping,
+            skipped,
+        )
         _LOGGER.debug(
             "(2) _service_interceptor_turn_on_handler: switch_to_eids='%s', skipped='%s'",
             switch_to_eids,
@@ -1885,7 +1919,7 @@ class AdaptiveLightingManager:
         has_intercepted = False  # Can only intercept a turn_on call once
         for adaptive_switch_name, _entity_ids in switch_to_eids.items():
             switch = switch_name_mapping[adaptive_switch_name]
-            transition = data[CONF_PARAMS].get(
+            transition = service_data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
                 switch.initial_transition,
             )
@@ -1899,7 +1933,7 @@ class AdaptiveLightingManager:
                     switch=switch,
                     transition=transition,
                     call=call,
-                    data=modify_service_data(data, _entity_ids),
+                    data=modify_service_data(service_data, _entity_ids),
                 )
                 has_intercepted = True
                 continue
@@ -1929,19 +1963,12 @@ class AdaptiveLightingManager:
             # Call light turn_on service for skipped entities
             context = switch.create_context("skipped")
             _LOGGER.debug(
-                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s', context='%s'",
+                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
-                data,
+                service_data_copy,  # This is the original service data
                 context.id,
             )
-            # Need to expand light groups here because otherwise this interceptor loop will happen twice more
-            _LOGGER.debug(
-                "(6) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', data: '%s', context='%s'",
-                skipped,
-                data,
-                context.id,
-            )
-            service_data = {ATTR_ENTITY_ID: skipped, **data[CONF_PARAMS]}
+            service_data = {ATTR_ENTITY_ID: skipped, **service_data_copy[CONF_PARAMS]}
             if (
                 ATTR_COLOR_TEMP in service_data
                 and ATTR_COLOR_TEMP_KELVIN in service_data

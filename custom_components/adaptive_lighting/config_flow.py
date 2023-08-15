@@ -42,13 +42,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_import(self, user_input=None):
         """Handle configuration by YAML file."""
         await self.async_set_unique_id(user_input[CONF_NAME])
+        # Keep a list of switches that are configured via YAML
+        data = self.hass.data.setdefault(DOMAIN, {})
+        data.setdefault("__yaml__", set()).add(self.unique_id)
+
         for entry in self._async_current_entries():
             if entry.unique_id == self.unique_id:
-                # Keep a list of switches that are configured via YAML
-                data = self.hass.data.setdefault(DOMAIN, {})
-                data.setdefault("__yaml__", []).append(self.unique_id)
                 self.hass.config_entries.async_update_entry(entry, data=user_input)
                 self._abort_if_unique_id_configured()
+
         return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
 
     @staticmethod

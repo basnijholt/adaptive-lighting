@@ -92,7 +92,7 @@ from custom_components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
 )
 from custom_components.adaptive_lighting.switch import (
-    INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION,
+    CONF_INTERCEPT,
     AdaptiveSwitch,
     _attributes_have_changed,
     color_difference_redmean,
@@ -167,7 +167,7 @@ async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitc
         domain=DOMAIN,
         data={
             CONF_NAME: DEFAULT_NAME,
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: False,
+            CONF_INTERCEPT: False,
             **extra_data,
         },
     )
@@ -579,7 +579,7 @@ async def test_manual_control(
         hass,
         {
             CONF_ADAPT_ONLY_ON_BARE_TURN_ON: adapt_only_on_bare_turn_on,
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
+            CONF_INTERCEPT: proactive_service_call_adaptation,
         },
     )
     assert switch._take_over_control
@@ -1470,9 +1470,7 @@ def _mock_sun_light_settings(switch: AdaptiveSwitch, settings: dict[str, Any]):
 
 async def test_proactive_adaptation(hass):
     """Validate that a proactive adaptation updates the original service call."""
-    switch, _ = await setup_lights_and_switch(
-        hass, {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}, True
-    )
+    switch, _ = await setup_lights_and_switch(hass, {CONF_INTERCEPT: True}, True)
 
     _mock_sun_light_settings(
         switch,
@@ -1503,7 +1501,7 @@ async def test_proactive_adaptation_with_separate_commands(hass):
     switch, _ = await setup_lights_and_switch(
         hass,
         {
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+            CONF_INTERCEPT: True,
             CONF_SEPARATE_TURN_ON_COMMANDS: True,
         },
         True,
@@ -1539,9 +1537,7 @@ async def test_proactive_adaptation_toggle(hass):
 
     This test is based on the fact that contexts of proactive adaptations are recorded.
     """
-    switch, _ = await setup_lights_and_switch(
-        hass, {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}, True
-    )
+    switch, _ = await setup_lights_and_switch(hass, {CONF_INTERCEPT: True}, True)
 
     # Toggle ON
     await hass.services.async_call(
@@ -1571,7 +1567,7 @@ async def test_proactive_adaptation_transition_override(hass):
     switch, (_, _, light3) = await setup_lights_and_switch(
         hass,
         {
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+            CONF_INTERCEPT: True,
             CONF_INITIAL_TRANSITION: 123,
         },
         True,
@@ -1628,7 +1624,7 @@ async def setup_proactive_multiple_lights_two_switches(hass):
         CONF_DETECT_NON_HA_CHANGES: True,
         CONF_PREFER_RGB_COLOR: False,
         CONF_MIN_COLOR_TEMP: 2500,  # to not coincide with sleep_color_temp}
-        INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True,
+        CONF_INTERCEPT: True,
     }
     _, switch1 = await setup_switch(
         hass, {CONF_NAME: "switch1", CONF_LIGHTS: [ENTITY_LIGHT_1], **defaults}
@@ -1753,7 +1749,7 @@ async def test_two_switches_for_single_light(hass):
 
     One switch for brightness and another for color.
     """
-    extra_conf = {INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: True}
+    extra_conf = {CONF_INTERCEPT: True}
     switch1, (light1, *_) = await setup_lights_and_switch(
         hass, extra_conf | {CONF_NAME: "switch1"}, all_lights=True
     )
@@ -1928,7 +1924,7 @@ async def test_light_group(
         hass,
         {
             CONF_LIGHTS: entity_ids,
-            INTERNAL_CONF_PROACTIVE_SERVICE_CALL_ADAPTATION: proactive_service_call_adaptation,
+            CONF_INTERCEPT: proactive_service_call_adaptation,
             CONF_TAKE_OVER_CONTROL: take_over_control,
             CONF_MULTI_LIGHT_INTERCEPT: multi_light_intercept,
         },
