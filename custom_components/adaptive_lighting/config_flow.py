@@ -28,12 +28,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors = {}
 
-        # Keep a list of switches that are configured via YAML
-        data = self.hass.data.setdefault(DOMAIN, {})
-
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_NAME])
-            data.setdefault("__ui__", []).append(self.unique_id)
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
 
