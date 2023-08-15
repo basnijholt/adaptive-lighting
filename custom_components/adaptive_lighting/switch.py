@@ -410,9 +410,16 @@ async def async_setup_entry(  # noqa: PLR0915
         data,
         config_entry,
     )
+    # Use a "bad?" heuristic to determine whether this is the first time we're setting up
+    # the YAML integration. If it is, we do not delete the config entry if the YAML config.
+    # Note that there must be a better way to do this, but I don't know what it is.
+    # This is `first_time_yaml_setup` is to prevent #745
+    yaml_entries = data.get("__yaml__", [])
+    first_time_yaml_setup = len(yaml_entries) == 0
     if (  # Skip deleted YAML config entries
         config_entry.source == SOURCE_IMPORT
-        and config_entry.unique_id not in data.get("__yaml__", [])
+        and not first_time_yaml_setup
+        and config_entry.unique_id not in yaml_entries
     ):
         _LOGGER.warning(
             "Deleting AdaptiveLighting switch '%s' because YAML"
