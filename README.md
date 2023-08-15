@@ -73,6 +73,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
   - [Custom brightness ramps using `brightness_mode` with `"linear"` and `"tanh"`](#custom-brightness-ramps-using-brightness_mode-with-linear-and-tanh)
 - [:eyes: See also](#eyes-see-also)
 - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
+- [Translating Adaptive Lighting](#translating-adaptive-lighting)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
