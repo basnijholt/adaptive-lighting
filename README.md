@@ -544,7 +544,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
 
 ## Translating Adaptive Lighting
 
-Help translating Adaptive Lighting into your language on [Hosted
+Help to translate Adaptive Lighting into your language on [Hosted Weblate](https://hosted.weblate.org/engage/adaptive-lighting/)!
 
 Translating can be done from your webbrowser, no programming knowledge
 is needed!
