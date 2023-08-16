@@ -1,58 +1,269 @@
 {
-  "title": "Adaptive Lighting",
-  "config": {
-    "step": {
-      "user": {
-        "title": "Benenne das Adaptive Lighting",
-        "description": "Jede Instanz kann mehrere Licht Entitäten beinhalten",
-        "data": {
-          "name": "Name"
+    "title": "Verwendbare Beleuchtung",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Wähl aus einen Namen für die Verwendbare Beleuchtung Instanz",
+                "description": "Jede Instanz kann mehrfache Lichter zügeln!",
+                "data": {
+                    "name": "Name"
+                }
+            }
+        },
+        "abort": {
+            "already_configured": "Diese Vorrichtung ist schon konfiguriert"
         }
-      }
     },
-    "abort": {
-      "already_configured": "Gerät ist bereits konfiguriert!"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Adaptive Lighting Optionen",
-        "description": "Alle Einstellungen für eine Adaptive Lighting Komponente. Die Optionsnamen entsprechen den YAML-Einstellungen. Es werden keine Optionen angezeigt, wenn dieser Eintrag in YAML konfiguriert wurde.",
-        "data": {
-          "lights": "Lichter",
-          "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt",
-	  "sleep_transition": "sleep_transition: Wenn 'sleep_state' sich ändert. (Sekunden)",
-          "interval": "interval, Zeit zwischen Updates des Switches",
-          "max_brightness": "max_brightness, maximale Helligkeit in %",
-          "max_color_temp": "max_color_temp, maximale Farbtemperatur in Kelvin",
-          "min_brightness": "min_brightness, minimale Helligkeit in %",
-          "min_color_temp": "min_color_temp, minimale Farbtemperatur in Kelvin",
-          "only_once": "only_once, passe die Lichter nur beim Einschalten an",
-          "prefer_rgb_color": "prefer_rgb_color, nutze 'rgb_color' vor 'color_temp', wenn möglich",
-          "separate_turn_on_commands": "separate_turn_on_commands, für jedes Attribut (Farbe, Helligkeit usw.) in 'light.turn_on' werden separate Befehle gesendet. Wird für manche Leuchtmittel benötigt.",
-          "send_split_delay": "send_split_delay: Wartezeit zwischen dem Senden der Befehle (Millisekunden), wenn separate_turn_on_commands genutzt wird. Kann helfen, wenn die Leuchtmittel die separaten Befehle nicht korrekt umsetzen.",
-          "sleep_brightness": "sleep_brightness, Schlafhelligkeit in %",
-	  "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, nutze 'rgb_color' oder 'color_temp'",
-	  "sleep_rgb_color": "sleep_rgb_color, in RGB",
-          "sleep_color_temp": "sleep_color_temp, Schlaffarbtemperatur in Kelvin",
-          "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- Sekunden",
-          "sunrise_time": "sunrise_time, Sonnenaufgangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenaufgangs an deiner Position verwendet)",
-	  "max_sunrise_time": "max_sunrise_time: Manuelles Überschreiben der max. sunrise_time. Falls 'None', wird die tatsächliche sunrise_time an deiner Position verwendet (HH:MM:SS)",
-          "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- Sekunden",
-          "sunset_time": "sunset_time, Sonnenuntergangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenuntergangs an deiner Position verwendet)",
-          "min_sunset_time": "min_sunset_time: Manuelles Überschreiben der min. sunset_time. Falls 'None', wird die tatsächliche sunset_time an deiner Position verwendet (HH:MM:SS)",
-	  "take_over_control": "take_over_control, wenn irgendetwas während ein Licht an ist außer Adaptive Lighting den Service 'light.turn_on' aufruft, stoppe die Anpassung des Lichtes (oder des Schalters) bis dieser wieder von off -> on geschaltet wird.",
-          "detect_non_ha_changes": "detect_non_ha_changes, entdeckt alle Änderungen über 10% am Licht (auch außerhalb von HA gemacht), 'take_over_control' muss aktiviert sein (ruft 'homeassistant.update_entity' jede 'interval' auf!)",
-          "transition": "transition, Wechselzeit in Sekunden",
-          "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden.",
-          "skip_redundant_commands": "Keine Adaptierungsbefehle senden, deren erwünschter Status schon dem bekanntes Status von Lichtern entspricht. Minimiert die Netzwerkbelastung und verbessert die Adaptierung in manchen Situationen. Deaktiviert lassen falls der pysikalische Status der Lichter und der erkannte Status in HA nicht synchron bleiben."
+    "options": {
+        "step": {
+            "init": {
+                "title": "Verwendbare Beleuchtung Optionen",
+                "description": "Konfigurier eine Verwendbare Beleuchtung Komponente. Option Namen stimmen ab mit die YAML Lagen. Ob du hast diesen Eintrag definiert herein YAML, keine Optionen wollen fungieren hier. Für interaktiv Graphen #der demonstrieren Parameter Effekte, besuchen [dieses Web #App](https://basnijholt.github.io/Verwendbar-Beleuchtung). Für ferner Details, seht die [offizielle Dokumentation](https://github.com/basnijholt/Verwendbar-Beleuchtung#readme).",
+                "data": {
+                    "lights": "Lichter: Liste von licht Entität_ids zu sein reguliert (darf sein leer). 🌟",
+                    "initial_transition": "Einleitender_Wechsel",
+                    "sleep_transition": "Schlaf_Wechsel",
+                    "interval": "Intervall",
+                    "max_brightness": "max_Helligkeit: #Höchster Helligkeit Prozentsatz. 💡",
+                    "max_color_temp": "max_Farbe_Aushilfskraft: #Kalt Farbe Temperatur in #Kelvin. ❄️",
+                    "min_brightness": "min_Helligkeit: Minimaler Helligkeit Prozentsatz. 💡",
+                    "min_color_temp": "min_Farbe_Aushilfskraft: #Warm Farbe Temperatur in #Kelvin. 🔥",
+                    "only_once": "Nur_einmal: Adaptier nur Lichter als sind angemacht sie (`wahr`) oder Unterhalt adaptieren ihnen (`falsch`). 🔄",
+                    "prefer_rgb_color": "Bevorzug_rgb_Farbe: Ob zu bevorzugen #RGB Farbe Anpassung über licht Farbe Temperatur als möglich. 🌈",
+                    "separate_turn_on_commands": "Getrennte_Drehung_auf_Befehle: Nutzung trennen `Licht.Drehung_holt ab` weiter Farbe und Helligkeit, gebraucht für einige Licht Typen. 🔀",
+                    "send_split_delay": "#Senden_geteilt_Aufschub",
+                    "sleep_brightness": "Schlaf_Helligkeit",
+                    "sleep_rgb_or_color_temp": "Schlaf_rgb_oder_Farbe_Aushilfskraft",
+                    "sleep_rgb_color": "Schlaf_rgb_Farbe",
+                    "sleep_color_temp": "Schlaf_Farbe_Aushilfskraft",
+                    "sunrise_offset": "Sonnenaufgang_Verschiebung",
+                    "sunrise_time": "Sonnenaufgang_Zeit",
+                    "max_sunrise_time": "max_Sonnenaufgang_Zeit",
+                    "sunset_offset": "Abendrot_Verschiebung",
+                    "sunset_time": "Abendrot_Zeit",
+                    "min_sunset_time": "min_Abendrot_Zeit",
+                    "take_over_control": "Nimm_über_Aufsicht: Schalte aus Verwendbare Beleuchtung ob anderen Quelle Anrufe `hell.Drehung_auf` während sind Lichter weiter und sein adaptiert. Note dass diese Anrufe `homeassistant.Update_Entität` jedes `Intervall`! 🔒",
+                    "detect_non_ha_changes": "Finde heraus_nicht_ha_Änderungen: Findet heraus und hält an Bearbeitungen für nicht-`Licht.Drehung_auf` staatlich Änderungen. Notwendigkeiten `nehmen_über_Aufsicht` aktiviert. 🕵️ Vorsicht: ⚠️ Einige Lichter dürfen hindeuten #kein 'weiter' Staat, #welche konnte resultieren in Lichter anmachen unerwartet. Schalte aus diesen Charakterzug ob du begegnest solche Sachverhalte.",
+                    "transition": "Wechsel",
+                    "adapt_delay": "Adaptier_Aufschub",
+                    "skip_redundant_commands": "Sprung_redundant_Befehle: Sprung senden Bearbeitung gebietet wessen anrichten schon staatlich #angleichen das Lichts gekannt Staat. Minimiert Netzwerk Verkehr und verbessert die Bearbeitung responsivity in einigen Situationen. 📉Schalte aus ob physische Licht Staaten steigen aus von synchronisieren mit HAaufgezeichnet haben Staat.",
+                    "autoreset_control_seconds": "autoreset_Aufsicht_Sekunden",
+                    "brightness_mode": "Helligkeit_Verfahren",
+                    "brightness_mode_time_dark": "Helligkeit_Verfahren_Zeit_Finsternis",
+                    "brightness_mode_time_light": "Helligkeit_Verfahren_Zeit_Licht",
+                    "max_sunset_time": "max_Abendrot_Zeit",
+                    "transition_until_sleep": "Wechsel_bis_Schlaf: Wann aktiviert, Verwendbare Beleuchtung will spendieren schlafen Lagen da das Minimum, übergehen zu diesen Werten nach Abendrot. 🌙",
+                    "min_sunrise_time": "min_Sonnenaufgang_Zeit",
+                    "adapt_only_on_bare_turn_on": "Adaptier_nur_auf_kahl_Drehung_weiter: Wann drehen weiter Lichter anfänglich. Ob gesetzt zu `wahr`, #AL adaptiert nur ob `Licht.Drehung_ist aufgerufen` weiter ohne präzisieren Farbe oder Helligkeit. ❌🌈 Dies #z.B., verhindert als Bearbeitung aktivierend eine Szene. Ob `falsch`, #AL adaptiert #ohne Rücksicht auf von dem Vorliegen von Farbe oder Helligkeit in der einleitenden `Bedienung_Daten`. Notwendigkeiten `nehmen_über_Aufsicht` aktiviert. 🕵️ ",
+                    "intercept": "Unterbrich: Unterbrich und adaptier `Licht.Drehung_auf` Anrufe zu aktivieren momentane Farbe und Helligkeit Bearbeitung. 🏎️ Schalte aus für Lichter #der unterstützen nicht `Licht.Drehung_weiter` mit Farbe und Helligkeit.",
+                    "multi_light_intercept": "multi_Licht_unterbricht: Unterbrich und adaptier `Licht.Drehung_auf` Anrufe jenes Soll mehrfache Lichter. ➗⚠️ Dies darf resultieren in #aufspalten ein lediges `Licht.Drehung_auf` Anruf hinein mehrfach Anrufe, #z.B., als sind Lichter in verschieden Schalter. Bedürft `unterbrechen` zu sein aktiviert.",
+                    "include_config_in_attributes": "Schließ ein_config_in_Attribute: Vorstellung jede Optionen da Attribute auf dem Schalter in Heim Stellvertretend als gesetzt zu `wahr`. 📝"
+                },
+                "data_description": {
+                    "initial_transition": "Dauer von dem ersten Wechsel zündet an als Drehung von `ab` zu `weiter` in Sekunden. ⏲️",
+                    "sleep_brightness": "Helligkeit Prozentsatz von Lichter in schlafen Verfahren. 😴",
+                    "sleep_rgb_color": "#RGB Farbe in Schlaf Verfahren (benutzt als `schlafen_rgb_oder_Farbe_Aushilfskraft` ist \"rgb_Farbe\"). 🌈",
+                    "sleep_transition": "Dauer von Wechsel schläft \"als Verfahren\" ist #festknebeln in Sekunden. 😴",
+                    "sunrise_time": "Gesetzt eine feste Zeit (HH:MM:SS) Für Sonnenaufgang. 🌅",
+                    "min_sunrise_time": "Setzte den frühesten virtuellen Sonnenaufgang Zeit (HH:MM:SS), Erlauben für später Sonnenaufgänge. 🌅",
+                    "interval": "Häufigkeit zu adaptieren die Lichter, in Sekunden. 🔄",
+                    "transition": "Dauer von Wechsel zündet an als Änderung, in Sekunden. 🕑",
+                    "sleep_rgb_or_color_temp": "Nutzung entweder `\"rgb_Farbe\"` oder `\"Farbe_Aushilfskraft\"` in Schlaf Verfahren. 🌙",
+                    "sleep_color_temp": "Farbe Temperatur in Schlaf Verfahren (benutzt als `schlafen_rgb_oder_Farbe_Aushilfskraft` ist `Farbe_Aushilfskraft`) in #Kelvin. 😴",
+                    "max_sunrise_time": "Setzte den spätesten virtuellen Sonnenaufgang Zeit (HH:MM:SS), Erlauben für früher Sonnenaufgänge. 🌅",
+                    "sunrise_offset": "Pass an Sonnenaufgang Zeit mit ein bejahendes oder verneinte Verschiebung in Sekunden. ⏰",
+                    "sunset_time": "Gesetzt eine feste Zeit (HH:MM:SS) Für Abendrot. 🌇",
+                    "min_sunset_time": "Setzte das früheste virtuelle Abendrot Zeit (HH:MM:SS), Erlauben für später Abendrot. 🌇",
+                    "max_sunset_time": "Setzte das späteste virtuelle Abendrot Zeit (HH:MM:SS), Erlauben für früher Abendrot. 🌇",
+                    "sunset_offset": "Pass an Abendrot Zeit mit ein bejahendes oder verneinte Verschiebung in Sekunden. ⏰",
+                    "brightness_mode": "Helligkeit Verfahren zu benutzen. Mögliche Werte sind `#voreingestellt`, `geradlinig`, und `tanh` (Nutzungen `Helligkeit_Verfahren_Zeit_Finsternis` und `Helligkeit_Verfahren_Zeit_hell`). 📈",
+                    "brightness_mode_time_dark": "(Überhört ob `Helligkeit_Verfahren='#voreingestellt'`) Die Dauer in Sekunden zu #Nepp oben/#vor herunter die Helligkeit/nach Sonnenaufgang/Abendrot. 📈📉",
+                    "brightness_mode_time_light": "(Überhört ob `Helligkeit_Verfahren='#voreingestellt'`) Die Dauer in Sekunden zu #Nepp oben/#nachdem herunter die Helligkeit/vor Sonnenaufgang/Abendrot. 📈📉.",
+                    "autoreset_control_seconds": "Automatisch #rücksetzen die manuelle Aufsicht nach einer Nummer von Sekunden. Apparat zu 0 zu ausschalten. ⏲️",
+                    "send_split_delay": "Aufschub (ms) zwischen `getrennt_Drehung_auf_Befehle` für Lichter #der unterstützen nicht zeitgleiche Helligkeit und Farbe Lage. ⏲️",
+                    "adapt_delay": "Wartezeit Zeit (Sekunden) zwischen Licht macht an und Verwendbare Beleuchtung bewerbend Änderungen. Dürfen helfen zu vermeiden flackern. ⏲️"
+                }
+            }
+        },
+        "error": {
+            "option_error": "Kränkliche Option",
+            "entity_missing": "#Man oder #mehr ausgewählt Licht Entitäten fehlen von Heim Assistenten"
         }
-      }
     },
-    "error": {
-      "option_error": "Fehlerhafte Option",
-      "entity_missing": "Ein ausgewähltes Licht wurde nicht gefunden"
+    "services": {
+        "change_switch_settings": {
+            "fields": {
+                "use_defaults": {
+                    "description": "Setzt nicht die #voreingestellt Werte präzisiert in diesen Bedienung Anruf. Optionen: \"Lauf\" (#voreingestellt, hält fest gängige Werte), \"Fabrik\" (#Nachstellung zu dokumentieren Vorgaben), oder \"Konfiguration\" (fällt zurück zu schalten config Vorgaben). ⚙️",
+                    "name": "Benutzen_Vorgaben"
+                },
+                "include_config_in_attributes": {
+                    "description": "Vorstellung jede Optionen da Attribute auf dem Schalter in Heim Stellvertretend als gesetzt zu `wahr`. 📝",
+                    "name": "Schließ ein_config_in_Attribute"
+                },
+                "turn_on_lights": {
+                    "description": "Ob zu anmachen Lichter jener ist zurzeit ab. 🔆",
+                    "name": "Drehung_auf_Lichter"
+                },
+                "initial_transition": {
+                    "description": "Dauer von dem ersten Wechsel zündet an als Drehung von `ab` zu `weiter` in Sekunden. ⏲️",
+                    "name": "Einleitender_Wechsel"
+                },
+                "sleep_transition": {
+                    "description": "Dauer von Wechsel schläft \"als Verfahren\" ist #festknebeln in Sekunden. 😴",
+                    "name": "Schlaf_Wechsel"
+                },
+                "max_brightness": {
+                    "description": "#Höchster Helligkeit Prozentsatz. 💡",
+                    "name": "max_Helligkeit"
+                },
+                "max_color_temp": {
+                    "description": "#Kalt Farbe Temperatur in #Kelvin. ❄️",
+                    "name": "max_Farbe_Aushilfskraft"
+                },
+                "min_brightness": {
+                    "description": "Minimaler Helligkeit Prozentsatz. 💡",
+                    "name": "min_Helligkeit"
+                },
+                "only_once": {
+                    "description": "Adaptier nur Lichter als sind angemacht sie (`wahr`) oder Unterhalt adaptieren ihnen (`falsch`). 🔄",
+                    "name": "Nur_einmal"
+                },
+                "prefer_rgb_color": {
+                    "description": "Ob zu bevorzugen #RGB Farbe Anpassung über licht Farbe Temperatur als möglich. 🌈",
+                    "name": "Bevorzug_rgb_Farbe"
+                },
+                "send_split_delay": {
+                    "description": "Aufschub (ms) zwischen `getrennt_Drehung_auf_Befehle` für Lichter #der unterstützen nicht zeitgleiche Helligkeit und Farbe Lage. ⏲️",
+                    "name": "#Senden_geteilt_Aufschub"
+                },
+                "sleep_brightness": {
+                    "description": "Helligkeit Prozentsatz von Lichter in schlafen Verfahren. 😴",
+                    "name": "Schlaf_Helligkeit"
+                },
+                "sleep_rgb_or_color_temp": {
+                    "description": "Nutzung entweder `\"rgb_Farbe\"` oder `\"Farbe_Aushilfskraft\"` in Schlaf Verfahren. 🌙",
+                    "name": "Schlaf_rgb_oder_Farbe_Aushilfskraft"
+                },
+                "sleep_rgb_color": {
+                    "description": "#RGB Farbe in Schlaf Verfahren (benutzt als `schlafen_rgb_oder_Farbe_Aushilfskraft` ist \"rgb_Farbe\"). 🌈",
+                    "name": "Schlaf_rgb_Farbe"
+                },
+                "sleep_color_temp": {
+                    "description": "Farbe Temperatur in Schlaf Verfahren (benutzt als `schlafen_rgb_oder_Farbe_Aushilfskraft` ist `Farbe_Aushilfskraft`) in #Kelvin. 😴",
+                    "name": "Schlaf_Farbe_Aushilfskraft"
+                },
+                "sunrise_offset": {
+                    "description": "Pass an Sonnenaufgang Zeit mit ein bejahendes oder verneinte Verschiebung in Sekunden. ⏰",
+                    "name": "Sonnenaufgang_Verschiebung"
+                },
+                "sunrise_time": {
+                    "description": "Gesetzt eine feste Zeit (HH:MM:SS) Für Sonnenaufgang. 🌅",
+                    "name": "Sonnenaufgang_Zeit"
+                },
+                "sunset_offset": {
+                    "description": "Pass an Abendrot Zeit mit ein bejahendes oder verneinte Verschiebung in Sekunden. ⏰",
+                    "name": "Abendrot_Verschiebung"
+                },
+                "take_over_control": {
+                    "description": "Schalte aus Verwendbare Beleuchtung ob anderen Quelle Anrufe `hell.Drehung_auf` während sind Lichter weiter und sein adaptiert. Note dass diese Anrufe `homeassistant.Update_Entität` jedes `Intervall`! 🔒",
+                    "name": "Nimm_über_Aufsicht"
+                },
+                "detect_non_ha_changes": {
+                    "description": "Findet heraus und hält an Bearbeitungen für nicht-`Licht.Drehung_auf` staatlich Änderungen. Notwendigkeiten `nehmen_über_Aufsicht` aktiviert. 🕵️ Vorsicht: ⚠️ Einige Lichter dürfen hindeuten #kein 'weiter' Staat, #welche konnte resultieren in Lichter anmachen unerwartet. Schalte aus diesen Charakterzug ob du begegnest solche Sachverhalte.",
+                    "name": "Finde heraus_nicht_ha_Änderungen"
+                },
+                "transition": {
+                    "description": "Dauer von Wechsel zündet an als Änderung, in Sekunden. 🕑",
+                    "name": "Wechsel"
+                },
+                "adapt_delay": {
+                    "description": "Wartezeit Zeit (Sekunden) zwischen Licht macht an und Verwendbare Beleuchtung bewerbend Änderungen. Dürfen helfen zu vermeiden flackern. ⏲️",
+                    "name": "Adaptier_Aufschub"
+                },
+                "autoreset_control_seconds": {
+                    "description": "Automatisch #rücksetzen die manuelle Aufsicht nach einer Nummer von Sekunden. Apparat zu 0 zu ausschalten. ⏲️",
+                    "name": "autoreset_Aufsicht_Sekunden"
+                },
+                "min_color_temp": {
+                    "description": "#Warm Farbe Temperatur in #Kelvin. 🔥",
+                    "name": "min_Farbe_Aushilfskraft"
+                },
+                "separate_turn_on_commands": {
+                    "description": "Nutzung trennen `Licht.Drehung_holt ab` weiter Farbe und Helligkeit, gebraucht für einige Licht Typen. 🔀",
+                    "name": "Getrennte_Drehung_auf_Befehle"
+                },
+                "sunset_time": {
+                    "description": "Gesetzt eine feste Zeit (HH:MM:SS) Für Abendrot. 🌇",
+                    "name": "Abendrot_Zeit"
+                },
+                "max_sunrise_time": {
+                    "description": "Setzte den spätesten virtuellen Sonnenaufgang Zeit (HH:MM:SS), Erlauben für früher Sonnenaufgänge. 🌅",
+                    "name": "max_Sonnenaufgang_Zeit"
+                },
+                "min_sunset_time": {
+                    "description": "Setzte das früheste virtuelle Abendrot Zeit (HH:MM:SS), Erlauben für später Abendrot. 🌇",
+                    "name": "min_Abendrot_Zeit"
+                },
+                "entity_id": {
+                    "name": "Entität_id",
+                    "description": "Entität ID von dem Schalter. 📝"
+                }
+            },
+            "name": "Änderung_Schalter_Lagen",
+            "description": "Änderung irgendwelche Lagen wolltest du mögen in dem Schalter. Alle Optionen sind hier #dieselbe wie herein die config Strömung."
+        },
+        "set_manual_control": {
+            "fields": {
+                "manual_control": {
+                    "name": "Manuelle_Aufsicht",
+                    "description": "Ob zu zufügen (\"wahr\") oder entfernen (\"falsch\") das Licht von der \"manuellen_Aufsicht\" Liste. 🔒"
+                },
+                "lights": {
+                    "name": "Lichter",
+                    "description": "Entität_id(s) von Lichter, ob nicht präzisiert, alle Lichter in dem Schalter ist ausgewählt. 💡"
+                },
+                "entity_id": {
+                    "description": "Die `Entität_id` von dem Schalter in #welche zu (un)zensiert das lichtes da sein `manuell reguliert`. 📝",
+                    "name": "Entität_id"
+                }
+            },
+            "name": "Gesetzt_manuelle_Aufsicht",
+            "description": "Mark ob ist ein Licht 'manuell reguliert'."
+        },
+        "apply": {
+            "fields": {
+                "prefer_rgb_color": {
+                    "name": "Bevorzug_rgb_Farbe",
+                    "description": "Ob zu bevorzugen #RGB Farbe Anpassung über licht Farbe Temperatur als möglich. 🌈"
+                },
+                "transition": {
+                    "name": "Wechsel",
+                    "description": "Dauer von Wechsel zündet an als Änderung, in Sekunden. 🕑"
+                },
+                "adapt_brightness": {
+                    "name": "Adaptier_Helligkeit",
+                    "description": "Ob zu adaptieren die Helligkeit von dem Licht. 🌞"
+                },
+                "entity_id": {
+                    "name": "Entität_id",
+                    "description": "Die `Entität_id` von dem Schalter mit den Lagen zu bewerben. 📝"
+                },
+                "lights": {
+                    "name": "Lichter",
+                    "description": "Ein lichtes (oder Liste von Lichter) zu bewerben die Lagen zu. 💡"
+                },
+                "turn_on_lights": {
+                    "name": "Drehung_auf_Lichter",
+                    "description": "Ob zu anmachen Lichter jener ist zurzeit ab. 🔆"
+                },
+                "adapt_color": {
+                    "description": "Ob zu adaptieren die Farbe auf #stützend Lichter. 🌈",
+                    "name": "Adaptier_Farbe"
+                }
+            },
+            "name": "Bewirb",
+            "description": "Bewirbt den Lauf Verwendbar Beleuchtung Lagen zu Lichter."
+        }
     }
-  }
 }
