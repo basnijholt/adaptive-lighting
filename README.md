@@ -73,6 +73,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
   - [Custom brightness ramps using `brightness_mode` with `"linear"` and `"tanh"`](#custom-brightness-ramps-using-brightness_mode-with-linear-and-tanh)
 - [:eyes: See also](#eyes-see-also)
 - [:busts_in_silhouette: Contributors](#busts_in_silhouette-contributors)
+- [Translating Adaptive Lighting](#translating-adaptive-lighting)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -540,3 +541,14 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+
+## Translating Adaptive Lighting
+
+Help to translate Adaptive Lighting into your language on [Hosted Weblate](https://hosted.weblate.org/engage/adaptive-lighting/)!
+
+Translating can be done from your webbrowser, no programming knowledge
+is needed!
+
+<a href="https://hosted.weblate.org/engage/adaptive-lighting/">
+<img src="https://hosted.weblate.org/widget/adaptive-lighting/multi-auto.svg" alt="Translation status" />
+</a>
