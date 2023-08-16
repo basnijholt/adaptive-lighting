@@ -47,6 +47,9 @@
                     "transition": "Overgangstijd bij het aanbrengen van een wijziging op de lichten (seconden)",
                     "adapt_delay": "adapt_delay: wachttijd tussen het inschakelen van het licht (seconden) en het aanbrengen van wijzigingen in de lichtstatus door Adaptieve verlichting. Kan flikkering voorkomen.",
                     "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Wanneer je de lichten in eerste instantie aanzet. Indien ingesteld op `true`, past AL zich alleen aan als `light.turn_on` wordt aangeroepen zonder kleur of helderheid op te geven. ❌🌈 Dit voorkomt bijvoorbeeld aanpassing bij het activeren van een scène. Indien `false`, past AL zich aan ongeacht de aanwezigheid van kleur of helderheid in de initiële `service_data`. Moet 'take_over_control' ingeschakeld zijn. 🕵️ "
+                },
+                "data_description": {
+                    "sunrise_offset": "Een zonsopgang met een positief of negatief offset in seconden. _"
                 }
             }
         },
@@ -60,6 +63,9 @@
             "fields": {
                 "only_once": {
                     "description": "Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄"
+                },
+                "sunrise_offset": {
+                    "description": "Een zonsopgang met een positief of negatief offset in seconden. _"
                 }
             }
         }
