@@ -67,6 +67,9 @@
         },
         "sunrise_offset": {
           "description": "Pas de tijd van zonsopkomst aan met een positieve of negatieve verschuiving in seconden. ⏰"
+        },
+        "sunset_offset": {
+          "description": "Pas de tijd van zonsondergang aan met een positieve of negatieve offset in seconden. ⏰"
         }
       }
     }
