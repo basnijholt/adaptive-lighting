@@ -46,11 +46,17 @@
           "detect_non_ha_changes": "detect_non_ha_changes: detecteert alle >10% wijzigingen aan de lichten (ook buiten HA), vereist dat 'take_over_control' is ingeschakeld (heet 'homeassistant.update_entity' elke 'interval'!)",
           "transition": "Overgangstijd bij het aanbrengen van een wijziging op de lichten (seconden)",
           "adapt_delay": "adapt_delay: wachttijd tussen het inschakelen van het licht (seconden) en het aanbrengen van wijzigingen in de lichtstatus door Adaptieve verlichting. Kan flikkering voorkomen.",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Bij het initieel inschakelen van de lampen. Als dit op `true` is ingesteld, past AL alleen aan als `light.turn_on` wordt aangeroepen zonder een kleur of helderheid te specificeren. ❌🌈 Dit voorkomt bijvoorbeeld aanpassing bij het activeren van een scène. Als het `false` is, past AL aan ongeacht de aanwezigheid van kleur of helderheid in de initiële `service_data`. `take_over_control` moet ingeschakeld zijn. 🕵️ "
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Bij het initieel inschakelen van de lampen. Als dit op `true` is ingesteld, past AL alleen aan als `light.turn_on` wordt aangeroepen zonder een kleur of helderheid te specificeren. ❌🌈 Dit voorkomt bijvoorbeeld aanpassing bij het activeren van een scène. Als het `false` is, past AL aan ongeacht de aanwezigheid van kleur of helderheid in de initiële `service_data`. `take_over_control` moet ingeschakeld zijn. 🕵️ ",
+          "transition_until_sleep": "transition_until_sleep: Wanneer ingeschakeld, zal Adaptieve Verlichting de slaapinstellingen behandelen als het minimum, overgaand naar deze waarden na zonsondergang. 🌙",
+          "skip_redundant_commands": "skip_redundant_commands: Sla het verzenden van aanpassingscommando's over waarvan de doelstatus al gelijk is aan de bekende status van de lamp. Minimaliseert netwerkverkeer en verbetert de responsiviteit van de aanpassing in sommige situaties. 📉Schakel uit als de fysieke lichtstatus niet meer synchroon loopt met de door HA geregistreerde status.",
+          "intercept": "intercept: Onderschep en pas `light.turn_on` oproepen aan om directe kleur- en helderheidsaanpassing mogelijk te maken. 🏎️ Schakel uit voor lampen die `light.turn_on` niet ondersteunen met kleur en helderheid.",
+          "include_config_in_attributes": "include_config_in_attributes: Toon alle opties als attributen op de schakelaar in Home Assistant wanneer ingesteld op `true`. 📝",
+          "multi_light_intercept": "multi_light_intercept: Onderschep en pas `light.turn_on` oproepen aan die gericht zijn op meerdere lampen. ➗⚠️ Dit kan resulteren in het opsplitsen van een enkele `light.turn_on` call in meerdere calls, bijvoorbeeld wanneer lampen zich in verschillende schakelaars bevinden. Vereist dat `intercept` is ingeschakeld."
         },
         "data_description": {
           "sunrise_offset": "Pas de zonsopkomsttijd aan met een positieve of negatieve offset in seconden. ⏰",
-          "sunset_offset": "Pas de tijd van zonsondergang aan met een positieve of negatieve verschuiving in seconden. ⏰"
+          "sunset_offset": "Pas de tijd van zonsondergang aan met een positieve of negatieve verschuiving in seconden. ⏰",
+          "interval": "Frequentie om de lampen aan te passen, in seconden. 🔄"
         }
       }
     },
