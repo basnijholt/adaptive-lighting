@@ -40,12 +40,25 @@
           "take_over_control": "take_over_control : Si quelque chose d'autre que l'éclairage adaptatif appelle « light.turn_on » alors qu'une lampe est déjà allumée, cesser d'adapter cette lampe jusqu'à ce qu'elle (ou le commutateur) soit éteinte puis rallumée.",
           "detect_non_ha_changes": "detect_non_ha_changes : Détecter tout changement de plus de 10 % appliqué aux lampes (même en dehors de HA). Nécessite que « take_over_control » soit activé. (Appelle « homeassistant.update_entity » tous les « interval » !)",
           "transition": "transition : Durée de la transition (en secondes) des changements appliqués aux lampes."
+        },
+        "data_description": {
+          "interval": "Fréquence d'adaptation des lumières, en secondes. 🔄",
+          "sleep_brightness": "Pourcentage de luminosité des lumières en mode sommeil. 😴"
         }
       }
     },
     "error": {
       "option_error": "Option non valide",
       "entity_missing": "Une lumière sélectionnée n’a pas été trouvée"
+    }
+  },
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sleep_brightness": {
+          "description": "Pourcentage de luminosité des lumières en mode sommeil. 😴"
+        }
+      }
     }
   }
 }
