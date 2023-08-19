@@ -56,13 +56,48 @@
           "sleep_rgb_color": "Kolor RGB w trybie spania (używane gdy `sleep_rgb_or_color_temp` jest `rgb_color`). 🌈",
           "sleep_transition": "Długość tranzycji gdy nastąpi włączenie/wyłączenie \"trybu spania\" (w sekundach). 😴",
           "sunrise_time": "Ustaw stały czas wschodu słońca (HH:MM:SS). 🌅",
-          "sleep_brightness": "Jasność świateł w trybie spania (w procentach). 😴"
+          "sleep_brightness": "Jasność świateł w trybie spania (w procentach). 😴",
+          "min_sunrise_time": "Ustaw czas najwcześniejszego wirtualnego wschodu słońca (HH:MM:SS), pozwala na opóźnienie wschodu słońca. 🌅",
+          "max_sunrise_time": "Ustaw czas najpóźniejszego wirtualnego wschodu słońca (HH:MM:SS), pozwala na przyspieszenie wschodu słońca. 🌅",
+          "sunrise_offset": "Dostosuj czas wschodu słońca - przesunięcie o +/- sekund. ⏰",
+          "sunset_time": "Ustaw stały czas zachodu słońca (HH:MM:SS). 🌇",
+          "min_sunset_time": "Ustaw czas najwcześniejszego wirtualnego zachodu słońca (HH:MM:SS), pozwala na opóźnienie zachodu słońca. 🌇",
+          "brightness_mode": "Tryb ustawianie jasności. Dostępne opcje `default`, `linear`, i `tanh` (używa `brightness_mode_time_dark` i `brightness_mode_time_light`). 📈",
+          "max_sunset_time": "Ustaw czas najpóźniejszego wirtualnego zachodu słońca (HH:MM:SS), pozwala na przyspieszenie zachodu słońca. 🌇",
+          "sunset_offset": "Dostosuj czas zachodu słońca - przesunięcie o +/- sekund. ⏰",
+          "brightness_mode_time_dark": "(pomijany gdy`brightness_mode='default'`) Czas w sekundach kiedy jasność będzie: zwiększana przed wschodem słońca/zmniejszana po zachodzie słońca. 📈📉",
+          "brightness_mode_time_light": "(pomijany gdy`brightness_mode='default'`) Czas w sekundach kiedy jasność będzie: zwiększana po wschodzie słońca/zmniejszana przed zachodem słońca. 📈📉",
+          "autoreset_control_seconds": "Czas po którym manualna kontrola zostanie wyłączona (w sekundach). Ustaw 0 aby wyłączyć. ⏲️",
+          "send_split_delay": "Opóźnienie (w ms) pomiędzy `separate_turn_on_commands` dla świateł, które nie akceptują jednoczesnego ustawiania jasności i koloru. ⏲️",
+          "adapt_delay": "Czas (w sekundach) pomiędzy włączeniem światła a rozpoczęciem adaptowania przez Adaptacyjne oświetlenie. Morze pomóc zredukować migotanie. ⏲️"
         }
       }
     },
     "error": {
       "option_error": "Błędne opcje",
       "entity_missing": "Jednego lub więcej wybranych świateł nie można znaleźć w Home Assistant"
+    }
+  },
+  "services": {
+    "apply": {
+      "description": "Stosuje bieżące ustawienia Adaptacyjnego oświetlenia do świateł.",
+      "fields": {
+        "entity_id": {
+          "description": "`entity_id` przełącznika, którego ustawienia mają być zastosowane. 📝"
+        },
+        "lights": {
+          "description": "Światło(albo lista świateł), do których mają być zastosowane ustawieniam 💡"
+        },
+        "transition": {
+          "description": "Czas tranzycji przy zmianie ustawień (w sekundach). 🕑"
+        },
+        "adapt_color": {
+          "description": "Czy adaptować kolor światła"
+        },
+        "adapt_brightness": {
+          "description": "Czy adaptować jasność swiatła. 🌞"
+        }
+      }
     }
   }
 }
