@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Kies een naam voor de adaptieve verlichting integratie",
-        "description": "Kies een naam voor deze integratie. U kunt verschillende integratie van Adaptieve verlichting uitvoeren, elk van deze kan meerdere lichten bevatten!",
+        "description": "Elk exemplaar kan meerdere lichten bevatten!",
         "data": {
           "name": "Naam"
         }
@@ -56,7 +56,9 @@
         "data_description": {
           "sunrise_offset": "Pas de zonsopkomsttijd aan met een positieve of negatieve offset in seconden. ⏰",
           "sunset_offset": "Pas de tijd van zonsondergang aan met een positieve of negatieve verschuiving in seconden. ⏰",
-          "interval": "Frequentie om de lampen aan te passen, in seconden. 🔄"
+          "interval": "Frequentie om de lampen aan te passen, in seconden. 🔄",
+          "sleep_transition": "Duur van de overgang in seconden, als slaapstand wordt geactiveerd. 😴",
+          "autoreset_control_seconds": "Herstel de handmatige bediening automatisch na een aantal seconden. Stel in op 0 om uit te schakelen."
         }
       }
     },
@@ -76,6 +78,36 @@
         },
         "sunset_offset": {
           "description": "Pas de tijd van zonsondergang aan met een positieve of negatieve offset in seconden. ⏰"
+        },
+        "sleep_transition": {
+          "description": "Duur van de overgang in seconden, als slaapstand wordt geactiveerd. 😴"
+        },
+        "entity_id": {
+          "description": "entiteit_id van de schakelaar. 📝"
+        },
+        "transition": {
+          "description": "Duur van de overgang in seconden, als lampen aanpassen. 🕑"
+        },
+        "autoreset_control_seconds": {
+          "description": "Herstel de handmatige bediening na een aantal seconden. Stel in op 0 om uit te schakelen."
+        }
+      }
+    },
+    "apply": {
+      "fields": {
+        "lights": {
+          "description": "Een lamp (of een lijst van lampen) waarop de instellingen worden toegepast."
+        },
+        "transition": {
+          "description": "Duur van de overgang in seconden, als lampen aanpassen. 🕑"
+        }
+      },
+      "description": "Past de huidige Adaptive Lights instellingen toe op de lampen."
+    },
+    "set_manual_control": {
+      "fields": {
+        "lights": {
+          "description": "entiteit_id(s) van de lamp(en), indien niets wordt gespecificeerd, worden alle lampen in de schakelaar geselecteerd. 💡"
         }
       }
     }
