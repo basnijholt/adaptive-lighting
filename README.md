@@ -527,6 +527,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/lukerix"><img src="https://avatars.githubusercontent.com/u/93864731?v=4?s=100" width="100px;" alt="lukerix"/><br /><sub><b>lukerix</b></sub></a><br /><a href="#translation-lukerix" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Mexx62"><img src="https://avatars.githubusercontent.com/u/8066485?v=4?s=100" width="100px;" alt="Maxime Bailleul"/><br /><sub><b>Maxime Bailleul</b></sub></a><br /><a href="#translation-Mexx62" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://michelbalzer.de"><img src="https://avatars.githubusercontent.com/u/1337412?v=4?s=100" width="100px;" alt="Michel Balzer"/><br /><sub><b>Michel Balzer</b></sub></a><br /><a href="#translation-michelbalzer" title="Translation">🌍</a></td>
     </tr>
   </tbody>
