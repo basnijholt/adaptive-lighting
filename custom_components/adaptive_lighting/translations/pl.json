@@ -24,7 +24,7 @@
           "initial_transition": "initial_transition: When lights turn 'off' to 'on'. (sekund)",
           "sleep_transition": "sleep_transition: When 'sleep_state' changes. (sekund)",
           "interval": "interval: Time between switch updates. (sekund)",
-          "max_brightness": "max_brightness: Maksymajna josność (w procentach). 💡",
+          "max_brightness": "max_brightness: Maksymalna jasność (w procentach). 💡",
           "max_color_temp": "max_color_temp: Najzimniejsza temperatura barwowa (w Kelwinach). ❄️",
           "min_brightness": "min_brightness: Minimalna jasność (w procentach). 💡",
           "min_color_temp": "min_color_temp: Najcieplejsza temperatura barwowa (w Kelwinach). 🔥",
@@ -43,7 +43,7 @@
           "transition_until_sleep": "transition_until_sleep: Gdy włączone, Adaptacyjne oświetlenie będzie traktowało ustawienia spania jako minimalne i przejdzie do nich po zachodzie słońca. 🌙",
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Gdy włączone `true` to Adaptacyjne oświetlenie włączy adaptacje tylko jeżeli `light.turn_on` jest wywołane bez konkretnego koloru lub jasności. ❌🌈 To ustawienie zapobiega między innymi adaptacji gdy aktywowana jest scena. Gdy wyłączone `false`, Adaptacyjne oświetlenie włączy adaptacje niezależnie czy `service_data zawiera kolor lub jasność`. Potrzebuje włączonej opcji `take_over_control`. 🕵️ ",
           "skip_redundant_commands": "skip_redundant_commands: Pomiń wysyłanie polecenia adaptacji jeżeli stan światła jest taki sam jak docelowy stan adaptacji. Minimalizuje to ruch sieciowy oraz w niektórych przysadkach poprawia szybkość działania. 📉Wyłącz jeżeli faktyczny stan światła się nie pokrywa z tym który widnieje w Home Assistant.",
-          "include_config_in_attributes": "include_config_in_attributes: Gdy włącone `true` pokaż ustawienia jako atrybuty w encji przełącznika w Home Assistant. 📝",
+          "include_config_in_attributes": "include_config_in_attributes: Gdy włączone `true` pokaż ustawienia jako atrybuty w encji przełącznika w Home Assistant. 📝",
           "intercept": "intercept: Przechwyć i zaadaptuj wywołanie `light.turn_on`aby błyskawicznie dostosować kolor i jasność . 🏎️ Wyłącz dla świateł które nie akceptują wywołania `light.turn_on` zawierającego kolor i jasność.",
           "multi_light_intercept": "multi_light_intercept: Przechwyć i zaadaptuj wywołanie `light.turn_on`, które dotyczą wielu świateł. ➗⚠️ Może to powodować rozdzielenie pojedynczego wywołania `light.turn_on` na wiele wywołań, na przykład gdy światła są przypisane do rożnych instancji. Wymaga włączonej opcji `intercept`."
         },
@@ -96,6 +96,52 @@
         },
         "adapt_brightness": {
           "description": "Czy adaptować jasność swiatła. 🌞"
+        },
+        "prefer_rgb_color": {
+          "description": "Czy w miarę możliwości preferować regulację kolorów RGB zamiast temperatury barwowej światła. 🌈"
+        },
+        "turn_on_lights": {
+          "description": "Czy włączyć światła, które są aktualnie wyłączone? 🔆"
+        }
+      }
+    },
+    "set_manual_control": {
+      "description": "Zaznacza czy światło jest 'recznie sterowane'.",
+      "fields": {
+        "entity_id": {
+          "description": "`entity_id` encji przełącznika, w której należy odznaczyć flagę `ręczne sterowanie`. 📝"
+        },
+        "lights": {
+          "description": "`entity_id` świateł, dla których należy odznaczyć flagę `ręczne sterowanie`.💡Gdy lista będzie pusta wszystkie światła będą brane pod uwagę."
+        },
+        "manual_control": {
+          "description": "Dodaj (\"true\") albo usuń (\"false\") światło z listy \"ręczne sterowanie\". 🔒"
+        }
+      }
+    },
+    "change_switch_settings": {
+      "description": "Zmienia dowolny parametr w przełączniku. Wszystkie opcje są takie same jak w konfiguracji.",
+      "fields": {
+        "entity_id": {
+          "description": "ID encji przełacznika. 📝"
+        },
+        "use_defaults": {
+          "description": "Jak mają się zmienić ustawienia, które nie są wyszczególnione w tym wywołaniu. Opcje: \"current\" (domyślne, pozostawia obecne ustawienia), \"factory\" (przywraca ustawienia z dokumentacji), albo \"configuration\" (przywraca wartości z konfiguracji przelacznika). ⚙️"
+        },
+        "include_config_in_attributes": {
+          "description": "Gdy włączone `true` pokaż ustawienia jako atrybuty w encji przełącznika w Home Assistant."
+        },
+        "sleep_transition": {
+          "description": "Długość tranzycji gdy nastąpi włączenie/wyłączenie \"trybu spania\" (w sekundach). 😴"
+        },
+        "max_brightness": {
+          "description": "Maksymalna jasność (w procentach). 💡"
+        },
+        "turn_on_lights": {
+          "description": "Czy włączyć światła, które są aktualnie wyłączone? 🔆"
+        },
+        "initial_transition": {
+          "description": "Długość pierwszej tranzycji gdy światło zostanie włączone z `off` na `on`(w sekundach). ⏲️"
         }
       }
     }
