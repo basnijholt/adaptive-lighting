@@ -503,6 +503,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "KilFer",
+      "name": "Fernando Belaza",
+      "avatar_url": "https://avatars.githubusercontent.com/u/290854?v=4",
+      "profile": "http://kilfer.es/",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
