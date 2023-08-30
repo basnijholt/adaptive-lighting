@@ -1,67 +1,221 @@
 {
-    "title": "Adaptive Lighting",
-    "config": {
-        "step": {
-            "user": {
-                "title": "Benenne das Adaptive Lighting",
-                "description": "Jede Instanz kann mehrere Licht Entitäten beinhalten",
-                "data": {
-                    "name": "Name"
-                }
-            }
-        },
-        "abort": {
-            "already_configured": "Gerät ist bereits konfiguriert!"
+  "title": "Adaptive Beleuchtung",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Benenne die Adaptive Beleuchtung Instanz",
+        "description": "Jede Instanz kann mehrere Licht Entitäten beinhalten",
+        "data": {
+          "name": "Name"
         }
+      }
     },
-    "options": {
-        "step": {
-            "init": {
-                "title": "Adaptive Lighting Optionen",
-                "description": "Alle Einstellungen für eine Adaptive Lighting Komponente. Die Optionsnamen entsprechen den YAML-Einstellungen. Es werden keine Optionen angezeigt, wenn dieser Eintrag in YAML konfiguriert wurde.",
-                "data": {
-                    "lights": "Lichter",
-                    "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt",
-                    "sleep_transition": "sleep_transition: Wenn 'sleep_state' sich ändert. (Sekunden)",
-                    "interval": "interval, Zeit zwischen Updates des Switches",
-                    "max_brightness": "max_brightness, maximale Helligkeit in %",
-                    "max_color_temp": "max_color_temp, maximale Farbtemperatur in Kelvin",
-                    "min_brightness": "min_brightness, minimale Helligkeit in %",
-                    "min_color_temp": "min_color_temp, minimale Farbtemperatur in Kelvin",
-                    "only_once": "only_once, passe die Lichter nur beim Einschalten an",
-                    "prefer_rgb_color": "prefer_rgb_color, nutze 'rgb_color' vor 'color_temp', wenn möglich",
-                    "separate_turn_on_commands": "separate_turn_on_commands, für jedes Attribut (Farbe, Helligkeit usw.) in 'light.turn_on' werden separate Befehle gesendet. Wird für manche Leuchtmittel benötigt.",
-                    "send_split_delay": "send_split_delay: Wartezeit zwischen dem Senden der Befehle (Millisekunden), wenn separate_turn_on_commands genutzt wird. Kann helfen, wenn die Leuchtmittel die separaten Befehle nicht korrekt umsetzen.",
-                    "sleep_brightness": "sleep_brightness, Schlafhelligkeit in %",
-                    "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, nutze 'rgb_color' oder 'color_temp'",
-                    "sleep_rgb_color": "sleep_rgb_color, in RGB",
-                    "sleep_color_temp": "sleep_color_temp, Schlaffarbtemperatur in Kelvin",
-                    "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- Sekunden",
-                    "sunrise_time": "sunrise_time, Sonnenaufgangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenaufgangs an deiner Position verwendet)",
-                    "max_sunrise_time": "max_sunrise_time: Manuelles Überschreiben der max. sunrise_time. Falls 'None', wird die tatsächliche sunrise_time an deiner Position verwendet (HH:MM:SS)",
-                    "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- Sekunden",
-                    "sunset_time": "sunset_time, Sonnenuntergangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenuntergangs an deiner Position verwendet)",
-                    "min_sunset_time": "min_sunset_time: Manuelles Überschreiben der min. sunset_time. Falls 'None', wird die tatsächliche sunset_time an deiner Position verwendet (HH:MM:SS)",
-                    "take_over_control": "take_over_control, wenn irgendetwas während ein Licht an ist außer Adaptive Lighting den Service 'light.turn_on' aufruft, stoppe die Anpassung des Lichtes (oder des Schalters) bis dieser wieder von off -> on geschaltet wird.",
-                    "detect_non_ha_changes": "detect_non_ha_changes, entdeckt alle Änderungen über 10% am Licht (auch außerhalb von HA gemacht), 'take_over_control' muss aktiviert sein (ruft 'homeassistant.update_entity' jede 'interval' auf!)",
-                    "transition": "transition, Wechselzeit in Sekunden",
-                    "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden.",
-                    "skip_redundant_commands": "Keine Adaptierungsbefehle senden, deren erwünschter Status schon dem bekanntes Status von Lichtern entspricht. Minimiert die Netzwerkbelastung und verbessert die Adaptierung in manchen Situationen. Deaktiviert lassen falls der pysikalische Status der Lichter und der erkannte Status in HA nicht synchron bleiben."
-                }
-            }
-        },
-        "error": {
-            "option_error": "Fehlerhafte Option",
-            "entity_missing": "Ein ausgewähltes Licht wurde nicht gefunden"
-        }
-    },
-    "services": {
-        "apply": {
-            "fields": {
-                "lights": {
-                    "description": "Ein Licht (oder eine Lichtliste), um die Einstellungen anzuwenden. RECHT"
-                }
-            }
-        }
+    "abort": {
+      "already_configured": "Dieses Gerät ist bereits konfiguriert."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen für Adaptive Beleuchtung",
+        "description": "Alle Einstellungen für eine Adaptive Lighting Komponente. Die Optionsnamen entsprechen den YAML-Einstellungen. Es werden keine Optionen angezeigt, wenn dieser Eintrag in YAML konfiguriert wurde. Interaktive Diagramme zur Veranschaulichung der Auswirkungen der Parameter finden Sie unter [dieser Webanwendung](https://basnijholt.github.io/adaptive-lighting). Weitere Details finden Sie in der [offiziellen Dokumentation](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "data": {
+          "lights": "Lichter",
+          "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt",
+          "sleep_transition": "sleep_transition: Wenn 'sleep_state' sich ändert. (Sekunden)",
+          "interval": "interval, Zeit zwischen Updates des Switches",
+          "max_brightness": "max_brightness: Maximale Helligkeit in Prozent. 💡",
+          "max_color_temp": "max_color_temp: Kälteste Farbtemperatur in Kelvin. ❄️",
+          "min_brightness": "min_brightness: Minimale Helligkeit in Prozent. 💡",
+          "min_color_temp": "min_color_temp: Wärmste Farbtemperatur in Kelvin. 🔥",
+          "only_once": "only_once: Lichter nur einmalig anpassen, wenn sie eingeschaltet werden (`true`) oder sie immer wieder anpassen (`false`). 🔄",
+          "prefer_rgb_color": "prefer_rgb_color: Ob die RGB-Farbanpassung der Farbtemperaturanpassung vorgezogen werden soll, wenn möglich. 🌈",
+          "separate_turn_on_commands": "separate_turn_on_commands: Verwende getrennte `light.turn_on`-Aufrufe für Farbe und Helligkeit, erforderlich für einige Lichttypen. 🔀",
+          "send_split_delay": "send_split_delay: Wartezeit zwischen dem Senden der Befehle (Millisekunden), wenn separate_turn_on_commands genutzt wird. Kann helfen, wenn die Leuchtmittel die separaten Befehle nicht korrekt umsetzen.",
+          "sleep_brightness": "sleep_brightness, Schlafhelligkeit in %",
+          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, nutze 'rgb_color' oder 'color_temp'",
+          "sleep_rgb_color": "sleep_rgb_color, in RGB",
+          "sleep_color_temp": "sleep_color_temp, Schlaffarbtemperatur in Kelvin",
+          "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- Sekunden",
+          "sunrise_time": "sunrise_time, Sonnenaufgangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenaufgangs an deiner Position verwendet)",
+          "max_sunrise_time": "max_sunrise_time: Manuelles Überschreiben der max. sunrise_time. Falls 'None', wird die tatsächliche sunrise_time an deiner Position verwendet (HH:MM:SS)",
+          "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- Sekunden",
+          "sunset_time": "sunset_time, Sonnenuntergangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenuntergangs an deiner Position verwendet)",
+          "min_sunset_time": "min_sunset_time: Manuelles Überschreiben der min. sunset_time. Falls 'None', wird die tatsächliche sunset_time an deiner Position verwendet (HH:MM:SS)",
+          "take_over_control": "take_over_control: Deaktiviere die adaptive Beleuchtung, wenn eine andere Quelle `light.turn_on` aufruft, während die Beleuchtung eingeschaltet ist und angepasst wird. Beachte, dass dies `homeassistant.update_entity` jedes `Intervall` aufruft! 🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: Erkennt und stoppt Anpassungen für nicht-`light.turn_on`-Zustandsänderungen. Benötigt, dass `take_over_control` aktiviert ist. 🕵️ Vorsicht: ⚠️ Einige Lichter können fälschlicherweise einen 'an'-Zustand anzeigen, was dazu führen kann, dass Lichter unerwartet eingeschaltet werden. Deaktiviere diese Funktion, wenn solche Probleme auftreten.",
+          "transition": "transition, Wechselzeit in Sekunden",
+          "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden.",
+          "skip_redundant_commands": "skip_redundant_commands: Überspringt das Senden von Anpassungsbefehlen, deren Zielzustand bereits mit dem bekannten Zustand der Leuchte übereinstimmt. Minimiert den Netzwerkverkehr und verbessert die Anpassungsreaktion in einigen Situationen. 📉 Deaktivieren, falls der physikalische Zustand der Lichter nicht mehr mit dem Zustand in HA übereinstimmt.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Beim ersten Einschalten des Lichts. Wenn auf `true` gesetzt, passt AL das Licht nur an, wenn `light.turn_on` ohne eine Angabe von Farbe oder Helligkeit aufgerufen wird. ❌🌈 Dies verhindert z.B. die Anpassung durch AL beim Aktivieren einer Szene. Wenn auf \"false\" gesetzt, passt AL das licht unabhängig von der Angabe von Farbe oder Helligkeit in den ursprünglichen `service_data` an. Benötigt das `take_over_control` aktiviert ist. 🕵️ ",
+          "include_config_in_attributes": "include_config_in_attributes: Alle Optionen als Attribute auf dem Schalter im Home Assistant anzeigen, wenn auf `true` gesetzt. 📝",
+          "multi_light_intercept": "multi_light_intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, die auf mehrere Lichter aufrufen. ➗⚠️ Dies kann dazu führen, dass ein einzelner `light.turn_on`-Aufruf in mehrere Aufrufe aufgeteilt wird, z.B. wenn Lichter in verschiedenen Schaltern sind. Erfordert, dass `intercept` aktiviert ist.",
+          "transition_until_sleep": "transition_until_sleep: Wenn diese Option aktiviert ist, behandelt die adaptive Beleuchtung die Schlafeinstellungen als Minimum und geht nach Sonnenuntergang zu diesen Werten über. 🌙",
+          "intercept": "intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, um eine sofortige Anpassung von Farbe und Helligkeit zu ermöglichen. 🏎️ Deaktivieren für Leuchten, die `light.turn_on` mit Farbe und Helligkeit nicht unterstützen."
+        },
+        "data_description": {
+          "sunrise_offset": "Anpassung der Sonnenaufgangszeit mit positivem oder negativem Versatz in Sekunden. ⏰",
+          "sunset_offset": "Anpassung der Sonnenuntergangszeit mit positivem oder negativem Versatz in Sekunden. ⏰",
+          "brightness_mode": "Helligkeitsmodus, der verwendet werden soll. Mögliche Werte sind `default`, `linear` und `tanh` (verwendet `brightness_mode_time_dark` und `brightness_mode_time_light`). 📈",
+          "send_split_delay": "Verzögerung (ms) zwischen `separate_turn_on_commands` für Leuchten, die keine gleichzeitige Einstellung von Helligkeit und Farbe unterstützen. ⏲️",
+          "transition": "Dauer des Übergangs beim Lichtwechsel in Sekunden. 🕑",
+          "sleep_rgb_color": "RGB-Farbe im Schlafmodus (wird verwendet, wenn `sleep_rgb_or_color_temp` `rgb_color` ist). 🌈",
+          "sunset_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenuntergang ein. 🌇",
+          "max_sunrise_time": "Lege die späteste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen früheren Sonnenaufgang zu ermöglichen. 🌅",
+          "min_sunset_time": "Lege die früheste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um spätere Sonnenuntergänge zu ermöglichen. 🌇",
+          "max_sunset_time": "Lege die späteste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um frühere Sonnenuntergänge zu ermöglichen. 🌇",
+          "adapt_delay": "Wartezeit (Sekunden) zwischen dem Einschalten des Lichts und der Anwendung der adaptiven Beleuchtung. Könnte helfen, Flackern zu vermeiden. ⏲️",
+          "min_sunrise_time": "Lege die früheste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen späteren Sonnenaufgang zu ermöglichen. 🌅",
+          "interval": "Häufigkeit der Lichtanpassung in Sekunden. 🔄",
+          "brightness_mode_time_light": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit nach/vor Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉.",
+          "brightness_mode_time_dark": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit vor/nach Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉.",
+          "autoreset_control_seconds": "Setzt die manuelle Steuerung nach einer bestimmten Anzahl von Sekunden automatisch zurück. Zum Deaktivieren auf 0 setzen. ⏲️",
+          "sleep_brightness": "Helligkeit der Lichter im Schlafmodus in Prozent. 😴",
+          "sleep_color_temp": "Farbtemperatur im Schlafmodus in Kelvin (wird verwendet, wenn `sleep_rgb_or_color_temp` `color_temp` ist) . 😴",
+          "initial_transition": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️",
+          "sleep_rgb_or_color_temp": "Verwende entweder `rgb_color` oder `color_temp` im Schlafmodus. 🌙",
+          "sleep_transition": "Dauer des Übergangs, wenn der \"Schlafmodus\" umgeschaltet wird, in Sekunden. 😴",
+          "sunrise_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenaufgang ein. 🌅"
+        }
+      }
+    },
+    "error": {
+      "option_error": "Ungültige Option",
+      "entity_missing": "Ein oder mehrere ausgewählte Lichter fehlen in Home Assistant"
+    }
+  },
+  "services": {
+    "apply": {
+      "fields": {
+        "lights": {
+          "description": "Eine Leuchte (oder eine Liste von Leuchten), auf die die Einstellungen angewendet werden sollen. 💡"
+        },
+        "entity_id": {
+          "description": "Die `entity_id` des Schalters mit den zu übernehmenden Einstellungen. 📝"
+        },
+        "prefer_rgb_color": {
+          "description": "Ob die RGB-Farbanpassung der Farbtemperaturanpassung vorgezogen werden soll, wenn möglich. 🌈"
+        },
+        "transition": {
+          "description": "Dauer des Übergangs beim Lichtwechsel in Sekunden. 🕑"
+        },
+        "adapt_brightness": {
+          "description": "Ob die Helligkeit des Lichts angepasst werden soll. 🌞"
+        },
+        "adapt_color": {
+          "description": "Ob die Farbtemperatur des Lichts angepasst werden soll. 🌈"
+        },
+        "turn_on_lights": {
+          "description": "Ob Lichter eingeschaltet werden sollen, die derzeit ausgeschaltet sind. 🔆"
+        }
+      },
+      "description": "Wendet die aktuellen Einstellungen der adaptiven Beleuchtung auf die Lichter an."
+    },
+    "change_switch_settings": {
+      "fields": {
+        "only_once": {
+          "description": "Lichter nur einmalig anpassen, wenn sie eingeschaltet werden (`true`) oder sie immer wieder anpassen (`false`). 🔄"
+        },
+        "detect_non_ha_changes": {
+          "description": "Erkennt und stoppt Anpassungen für nicht-`light.turn_on`-Zustandsänderungen. Benötigt, dass `take_over_control` aktiviert ist. 🕵️ Vorsicht: ⚠️ Einige Lichter können fälschlicherweise einen 'an'-Zustand anzeigen, was dazu führen kann, dass Lichter unerwartet eingeschaltet werden. Deaktiviere diese Funktion, wenn solche Probleme auftreten."
+        },
+        "min_brightness": {
+          "description": "Minimale Helligkeit in Prozent. 💡"
+        },
+        "sunset_time": {
+          "description": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenuntergang ein. 🌇"
+        },
+        "use_defaults": {
+          "description": "Setzt die nicht in diesem Service-Aufruf angegebenen Standardwerte. Optionen: `current` (Standard, behält die aktuellen Werte bei), `factory` (setzt auf die in der Dokumentation angegebenen Standardwerte zurück) oder `configuration` (setzt auf die Standardwerte der Switch-Konfiguration zurück). ⚙️"
+        },
+        "max_sunrise_time": {
+          "description": "Lege die späteste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen früheren Sonnenaufgang zu ermöglichen. 🌅"
+        },
+        "include_config_in_attributes": {
+          "description": "Zeige alle Optionen als Attribute auf dem Schalter im Home Assistant, wenn auf `true` gesetzt. 📝"
+        },
+        "min_sunset_time": {
+          "description": "Lege die früheste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um spätere Sonnenuntergänge zu ermöglichen. 🌇"
+        },
+        "sunrise_offset": {
+          "description": "Anpassung der Sonnenaufgangszeit mit positivem oder negativem Versatz in Sekunden. ⏰"
+        },
+        "sunset_offset": {
+          "description": "Anpassung der Sonnenuntergangszeit mit positivem oder negativem Versatz in Sekunden. ⏰"
+        },
+        "take_over_control": {
+          "description": "Deaktiviere die adaptive Beleuchtung, wenn eine andere Quelle `light.turn_on` aufruft, während die Beleuchtung eingeschaltet ist und angepasst wird. Beachte, dass dies `homeassistant.update_entity` jedes `Intervall` aufruft! 🔒"
+        },
+        "max_brightness": {
+          "description": "Maximale Helligkeit in Prozent. 💡"
+        },
+        "separate_turn_on_commands": {
+          "description": "Verwende getrennte `light.turn_on`-Aufrufe für Farbe und Helligkeit, erforderlich für einige Lichttypen. 🔀"
+        },
+        "sleep_brightness": {
+          "description": "Helligkeit der Lichter im Schlafmodus in Prozent. 😴"
+        },
+        "sleep_rgb_color": {
+          "description": "RGB-Farbe im Schlafmodus (wird verwendet, wenn `sleep_rgb_or_color_temp` `rgb_color` ist). 🌈"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Verwende entweder `rgb_color` oder `color_temp` im Schlafmodus. 🌙"
+        },
+        "sleep_color_temp": {
+          "description": "Farbtemperatur im Schlafmodus in Kelvin (wird verwendet, wenn `sleep_rgb_or_color_temp` `color_temp` ist) . 😴"
+        },
+        "sunrise_time": {
+          "description": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenaufgang ein. 🌅"
+        },
+        "transition": {
+          "description": "Dauer des Übergangs beim Lichtwechsel in Sekunden. 🕑"
+        },
+        "adapt_delay": {
+          "description": "Wartezeit (Sekunden) zwischen dem Einschalten des Lichts und der Anwendung der adaptiven Beleuchtung. Könnte helfen, Flackern zu vermeiden. ⏲️"
+        },
+        "autoreset_control_seconds": {
+          "description": "Setzt die manuelle Steuerung nach einer bestimmten Anzahl von Sekunden automatisch zurück. Zum Deaktivieren auf 0 setzen. ⏲️"
+        },
+        "entity_id": {
+          "description": "Entity ID des Schalters. 📝"
+        },
+        "turn_on_lights": {
+          "description": "Ob Lichter eingeschaltet werden sollen, die derzeit ausgeschaltet sind. 🔆"
+        },
+        "initial_transition": {
+          "description": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️"
+        },
+        "sleep_transition": {
+          "description": "Dauer des Übergangs, wenn der \"Schlafmodus\" umgeschaltet wird, in Sekunden. 😴"
+        },
+        "max_color_temp": {
+          "description": "Kälteste Farbtemperatur in Kelvin. ❄️"
+        },
+        "min_color_temp": {
+          "description": "Wärmste Farbtemperatur in Kelvin. 🔥"
+        },
+        "send_split_delay": {
+          "description": "Verzögerung (ms) zwischen `separate_turn_on_commands` für Leuchten, die keine gleichzeitige Einstellung von Helligkeit und Farbe unterstützen. ⏲️"
+        },
+        "prefer_rgb_color": {
+          "description": "Ob die RGB-Farbanpassung der Farbtemperaturanpassung vorgezogen werden soll, wenn möglich. 🌈"
+        }
+      },
+      "description": "Ändern Sie alle Einstellungen, die Sie im Schalter wünschen. Alle Optionen hier sind die gleichen wie im config Flow."
+    },
+    "set_manual_control": {
+      "fields": {
+        "manual_control": {
+          "description": "Ob das Licht aus der Liste `manual_control` hinzugefügt (`true`) oder entfernt (`false`) werden soll. 🔒"
+        },
+        "lights": {
+          "description": "entity_id(s) der Lichter, wenn nichts angegeben wird, werden alle Lichter des Schalters ausgewählt. 💡"
+        },
+        "entity_id": {
+          "description": "Die `entity_id` des Schalters, in dem das Licht als `manuell gesteuert` (un)markiert werden soll. 📝"
+        }
+      },
+      "description": "Markiere, ob ein Licht \"manuell gesteuert\" ist."
+    }
+  }
 }

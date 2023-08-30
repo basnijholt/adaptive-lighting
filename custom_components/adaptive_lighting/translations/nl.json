@@ -58,7 +58,8 @@
           "sunset_offset": "Pas de tijd van zonsondergang aan met een positieve of negatieve verschuiving in seconden. ⏰",
           "interval": "Frequentie om de lampen aan te passen, in seconden. 🔄",
           "sleep_transition": "Duur van de overgang in seconden, als slaapstand wordt geactiveerd. 😴",
-          "autoreset_control_seconds": "Herstel de handmatige bediening automatisch na een aantal seconden. Stel in op 0 om uit te schakelen."
+          "autoreset_control_seconds": "Herstel de handmatige bediening automatisch na een aantal seconden. Stel in op 0 om uit te schakelen.",
+          "sleep_brightness": "Helderheidspercentage van lampen in slaapstand. 😴"
         }
       }
     },
