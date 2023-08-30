@@ -41,10 +41,12 @@
           "detect_non_ha_changes": "detect_non_ha_changes: rileva tutti i cambiamenti >10% applicati alle luci (anche fuori da HA), richiede che 'take_over_control' sia abilitato (chiama 'homeassistant.update_entity' ad ogni 'intervallo'!)",
           "transition": "Tempo di transizione quando viene applicata una modifica alle luci (secondi)",
           "adapt_delay": "Tempo di attesa tra l'accensione della luce, e Illuminazione Adattiva che applica le modifiche allo stato della luce. Potrebbe evitare sfarfallii.",
-          "transition_until_sleep": "transition_until_sleep: Quando abilitato, Adaptive Lighting tratterà le impostazioni di sleep come valori minimi, facendo la transizione a questi valori dopo il tramonto. 🌙"
+          "transition_until_sleep": "transition_until_sleep: Quando abilitato, Adaptive Lighting tratterà le impostazioni di sleep come valori minimi, facendo la transizione a questi valori dopo il tramonto. 🌙",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Quando accendi le luci la prima volta. Se impostato su `true`, AL adatta solo se `light.turn_on è invocato senza specificare il colore o la luminosità. ❌🌈 Questo, per esempio, previene l'adattamento quando si attiva una scena. Se `false`, AL adatta indipendentemente dalla presenza di colore o luminosità nei `service_data` iniziali. Necessita che `take_over_control` sia abilitato. 🕵️ "
         },
         "data_description": {
-          "sunrise_offset": "Regola il momento dell'alba con un offset positivo o negativo. ⏰"
+          "sunrise_offset": "Regola il momento dell'alba con un offset positivo o negativo. ⏰",
+          "sunset_offset": "Modifica l'orario del tramonto con un offset in secondi positivo o negativo. ⏰"
         }
       }
     },
@@ -58,6 +60,9 @@
       "fields": {
         "only_once": {
           "description": "Adatta le luci solo nel momento in cui vengono accese ('true') o continua ad adattarle ('false'). 🔄"
+        },
+        "sunrise_offset": {
+          "description": "Modifica l'orario dell'alba con un offset in secondi positivo o negativo."
         }
       }
     }
