@@ -530,6 +530,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "lightrabbit",
+      "name": "lightrabbit",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1521765?v=4",
+      "profile": "https://github.com/lightrabbit",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
