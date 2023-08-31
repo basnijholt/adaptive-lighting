@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-56-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-57-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -533,6 +533,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/MirCore"><img src="https://avatars.githubusercontent.com/u/9919366?v=4?s=100" width="100px;" alt="MirCore"/><br /><sub><b>MirCore</b></sub></a><br /><a href="#translation-MirCore" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://kilfer.es/"><img src="https://avatars.githubusercontent.com/u/290854?v=4?s=100" width="100px;" alt="Fernando Belaza"/><br /><sub><b>Fernando Belaza</b></sub></a><br /><a href="#translation-KilFer" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/wilcomir"><img src="https://avatars.githubusercontent.com/u/795981?v=4?s=100" width="100px;" alt="Vladimir Cravero"/><br /><sub><b>Vladimir Cravero</b></sub></a><br /><a href="#translation-wilcomir" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="http://www.latavernedutroll.fr"><img src="https://avatars.githubusercontent.com/u/255774?v=4?s=100" width="100px;" alt="Julien Quiévreux"/><br /><sub><b>Julien Quiévreux</b></sub></a><br /><a href="#translation-letroll" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
