@@ -512,6 +512,24 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "wilcomir",
+      "name": "Vladimir Cravero",
+      "avatar_url": "https://avatars.githubusercontent.com/u/795981?v=4",
+      "profile": "https://github.com/wilcomir",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "letroll",
+      "name": "Julien Quiévreux",
+      "avatar_url": "https://avatars.githubusercontent.com/u/255774?v=4",
+      "profile": "http://www.latavernedutroll.fr",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,

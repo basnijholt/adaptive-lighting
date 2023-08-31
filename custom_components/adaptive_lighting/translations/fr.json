@@ -50,7 +50,10 @@
           "brightness_mode": "Mode de luminosité à utiliser. Les valeurs possibles sont < < par défaut > > , < < linéaire > > et < < parois > > , < < par défaut > > , et < < par coup > > , < < par défaut > > et par > par > . 📈",
           "send_split_delay": "Délai (ms) entre \"separate_turn_on_commands\" pour les lumières qui ne supportent pas la commande de luminosité et le réglage de couleur en même temps. ⏲",
           "sleep_color_temp": "Température de couleur en mode sommeil (utilisée lorsque `sleep_rgb_or_color_temp` est `color_temp`) en Kelvin. 😴",
-          "sunrise_offset": "Ajuster l'heure du lever de soleil avec un décalage positif ou négatif en secondes. ⏰"
+          "sunrise_offset": "Ajuster l'heure du lever de soleil avec un décalage positif ou négatif en secondes. ⏰",
+          "transition": "Durée de la transition des changements lumineux, en secondes. 🕑",
+          "initial_transition": "Durée de la première transition des lampes passant de `off` à `on` en secondes. ⏲️",
+          "sleep_transition": "Durée de la transition quand le \"mode sommeil\" est déclenché en secondes. 😴"
         }
       }
     },
@@ -88,6 +91,18 @@
         },
         "sleep_color_temp": {
           "description": "Température de couleur en mode sommeil (utilisé lorsque \"sleep_rgb_or_color_temp\" est défini sur \"color_temp\") en Kelvin. 😴"
+        },
+        "entity_id": {
+          "description": "ID de l'Entité de l'interrupteur. 📝"
+        },
+        "initial_transition": {
+          "description": "Durée de la première transition des lampes passant de `off` à `on` en secondes. ⏲️"
+        },
+        "transition": {
+          "description": "Durée de la transition des changements lumineux, en secondes. 🕑"
+        },
+        "sleep_transition": {
+          "description": "Durée de la transition quand le \"mode sommeil\" est déclenché en secondes. 😴"
         }
       },
       "description": "Changez les réglages que vous souhaitez dans le commutateur. Toutes les options ici sont les mêmes que dans le flux de configuration."
@@ -97,6 +112,9 @@
       "fields": {
         "lights": {
           "description": "Une lumière (ou une liste de lumières) pour appliquer les réglages. personnalisation"
+        },
+        "transition": {
+          "description": "Durée de la transition des changements lumineux, en secondes. 🕑"
         }
       }
     }
