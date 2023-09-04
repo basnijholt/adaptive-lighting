@@ -218,6 +218,8 @@ adaptive_lighting:
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.
 
+> ⚠️ **_Note: These settings will **not** be written to your config and will be reset on restart of Home Assistant! You can see the current settings in the `switch.adaptive_lighting_XXX` attributes if `include_config_in_attributes` is enabled._**
+
 | Service data attribute                                    | Required | Description                                                                                                                                                                                                                                                                                                  |
 | --------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `use_defaults`                                            | ❌        | (default: `current` for current settings) Choose from `factory`, `configuration`, or `current` to reset variables not being set with this service call. `current` leaves them as they are, `configuration` resets to initial startup values, `factory` resets to default values listed in the documentation. |
