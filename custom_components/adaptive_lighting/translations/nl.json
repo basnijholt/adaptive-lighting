@@ -59,7 +59,10 @@
           "interval": "Frequentie om de lampen aan te passen, in seconden. 🔄",
           "sleep_transition": "Duur van de overgang in seconden, als slaapstand wordt geactiveerd. 😴",
           "autoreset_control_seconds": "Herstel de handmatige bediening automatisch na een aantal seconden. Stel in op 0 om uit te schakelen.",
-          "sleep_brightness": "Helderheidspercentage van lampen in slaapstand. 😴"
+          "sleep_brightness": "Helderheidspercentage van lampen in slaapstand. 😴",
+          "sleep_color_temp": "Kleurtemperatuur in slaapmodus (gebruikt wanneer `sleep_rgb_or_color_temp` `color_temp` is) in Kelvin. 😴",
+          "brightness_mode": "Helderheidsmodus om te gebruiken. Mogelijke waarden zijn `default`, `linear` en `tanh` (gebruikt `brightness_mode_time_dark` en `brightness_mode_time_light`). 📈",
+          "send_split_delay": "Vertraging (ms) tussen `separate_turn_on_commands` voor lampen die geen gelijktijdige helderheids- en kleurinstelling ondersteunen. ⏲️"
         }
       }
     },
@@ -91,8 +94,18 @@
         },
         "autoreset_control_seconds": {
           "description": "Herstel de handmatige bediening na een aantal seconden. Stel in op 0 om uit te schakelen."
+        },
+        "sleep_brightness": {
+          "description": "Helderheidspercentage van lampen in slaapmodus. 😴"
+        },
+        "sleep_color_temp": {
+          "description": "Kleurtemperatuur in slaapmodus (gebruikt wanneer `sleep_rgb_or_color_temp` `color_temp` is) in Kelvin. 😴"
+        },
+        "max_color_temp": {
+          "description": "Koudste kleurtemperatuur in Kelvin. ❄️"
         }
-      }
+      },
+      "description": "Wijzig alle gewenste instellingen in de schakelaar. Alle opties hier zijn hetzelfde als in de configuratie."
     },
     "apply": {
       "fields": {
