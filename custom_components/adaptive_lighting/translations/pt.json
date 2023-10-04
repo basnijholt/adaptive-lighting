@@ -1,0 +1,42 @@
+{
+  "title": "Iluminação Adaptativa",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sunrise_offset": {
+          "description": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰"
+        },
+        "only_once": {
+          "description": "Adaptar as luzes apenas quando estão ligadas (`true`) ou continuar a adaptá-las (`false`)."
+        },
+        "sunset_offset": {
+          "description": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰"
+        }
+      }
+    },
+    "apply": {
+      "description": "Aplica as definições atuais da Iluminação Adaptativa às luzes.",
+      "fields": {
+        "lights": {
+          "description": "Uma luz (ou lista de luzes) para a qual serão aplicadas as definições.💡"
+        }
+      }
+    }
+  },
+  "config": {
+    "abort": {
+      "already_configured": "Este dispositivo já está configurado"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "sunrise_offset": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰",
+          "sunset_offset": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰"
+        },
+        "title": "Opções da Iluminação Adaptativa"
+      }
+    }
+  }
+}
