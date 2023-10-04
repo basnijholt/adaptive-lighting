@@ -45,7 +45,8 @@
           "take_over_control": "take_over_control: Je-li volán 'light.turn_on' z jiného zdroje, než Adaptivním osvětlením, když je světlo již rozsvíceno, přestaňte toto světlo ovládat, dokud není vypnuto -> zapnuto (nebo i vypínačem).",
           "detect_non_ha_changes": "detect_non_ha_changes: detekuje všechny změny >10%  provedených pro osvětlení (také mimo HA), vyžaduje povolení atributu 'take_over_control' (každý 'interval' spouští 'homeassistant.update_entity'!)",
           "transition": "transition: doba přechodu při změně osvětlení (sekundy)",
-          "adapt_delay": "adapt_delay: prodleva mezi zapnutím světla ( sekundy) a projevem změny v Adaptivní osvětlení. Může předcházet blikání."
+          "adapt_delay": "adapt_delay: prodleva mezi zapnutím světla ( sekundy) a projevem změny v Adaptivní osvětlení. Může předcházet blikání.",
+          "transition_until_sleep": "transition_until_sleep: Pokud je zapnuto, Adaptive Lighting bude zacházet s nastavením spánku jako s minimem, na tyto hodnoty přejde po západu slunce. 🌙"
         }
       }
     },
