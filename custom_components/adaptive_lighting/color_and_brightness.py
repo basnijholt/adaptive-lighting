@@ -186,10 +186,10 @@ class SunEvents:
     def closest_event(self, dt: datetime.datetime) -> tuple[str, float]:
         """Get the closest sunset or sunrise event."""
         (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
-        if prev_event == SUN_EVENT_SUNRISE or next_event == SUN_EVENT_SUNRISE:
+        if SUN_EVENT_SUNRISE in (prev_event, next_event):
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
             return SUN_EVENT_SUNRISE, ts_event
-        if prev_event == SUN_EVENT_SUNSET or next_event == SUN_EVENT_SUNSET:
+        if SUN_EVENT_SUNSET in (prev_event, next_event):
             ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
             return SUN_EVENT_SUNSET, ts_event
         msg = "No sunrise or sunset event found."
