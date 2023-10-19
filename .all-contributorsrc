@@ -584,6 +584,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "Z-weapon",
+      "name": "Z-weapon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13939632?v=4",
+      "profile": "https://github.com/Z-weapon",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
