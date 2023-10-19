@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-63-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-64-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -544,6 +544,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/fmarcu"><img src="https://avatars.githubusercontent.com/u/81946691?v=4?s=100" width="100px;" alt="fmarcu"/><br /><sub><b>fmarcu</b></sub></a><br /><a href="#translation-fmarcu" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/michaelkmoch"><img src="https://avatars.githubusercontent.com/u/107689026?v=4?s=100" width="100px;" alt="michaelkmoch"/><br /><sub><b>michaelkmoch</b></sub></a><br /><a href="#translation-michaelkmoch" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/fbloemhof"><img src="https://avatars.githubusercontent.com/u/8753211?v=4?s=100" width="100px;" alt="Fred"/><br /><sub><b>Fred</b></sub></a><br /><a href="#translation-fbloemhof" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Z-weapon"><img src="https://avatars.githubusercontent.com/u/13939632?v=4?s=100" width="100px;" alt="Z-weapon"/><br /><sub><b>Z-weapon</b></sub></a><br /><a href="#translation-Z-weapon" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
