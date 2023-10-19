@@ -62,7 +62,9 @@
           "sleep_brightness": "Helderheidspercentage van lampen in slaapstand. 😴",
           "sleep_color_temp": "Kleurtemperatuur in slaapmodus (gebruikt wanneer `sleep_rgb_or_color_temp` `color_temp` is) in Kelvin. 😴",
           "brightness_mode": "Helderheidsmodus om te gebruiken. Mogelijke waarden zijn `default`, `linear` en `tanh` (gebruikt `brightness_mode_time_dark` en `brightness_mode_time_light`). 📈",
-          "send_split_delay": "Vertraging (ms) tussen `separate_turn_on_commands` voor lampen die geen gelijktijdige helderheids- en kleurinstelling ondersteunen. ⏲️"
+          "send_split_delay": "Vertraging (ms) tussen `separate_turn_on_commands` voor lampen die geen gelijktijdige helderheids- en kleurinstelling ondersteunen. ⏲️",
+          "transition": "Duur van de overgang, in seconden. 🕑",
+          "initial_transition": "Duur van de eerste overgang wanneer de lampen van `uit` naar `aan`gaan, in seconden. ⏲️"
         }
       }
     },
@@ -103,6 +105,12 @@
         },
         "max_color_temp": {
           "description": "Koudste kleurtemperatuur in Kelvin. ❄️"
+        },
+        "initial_transition": {
+          "description": "Duur van de eerste overgang wanneer de lampen van `uit` naar `aan`gaan, in seconden. ⏲️"
+        },
+        "take_over_control": {
+          "description": "Schakel Adaptive Lighting uit wanneer een andere bron `light.turn_on` aanroept terwijl de lampen aan staan en worden aangepast. N.b. dit zal `homeassistant.update_entity` elke `interval` uitvoeren."
         }
       },
       "description": "Wijzig alle gewenste instellingen in de schakelaar. Alle opties hier zijn hetzelfde als in de configuratie."
