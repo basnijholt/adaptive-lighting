@@ -575,6 +575,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "fbloemhof",
+      "name": "Fred",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8753211?v=4",
+      "profile": "https://github.com/fbloemhof",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
