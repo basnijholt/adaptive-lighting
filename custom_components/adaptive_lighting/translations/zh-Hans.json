@@ -220,7 +220,7 @@
           "name": "sleep_color_temp"
         },
         "sunrise_offset": {
-          "description": "Adjust sunrise time with a positive or negative offset in seconds. ⏰",
+          "description": "以秒为单位的正负偏移调整日出时间。⏰",
           "name": "sunrise_offset"
         },
         "sunrise_time": {
