@@ -577,7 +577,7 @@ async def test_unconventional_sun_events(hass):
     #    },
     # )
 
-    lights = switch._lights
+    lights = switch.lights
 
     # Turn on "sleep mode"
     await hass.services.async_call(
@@ -732,7 +732,7 @@ async def test_unconventional_sun_events(hass):
     #    },
     # )
 
-    lights = switch._lights
+    lights = switch.lights
 
     # Turn on "sleep mode"
     await hass.services.async_call(
