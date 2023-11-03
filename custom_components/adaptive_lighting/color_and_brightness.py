@@ -123,24 +123,24 @@ class SunEvents:
 
         total = abs(sunset - sunrise)
         middle = total / 2
-        total = (
-            total.total_seconds() / 60 / 60 * (2 / 3)
-        )  # about 12 hours normally.
+        total = total.total_seconds() / 60 / 60 * (2 / 3)  # about 12 hours normally.
         _LOGGER.debug(
-            "Calculate noon/midnight. Total diff: %s, middle: %s", total, middle
+            "Calculate noon/midnight. Total diff: %s, middle: %s",
+            total,
+            middle,
         )
         if sunset > sunrise:
             noon = sunrise + middle
-            midnight = noon + timedelta(hours=total) * (
-                1 if noon.hour < total else -1
-            )
+            midnight = noon + timedelta(hours=total) * (1 if noon.hour < total else -1)
         else:
             midnight = sunset + middle
             noon = midnight + timedelta(hours=total) * (
                 1 if midnight.hour < total else -1
             )
         _LOGGER.debug(
-            "Calculate noon/midnight. Noon: %s Midnight: %s", noon, midnight
+            "Calculate noon/midnight. Noon: %s Midnight: %s",
+            noon,
+            midnight,
         )
         return noon, midnight
 
