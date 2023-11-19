@@ -713,7 +713,7 @@ def _attributes_have_changed(
     # 2023-11-19: HA core no longer removes light domain attributes when off
     # so we must protect for `None` here
     # see https://github.com/home-assistant/core/pull/101946
-    
+
     if adapt_color:
         old_attributes, new_attributes = _add_missing_attributes(
             old_attributes,
