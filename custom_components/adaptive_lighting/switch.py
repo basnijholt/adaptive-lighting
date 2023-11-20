@@ -710,6 +710,10 @@ def _attributes_have_changed(
     adapt_color: bool,
     context: Context,
 ) -> bool:
+    # 2023-11-19: HA core no longer removes light domain attributes when off
+    # so we must protect for `None` here
+    # see https://github.com/home-assistant/core/pull/101946
+
     if adapt_color:
         old_attributes, new_attributes = _add_missing_attributes(
             old_attributes,
@@ -718,8 +722,8 @@ def _attributes_have_changed(
 
     if (
         adapt_brightness
-        and ATTR_BRIGHTNESS in old_attributes
-        and ATTR_BRIGHTNESS in new_attributes
+        and old_attributes.get(ATTR_BRIGHTNESS)
+        and new_attributes.get(ATTR_BRIGHTNESS)
     ):
         last_brightness = old_attributes[ATTR_BRIGHTNESS]
         current_brightness = new_attributes[ATTR_BRIGHTNESS]
@@ -736,8 +740,8 @@ def _attributes_have_changed(
 
     if (
         adapt_color
-        and ATTR_COLOR_TEMP_KELVIN in old_attributes
-        and ATTR_COLOR_TEMP_KELVIN in new_attributes
+        and old_attributes.get(ATTR_COLOR_TEMP_KELVIN)
+        and new_attributes.get(ATTR_COLOR_TEMP_KELVIN)
     ):
         last_color_temp = old_attributes[ATTR_COLOR_TEMP_KELVIN]
         current_color_temp = new_attributes[ATTR_COLOR_TEMP_KELVIN]
@@ -754,8 +758,8 @@ def _attributes_have_changed(
 
     if (
         adapt_color
-        and ATTR_RGB_COLOR in old_attributes
-        and ATTR_RGB_COLOR in new_attributes
+        and old_attributes.get(ATTR_RGB_COLOR)
+        and new_attributes.get(ATTR_RGB_COLOR)
     ):
         last_rgb_color = old_attributes[ATTR_RGB_COLOR]
         current_rgb_color = new_attributes[ATTR_RGB_COLOR]
