@@ -8,11 +8,11 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.1
+    rev: v0.1.6
     hooks:
       - id: ruff
         args: ["--fix"]
   - repo: https://github.com/psf/black
-    rev: 23.10.0
+    rev: 23.11.0
     hooks:
       - id: black
