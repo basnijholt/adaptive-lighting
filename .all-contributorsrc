@@ -611,6 +611,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "theclue",
+      "name": "Gabriele Baldassarre",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1724406?v=4",
+      "profile": "https://gabrielebaldassarre.com",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
