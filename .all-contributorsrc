@@ -620,6 +620,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "pbaart",
+      "name": "Pepijn Baart",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2856849?v=4",
+      "profile": "https://github.com/pbaart",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
