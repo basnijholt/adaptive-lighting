@@ -602,6 +602,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "olekbruks",
+      "name": "Olek Bruks",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8738016?v=4",
+      "profile": "https://github.com/olekbruks",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
