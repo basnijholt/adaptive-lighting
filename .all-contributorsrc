@@ -648,6 +648,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "quenthal",
+      "name": "quenthal",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17827203?v=4",
+      "profile": "https://github.com/quenthal",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
