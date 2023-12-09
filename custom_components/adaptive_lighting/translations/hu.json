@@ -1,0 +1,41 @@
+{
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "sleep_color_temp": "Színhőmérséklet alvó üzemmódban (amikor a `sleep_rgb_or_color_temp` értéke `color_temp`) Kelvinben megadva. 😴"
+        },
+        "data": {
+          "max_brightness": "max_brightness: Maximális fényerő százalékban megadva. 💡"
+        },
+        "title": "Adaptív világítás beállításai"
+      }
+    }
+  },
+  "title": "Adaptív világítás",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "entity_id": {
+          "description": "A kapcsoló entitásazonosítója. 📝"
+        },
+        "max_brightness": {
+          "description": "Maximális fényerő százalékban megadva. 💡"
+        },
+        "max_color_temp": {
+          "description": "Leghidegebb színhőmérséklet Kelvinben megadva. ❄️"
+        }
+      }
+    },
+    "set_manual_control": {
+      "description": "Jelölje meg, hogy egy lámpa „kézi vezérlésű”-e."
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Válasszon nevet az Adaptív világítás példánynak"
+      }
+    }
+  }
+}
