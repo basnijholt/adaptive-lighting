@@ -639,6 +639,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "mstefany",
+      "name": "Martin Štefany",
+      "avatar_url": "https://avatars.githubusercontent.com/u/57348587?v=4",
+      "profile": "https://stefany.eu",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
