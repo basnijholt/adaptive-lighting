@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-69-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-70-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -552,6 +552,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://gabrielebaldassarre.com"><img src="https://avatars.githubusercontent.com/u/1724406?v=4?s=100" width="100px;" alt="Gabriele Baldassarre"/><br /><sub><b>Gabriele Baldassarre</b></sub></a><br /><a href="#translation-theclue" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/pbaart"><img src="https://avatars.githubusercontent.com/u/2856849?v=4?s=100" width="100px;" alt="Pepijn Baart"/><br /><sub><b>Pepijn Baart</b></sub></a><br /><a href="#translation-pbaart" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://ovoi.io"><img src="https://avatars.githubusercontent.com/u/3490616?v=4?s=100" width="100px;" alt="Artem Pastukhov"/><br /><sub><b>Artem Pastukhov</b></sub></a><br /><a href="#translation-pastukhov" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://stefany.eu"><img src="https://avatars.githubusercontent.com/u/57348587?v=4?s=100" width="100px;" alt="Martin Štefany"/><br /><sub><b>Martin Štefany</b></sub></a><br /><a href="#translation-mstefany" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
