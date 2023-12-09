@@ -630,6 +630,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "pastukhov",
+      "name": "Artem Pastukhov",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3490616?v=4",
+      "profile": "http://ovoi.io",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
