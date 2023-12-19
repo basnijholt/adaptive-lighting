@@ -684,6 +684,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "baylanger",
+      "name": "Pierre Belanger",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5240348?v=4",
+      "profile": "https://github.com/baylanger",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
