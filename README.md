@@ -79,7 +79,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
 
 ## :gear: Configuration
 
-Adaptive Lighting supports configuration through both YAML and the frontend (**Configuration** -> **Integrations** -> **Adaptive Lighting**, **Adaptive Lighting** -> **Options**), with identical option names in both methods.
+Adaptive Lighting supports configuration through both YAML and the frontend (**Settings** -> **Devices and Services** -> **Adaptive Lighting**, **Adaptive Lighting** -> **Options**), with identical option names in both methods.
 
 ```yaml
 # Example configuration.yaml entry
@@ -87,6 +87,7 @@ adaptive_lighting:
   lights:
     - light.living_room_lights
 ```
+Note: If you plan to strictly use the UI, the `adaptive_lighting:` entry must still be added to the YAML.
 
 Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the benefits of intelligent, sun-synchronized lighting today!
 
