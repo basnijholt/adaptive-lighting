@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-74-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-75-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -560,6 +560,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Luki72"><img src="https://avatars.githubusercontent.com/u/22493116?v=4?s=100" width="100px;" alt="Luki72"/><br /><sub><b>Luki72</b></sub></a><br /><a href="#translation-Luki72" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/pantan-cymk"><img src="https://avatars.githubusercontent.com/u/87476229?v=4?s=100" width="100px;" alt="pantan-cymk"/><br /><sub><b>pantan-cymk</b></sub></a><br /><a href="#translation-pantan-cymk" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/yousaf465"><img src="https://avatars.githubusercontent.com/u/83491212?v=4?s=100" width="100px;" alt="yousaf465"/><br /><sub><b>yousaf465</b></sub></a><br /><a href="#translation-yousaf465" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/baylanger"><img src="https://avatars.githubusercontent.com/u/5240348?v=4?s=100" width="100px;" alt="Pierre Belanger"/><br /><sub><b>Pierre Belanger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=baylanger" title="Documentation">📖</a></td>
     </tr>
   </tbody>
   <tfoot>
