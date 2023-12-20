@@ -2,3 +2,4 @@ shinylive
 astral==2.2
 shinyswatch
 shiny==0.6.0
+click==8.1.3
