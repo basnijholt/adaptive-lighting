@@ -39,7 +39,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r webapp/requirements.txt
+          pip install -r webapp/requirements-locked.txt
 
       - name: Build the WebAssembly app
         run: |
