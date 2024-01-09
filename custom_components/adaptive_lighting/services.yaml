@@ -208,13 +208,13 @@ change_switch_settings:
       selector:
         time: null
     max_sunrise_time:
-      description: Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier real sunrises. 🌅
+      description: Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier sunrises. 🌅
       example: ''
       required: false
       selector:
         time: null
     min_sunset_time:
-      description: Set the earliest virtual sunset time (HH:MM:SS), allowing for later real sunsets. 🌇
+      description: Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇
       example: ''
       required: false
       selector:
@@ -226,7 +226,7 @@ change_switch_settings:
       selector:
         boolean: null
     detect_non_ha_changes:
-      description: Detect non-`light.turn_on` state changes and stop adapting lights. Requires `take_over_control`. 🕵️
+      description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.'
       required: false
       example: false
       selector:

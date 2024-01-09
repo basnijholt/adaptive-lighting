@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Kies een naam voor de adaptieve verlichting integratie",
-        "description": "Kies een naam voor deze integratie. U kunt verschillende integratie van Adaptieve verlichting uitvoeren, elk van deze kan meerdere lichten bevatten!",
+        "description": "Elk exemplaar kan meerdere lichten bevatten!",
         "data": {
           "name": "Naam"
         }
@@ -18,16 +18,16 @@
     "step": {
       "init": {
         "title": "Adaptieve verlichting instellingen",
-        "description": "Alle instellingen voor een Adaptieve verlichting component. De optienamen komen overeen met de YAML-instellingen. Er worden geen opties weergegeven als u het item adaptive_lighting hebt gedefinieerd in uw YAML-configuratie.",
+        "description": "Alle instellingen voor een Adaptieve verlichting component. De optienamen komen overeen met de YAML-instellingen. Er worden geen opties weergegeven als u het item `adaptive_lighting` hebt gedefinieerd in uw YAML-configuratie.\nVoor een demonstratie met interactieve grafieken, parameters en effecten, bezoek [deze web applicatie](https://basnijholt.github.io/adaptive-lighting). Voor verdere details, bekijk de [officiële documentatie](https://github.com/basnijholt/adaptive-lighting#readme).",
         "data": {
-          "lights": "Lichten",
+          "lights": "Lampen: lijst van `light` entiteiten om te bedienen (kan leeg zijn). 🌟",
           "initial_transition": "initial_transition: Wanneer lichten van 'uit' naar 'aan' gaan. (seconden)",
           "sleep_transition": "sleep_transition: Wanneer 'sleep_state' verandert. (seconden)",
           "interval": "interval: Tijd tussen switch-updates. (seconden)",
           "max_brightness": "max_brightness: Hoogste helderheid van lichten tijdens een cyclus. (%)",
           "max_color_temp": "max_color_temp: Koudste tint van de kleurtemperatuurcyclus. (kelvin)",
           "min_brightness": "min_brightness: Laagste helderheid van lichten tijdens een cyclus. (%)",
-          "min_color_temp": "min_color_temp, Warmste tint van de kleurtemperatuurcyclus. (kelvin)",
+          "min_color_temp": "min_color_temp, Warmste tint van de kleurtemperatuurcyclus. (Kelvin)",
           "only_once": "only_once: pas de verlichting alleen aan wanneer u ze aanzet.",
           "prefer_rgb_color": "prefer_rgb_color: Gebruik waar mogelijk 'rgb_color' in plaats van 'color_temp'.",
           "separate_turn_on_commands": "separate_turn_on_commands: Scheid de commando's voor elk attribuut (kleur, helderheid, enz.) in 'light.turn_on' (vereist voor sommige lampen).",
@@ -42,16 +42,180 @@
           "sunset_offset": "sunset_offset: Hoe lang voor(-) of na(+) zonsondergang uitvoeren (+/- seconden)",
           "sunset_time": "sunset_time: handmatige onderdrukking van de zonsondergangstijd, indien 'Geen', wordt de werkelijke zonsopgangstijd op uw locatie gebruikt (UU:MM:SS)",
           "min_sunset_time": "min_sunset_time: handmatige onderdrukking van de minimale zonsondergangstijd, indien 'Geen', wordt de werkelijke zonsondergangstijd op uw locatie gebruikt (UU:MM:SS)",
-          "take_over_control": "take_over_control: Als iets anders dan Adaptive Lighting 'light.turn_on' roept wanneer een lamp al aan is, stop dan met het aanpassen van het licht totdat het (of de schakelaar) uit -> aan gaat.",
+          "take_over_control": "take_over_control: Als iets anders dan Adaptieve verlichting 'light.turn_on' roept wanneer een lamp al aan is, stop dan met het aanpassen van het licht totdat het (of de schakelaar) uit -> aan gaat.",
           "detect_non_ha_changes": "detect_non_ha_changes: detecteert alle >10% wijzigingen aan de lichten (ook buiten HA), vereist dat 'take_over_control' is ingeschakeld (heet 'homeassistant.update_entity' elke 'interval'!)",
           "transition": "Overgangstijd bij het aanbrengen van een wijziging op de lichten (seconden)",
-          "adapt_delay": "adapt_delay: wachttijd tussen het inschakelen van het licht (seconden) en het aanbrengen van wijzigingen in de lichtstatus door Adaptieve verlichting. Kan flikkering voorkomen."
+          "adapt_delay": "adapt_delay: wachttijd tussen het inschakelen van het licht (seconden) en het aanbrengen van wijzigingen in de lichtstatus door Adaptieve verlichting. Kan flikkering voorkomen.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Bij het initieel inschakelen van de lampen. Als dit op `true` is ingesteld, past Av alleen aan als `light.turn_on` wordt aangeroepen zonder een kleur of helderheid te specificeren. ❌🌈 Dit voorkomt bijvoorbeeld aanpassing bij het activeren van een scène. Als het `false` is, past Av aan ongeacht de aanwezigheid van kleur of helderheid in de initiële `service_data`. `take_over_control` moet ingeschakeld zijn. 🕵️ ",
+          "transition_until_sleep": "transition_until_sleep: Wanneer ingeschakeld, zal Adaptieve verlichting de slaapinstellingen behandelen als het minimum, overgaand naar deze waarden na zonsondergang. 🌙",
+          "skip_redundant_commands": "skip_redundant_commands: Sla het verzenden van aanpassingscommando's over waarvan de doelstatus al gelijk is aan de bekende status van de lamp. Minimaliseert netwerkverkeer en verbetert de responsiviteit van de aanpassing in sommige situaties. 📉Schakel uit als de fysieke lichtstatus niet meer synchroon loopt met de door HA geregistreerde status.",
+          "intercept": "intercept: Onderschep en pas `light.turn_on` oproepen aan om directe kleur- en helderheidsaanpassing mogelijk te maken. 🏎️ Schakel uit voor lampen die `light.turn_on` niet ondersteunen met kleur en helderheid.",
+          "include_config_in_attributes": "include_config_in_attributes: Toon alle opties als attributen op de schakelaar in Home Assistant wanneer ingesteld op `true`. 📝",
+          "multi_light_intercept": "multi_light_intercept: Onderschep en pas `light.turn_on` oproepen aan die gericht zijn op meerdere lampen. ➗⚠️ Dit kan resulteren in het opsplitsen van een enkele `light.turn_on` call in meerdere calls, bijvoorbeeld wanneer lampen zich in verschillende schakelaars bevinden. Vereist dat `intercept` is ingeschakeld."
+        },
+        "data_description": {
+          "sunrise_offset": "Pas de zonsopkomsttijd aan met een positieve of negatieve offset in seconden. ⏰",
+          "sunset_offset": "Pas de tijd van zonsondergang aan met een positieve of negatieve verschuiving in seconden. ⏰",
+          "interval": "Frequentie om de lampen aan te passen, in seconden. 🔄",
+          "sleep_transition": "Duur van de overgang in seconden, als slaapstand wordt geactiveerd. 😴",
+          "autoreset_control_seconds": "Herstel de handmatige bediening automatisch na een aantal seconden. Stel in op 0 om uit te schakelen.",
+          "sleep_brightness": "Helderheidspercentage van lampen in slaapstand. 😴",
+          "sleep_color_temp": "Kleurtemperatuur in slaapmodus (gebruikt wanneer `sleep_rgb_or_color_temp` gelijk is aan `color_temp`) in Kelvin. 😴",
+          "brightness_mode": "Helderheidsmodus om te gebruiken. Mogelijke waarden zijn `default`, `linear` en `tanh` (gebruikt `brightness_mode_time_dark` en `brightness_mode_time_light`). 📈",
+          "send_split_delay": "Vertraging (ms) tussen `separate_turn_on_commands` voor lampen die geen gelijktijdige helderheids- en kleurinstelling ondersteunen. ⏲️",
+          "transition": "Duur van de overgang, in seconden, als lampen aanpassen. 🕑",
+          "initial_transition": "Duur van de eerste overgang wanneer de lampen van `uit` naar `aan`gaan, in seconden. ⏲️",
+          "sleep_rgb_or_color_temp": "Gebruik één van beide `\"rgb_color\"` of `\"color_temp\"` in slaapstand. 🌙",
+          "min_sunset_time": "Stel de tijd (HH:MM:SS) in voor de meest vroege virtuele zonsondergang, maakt latere zonsondergangen mogelijk. 🌇",
+          "min_sunrise_time": "Stel de tijd (HH:MM:SS) in voor de meest vroege virtuele zonsopkomst, maakt latere zonsopkomsten mogelijk. 🌅",
+          "adapt_delay": "Wachttijd in (seconden) tussen het aanzetten van de lamp en het toepassen van Adaptieve verlichting veranderingen. Het kan helpen om knipperen tegen te gaan. ⏲️",
+          "sleep_rgb_color": "RGB kleur in slaapstand (wordt gebruikt wanneer `sleep_rgb_or_color_temp` gelijk is aan \"rgb_color\"). 🌈",
+          "brightness_mode_time_light": "(Negeer wanneer `brightness_mode='default'`) De duur in seconden van oplopende/aflopende helderheid na/voor zonsopkomst/zonsondergang. 📈📉.",
+          "sunset_time": "Stel een vaste tijd (HH:MM:SS) in voor zonsondergang. 🌇",
+          "max_sunset_time": "Stel de tijd (HH:MM:SS) in voor de laatste virtuele zonsondergang, maakt eerdere zonsondergangen mogelijk. 🌇",
+          "sunrise_time": "Stel een vaste tijd (HH:MM:SS) in voor zonsopkomst. 🌅",
+          "brightness_mode_time_dark": "(Negeer wanneer `brightness_mode='default'`) De duur in seconden van oplopende/aflopende helderheid na/voor zonsopkomst/zonsondergang. 📈📉.",
+          "max_sunrise_time": "Stel de tijd (HH:MM:SS) in voor de laatste virtuele zonsopkomst, maakt eerdere zonsopkomsten mogelijk. 🌅"
         }
       }
     },
     "error": {
       "option_error": "Ongeldige optie",
       "entity_missing": "Een of meer geselecteerde lichtentiteiten ontbreken in Home Assistant"
+    }
+  },
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "only_once": {
+          "description": "Pas lampen alleen aan wanneer ze zijn ingeschakeld (`true`) of blijf ze aanpassen (`false`). 🔄"
+        },
+        "sunrise_offset": {
+          "description": "Pas de tijd van zonsopkomst aan met een positieve of negatieve verschuiving in seconden. ⏰"
+        },
+        "sunset_offset": {
+          "description": "Pas de tijd van zonsondergang aan met een positieve of negatieve offset in seconden. ⏰"
+        },
+        "sleep_transition": {
+          "description": "Duur van de overgang in seconden, als slaapstand wordt geactiveerd. 😴"
+        },
+        "entity_id": {
+          "description": "entiteit_id van de schakelaar. 📝"
+        },
+        "transition": {
+          "description": "Duur van de overgang in seconden, als lampen aanpassen. 🕑"
+        },
+        "autoreset_control_seconds": {
+          "description": "Herstel de handmatige bediening na een aantal seconden. Stel in op 0 om uit te schakelen."
+        },
+        "sleep_brightness": {
+          "description": "Helderheidspercentage van lampen in slaapmodus. 😴"
+        },
+        "sleep_color_temp": {
+          "description": "Kleurtemperatuur in slaapmodus (gebruikt wanneer `sleep_rgb_or_color_temp` `color_temp` is) in Kelvin. 😴"
+        },
+        "max_color_temp": {
+          "description": "Koudste kleurtemperatuur in Kelvin. ❄️"
+        },
+        "initial_transition": {
+          "description": "Duur van de eerste overgang wanneer de lampen van `uit` naar `aan`gaan, in seconden. ⏲️"
+        },
+        "take_over_control": {
+          "description": "Schakel Adaptieve verlichting uit wanneer een andere bron `light.turn_on` aanroept terwijl de lampen aan staan en worden aangepast. N.b. dit zal `homeassistant.update_entity` elke `interval` uitvoeren."
+        },
+        "detect_non_ha_changes": {
+          "description": "Detecteert en stopt aanpassingen voor niet-`light.turn_on` state veranderingen. `take_over_control` moet actief zijn. 🕵️ Let op:⚠️Sommige lampen kunnen incorrect een 'on' state weergeven, wat resulteert in lampen die onverwacht aan gaan. Schakel deze feature uit wanneer deze fout zich voordoet."
+        },
+        "max_sunrise_time": {
+          "description": "Stel de tijd (HH:MM:SS) in voor de laatste virtuele zonsopkomst, maakt eerdere zonsopkomsten mogelijk. 🌅"
+        },
+        "min_brightness": {
+          "description": "Minimale helderheid in procenten. 💡"
+        },
+        "min_color_temp": {
+          "description": "Meest warme kleurtemperatuur ins Kelvin. 🔥"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Gebruik één van beide `\"rgb_color\"` of `\"color_temp\"` in slaapstand. 🌙"
+        },
+        "turn_on_lights": {
+          "description": "Of de lampen moeten worden aangezet die momenteel uit zijn.🔆"
+        },
+        "sunrise_time": {
+          "description": "Stel een vaste tijd (HH:MM:SS) in voor zonsopkomst. 🌅"
+        },
+        "include_config_in_attributes": {
+          "description": "Toon alle opties als attributen bij de schakelaar in Home Assistant wanneer ingesteld op `true`. 📝"
+        },
+        "max_brightness": {
+          "description": "Maximale helderheid in procenten. 💡"
+        },
+        "sleep_rgb_color": {
+          "description": "RGB kleur in slaapstand (wordt gebruikt wanneer `sleep_rgb_or_color_temp` gelijk is aan \"rgb_color\"). 🌈"
+        },
+        "adapt_delay": {
+          "description": "Wachttijd in (seconden) tussen het aanzetten van de lamp en het toepassen van Adaptieve verlichting veranderingen. Het kan helpen om knipperen tegen te gaan. ⏲️"
+        },
+        "use_defaults": {
+          "description": "Stelt niet gespecificeerde waarden in voor deze service call. Opties: \"current\" (standaard, behoudt huidige waarden), \"factory\" (herstelt de gedocumenteerde standaardwaarden), of \"configuration\" (zet instellingen terug naar de standaardwaarden in de configuratie ). ⚙️"
+        },
+        "separate_turn_on_commands": {
+          "description": "Gebruik aparte `light.turn_on` calls voor kleur en helderheid, dit is nodig voor bepaalde lampen. 🔀"
+        },
+        "prefer_rgb_color": {
+          "description": "Geef de voorkeur aan RGB kleuren boven de kleurtemperatuur van de lamp wanneer mogelijk. 🌈"
+        },
+        "send_split_delay": {
+          "description": "Vertraging (ms) tussen `separate_turn_on_commands` voor lampen die geen gelijktijdige helderheids- en kleurinstelling ondersteunen. ⏲️"
+        },
+        "sunset_time": {
+          "description": "Stel een vaste tijd (HH:MM:SS) in voor zonsondergang. 🌇"
+        },
+        "min_sunset_time": {
+          "description": "Stel de tijd (HH:MM:SS) in voor de meest vroege virtuele zonsondergang, maakt latere zonsondergangen mogelijk. 🌇"
+        }
+      },
+      "description": "Wijzig alle gewenste instellingen in de schakelaar. Alle opties hier zijn hetzelfde als in de configuratie."
+    },
+    "apply": {
+      "fields": {
+        "lights": {
+          "description": "Een lamp (of een lijst van lampen) waarop de instellingen worden toegepast."
+        },
+        "transition": {
+          "description": "Duur van de overgang in seconden, als lampen aanpassen. 🕑"
+        },
+        "entity_id": {
+          "description": "De `entity_id` van de schakelaar met de toe te passen instellingen. 📝"
+        },
+        "adapt_brightness": {
+          "description": "Of de helderheid van het licht moet worden aangepast. 🌞"
+        },
+        "turn_on_lights": {
+          "description": "Of de lampen moeten worden aangezet die momenteel uit zijn.🔆"
+        },
+        "adapt_color": {
+          "description": "Aanpassen aan de kleur van de omringende verlichting. 🌈"
+        },
+        "prefer_rgb_color": {
+          "description": "Geef de voorkeur aan RGB kleuren boven de kleurtemperatuur van de lamp wanneer mogelijk. 🌈"
+        }
+      },
+      "description": "Past de huidige Adaptieve verlichting instellingen toe op de lampen."
+    },
+    "set_manual_control": {
+      "fields": {
+        "lights": {
+          "description": "entiteit_id(s) van de lamp(en), indien niets wordt gespecificeerd, worden alle lampen in de schakelaar geselecteerd. 💡"
+        },
+        "manual_control": {
+          "description": "Of de lamp moet worden toegevoegd (`\"true\"`) of verwijderd (`\"false\"`) van de `manual_control` lijst. 🔒"
+        },
+        "entity_id": {
+          "description": "De `entity_id` van de schakelaar waarvan het licht moet worden (on)gemarkeerd als  `manually controlled`. 📝"
+        }
+      },
+      "description": "Geef aan of een lamp 'manually controlled' is."
     }
   }
 }

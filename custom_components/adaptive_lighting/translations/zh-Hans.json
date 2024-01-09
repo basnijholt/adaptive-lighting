@@ -1,0 +1,269 @@
+{
+  "title": "自适应照明",
+  "config": {
+    "step": {
+      "user": {
+        "title": "为自适应照明实例选择一个名称",
+        "description": "每个实例可以包含多个灯光！",
+        "data": {
+          "name": "名称"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "此设备已配置"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "自适应照明选项",
+        "description": "配置自适应照明组件。选项名称与YAML设置对齐。如果在YAML中定义了此条目，则此处不会显示任何选项。有关演示参数影响的交互式图表，请访问[此Web应用程序](https://basnijholt.github.io/adaptive-lighting)。有关更多详细信息，请参阅[官方文档](https://github.com/basnijholt/adaptive-lighting#readme)。",
+        "data": {
+          "lights": "lights：要控制的灯光实体ID列表（可以为空）。🌟",
+          "interval": "频率(interval)",
+          "transition": "过渡(transition)",
+          "initial_transition": "初始过渡(initial_transition)",
+          "min_brightness": "min_brightness：最小亮度百分比。💡",
+          "max_brightness": "max_brightness：最大亮度百分比。💡",
+          "min_color_temp": "min_color_temp：最暖的色温，以开尔文为单位。🔥",
+          "max_color_temp": "max_color_temp：最冷的色温，以开尔文为单位。❄️",
+          "prefer_rgb_color": "prefer_rgb_color：在可能时是否优先使用RGB颜色调整而不是灯光色温。🌈",
+          "sleep_brightness": "睡眠模式亮度(sleep_brightness)",
+          "sleep_rgb_or_color_temp": "睡眠模式RGB或色温(sleep_rgb_or_color_temp)",
+          "sleep_color_temp": "睡眠模式中的色温(sleep_color_temp)",
+          "sleep_rgb_color": "睡眠模式中的RGB颜色(sleep_rgb_color)",
+          "sleep_transition": "睡眠模式过渡时间(sleep_transition)",
+          "transition_until_sleep": "transition_until_sleep：启用时，自适应照明将将睡眠设置视为最小值，在日落后过渡到这些值。🌙",
+          "sunrise_time": "日出时间(sunrise_time)",
+          "min_sunrise_time": "最早日出时间(min_sunrise_time)",
+          "max_sunrise_time": "最晚日出时间(max_sunrise_time)",
+          "sunrise_offset": "日出时间偏移(sunrise_offset)",
+          "sunset_time": "日落时间(sunset_time)",
+          "min_sunset_time": "最早日落时间(min_sunset_time)",
+          "max_sunset_time": "最晚日落时间(max_sunset_time)",
+          "sunset_offset": "日落时间偏移(sunset_offset)",
+          "brightness_mode": "亮度模式(brightness_mode)",
+          "brightness_mode_time_dark": "变暗时间(brightness_mode_time_dark)",
+          "brightness_mode_time_light": "变亮时间(brightness_mode_time_light)",
+          "take_over_control": "take_over_control: 如果在灯光处于开启并处于适应照明的状态时，另一个来源调用`light.turn_on`，则禁用自适应照明。请注意，这会在每个`interval`调用`homeassistant.update_entity`！🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: 检测非`light.turn_on`的状态更改，并停止自适应照明。需要启用`take_over_control`。🕵️ 注意：⚠️ 一些灯光可能错误地显示为“开启”状态，这可能会导致灯光意外打开。如果遇到此类问题，请禁用此功能。",
+          "autoreset_control_seconds": "自动重置时间(autoreset_control_seconds)",
+          "only_once": "only_once：仅在打开时调整灯光（`true`）或始终调整灯光（`false`）。🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on：当首次打开灯光时。如果设置为`true`，仅在没有指定颜色或亮度的情况下，AL才进行适应。❌🌈 例如，这可以防止在激活场景时进行适应。如果为`false`，则不考虑初始`service_data`中是否存在颜色或亮度，AL都会适应。需要启用`take_over_control`。🕵️ ",
+          "separate_turn_on_commands": "separate_turn_on_commands：为某些灯光类型需要使用单独的`light.turn_on`调用来设置颜色和亮度。🔀",
+          "send_split_delay": "指令发送间隔延迟(send_split_delay)",
+          "adapt_delay": "自适应照明延迟(adapt_delay)",
+          "skip_redundant_commands": "skip_redundant_commands：跳过目标状态已经等于灯光已知状态的自适应命令。在某些情况下，可以减少网络流量并提高适应响应性。📉如果物理灯光状态与HA的记录状态不同步，请禁用此功能。",
+          "intercept": "intercept：拦截并适应`light.turn_on`调用，以实现即时的颜色和亮度适应。🏎️ 对于不支持使用颜色和亮度进行`light.turn_on`的灯光，禁用此功能。",
+          "multi_light_intercept": "multi_light_intercept：拦截和适应针对多个灯光的`light.turn_on`调用。➗⚠️ 这可能会将单个`light.turn_on`调用拆分为多个调用，例如当灯光位于不同的开关中时。需要启用`intercept`。",
+          "include_config_in_attributes": "include_config_in_attributes：在Home Assistant中将所有选项显示为开关的属性时，设置为`true`。📝"
+        },
+        "data_description": {
+          "interval": "调整灯光的频率，以秒为单位。🔄",
+          "transition": "灯光变化时的过渡持续时间，以秒为单位。🕑",
+          "initial_transition": "灯光从“关闭”到“开启”时的第一个过渡持续时间，以秒为单位。⏲️",
+          "sleep_brightness": "睡眠模式中的亮度百分比。😴",
+          "sleep_rgb_or_color_temp": "在睡眠模式中使用“rgb_color”或“color_temp”。🌙",
+          "sleep_color_temp": "睡眠模式中的色温（当`sleep_rgb_or_color_temp`为`color_temp`时使用），以开尔文为单位。😴",
+          "sleep_rgb_color": "睡眠模式中的RGB颜色（当`sleep_rgb_or_color_temp`为“rgb_color”时使用）。🌈",
+          "sleep_transition": "切换“睡眠模式”时的过渡持续时间，以秒为单位。😴",
+          "sunrise_time": "设置固定的日出时间（HH:MM:SS）。🌅",
+          "min_sunrise_time": "设置最早的虚拟日出时间（HH:MM:SS），允许更晚的日出。🌅",
+          "max_sunrise_time": "设置最晚的虚拟日出时间（HH:MM:SS），允许更早的日出。🌅",
+          "sunrise_offset": "以秒为单位的正负偏移调整日出时间。⏰",
+          "sunset_time": "设置固定的日落时间（HH:MM:SS）。🌇",
+          "min_sunset_time": "设置最早的虚拟日落时间（HH:MM:SS），允许更晚的日落。🌇",
+          "max_sunset_time": "设置最晚的虚拟日落时间（HH:MM:SS），允许更早的日落。🌇",
+          "sunset_offset": "以秒为单位的正负偏移调整日落时间。⏰",
+          "brightness_mode": "要使用的亮度模式。可能的值为`default`、`linear`和`tanh`（使用`brightness_mode_time_dark`和`brightness_mode_time_light`）。📈",
+          "brightness_mode_time_dark": "（如果`brightness_mode='default'`将被忽略）日出/日落之前/之后亮度逐渐增加/减少的持续时间，以秒为单位。📈📉",
+          "brightness_mode_time_light": "（如果`brightness_mode='default'`将被忽略）日出/日落之后/之前亮度逐渐增加/减少的持续时间，以秒为单位。📈📉。",
+          "autoreset_control_seconds": "在若干秒后自动重置手动控制。设置为0以禁用。⏲️",
+          "send_split_delay": "对于不支持同时设置亮度和颜色的灯光，`separate_turn_on_commands`之间的延迟时间（毫秒）。⏲️",
+          "adapt_delay": "灯光打开和自适应照明应用更改之间的等待时间（秒）。可能有助于避免闪烁。⏲️"
+        }
+      }
+    },
+    "error": {
+      "option_error": "无效的选项",
+      "entity_missing": "一个或多个选择的灯光实体在Home Assistant中不存在"
+    }
+  },
+  "services": {
+    "apply": {
+      "name": "应用",
+      "description": "将当前自适应照明设置应用于灯光。",
+      "fields": {
+        "entity_id": {
+          "description": "具有要应用设置的开关的`entity_id`。📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "要应用设置的灯光（或灯光列表）。💡",
+          "name": "lights"
+        },
+        "transition": {
+          "description": "灯光变化时的过渡持续时间，以秒为单位。🕑",
+          "name": "transition"
+        },
+        "adapt_brightness": {
+          "description": "是否调整灯光的亮度。🌞",
+          "name": "adapt_brightness"
+        },
+        "adapt_color": {
+          "description": "是否在支持的灯光上调整颜色。🌈",
+          "name": "adapt_color"
+        },
+        "prefer_rgb_color": {
+          "description": "在可能时是否优先使用RGB颜色调整而不是灯光色温。🌈",
+          "name": "prefer_rgb_color"
+        },
+        "turn_on_lights": {
+          "description": "是否打开当前关闭的灯光。🔆",
+          "name": "turn_on_lights"
+        }
+      }
+    },
+    "set_manual_control": {
+      "name": "设置手动控制",
+      "description": "标记灯光是否为'手动控制'。",
+      "fields": {
+        "entity_id": {
+          "description": "要在其中（取消）标记灯光为“手动控制”的开关的`entity_id`。📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "如果未指定，则为灯光的entity_id（s），如果未指定，则选择开关中的所有灯光。💡",
+          "name": "lights"
+        },
+        "manual_control": {
+          "description": "是否将灯光从“手动控制”列表中添加（“true”）或删除（“false”）。🔒",
+          "name": "manual_control"
+        }
+      }
+    },
+    "change_switch_settings": {
+      "name": "更改开关设置",
+      "description": "在开关中更改您想要的任何设置。此处的所有选项与配置流中的选项相同。",
+      "fields": {
+        "entity_id": {
+          "description": "开关的实体ID。📝",
+          "name": "entity_id"
+        },
+        "use_defaults": {
+          "description": "设置未在此服务调用中指定的默认值。选项：“current”（默认值，保留当前值）、“factory”（重置为文档默认值）或“configuration”（恢复到开关配置默认值）。⚙️",
+          "name": "use_defaults"
+        },
+        "include_config_in_attributes": {
+          "description": "在Home Assistant中将所有选项显示为开关的属性时，设置为`true`。📝",
+          "name": "include_config_in_attributes"
+        },
+        "turn_on_lights": {
+          "description": "是否打开当前关闭的灯光。🔆",
+          "name": "turn_on_lights"
+        },
+        "initial_transition": {
+          "description": "灯光从“关闭”到“开启”时的第一个过渡持续时间，以秒为单位。⏲️",
+          "name": "initial_transition"
+        },
+        "sleep_transition": {
+          "description": "切换“睡眠模式”时的过渡持续时间，以秒为单位。😴",
+          "name": "sleep_transition"
+        },
+        "max_brightness": {
+          "description": "最大亮度百分比。💡",
+          "name": "max_brightness"
+        },
+        "max_color_temp": {
+          "description": "最低的色温，以开尔文为单位。❄️",
+          "name": "max_color_temp"
+        },
+        "min_brightness": {
+          "description": "最小亮度百分比。💡",
+          "name": "min_brightness"
+        },
+        "min_color_temp": {
+          "description": "最高的色温，以开尔文为单位。🔥",
+          "name": "min_color_temp"
+        },
+        "only_once": {
+          "description": "仅在打开时调整灯光（`true`）或始终调整灯光（`false`）。🔄",
+          "name": "only_once"
+        },
+        "prefer_rgb_color": {
+          "description": "在可能时是否优先使用RGB颜色调整而不是灯光色温。🌈",
+          "name": "prefer_rgb_color"
+        },
+        "separate_turn_on_commands": {
+          "description": "为某些灯光类型需要使用单独的`light.turn_on`调用来设置颜色和亮度。🔀",
+          "name": "separate_turn_on_commands"
+        },
+        "send_split_delay": {
+          "description": "对于不支持同时设置亮度和颜色的灯光，`separate_turn_on_commands`之间的延迟时间（毫秒）。⏲️",
+          "name": "send_split_delay"
+        },
+        "sleep_brightness": {
+          "description": "睡眠模式中的亮度百分比。😴",
+          "name": "sleep_brightness"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "在睡眠模式中使用“rgb_color”或“color_temp”。🌙",
+          "name": "sleep_rgb_or_color_temp"
+        },
+        "sleep_rgb_color": {
+          "description": "睡眠模式中的RGB颜色（当`sleep_rgb_or_color_temp`为“rgb_color”时使用）。🌈",
+          "name": "sleep_rgb_color"
+        },
+        "sleep_color_temp": {
+          "description": "睡眠模式中的色温（当`sleep_rgb_or_color_temp`为`color_temp`时使用），以开尔文为单位。😴",
+          "name": "sleep_color_temp"
+        },
+        "sunrise_offset": {
+          "description": "以秒为单位的正负偏移调整日出时间。⏰",
+          "name": "sunrise_offset"
+        },
+        "sunrise_time": {
+          "description": "设置固定的日出时间（HH:MM:SS）。🌅",
+          "name": "sunrise_time"
+        },
+        "sunset_offset": {
+          "description": "以正负偏移秒调整日落时间。⏰",
+          "name": "sunset_offset"
+        },
+        "sunset_time": {
+          "description": "设置固定的日落时间（HH:MM:SS）。🌇",
+          "name": "sunset_time"
+        },
+        "max_sunrise_time": {
+          "description": "设置最晚的虚拟日出时间（HH:MM:SS），允许更早的日出。🌅",
+          "name": "max_sunrise_time"
+        },
+        "min_sunset_time": {
+          "description": "设置最早的虚拟日落时间（HH:MM:SS），允许更晚的日落。🌇",
+          "name": "min_sunset_time"
+        },
+        "take_over_control": {
+          "description": "如果其他来源在灯光处于打开和正在适应状态时调用`light.turn_on`，则禁用自适应照明。请注意，这会每个`interval`调用`homeassistant.update_entity`！🔒",
+          "name": "take_over_control"
+        },
+        "detect_non_ha_changes": {
+          "description": "检测并停止对非`light.turn_on`状态更改的适应。需要启用`take_over_control`。🕵️ 注意：⚠️ 一些灯光可能错误地显示为“开启”状态，这可能导致灯光意外打开。如果遇到此类问题，请禁用此功能。",
+          "name": "detect_non_ha_changes"
+        },
+        "transition": {
+          "description": "灯光变化时的过渡持续时间，以秒为单位。🕑",
+          "name": "transition"
+        },
+        "adapt_delay": {
+          "description": "灯光打开和自适应照明应用更改之间的等待时间（秒）。可能有助于避免闪烁。⏲️",
+          "name": "adapt_delay"
+        },
+        "autoreset_control_seconds": {
+          "description": "在若干秒后自动重置手动控制。设置为0以禁用。⏲️",
+          "name": "autoreset_control_seconds"
+        }
+      }
+    }
+  }
+}

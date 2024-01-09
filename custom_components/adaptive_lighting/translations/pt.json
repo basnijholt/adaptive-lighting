@@ -1,0 +1,72 @@
+{
+  "title": "Iluminação Adaptativa",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sunrise_offset": {
+          "description": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰"
+        },
+        "only_once": {
+          "description": "Adaptar as luzes apenas quando estão ligadas (`true`) ou continuar a adaptá-las (`false`)."
+        },
+        "sunset_offset": {
+          "description": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰"
+        },
+        "turn_on_lights": {
+          "description": "Para ligar luzes que estão neste momento desligadas. 🔆"
+        },
+        "entity_id": {
+          "description": "ID Entidade do interruptor. 📝"
+        },
+        "sleep_transition": {
+          "description": "Duração da transição quando o \"modo dormir\" é alternado em segundos. 😴"
+        },
+        "autoreset_control_seconds": {
+          "description": "Reiniciar o controlo manual automaticamente após um número de segundos. Definir 0 para desativar. ⏲️"
+        },
+        "transition": {
+          "description": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+        }
+      }
+    },
+    "apply": {
+      "description": "Aplica as definições atuais da Iluminação Adaptativa às luzes.",
+      "fields": {
+        "lights": {
+          "description": "Uma luz (ou lista de luzes) para a qual serão aplicadas as definições.💡"
+        },
+        "transition": {
+          "description": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+        }
+      }
+    }
+  },
+  "config": {
+    "abort": {
+      "already_configured": "Este dispositivo já está configurado"
+    },
+    "step": {
+      "user": {
+        "description": "Cada instância pode conter múltiplas luzes!",
+        "title": "Escolha um nome para a instância de Iluminação Adaptativa"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "sunrise_offset": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰",
+          "sunset_offset": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰",
+          "sleep_transition": "Duração da transição quando o \"modo dormir\" é alternado em segundos. 😴",
+          "autoreset_control_seconds": "Reiniciar o controlo manual automaticamente após um número de segundos. Definir 0 para desativar. ⏲️",
+          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+        },
+        "title": "Opções da Iluminação Adaptativa"
+      }
+    },
+    "error": {
+      "option_error": "Opção inválida"
+    }
+  }
+}

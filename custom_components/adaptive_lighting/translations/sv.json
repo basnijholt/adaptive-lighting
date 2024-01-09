@@ -11,7 +11,7 @@
       }
     },
     "abort": {
-      "already_configured": "Enheten är redan konfiguerad"
+      "already_configured": "Den här enheten är redan konfiguerad"
     }
   },
   "options": {
@@ -21,9 +21,6 @@
         "description": "Alla inställningar för en Adaptiv Ljussättning komponent. Titeln på inställningarna är desamma som i YAML konfigurationen. Inga inställningar visas om enheten redan är konfigurerad i YAML.",
         "data": {
           "lights": "lights, ljuskällor",
-          "adapt_brightness": "adapt_brightness, Adaptiv ljusstyrka",
-          "adapt_color_temp": "adapt_color_temp, Justera färgtemperatur genom att använda 'color_temp' om möjligt",
-          "adapt_rgb_color": "adapt_rgb_color, Justera färgtemperatur genom att använda RGB/XY om möjligt",
           "initial_transition": "initial_transition, när ljuskällorna går från 'av' till 'på' eller när 'sleep_state' ändras",
           "interval": "interval, Tid mellan uppdateringar i sekunder",
           "max_brightness": "max_brightness, i procent %",
@@ -41,13 +38,177 @@
           "sunset_time": "sunset_time, i 'HH:MM:SS' format (om 'None', används den faktiskta solnedgången för din position)",
           "take_over_control": "take_over_control, om något utöver 'Adaptiv Ljussättning' komponenten kallar på 'light.turn_on' när en ljuskälla redan är på, stängs den adaptiva justeringen av tills ljuskällan stängs av -> på igen, alternativt switchen för konfigurationen",
           "detect_non_ha_changes": "detect_non_ha_changes, Upptäcker alla ändringar större än 5% gjorda på ljuskällorna som inte kommer från HA. Kräver att 'take_over_control' är påslaget.(Kallar på 'homeassistant.update_entity' vid varje 'interval'!)",
-          "transition": "transition, i sekunder"
+          "transition": "transition, i sekunder",
+          "multi_light_intercept": "multi_light_intercept: Fånga upp och anpassa \"light.turn_on\"-anrop som riktar sig mot flera lampor. ➗⚠️ Detta kan resultera i att ett enda `light.turn_on`-anrop delas upp i flera anrop, t.ex. när lamporna är kopplade till olika strömbrytare. Kräver att \"intercept\" är aktiverat.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: När lampor först tänds. Om satt till \"true\", anpassar AL endast om \"light.turn_on\" anropas utan att ange färg eller ljusstyrka. ❌🌈 Detta förhindrar t.ex. anpassning när en scen aktiveras. Om \"false\" anpassas AL oavsett förekomsten av färg eller ljusstyrka i den initiala \"service_data\". \"takeover_control\" måste vara aktiverat. 🕵️ ",
+          "skip_redundant_commands": "skip_redundant_commands: Hoppa över att skicka anpassningskommandon vars måltillstånd redan är lika med lampans kända tillstånd. Minimerar nätverkstrafik och förbättrar anpassningsförmågan i vissa situationer. 📉 Inaktivera om lampans tillstånd blir osynkroniserade med HA:s registrerade tillstånd.",
+          "intercept": "intercept: Fånga upp och anpassa `light.turn_on`-anrop för att möjliggöra omedelbar anpassning av färg och ljusstyrka. 🏎️ Inaktivera för lampor som inte stöder `light.turn_on` med färg och ljusstyrka.",
+          "transition_until_sleep": "transition_until_sleep: När aktiverat kommer Adaptive Lighting att behandla sömninställningarna som ett minimum och övergå till dessa värden efter solnedgången. 🌙",
+          "include_config_in_attributes": "include_config_in_attributes: Visa alla alternativ som attribut på strömbrytaren i Home Assistant när den är inställd på \"true\". 📝"
+        },
+        "data_description": {
+          "sleep_color_temp": "Färgtemperatur i sovläge (används när `sleep_rgb_or_color_temp` är `color_temp`) i Kelvin. 😴",
+          "sleep_transition": "Dröjsmål för övergång när \"sov läge\" slås på/av, i sekunder. 🕑",
+          "autoreset_control_seconds": "Nollställ automatiskt manuell kontroll efter ett antal sekunder. Sätt till 0 för at avaktivera. ⏲️",
+          "sleep_brightness": "Procent ljusstyrka för lampor i sovläge. 😴",
+          "interval": "Frekvens för att anpassa lamporna, i sekunder. 🔄",
+          "sunrise_offset": "Justera soluppgångstiden med positiv  och negativ förskutning is sekunder. ⏰",
+          "transition": "Dröjsmål för övergång när lampor ändras, i sekunder. 🕑",
+          "sunset_offset": "Justera solnedgångstiden med positiv och negativ förskutning is sekunder. ⏰",
+          "send_split_delay": "Dröjsmål (ms) mellan `separate_turn_on_commands` för lampor som inte stödjer samtidiga ljussyrke och färg inställningar. ⏲️",
+          "sleep_rgb_or_color_temp": "Använd antingen`\"rgb_color\"` eller `\"color_temp\"` i sovläge. 🌙",
+          "min_sunset_time": "Ställ in den tidigaste virtuella solnedgångstiden (TT: MM: SS), vilket möjliggör senare solnedgångar. 🌇",
+          "min_sunrise_time": "Ställ in den tidigaste virtuella soluppgångstiden (TT: MM: SS), vilket möjliggör senare soluppgångar. 🌅",
+          "adapt_delay": "Väntetid (sekunder) mellan lamptändning och Adaptiv Ljussättning tillämpar ändringar. Kan hjälpa till att undvika flimmer. ⏲️",
+          "sleep_rgb_color": "RGB-färg i sovläge (används när \"sleep_rgb_or_color_temp\" är \"rgb_color\"). 🌈",
+          "sunset_time": "Ställ in en fast tid (TT:MM:SS) för solnedgången. 🌇",
+          "max_sunset_time": "Ställ in den senaste virtuella solnedgångstiden (TT: MM: SS), vilket möjliggör tidigare solnedgångar. 🌇",
+          "sunrise_time": "Ställ in en fast tid (TT:MM:SS) för soluppgången. 🌅",
+          "initial_transition": "Den första övergångens varaktighet när lampan slås från ”av” till ”på” i sekunder. ⏲️",
+          "max_sunrise_time": "Ställ in den senaste virtuella soluppgångstiden (TT: MM: SS), vilket möjliggör tidigare soluppgångar. 🌅",
+          "brightness_mode": "Ljusstyrkeinställing att använda. Möjliga värden är \"default\", \"linear\" och \"tanh\" (använder \"brightness_mode_time_dark\" och \"brightness_mode_time_light\"). 📈",
+          "brightness_mode_time_light": "(Ignoreras om `brightness_mode='default'`) Varaktigheten i sekunder för att öka/minska ljusstyrkan efter/före soluppgång/solnedgång. 📈📉.",
+          "brightness_mode_time_dark": "(Ignoreras om `brightness_mode='default'`) Varaktigheten i sekunder för att öka/minska ljusstyrkan efter/före soluppgång/solnedgång. 📈📉."
         }
       }
     },
     "error": {
       "option_error": "Ogiltlig inställning",
       "entity_missing": "Ett valt ljus hittades inte"
+    }
+  },
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sleep_brightness": {
+          "description": "Procent ljusstyrka för lampor i sovläge. 😴"
+        },
+        "sunrise_offset": {
+          "description": "Justera soluppgångstiden med positiv och negativ förskutning is sekunder. ⏰Justera soluppgångstiden med positiv  och negativ förskutning is sekunder. ⏰"
+        },
+        "sleep_color_temp": {
+          "description": "Färgtemperatur i sovläge (används när `sleep_rgb_or_color_temp` är `color_temp`) i Kelvin. 😴"
+        },
+        "entity_id": {
+          "description": "Enhets-ID för strömbrytaren. 📝"
+        },
+        "sleep_transition": {
+          "description": "Dröjsmål för övergång när \"sov läge\" slås på/av, i sekunder. 🕑"
+        },
+        "autoreset_control_seconds": {
+          "description": "Nollställ automatiskt manuell kontroll efter ett antal sekunder. Sätt till 0 för at avaktivera. ⏲️"
+        },
+        "only_once": {
+          "description": "Anpassa lampor endast när de slås på ('true') eller fortsätt anpassa dem ('false'). 🔄"
+        },
+        "max_color_temp": {
+          "description": "Kallaste färgtemperatur i Kelvin. ❄️"
+        },
+        "sunset_offset": {
+          "description": "Justera solnedgångstiden med positiv och negativ förskutning is sekunder. ⏰"
+        },
+        "send_split_delay": {
+          "description": "Dröjsmål (ms) mellan `separate_turn_on_commands` för lampor som inte stödjer samtidiga ljussyrke och färg inställningar. ⏲️"
+        },
+        "transition": {
+          "description": "Dröjsmål för övergång när lampor ändras, i sekunder. 🕑"
+        },
+        "max_sunrise_time": {
+          "description": "Ställ in den senaste virtuella soluppgångstiden (TT: MM: SS), vilket möjliggör tidigare soluppgångar. 🌅"
+        },
+        "min_brightness": {
+          "description": "Minimal ljusstyrka i procent. 💡"
+        },
+        "min_color_temp": {
+          "description": "Varmaste färgtemperaturen i Kelvin. 🔥"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Använd antingen`\"rgb_color\"` eller `\"color_temp\"` i sovläge. 🌙"
+        },
+        "turn_on_lights": {
+          "description": "Om att tända lampor som är för närvarande släckta. 🔆"
+        },
+        "initial_transition": {
+          "description": "Den första övergångens varaktighet när lampan slås från ”av” till ”på” i sekunder. ⏲️"
+        },
+        "sunrise_time": {
+          "description": "Ställ in en fast tid (TT:MM:SS) för soluppgången. 🌅"
+        },
+        "include_config_in_attributes": {
+          "description": "Visa alla alternativ som attribut på strömbrytaren i Home Assistant när ”true”. 📝"
+        },
+        "max_brightness": {
+          "description": "Maximal ljusstyrka i procent. 💡"
+        },
+        "sleep_rgb_color": {
+          "description": "RGB-färg i sovläge (används när \"sleep_rgb_or_color_temp\" är \"rgb_color\"). 🌈"
+        },
+        "adapt_delay": {
+          "description": "Väntetid (sekunder) mellan lamptändning och Adaptiv Ljussättning tillämpar ändringar. Kan hjälpa till att undvika flimmer. ⏲️"
+        },
+        "separate_turn_on_commands": {
+          "description": "Använd separata `light.turn_on`anrop för färg och ljusstyrka, behövs för vissa lamptyper. 🔀"
+        },
+        "prefer_rgb_color": {
+          "description": "Om att föredra RGB-färgjustering framför ljusfärgtemperatur när det är möjligt. 🌈"
+        },
+        "sunset_time": {
+          "description": "Ställ in en fast tid (TT:MM:SS) för solnedgången. 🌇"
+        },
+        "min_sunset_time": {
+          "description": "Ställ in den tidigaste virtuella solnedgångstiden (TT: MM: SS), vilket möjliggör senare solnedgångar. 🌇"
+        },
+        "detect_non_ha_changes": {
+          "description": "Upptäcker och stoppar anpassningar för tillståndsändringar som inte är \"light.turn_on\". Behöver \"takeover_control\" aktiverat. 🕵️ Varning: ⚠️ Vissa lampor kan felaktigt indikera ett \"på\"-läge, vilket kan resultera i att lamporna tänds oväntat. Inaktivera den här funktionen om du stöter på sådana problem."
+        },
+        "take_over_control": {
+          "description": "Inaktivera Adaptive Ligting om en annan källa anropar 'light.turn_on' medan lamporna är tända och anpassas. Observera att detta anropar `homeassistant.update_entity` varje `intervall`! 🔒"
+        },
+        "use_defaults": {
+          "description": "Ställer in standardvärden som inte anges i detta serviceanrop. Alternativ: \"current\" (standard, behåller nuvarande värden), \"factory\" (återställer till dokumenterade standardinställningar) eller \"configuration\" (återgår till strömbrytarens standardinställningar). ⚙️"
+        }
+      },
+      "description": "Ändra vilka inställningar du vill ha i strömbrytaren. All dessa inställningar är likadana som i config flow."
+    },
+    "set_manual_control": {
+      "fields": {
+        "lights": {
+          "description": "Enhets-ID för lampor. Om inget anges väljs alla lampor i strömbrytaren. 💡"
+        },
+        "manual_control": {
+          "description": "Lägg till (\"true\") eller ta bort (\"false\") ljuset från listan \"manual_control\". 🔒"
+        },
+        "entity_id": {
+          "description": "Strömbrytarens ”entity_id\" i vilken lampan ska (av)markeras som \"manuellt styrd\". 📝"
+        }
+      },
+      "description": "Swedish: Markera om en lampa är \"styrd manuellt\"."
+    },
+    "apply": {
+      "description": "Tillämpar nuvarande Adaptiv Ljussätting inställningar till lampor.",
+      "fields": {
+        "lights": {
+          "description": "En lampa (eller en lamplista) till vilka inställningarna tillämpas."
+        },
+        "transition": {
+          "description": "Dröjsmål för övergång när lampor ändras, i sekunder. 🕑"
+        },
+        "entity_id": {
+          "description": "\"entity_id\" för strömbrytaren med inställningarna som ska tillämpas. 📝"
+        },
+        "adapt_brightness": {
+          "description": "Om lampans ljusstyrka ska anpassas. 🌞"
+        },
+        "turn_on_lights": {
+          "description": "Om att tända lampor som är för närvarande släckta. 🔆"
+        },
+        "adapt_color": {
+          "description": "Om färgen på lampor som stödjer ska anpassas. 🌈"
+        },
+        "prefer_rgb_color": {
+          "description": "Om att föredra RGB-färgjustering framför ljusfärgtemperatur när det är möjligt. 🌈"
+        }
+      }
     }
   }
 }
