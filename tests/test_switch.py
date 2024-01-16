@@ -9,6 +9,8 @@ from random import randint
 from typing import Any
 from unittest.mock import Mock, patch
 
+
+from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
@@ -95,6 +97,7 @@ from custom_components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveSwitch,
     _attributes_have_changed,
+    _expand_light_groups,
     color_difference_redmean,
     create_context,
     AdaptiveLightingManager,
@@ -1182,6 +1185,28 @@ def test_is_our_context():
     assert is_our_context(context)
     assert not is_our_context(None)
     assert not is_our_context(Context())
+
+
+@pytest.mark.parametrize("wait", [True, False])
+async def test_expand_light_groups(hass, wait):
+    """Test expanding light groups."""
+    await setup_lights_and_switch(hass, {})
+    lights = ["light.ceiling_lights", "light.kitchen_lights"]
+    await async_setup_component(
+        hass,
+        LIGHT_DOMAIN,
+        {LIGHT_DOMAIN: {"platform": GROUP_DOMAIN, "entities": lights, "all": "false"}},
+    )
+    if wait:
+        await hass.async_block_till_done()
+        await hass.async_start()
+        await hass.async_block_till_done()
+    expanded = set(_expand_light_groups(hass, ["light.light_group"]))
+    if wait:
+        assert expanded == set(lights)
+    else:
+        # Cannot expand yet because state is None
+        assert expanded == {"light.light_group"}
 
 
 async def test_unload_switch(hass):
