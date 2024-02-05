@@ -1,4 +1,5 @@
 """Tests for Adaptive Lighting switches."""
+
 # pylint: disable=protected-access
 import asyncio
 import itertools

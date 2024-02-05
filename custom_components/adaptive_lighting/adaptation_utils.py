@@ -1,4 +1,5 @@
 """Utility functions for adaptation commands."""
+
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass

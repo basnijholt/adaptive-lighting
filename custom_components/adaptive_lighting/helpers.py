@@ -34,6 +34,7 @@ def int_to_base36(num: int) -> str:
     >>> base36_num = int_to_base36(num)
     >>> print(base36_num)
     '2N9'
+
     """
     alphanumeric_chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
