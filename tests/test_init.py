@@ -1,4 +1,5 @@
 """Tests for Adaptive Lighting integration."""
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_NAME
 from homeassistant.setup import async_setup_component
