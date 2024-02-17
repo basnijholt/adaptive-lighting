@@ -738,6 +738,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "sayaivan",
+      "name": "Ivan",
+      "avatar_url": "https://avatars.githubusercontent.com/u/49090860?v=4",
+      "profile": "https://github.com/sayaivan",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
