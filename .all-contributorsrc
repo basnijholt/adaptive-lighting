@@ -702,6 +702,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "EF01",
+      "name": "EF01",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20759250?v=4",
+      "profile": "https://github.com/EF01",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
