@@ -38,13 +38,127 @@
           "sunset_time": "sunset_time: Manuel overstyring af solnedgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt for din lokation. (HH:MM:SS)",
           "take_over_control": "take_over_control: Hvis andet end Adaptiv Belysning kalder 'light.turn_on' på et lys der allerede er tændt, afbryd adaptering af lyset indtil at det tændes igen.",
           "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
-          "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)"
+          "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)",
+          "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙",
+          "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️ "
+        },
+        "data_description": {
+          "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
+          "sleep_brightness": "Lysstyrkeprocent af lys i søvntilstand. 😴",
+          "transition": "Varighed af overgang, når lys ændres, i sekunder. 🕑",
+          "sleep_rgb_or_color_temp": "Brug enten `\"rgb_farve\"` eller `\"farve_temp\"` i søvntilstand. 🌙",
+          "sleep_transition": "Varigheden af overgangen, når \"sovetilstand\" skiftes, i sekunder. 😴",
+          "sunrise_time": "Sæt en fast tid (HH:MM:SS) for solopgang. 🌅",
+          "sunset_time": "Sæt en fast tid (HH:MM:SS) for solnedgang. 🌇",
+          "min_sunrise_time": "Indstil den tidligste virtuelle solopgangstid (HH:MM:SS), hvilket giver mulighed for senere solopgange. 🌅",
+          "max_sunrise_time": "Indstil den seneste virtuelle solopgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solopgange. 🌅",
+          "autoreset_control_seconds": "Nulstil automatisk den manuelle styring efter et antal sekunder. Indstil til 0 for at deaktivere. ⏲️",
+          "min_sunset_time": "Indstil den tidligste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for senere solnedgange. 🌇",
+          "adapt_delay": "Ventetid (sekunder) mellem lyset tændes og Adaptive Lighting anvender ændringer. Kan hjælpe med at undgå flimren. ⏲️",
+          "sunset_offset": "Juster solnedgang tid med et positivt eller negativt offset, i sekunder. ⏰",
+          "sunrise_offset": "Juster solopgangstiden med en positiv eller negativ offset på få sekunder. ⏰",
+          "max_sunset_time": "Indstil den seneste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solnedgange. 🌇",
+          "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴",
+          "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈"
         }
       }
     },
     "error": {
       "option_error": "Ugyldig indstilling",
       "entity_missing": "Et udvalgt lys blev ikke fundet "
+    }
+  },
+  "services": {
+    "apply": {
+      "description": "Anvender de aktuelle Adaptive Lighting indstillinger på lys.",
+      "fields": {
+        "prefer_rgb_color": {
+          "description": "Om man vil foretrække RGB-farvejustering frem for lysfarvetemperatur, når det er muligt. 🌈"
+        },
+        "transition": {
+          "description": "Varighed af overgang, når lys ændres, i sekunder. 🕑"
+        },
+        "turn_on_lights": {
+          "description": "Om lys der i øjeblikket er slukket, skal tændes. 🔆"
+        },
+        "adapt_brightness": {
+          "description": "Om lysstyrken skal tilpasses. 🌞"
+        },
+        "lights": {
+          "description": "Et lys (eller liste over lys) som indstillingerne skal anvendes til. 💡"
+        },
+        "adapt_color": {
+          "description": "Om farven på støttelys skal tilpasses. 🌈"
+        }
+      }
+    },
+    "change_switch_settings": {
+      "fields": {
+        "entity_id": {
+          "description": "Entity ID af kontakten. 📝"
+        },
+        "turn_on_lights": {
+          "description": "Om lys der i øjeblikket er slukket, skal tændes. 🔆"
+        },
+        "sleep_transition": {
+          "description": "Varigheden af overgangen, når \"sovetilstand\" skiftes, i sekunder. 😴"
+        },
+        "only_once": {
+          "description": "Tilpas kun lys, når de er tændt ('sand'), eller fortsæt med at tilpasse dem ('falsk'). 🔄"
+        },
+        "prefer_rgb_color": {
+          "description": "Om man vil foretrække RGB-farvejustering frem for lysfarvetemperatur, når det er muligt. 🌈"
+        },
+        "sleep_brightness": {
+          "description": "Lysstyrkeprocent af lys i søvntilstand. 😴"
+        },
+        "sunrise_time": {
+          "description": "Sæt en fast tid (HH:MM:SS) til solopgang. 🌅"
+        },
+        "sunrise_offset": {
+          "description": "Juster solopgangstiden med et positivt eller negativt offset, i sekunder. ⏰"
+        },
+        "sunset_offset": {
+          "description": "Juster solnedgang tid med et positivt eller negativt offset, i sekunder. ⏰"
+        },
+        "sunset_time": {
+          "description": "Sæt en fast tid (HH:MM:SS) for solnedgang. 🌇"
+        },
+        "max_sunrise_time": {
+          "description": "Indstil den seneste virtuelle solopgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solopgange. 🌅"
+        },
+        "min_sunset_time": {
+          "description": "Indstil den tidligste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for senere solnedgange. 🌇"
+        },
+        "transition": {
+          "description": "Varighed af overgang, når lys ændres, i sekunder. 🕑"
+        },
+        "autoreset_control_seconds": {
+          "description": "Nulstil automatisk den manuelle styring efter et antal sekunder. Indstil til 0 for at deaktivere. ⏲️"
+        },
+        "adapt_delay": {
+          "description": "Ventetid (sekunder) mellem lyset tændes og Adaptive Lighting anvender ændringer. Kan hjælpe med at undgå flimren. ⏲️"
+        },
+        "max_brightness": {
+          "description": "Maksimal lysstyrkeprocent. 💡"
+        },
+        "max_color_temp": {
+          "description": "Koldeste farvetemperatur i Kelvin. ❄️"
+        },
+        "min_brightness": {
+          "description": "Mindste lysstyrkeprocent. 💡"
+        },
+        "min_color_temp": {
+          "description": "Varmste farvetemperatur i Kelvin. 🔥"
+        },
+        "sleep_color_temp": {
+          "description": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴"
+        }
+      },
+      "description": "Skift de indstillinger du ønsker i kontakten. Alle muligheder her er de samme som i konfigurationsflowet."
+    },
+    "set_manual_control": {
+      "description": "Markér om et lys er 'manuelt kontrolleret'."
     }
   }
 }
