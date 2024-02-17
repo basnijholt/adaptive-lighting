@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-76-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-77-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -562,6 +562,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/yousaf465"><img src="https://avatars.githubusercontent.com/u/83491212?v=4?s=100" width="100px;" alt="yousaf465"/><br /><sub><b>yousaf465</b></sub></a><br /><a href="#translation-yousaf465" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/baylanger"><img src="https://avatars.githubusercontent.com/u/5240348?v=4?s=100" width="100px;" alt="Pierre Belanger"/><br /><sub><b>Pierre Belanger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=baylanger" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://www.jan-sigurd.com"><img src="https://avatars.githubusercontent.com/u/8410766?v=4?s=100" width="100px;" alt="Jan-Sigurd Sørensen"/><br /><sub><b>Jan-Sigurd Sørensen</b></sub></a><br /><a href="#translation-jansigu" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/EF01"><img src="https://avatars.githubusercontent.com/u/20759250?v=4?s=100" width="100px;" alt="EF01"/><br /><sub><b>EF01</b></sub></a><br /><a href="#translation-EF01" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
