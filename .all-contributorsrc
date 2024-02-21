@@ -774,6 +774,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "droans",
+      "name": "droans",
+      "avatar_url": "https://avatars.githubusercontent.com/u/49721649?v=4",
+      "profile": "https://github.com/droans",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
