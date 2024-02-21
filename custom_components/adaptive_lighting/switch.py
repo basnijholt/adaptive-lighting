@@ -359,7 +359,8 @@ async def handle_change_switch_settings(
 
     # deep copy the defaults so we don't modify the original dicts
     switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
-    switch._update_time_interval_listener()
+    if switch.is_on:
+        switch._update_time_interval_listener()
 
     _LOGGER.debug(
         "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
