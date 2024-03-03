@@ -226,10 +226,43 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     await lights[0].async_turn_on()
     await lights[1].async_turn_on()
 
+    platform = getattr(hass.components, "test.light")
+    while platform.ENTITIES:
+        # Make sure it is empty
+        platform.ENTITIES.pop()
+    lights = [
+        DemoLight(
+            unique_id="light_1",
+            name="Bed Light",
+            state=True,
+            ct=200,
+        ),
+        DemoLight(
+            unique_id="light_2",
+            name="Ceiling Lights",
+            state=True,
+            ct=380,
+        ),
+        DemoLight(
+            unique_id="light_3",
+            name="Kitchen Lights",
+            state=False,
+            hs_color=(345, 75),
+            ct=240,
+        ),
+    ]
     for light in lights:
-        light._attr_brightness = 255
-        light._attr_color_temp = 250
+        light.hass = hass
+        slug = light.name.lower().replace(" ", "_")
+        light.entity_id = f"light.{slug}"
+        await light.async_update_ha_state()
 
+    platform.ENTITIES.extend(lights)
+    platform.init()
+    assert await async_setup_component(
+        hass, LIGHT_DOMAIN, {LIGHT_DOMAIN: {CONF_PLATFORM: "test"}}
+    )
+    await hass.async_block_till_done()
     assert all(hass.states.get(light.entity_id) is not None for light in lights)
     return lights
 
@@ -634,12 +667,11 @@ async def test_manual_control(
         _LOGGER.debug("End of change_manual_control")
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return (light._brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
-            light.min_color_temp_kelvin,
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
         )
 
     # Nothing is manually controlled
@@ -815,12 +847,11 @@ async def test_apply_service(hass):
     assert entity_id not in switch.lights
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return (light._brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
-            light.min_color_temp_kelvin,
+            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
         )
 
     async def change_light():
@@ -1301,7 +1332,7 @@ async def test_area(hass):
     area_registry.async_create("test_area")
 
     entity = entity_registry.async_get(hass).async_get_or_create(
-        LIGHT_DOMAIN, "template", light.unique_id
+        LIGHT_DOMAIN, "demo", light.unique_id
     )
     entity = entity_registry.async_get(hass).async_update_entity(
         entity.entity_id, area_id="test_area"
