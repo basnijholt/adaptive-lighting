@@ -1,13 +1,15 @@
-import pytest
-from custom_components.adaptive_lighting.color_and_brightness import (
-    SunEvents,
-    SUN_EVENT_SUNRISE,
-    SUN_EVENT_NOON,
-)
 import datetime as dt
+import zoneinfo
+
+import pytest
 from astral import LocationInfo
 from astral.location import Location
-import zoneinfo
+
+from custom_components.adaptive_lighting.color_and_brightness import (
+    SUN_EVENT_NOON,
+    SUN_EVENT_SUNRISE,
+    SunEvents,
+)
 
 # Create a mock astral_location object
 location = Location(LocationInfo())
@@ -31,7 +33,7 @@ def tzinfo_and_location(request):
             timezone=timezone,
             latitude=lat,
             longitude=long,
-        )
+        ),
     )
     return tzinfo, location
 
