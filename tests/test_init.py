@@ -17,7 +17,7 @@ async def test_setup_with_config(hass):
     config = {
         adaptive_lighting.DOMAIN: {
             adaptive_lighting.CONF_NAME: DEFAULT_NAME,
-        }
+        },
     }
     assert await async_setup_component(hass, adaptive_lighting.DOMAIN, config)
     assert adaptive_lighting.DOMAIN in hass.data
@@ -25,7 +25,6 @@ async def test_setup_with_config(hass):
 
 async def test_successful_config_entry(hass):
     """Test that Adaptive Lighting is configured successfully."""
-
     entry = MockConfigEntry(
         domain=adaptive_lighting.DOMAIN,
         data={CONF_NAME: DEFAULT_NAME},

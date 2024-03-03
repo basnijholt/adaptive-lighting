@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock
 
+import pytest
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -9,7 +10,6 @@ from homeassistant.components.light import (
 )
 from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
 from homeassistant.core import Context, State
-import pytest
 
 from custom_components.adaptive_lighting.adaptation_utils import (
     ServiceData,
@@ -97,7 +97,9 @@ async def test_split_service_call_data(input_data, expected_data_list):
     ],
 )
 async def test_remove_redundant_attributes(
-    service_data: ServiceData, state: State | None, service_data_expected: ServiceData
+    service_data: ServiceData,
+    state: State | None,
+    service_data_expected: ServiceData,
 ):
     """Test filtering of service data."""
     assert _remove_redundant_attributes(service_data, state) == service_data_expected
@@ -125,7 +127,8 @@ async def test_remove_redundant_attributes(
     ],
 )
 async def test_has_relevant_service_data_attributes(
-    service_data: ServiceData, expected_relevant: bool
+    service_data: ServiceData,
+    expected_relevant: bool,
 ):
     """Test the determination of relevancy of service data"""
     assert _has_relevant_service_data_attributes(service_data) == expected_relevant
@@ -198,11 +201,12 @@ async def test_create_service_call_data_iterator(
     hass_states_mock,
 ):
     """Test the generator function for correct enumeration and filtering."""
-
     generated_service_datas = [
         data
         async for data in _create_service_call_data_iterator(
-            hass_states_mock, service_datas, filter_by_state
+            hass_states_mock,
+            service_datas,
+            filter_by_state,
         )
     ]
 
@@ -230,7 +234,7 @@ async def test_create_service_call_data_iterator(
                     ATTR_ENTITY_ID: "light.test",
                     ATTR_BRIGHTNESS: 10,
                     ATTR_COLOR_TEMP_KELVIN: 4000,
-                }
+                },
             ],
             1.2,
         ),
@@ -266,7 +270,7 @@ async def test_create_service_call_data_iterator(
                 {
                     ATTR_ENTITY_ID: "light.test",
                     ATTR_COLOR_TEMP_KELVIN: 4000,
-                }
+                },
             ],
             1.2,
         ),
@@ -282,7 +286,7 @@ async def test_create_service_call_data_iterator(
                 {
                     ATTR_ENTITY_ID: "light.test",
                     ATTR_COLOR_TEMP_KELVIN: 4000,
-                }
+                },
             ],
             0.7,
         ),
