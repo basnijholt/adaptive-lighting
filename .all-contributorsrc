@@ -783,6 +783,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "JonathanKang",
+      "name": "Jonathan Kang",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5607743?v=4",
+      "profile": "http://blogs.gnome.org/jonathankang/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
