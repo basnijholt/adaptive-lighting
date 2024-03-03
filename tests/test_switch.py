@@ -1364,7 +1364,7 @@ async def test_light_switch_in_specific_area(hass):
 
     entity = entity_registry.async_get(hass).async_get_or_create(
         LIGHT_DOMAIN,
-        "demo",
+        "template",
         light.unique_id,
     )
     entity = entity_registry.async_get(hass).async_update_entity(
@@ -1847,7 +1847,7 @@ async def test_two_switches_for_single_light(hass):
         extra_conf | {CONF_NAME: "switch2"},
         all_lights=True,
     )
-    assert light1 is light2
+    assert light1.entity_id == light2.entity_id
 
     # One switch controls brightness the other color
     await switch1.adapt_color_switch.async_turn_off()
