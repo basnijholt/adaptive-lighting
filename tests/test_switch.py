@@ -275,19 +275,19 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     lights = [
         DemoLight(
             unique_id="light_1",
-            device_name="Bed Light",
+            device_name="Light 1",
             state=True,
             ct=200,
         ),
         DemoLight(
             unique_id="light_2",
-            device_name="Ceiling Lights",
+            device_name="light 2",
             state=True,
             ct=380,
         ),
         DemoLight(
             unique_id="light_3",
-            device_name="Kitchen Lights",
+            device_name="light 3",
             state=False,
             hs_color=(345, 75),
             ct=240,
@@ -709,11 +709,11 @@ async def test_manual_control(
         _LOGGER.debug("End of change_manual_control")
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return (light._brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
+            (light._ct + 100) % light.max_color_temp_kelvin,
             light.min_color_temp_kelvin,
         )
 
@@ -772,9 +772,7 @@ async def test_manual_control(
         color_temperature_mired_to_kelvin(mired_range[0]),
     )
     ptp_kelvin = kelvin_range[1] - kelvin_range[0]
-    await turn_light(
-        True, color_temp_kelvin=(light._attr_color_temp + 100) % ptp_kelvin
-    )
+    await turn_light(True, color_temp_kelvin=(light._ct + 100) % ptp_kelvin)
     assert manual_control[ENTITY_LIGHT_1]
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
@@ -890,11 +888,11 @@ async def test_apply_service(hass):
     assert entity_id not in switch.lights
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return (light._brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
+            (light._ct + 100) % light.max_color_temp_kelvin,
             light.min_color_temp_kelvin,
         )
 
@@ -1852,11 +1850,11 @@ async def test_two_switches_for_single_light(hass):
         _LOGGER.debug("Turn light %s, to %s", state, kwargs)
 
     def increased_brightness():
-        return (light1._attr_brightness + 100) % 255
+        return (light1._brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light1._attr_color_temp + 100) % light1.max_color_temp_kelvin,
+            (light1._ct + 100) % light1.max_color_temp_kelvin,
             light1.min_color_temp_kelvin,
         )
 
