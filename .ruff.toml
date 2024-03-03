@@ -1,7 +1,7 @@
 # The contents of this file is based on https://github.com/home-assistant/core/blob/dev/pyproject.toml
 
 target-version = "py310"
-
+[lint]
 select = ["ALL"]
 
 # All the ones without a comment were the ones that are currently violated
@@ -23,18 +23,36 @@ ignore = [
     "SLF001",  # Private member accessed
 ]
 
-[per-file-ignores]
-"tests/*.py" = ["ALL"]
+[lint.per-file-ignores]
+"tests/*.py" = [
+    "ARG001",  # Unused function argument: `call`
+    "D100",    # Missing docstring in public module
+    "D103",    # Missing docstring in public function
+    "D205",    # 1 blank line required between summary line and description
+    "D400",    # First line should end with a period
+    "D415",    # First line should end with a period, question mark, or
+    "DTZ001",  # The use of `datetime.datetime()` without `tzinfo`
+    "ERA001",  # Found commented-out code
+    "FBT003",  # Boolean positional value in function call
+    "FIX002",  # Line contains TODO, consider resolving the issue
+    "G004",    # Logging statement uses f-string
+    "PLR0915", # Too many statements (94 > 50)
+    "PT004",   # Fixture `cleanup` does not return anything, add leading underscore
+    "PT007",   # Wrong values type in `@pytest.mark.parametrize` expected `list` of
+    "S311",    # Standard pseudo-random generators are not suitable for cryptographic
+    "TD002",   # Missing author in TODO; try: `# TODO(<author_name>): ...` or `# TODO
+    "TD003",   # Missing issue link on the line following this TODO
+]
 ".github/*py" = ["INP001"]
 "webapp/homeassistant_util_color.py" = ["ALL"]
 "webapp/app.py" = ["INP001", "DTZ011", "A002"]
 "custom_components/adaptive_lighting/homeassistant_util_color.py" = ["ALL"]
 
-[flake8-pytest-style]
+[lint.flake8-pytest-style]
 fixture-parentheses = false
 
-[pyupgrade]
+[lint.pyupgrade]
 keep-runtime-typing = true
 
-[mccabe]
+[lint.mccabe]
 max-complexity = 25

@@ -20,7 +20,8 @@ DEFAULT_DATA = {key: default for key, default, _ in VALIDATION_TUPLES}
 async def test_flow_manual_configuration(hass):
     """Test that config flow works."""
     result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
+        DOMAIN,
+        context={"source": "user"},
     )
 
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
@@ -28,7 +29,8 @@ async def test_flow_manual_configuration(hass):
     assert result["handler"] == "adaptive_lighting"
 
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={CONF_NAME: "living room"}
+        result["flow_id"],
+        user_input={CONF_NAME: "living room"},
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == "living room"
