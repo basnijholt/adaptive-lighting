@@ -709,11 +709,12 @@ async def test_manual_control(
         _LOGGER.debug("End of change_manual_control")
 
     def increased_brightness():
-        return (light._brightness + 100) % 255
+        return (light._attr_brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
+            light.min_color_temp_kelvin,
         )
 
     # Nothing is manually controlled
@@ -889,11 +890,12 @@ async def test_apply_service(hass):
     assert entity_id not in switch.lights
 
     def increased_brightness():
-        return (light._brightness + 100) % 255
+        return (light._attr_brightness + 100) % 255
 
     def increased_color_temp():
         return max(
-            (light._ct + 100) % light.max_color_temp_kelvin, light.min_color_temp_kelvin
+            (light._attr_color_temp + 100) % light.max_color_temp_kelvin,
+            light.min_color_temp_kelvin,
         )
 
     async def change_light():
