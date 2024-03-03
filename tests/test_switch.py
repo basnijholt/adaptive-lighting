@@ -9,6 +9,47 @@ import logging
 from random import randint
 from typing import Any
 from unittest.mock import Mock, patch
+from homeassistant.components.demo.light import DemoLight
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_MAX_COLOR_TEMP_KELVIN,
+    ATTR_MIN_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
+    ATTR_TRANSITION,
+    ATTR_XY_COLOR,
+    COLOR_MODE_BRIGHTNESS,
+)
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.light import SERVICE_TURN_OFF
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+import homeassistant.config as config_util
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import (
+    ATTR_AREA_ID,
+    ATTR_ENTITY_ID,
+    ATTR_SUPPORTED_FEATURES,
+    CONF_LIGHTS,
+    CONF_NAME,
+    CONF_PLATFORM,
+    EVENT_STATE_CHANGED,
+    SERVICE_TURN_ON,
+    STATE_OFF,
+    STATE_ON,
+)
+from homeassistant.core import Context, State
+from homeassistant.helpers import entity_registry
+from homeassistant.setup import async_setup_component
+from homeassistant.util.color import color_temperature_mired_to_kelvin
+import homeassistant.util.dt as dt_util
+import pytest
+import ulid_transform
+import voluptuous.error
+
+from tests.common import MockConfigEntry, mock_area_registry
+from tests.components.demo.test_light import ENTITY_LIGHT
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -18,6 +59,8 @@ from homeassistant.components.light import (
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
 )
+from homeassistant.components.demo.light import DemoLight
+
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import SERVICE_TURN_OFF
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -43,18 +86,15 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 import homeassistant.util.dt as dt_util
 import pytest
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    mock_area_registry,
-)
+from tests.common import MockConfigEntry, mock_area_registry
 import ulid_transform
 import voluptuous.error
 
-from custom_components.adaptive_lighting.adaptation_utils import (
+from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
     _create_service_call_data_iterator,
 )
-from custom_components.adaptive_lighting.const import (
+from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     CONF_TAKE_OVER_CONTROL,
@@ -92,7 +132,7 @@ from custom_components.adaptive_lighting.const import (
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     UNDO_UPDATE_LISTENER,
 )
-from custom_components.adaptive_lighting.switch import (
+from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveSwitch,
     _attributes_have_changed,
@@ -102,7 +142,9 @@ from custom_components.adaptive_lighting.switch import (
     is_our_context,
     is_our_context_id,
 )
-from custom_components.adaptive_lighting.color_and_brightness import lerp_color_hsv
+from homeassistant.components.adaptive_lighting.color_and_brightness import (
+    lerp_color_hsv,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -233,19 +275,19 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     lights = [
         DemoLight(
             unique_id="light_1",
-            name="Bed Light",
+            device_name="Bed Light",
             state=True,
             ct=200,
         ),
         DemoLight(
             unique_id="light_2",
-            name="Ceiling Lights",
+            device_name="Ceiling Lights",
             state=True,
             ct=380,
         ),
         DemoLight(
             unique_id="light_3",
-            name="Kitchen Lights",
+            device_name="Kitchen Lights",
             state=False,
             hs_color=(345, 75),
             ct=240,
@@ -253,7 +295,7 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     ]
     for light in lights:
         light.hass = hass
-        slug = light.name.lower().replace(" ", "_")
+        slug = light.device_info["name"].lower().replace(" ", "_")
         light.entity_id = f"light.{slug}"
         await light.async_update_ha_state()
 
@@ -437,7 +479,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
 
     async def patch_time_and_update(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
@@ -529,7 +571,7 @@ async def test_light_settings(hass):
 
     async def patch_time_and_get_updated_states(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(
@@ -1870,7 +1912,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
 
     async def patch_time_and_update(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
@@ -2127,7 +2169,7 @@ async def test_brightness_mode(hass, brightness_mode, dark, light):
 
     async def patch_time_and_update(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)

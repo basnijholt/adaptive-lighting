@@ -23,8 +23,8 @@ RUN pip3 install -r /core/requirements.txt --use-pep517 && \
     pip3 install -r /core/requirements_test.txt --use-pep517 && \
     pip3 install -e /core/ --use-pep517
 
-# Clone the Adaptive Lighting repository
-RUN git clone https://github.com/basnijholt/adaptive-lighting.git /app
+# Copy the Adaptive Lighting repository
+COPY . /app/
 
 # Setup symlinks in core
 RUN ln -s /app/custom_components/adaptive_lighting /core/homeassistant/components/adaptive_lighting && \
@@ -36,6 +36,9 @@ RUN ln -s /app/custom_components/adaptive_lighting /core/homeassistant/component
 RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
 
 WORKDIR /core
+
+# Make 'custom_components/adaptive_lighting' imports available to tests
+ENV PYTHONPATH="${PYTHONPATH}:/app"
 
 ENTRYPOINT ["python3", \
     # Enable Python development mode
