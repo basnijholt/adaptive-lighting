@@ -2,15 +2,14 @@
 
 from unittest.mock import AsyncMock
 
+from homeassistant.components.adaptive_lighting.adaptation_utils import ServiceData
+from homeassistant.components.adaptive_lighting.hass_utils import (
+    setup_service_call_interceptor,
+)
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.const import SERVICE_TURN_ON
 from homeassistant.core import ServiceCall
 from homeassistant.util.read_only_dict import ReadOnlyDict
-
-from custom_components.adaptive_lighting.adaptation_utils import ServiceData
-from custom_components.adaptive_lighting.hass_utils import (
-    setup_service_call_interceptor,
-)
 
 
 async def test_setup_service_call_interceptor(hass):
