@@ -293,10 +293,9 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
             ct=240,
         ),
     ]
-    for light in lights:
+    for i, light in enumerate(lights, start=1):
         light.hass = hass
-        slug = light.device_info["name"].lower().replace(" ", "_")
-        light.entity_id = f"light.{slug}"
+        light.entity_id = f"light.light_{i}"
         await light.async_update_ha_state()
 
     platform.ENTITIES.extend(lights)
