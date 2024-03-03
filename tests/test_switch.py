@@ -1356,7 +1356,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     assert sleep_color_temp != color_temp
 
 
-async def test_area(hass):
+async def test_light_switch_in_specific_area(hass):
     switch, (light, *_) = await setup_lights_and_switch(hass)
 
     area_registry = mock_area_registry(hass)
