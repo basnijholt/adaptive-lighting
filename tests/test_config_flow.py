@@ -1,4 +1,5 @@
 """Test Adaptive Lighting config flow."""
+
 from homeassistant import data_entry_flow
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_NAME

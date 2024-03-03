@@ -17,10 +17,10 @@
   "options": {
     "step": {
       "init": {
-        "title": "Nastavení adaptivního osvětlení",
+        "title": "Nastavení Adaptivního osvětlení",
         "description": "Všechna nastavení komponenty Adaptivního osvětlení. Názvy možností odpovídají nastavení YAML. Pokud máte v konfiguraci YAML definovánu položku 'adaptive_lighting', nezobrazí se žádné možnosti.",
         "data": {
-          "lights": "osvětlení",
+          "lights": "lights: Seznam světel (entity_id), které mají být ovládané (může být prázdný). 🌟",
           "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",
           "sleep_transition": "sleep_transition: Prodleva pro přepnutí do „režimu spánku“ (sekundy)",
           "interval": "interval: Prodleva pro změny osvětlení (v sekundách)",
@@ -44,11 +44,11 @@
           "min_sunset_time": "min_sunset_time: Ruční přepsání nejdřívějšího času západu slunce, pokud je „None“, použije se skutečný čas západu slunce vaší lokality (HH:MM:SS)",
           "take_over_control": "take_over_control: Je-li volán 'light.turn_on' z jiného zdroje, než Adaptivním osvětlením, když je světlo již rozsvíceno, přestaňte toto světlo ovládat, dokud není vypnuto -> zapnuto (nebo i vypínačem).",
           "detect_non_ha_changes": "detect_non_ha_changes: detekuje všechny změny >10%  provedených pro osvětlení (také mimo HA), vyžaduje povolení atributu 'take_over_control' (každý 'interval' spouští 'homeassistant.update_entity'!)",
-          "transition": "transition: doba přechodu při změně osvětlení (sekundy)",
-          "adapt_delay": "adapt_delay: prodleva mezi zapnutím světla ( sekundy) a projevem změny v Adaptivní osvětlení. Může předcházet blikání.",
+          "transition": "",
+          "adapt_delay": "",
           "transition_until_sleep": "transition_until_sleep: Pokud je zapnuto, Adaptive Lighting bude zacházet s nastavením spánku jako s minimem, na tyto hodnoty přejde po západu slunce. 🌙",
           "multi_light_intercept": "multi_light_intercept: Zachytí a přizpůsobí volání `light.turn_on`, která se zaměřují na více světel. ➗⚠️ To může vést k rozdělení jednoho volání `light.turn_on` na více volání, např. když jsou světla v různých vypínačích. Vyžaduje, aby bylo povoleno `intercept`.",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Při prvním zapnutí světel. Je-li nastaveno na `true`, AL se přizpůsobí pouze tehdy, je-li vyvoláno `light.turn_on` bez zadání barvy nebo jasu. ❌🌈 Tím se např. zabrání přizpůsobení při aktivaci scény. Pokud je `false`, AL se přizpůsobí bez ohledu na přítomnost barvy nebo jasu v počátečních `service_data`. Vyžaduje zapnutí funkce `take_over_control`. 🕵️ ",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Jenom při prvním zapnutí světel. Je-li nastaveno na `true`, AL udělá přizpůsobení pouze tehdy, je-li vyvoláno `light.turn_on` bez zadání barvy nebo jasu. ❌🌈 Tím se zabrání přizpůsobení např. při aktivaci scény. Pokud je `false`, AL udělá přizpůsobení bez ohledu na přítomnost barvy nebo jasu `service_data` volání. Vyžaduje zapnutí `take_over_control`. 🕵️ ",
           "skip_redundant_commands": "skip_redundant_commands: Přeskočí odesílání adaptačních příkazů, jejichž cílový stav se již rovná známému stavu světla. Minimalizuje síťový provoz a v některých situacích zlepšuje odezvu adaptace. 📉Zakažte, pokud se fyzické stavy světel dostanou mimo synchronizaci se zaznamenaným stavem HA.",
           "intercept": "intercept: Zachytit a přizpůsobit volání `light.turn_on` a umožnit tak okamžité přizpůsobení barev a jasu. 🏎️ Zakažte pro světla, která nepodporují `light.turn_on` s barvou a jasem najednou.",
           "include_config_in_attributes": "include_config_in_attributes: Zobrazit všechny možnosti jako atributy přepínače v Home Assistant, pokud je nastaveno na `true`. 📝"
@@ -59,16 +59,16 @@
           "sleep_transition": "Doba trvání přechodu do režimu spánku v sekundách. 😴",
           "autoreset_control_seconds": "Automatické resetování ručního ovládání po určitém počtu sekund. Nastavením na 0 se vypne. ⏲️",
           "min_sunset_time": "Nastavte nejbližší virtuální čas západu slunce (HH:MM:SS), abyste mohli nastavit pozdější západ slunce. 🌅",
-          "sleep_brightness": "Jas světel v procentech během režimu spánku",
+          "sleep_brightness": "Jas světel během režimu spánku (v %). 😴",
           "min_sunrise_time": "Nastavte nejbližší virtuální čas východu slunce (HH:MM:SS), abyste mohli nastavit pozdější východ slunce. 🌅",
           "interval": "Frekvence přizpůsobení světel v sekundách. 🔄",
           "adapt_delay": "Doba čekání (v sekundách) mezi zapnutím světla a změnou adaptivního osvětlení. Mohlo by to pomoci zabránit blikání. ⏲️",
           "sleep_rgb_color": "RGB barva v režimu spánku (používané když `sleep_rgb_or_color_temp` je \"rgb_color\"). 🌈",
-          "sunrise_offset": "Upravte čas východu slunce s pozitivním nebo negativním posunem v sekundách. ⏰",
+          "sunrise_offset": "Upravte čas východu slunce o sekundy dopředu nebo dozadu. ⏰",
           "transition": "Doba trvání přechodu změny světel v sekundách. 🕑",
           "brightness_mode": "Výběr režimu jasu. Možné hodnoty jsou `default`, `linear` a `tanh` (používá `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
           "brightness_mode_time_light": "(Ignorováno, pokud `brightness_mode='default'`) Doba trvání v sekundách pro zvýšení/snížení jasu po/před východem/západem slunce. 📈📉.",
-          "sunset_offset": "Nastavte čas západu slunce s kladným nebo záporným posunem v sekundách. ⏰",
+          "sunset_offset": "Upravte čas západu slunce o sekundy dopředu nebo dozadu. ⏰",
           "sunset_time": "Nastavit pevný čas (HH:MM:SS) pro západ slunce. 🌅",
           "max_sunset_time": "Nastavte nejpozdější virtuální čas západu slunce (HH:MM:SS), což umožňuje dřívější západ slunce. 🌅",
           "sunrise_time": "Nastavit pevný čas (HH:MM:SS) pro východ slunce. 🌅",
@@ -88,13 +88,13 @@
     "change_switch_settings": {
       "fields": {
         "sleep_brightness": {
-          "description": "Jas světel v procentech během režimu spánku"
+          "description": "Jas světel během režimu spánku (v %). 😴"
         },
         "detect_non_ha_changes": {
           "description": "Zjistí a zastaví adaptace při změnách stavu, které nejsou ve stavu `light.turn_on`. Nutno mít zapnutou funkci `take_over_control`. 🕵️ Upozornění: ⚠️ Některá světla mohou falešně indikovat stav 'zapnuto', což může vést k neočekávanému zapnutí světel. Pokud se s takovými problémy setkáte, zakažte tuto funkci."
         },
         "sunrise_offset": {
-          "description": "Upravte čas východu slunce s pozitivním nebo negativním posunem v sekundách. ⏰"
+          "description": "Upravte čas východu slunce o sekundy dopředu nebo dozadu. ⏰"
         },
         "max_sunrise_time": {
           "description": "Nastavte nejpozdější virtuální čas východu slunce (HH:MM:SS), což umožňuje dřívější východ slunce. 🌅"
@@ -145,7 +145,7 @@
           "description": "Doba čekání (v sekundách) mezi zapnutím světla a změnou adaptivního osvětlení. Mohlo by to pomoci zabránit blikání."
         },
         "only_once": {
-          "description": "Přizpůsobit světla pouze při zapnutí(`true`) nebo je nechat pokaždé přizpůsobit (`false`). 🔄"
+          "description": "Přizpůsobit světla pouze při zapnutí (`true`) nebo je průběžně přizpůsobovat (`false`). 🔄"
         },
         "use_defaults": {
           "description": "Nastaví výchozí hodnoty, které nebyly zadány v tomto volání služby. Možnosti: \"stávající\" (výchozí, zachovává aktuální hodnoty), \"výchozí\" (obnovuje do výchozích hodnot) nebo \"konfigurace\" (vrací výchozí hodnoty konfigurace přepínače). ⚙️"
@@ -160,7 +160,7 @@
           "description": "Nejchladnější teplota barvy v Kelvinech. ❄️"
         },
         "sunset_offset": {
-          "description": "Nastavte čas západu slunce s kladným nebo záporným posunem v sekundách. ⏰"
+          "description": "Upravte čas západu slunce o sekundy dopředu nebo dozadu. ⏰"
         },
         "send_split_delay": {
           "description": "Zpoždění (ms) mezi příkazy `separate_turn_on_commands` pro světla, která nepodporují současné nastavení jasu a barvy. ⏲️"
@@ -195,7 +195,7 @@
           "description": "Zda upřednostnit nastavení barev RGB před teplotou barev světla, pokud je to možné. 🌈"
         },
         "lights": {
-          "description": "Světlo (nebo seznam světel), na které se má nastavení použít. 💡"
+          "description": "Světlo (nebo seznam světel), na které se má nastavení aplikovat. 💡"
         },
         "transition": {
           "description": "Doba trvání přechodu změny světel v sekundách. 🕑"

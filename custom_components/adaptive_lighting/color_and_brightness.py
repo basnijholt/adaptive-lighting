@@ -1,4 +1,5 @@
 """Switch for the Adaptive Lighting integration."""
+
 from __future__ import annotations
 
 import bisect
@@ -432,6 +433,7 @@ def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:
     Notes
     -----
     The values of y1 and y2 should lie between 0 and 1, inclusive.
+
     """
     a = (math.atanh(2 * y2 - 1) - math.atanh(2 * y1 - 1)) / (x2 - x1)
     b = x1 - (math.atanh(2 * y1 - 1) / a)
@@ -477,6 +479,7 @@ def scaled_tanh(
     Returns
     -------
         float: The output of the function, which lies in the range [y_min, y_max].
+
     """
     a, b = find_a_b(x1, x2, y1, y2)
     return y_min + (y_max - y_min) * 0.5 * (math.tanh(a * (x - b)) + 1)

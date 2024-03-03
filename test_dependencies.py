@@ -1,4 +1,5 @@
 """Extracts the dependencies of the components required for testing."""
+
 from collections import defaultdict
 from pathlib import Path
 

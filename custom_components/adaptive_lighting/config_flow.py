@@ -1,4 +1,5 @@
 """Config flow for Adaptive Lighting integration."""
+
 import logging
 
 import homeassistant.helpers.config_validation as cv

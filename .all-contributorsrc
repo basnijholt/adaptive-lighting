@@ -593,6 +593,196 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "kylebjordahl",
+      "name": "Kyle Bjordahl",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3489222?v=4",
+      "profile": "https://github.com/kylebjordahl",
+      "contributions": [
+        "code",
+        "bug"
+      ]
+    },
+    {
+      "login": "olekbruks",
+      "name": "Olek Bruks",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8738016?v=4",
+      "profile": "https://github.com/olekbruks",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "theclue",
+      "name": "Gabriele Baldassarre",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1724406?v=4",
+      "profile": "https://gabrielebaldassarre.com",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "pbaart",
+      "name": "Pepijn Baart",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2856849?v=4",
+      "profile": "https://github.com/pbaart",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "pastukhov",
+      "name": "Artem Pastukhov",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3490616?v=4",
+      "profile": "http://ovoi.io",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "mstefany",
+      "name": "Martin Štefany",
+      "avatar_url": "https://avatars.githubusercontent.com/u/57348587?v=4",
+      "profile": "https://stefany.eu",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "quenthal",
+      "name": "quenthal",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17827203?v=4",
+      "profile": "https://github.com/quenthal",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "Luki72",
+      "name": "Luki72",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22493116?v=4",
+      "profile": "https://github.com/Luki72",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "pantan-cymk",
+      "name": "pantan-cymk",
+      "avatar_url": "https://avatars.githubusercontent.com/u/87476229?v=4",
+      "profile": "https://github.com/pantan-cymk",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "yousaf465",
+      "name": "yousaf465",
+      "avatar_url": "https://avatars.githubusercontent.com/u/83491212?v=4",
+      "profile": "https://github.com/yousaf465",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "baylanger",
+      "name": "Pierre Belanger",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5240348?v=4",
+      "profile": "https://github.com/baylanger",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "jansigu",
+      "name": "Jan-Sigurd Sørensen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8410766?v=4",
+      "profile": "http://www.jan-sigurd.com",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "EF01",
+      "name": "EF01",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20759250?v=4",
+      "profile": "https://github.com/EF01",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "MrSnakeSPb",
+      "name": "Mr Snake",
+      "avatar_url": "https://avatars.githubusercontent.com/u/68160409?v=4",
+      "profile": "https://github.com/MrSnakeSPb",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "hungrymachine1",
+      "name": "hungrymachine1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/73683742?v=4",
+      "profile": "https://github.com/hungrymachine1",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "4D4M-Github",
+      "name": "4D4M-Github",
+      "avatar_url": "https://avatars.githubusercontent.com/u/123521171?v=4",
+      "profile": "https://github.com/4D4M-Github",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "sayaivan",
+      "name": "Ivan",
+      "avatar_url": "https://avatars.githubusercontent.com/u/49090860?v=4",
+      "profile": "https://github.com/sayaivan",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "Fllorent0D",
+      "name": "Florent Cardoen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13313104?v=4",
+      "profile": "https://www.floca.be",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "moemeli",
+      "name": "moemeli",
+      "avatar_url": "https://avatars.githubusercontent.com/u/73445184?v=4",
+      "profile": "https://github.com/moemeli",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "saya6k",
+      "name": "saya6k",
+      "avatar_url": "https://avatars.githubusercontent.com/u/63517312?v=4",
+      "profile": "https://github.com/saya6k",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "droans",
+      "name": "droans",
+      "avatar_url": "https://avatars.githubusercontent.com/u/49721649?v=4",
+      "profile": "https://github.com/droans",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

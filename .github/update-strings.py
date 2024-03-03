@@ -1,4 +1,5 @@
 """Update strings.json and en.json from const.py."""
+
 import json
 import sys
 from pathlib import Path
@@ -8,7 +9,7 @@ import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from custom_components.adaptive_lighting import const  # noqa: E402
+from custom_components.adaptive_lighting import const
 
 folder = Path("custom_components") / "adaptive_lighting"
 strings_fname = folder / "strings.json"

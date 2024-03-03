@@ -50,9 +50,9 @@ DOCS[CONF_INITIAL_TRANSITION] = (
 )
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
-DOCS[
-    CONF_SLEEP_TRANSITION
-] = 'Duration of transition when "sleep mode" is toggled in seconds. 😴'
+DOCS[CONF_SLEEP_TRANSITION] = (
+    'Duration of transition when "sleep mode" is toggled in seconds. 😴'
+)
 
 CONF_INTERVAL, DEFAULT_INTERVAL = "interval", 90
 DOCS[CONF_INTERVAL] = "Frequency to adapt the lights, in seconds. 🔄"
@@ -112,30 +112,30 @@ DOCS[CONF_SLEEP_COLOR_TEMP] = (
 )
 
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
-DOCS[
-    CONF_SLEEP_RGB_COLOR
-] = 'RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
+DOCS[CONF_SLEEP_RGB_COLOR] = (
+    'RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is "rgb_color"). 🌈'
+)
 
 CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
     "sleep_rgb_or_color_temp",
     "color_temp",
 )
-DOCS[
-    CONF_SLEEP_RGB_OR_COLOR_TEMP
-] = 'Use either `"rgb_color"` or `"color_temp"` in sleep mode. 🌙'
+DOCS[CONF_SLEEP_RGB_OR_COLOR_TEMP] = (
+    'Use either `"rgb_color"` or `"color_temp"` in sleep mode. 🌙'
+)
 
 CONF_SUNRISE_OFFSET, DEFAULT_SUNRISE_OFFSET = "sunrise_offset", 0
-DOCS[
-    CONF_SUNRISE_OFFSET
-] = "Adjust sunrise time with a positive or negative offset in seconds. ⏰"
+DOCS[CONF_SUNRISE_OFFSET] = (
+    "Adjust sunrise time with a positive or negative offset in seconds. ⏰"
+)
 
 CONF_SUNRISE_TIME = "sunrise_time"
 DOCS[CONF_SUNRISE_TIME] = "Set a fixed time (HH:MM:SS) for sunrise. 🌅"
 
 CONF_MIN_SUNRISE_TIME = "min_sunrise_time"
-DOCS[
-    CONF_MIN_SUNRISE_TIME
-] = "Set the earliest virtual sunrise time (HH:MM:SS), allowing for later sunrises. 🌅"
+DOCS[CONF_MIN_SUNRISE_TIME] = (
+    "Set the earliest virtual sunrise time (HH:MM:SS), allowing for later sunrises. 🌅"
+)
 
 CONF_MAX_SUNRISE_TIME = "max_sunrise_time"
 DOCS[CONF_MAX_SUNRISE_TIME] = (
@@ -144,22 +144,22 @@ DOCS[CONF_MAX_SUNRISE_TIME] = (
 )
 
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
-DOCS[
-    CONF_SUNSET_OFFSET
-] = "Adjust sunset time with a positive or negative offset in seconds. ⏰"
+DOCS[CONF_SUNSET_OFFSET] = (
+    "Adjust sunset time with a positive or negative offset in seconds. ⏰"
+)
 
 CONF_SUNSET_TIME = "sunset_time"
 DOCS[CONF_SUNSET_TIME] = "Set a fixed time (HH:MM:SS) for sunset. 🌇"
 
 CONF_MIN_SUNSET_TIME = "min_sunset_time"
-DOCS[
-    CONF_MIN_SUNSET_TIME
-] = "Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇"
+DOCS[CONF_MIN_SUNSET_TIME] = (
+    "Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇"
+)
 
 CONF_MAX_SUNSET_TIME = "max_sunset_time"
-DOCS[
-    CONF_MAX_SUNSET_TIME
-] = "Set the latest virtual sunset time (HH:MM:SS), allowing for earlier sunsets. 🌇"
+DOCS[CONF_MAX_SUNSET_TIME] = (
+    "Set the latest virtual sunset time (HH:MM:SS), allowing for earlier sunsets. 🌇"
+)
 
 CONF_BRIGHTNESS_MODE, DEFAULT_BRIGHTNESS_MODE = "brightness_mode", "default"
 DOCS[CONF_BRIGHTNESS_MODE] = (

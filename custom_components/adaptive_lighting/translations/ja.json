@@ -1,0 +1,39 @@
+{
+  "title": "適応型照明",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sunrise_offset": {
+          "description": "日の出時間を基準に秒単位で正値もしくは負値で調整する。⏰"
+        },
+        "only_once": {
+          "description": "適応型照明を照明がオンになっているときのみ（`true`）それとも適応し続ける場合は（`false`）。"
+        },
+        "sunset_offset": {
+          "description": "日の入時間を基準に秒単位で正値もしくは負値で調整する。⏰"
+        }
+      }
+    },
+    "apply": {
+      "fields": {
+        "lights": {
+          "description": "適応する照明（か照明のリスト）の設定。 💡"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: 最初に照明オンにするとき。`true`を設定すると、AL(適応型照明）は調色や明るさを指定せずや`light.turn_on`をしたときのみ適応します。❌🌈 例えば、適応型照明をシーンを有効にするときにしないようにする。`false`であれば、`service_data`に最初から、ALはシーンの状態に関係なく調色や明るさを適応する。`take_over_control`を有効にすることが必要。🕵️ "
+        },
+        "data_description": {
+          "sunrise_offset": "日の出時間を基準に秒単位で正値もしくは負値で調整する。⏰",
+          "sunset_offset": "日の入時間を基準に秒単位で正値もしくは負値で調整する。⏰"
+        },
+        "title": "適応型照明オプション"
+      }
+    }
+  }
+}

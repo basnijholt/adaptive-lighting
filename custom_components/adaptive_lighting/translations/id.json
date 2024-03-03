@@ -1,0 +1,202 @@
+{
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sleep_brightness": {
+          "description": "Persentase kecerahan lampu dalam mode tidur. 😴"
+        },
+        "detect_non_ha_changes": {
+          "description": "Mendeteksi dan menghentikan adaptasi untuk perubahan status non-`light.turn_on`. Perlu mengaktifkan `take_over_control`. 🕵️ Perhatian: ⚠️ Beberapa lampu mungkin salah menunjukkan status 'hidup' yang dapat mengakibatkan lampu menyala secara tidak terduga. Nonaktifkan fitur ini jika Anda mengalami masalah seperti itu."
+        },
+        "sunrise_offset": {
+          "description": "Sesuaikan waktu matahari terbit dengan offset positif atau negatif dalam hitungan detik. ⏰"
+        },
+        "max_sunrise_time": {
+          "description": "Atur waktu matahari terbit virtual terkini (HH:MM:SS), memungkinkan matahari terbit lebih cepat. 🌅"
+        },
+        "sleep_color_temp": {
+          "description": "Suhu warna dalam mode tidur (digunakan ketika `sleep_rgb_or_color_temp` adalah `color_temp`) dalam Kelvin. 😴"
+        },
+        "min_brightness": {
+          "description": "Persentase kecerahan minimum. 💡"
+        },
+        "min_color_temp": {
+          "description": "Suhu warna terhangat dalam Kelvin. 🔥"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Gunakan `\"rgb_color\"` atau `\"color_temp\"` dalam mode tidur. 🌙"
+        },
+        "turn_on_lights": {
+          "description": "Kalau ingin menyalakan lampu yang sedang mati. 🔆"
+        },
+        "initial_transition": {
+          "description": "Durasi transisi pertama saat lampu berubah dari `mati` ke `hidup` dalam hitungan detik. ⏲️"
+        },
+        "entity_id": {
+          "description": "ID Entitas sakelar. 📝"
+        },
+        "sunrise_time": {
+          "description": "Tetapkan waktu tetap (HH:MM:SS) untuk matahari terbit. 🌅"
+        },
+        "include_config_in_attributes": {
+          "description": "Tampilkan semua opsi sebagai atribut pada sakelar di Home Assistant ketika diatur ke `true`. 📝"
+        },
+        "max_brightness": {
+          "description": "Persentase kecerahan maksimum. 💡"
+        },
+        "sleep_rgb_color": {
+          "description": "Warna RGB dalam mode tidur (digunakan ketika `sleep_rgb_or_color_temp` adalah \"rgb_color\"). 🌈"
+        },
+        "take_over_control": {
+          "description": "Nonaktifkan Pencahayaan Adaptif jika sumber lain memanggil `light.turn_on` saat lampu menyala dan sedang diadaptasi. Perhatikan bahwa ini memanggil `homeassistant.update_entity` setiap `interval`! 🔒"
+        },
+        "sleep_transition": {
+          "description": "Durasi transisi ketika \"mode tidur\" diubah, dalam hitungan detik. 😴"
+        },
+        "autoreset_control_seconds": {
+          "description": "Secara otomatis mengatur ulang kontrol manual setelah beberapa detik. Setel ke 0 untuk menonaktifkan. ⏲️"
+        },
+        "adapt_delay": {
+          "description": "Waktu tunggu (detik) antara lampu menyala dan penerapan ubahan Pencahayaan Adaptif. Mungkin membantu untuk menghindari kedipan. ⏲️"
+        },
+        "only_once": {
+          "description": "Sesuaikan lampu hanya saat menyala (`true`) atau terus sesuaikan (`false`). 🔄"
+        },
+        "use_defaults": {
+          "description": "Menetapkan nilai bawaan yang tidak ditentukan dalam panggilan layanan ini. Opsi: \"current\" (bawaan, mempertahankan nilai saat ini), \"factory\" (direset ke nilai bawaan yang terdokumentasi), atau \"configuration\" (kembali ke nilai bawaan konfigurasi sakelar). ⚙️"
+        },
+        "separate_turn_on_commands": {
+          "description": "Gunakan panggilan `light.turn_on` terpisah untuk warna dan kecerahan, diperlukan untuk beberapa jenis lampu. 🔀"
+        },
+        "prefer_rgb_color": {
+          "description": "Kalau lebih memilih penyesuaian warna RGB dibandingkan suhu warna terang jika memungkinkan. 🌈"
+        },
+        "max_color_temp": {
+          "description": "Suhu warna terdingin dalam Kelvin. ❄️"
+        },
+        "sunset_offset": {
+          "description": "Sesuaikan waktu matahari terbenam dengan offset positif atau negatif dalam hitungan detik. ⏰"
+        },
+        "send_split_delay": {
+          "description": "Waktu tunda (ms) antara `separate_turn_on_commands` untuk lampu yang tidak mendukung pengaturan kecerahan dan warna secara bersamaan. ⏲️"
+        },
+        "sunset_time": {
+          "description": "Tetapkan waktu tetap (HH:MM:SS) untuk matahari terbenam. 🌇"
+        },
+        "transition": {
+          "description": "Durasi transisi saat lampu berganti, dalam hitungan detik. 🕑"
+        },
+        "min_sunset_time": {
+          "description": "Tetapkan waktu matahari terbenam virtual paling awal (HH:MM:SS), memungkinkan matahari terbenam di kemudian waktu. 🌇"
+        }
+      },
+      "description": "Ubah pengaturan apa pun yang Anda inginkan di sakelar. Semua opsi di sini sama seperti pada alur konfigurasi."
+    },
+    "apply": {
+      "fields": {
+        "entity_id": {
+          "description": "`eEntity_id` sakelar dengan pengaturan yang akan diterapkan. 📝"
+        },
+        "adapt_brightness": {
+          "description": "Kalau ingin menyesuaikan kecerahan lampu. 🌞"
+        },
+        "turn_on_lights": {
+          "description": "Kalau ingin menyalakan lampu yang sedang mati. 🔆"
+        },
+        "adapt_color": {
+          "description": "Kalau ingin menyesuaikan warna pada lampu pendukung. 🌈"
+        },
+        "prefer_rgb_color": {
+          "description": "Kalau lebih memilih penyesuaian warna RGB dibandingkan suhu warna terang jika memungkinkan. 🌈"
+        },
+        "lights": {
+          "description": "Lampu (atau daftar lampu) untuk menerapkan pengaturan. 💡"
+        },
+        "transition": {
+          "description": "Durasi transisi saat lampu berganti, dalam hitungan detik. 🕑"
+        }
+      },
+      "description": "Menerapkan pengaturan Pencahayaan Adaptif saat ini ke lampu."
+    },
+    "set_manual_control": {
+      "fields": {
+        "manual_control": {
+          "description": "Kalau ingin menambahkan (\"true\") atau menghapus (\"false\") lampu dari daftar \"manual_control\". 🔒"
+        },
+        "entity_id": {
+          "description": "`entity_id` dari sakelar yang digunakan untuk membatalkan penandaan lampu sebagai `manually controlled`. 📝"
+        },
+        "lights": {
+          "description": "entity_id(s) lampu, jika tidak ditentukan, semua lampu di sakelar dipilih. 💡"
+        }
+      },
+      "description": "Tandai kalau lampu 'dikontrol secara manual'."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "sleep_rgb_or_color_temp": "Gunakan `\"rgb_color\"` atau `\"color_temp\"` dalam mode tidur. 🌙",
+          "sleep_color_temp": "Suhu warna dalam mode tidur (digunakan ketika `sleep_rgb_or_color_temp` adalah `color_temp`) dalam Kelvin. 😴",
+          "sleep_transition": "Durasi transisi ketika \"mode tidur\" diubah, dalam hitungan detik. 😴",
+          "autoreset_control_seconds": "Secara otomatis mengatur ulang kontrol manual setelah beberapa detik. Setel ke 0 untuk menonaktifkan. ⏲️",
+          "min_sunset_time": "Tetapkan waktu matahari terbenam virtual paling awal (HH:MM:SS), memungkinkan matahari terbenam di kemudian waktu. 🌇",
+          "sleep_brightness": "Persentase kecerahan lampu dalam mode tidur. 😴",
+          "min_sunrise_time": "Tetapkan waktu matahari terbit virtual paling awal (HH:MM:SS), memungkinkan matahari terbit di kemudian waktu. 🌅",
+          "interval": "Frekuensi untuk menyesuaikan lampu, dalam hitungan detik. 🔄",
+          "adapt_delay": "Waktu tunggu (detik) antara lampu menyala dan penerapan ubahan Pencahayaan Adaptif. Mungkin membantu untuk menghindari kedipan. ⏲️",
+          "sleep_rgb_color": "Warna RGB dalam mode tidur (digunakan ketika `sleep_rgb_or_color_temp` adalah \"rgb_color\"). 🌈",
+          "sunrise_offset": "Sesuaikan waktu matahari terbit dengan offset positif atau negatif dalam hitungan detik. ⏰",
+          "transition": "Durasi transisi saat lampu berganti, dalam hitungan detik. 🕑",
+          "brightness_mode": "Mode kecerahan untuk digunakan. Nilai yang memungkinkan adalah `default`, `linear`, dan `tanh` (menggunakan `brightness_mode_time_dark` dan `brightness_mode_time_light`). 📈",
+          "brightness_mode_time_light": "(Ignored if `brightness_mode='default'`) Durasi dalam hitungan detik untuk meningkatkan/menurunkan kecerahan setelah/sebelum matahari terbit/terbenam. 📈📉.",
+          "sunset_offset": "Sesuaikan waktu matahari terbenam dengan offset positif atau negatif dalam hitungan detik. ⏰",
+          "sunset_time": "Tetapkan waktu tetap (HH:MM:SS) untuk matahari terbenam. 🌇",
+          "max_sunset_time": "Atur waktu matahari terbenam virtual terkini (HH:MM:SS), memungkinkan matahari terbenam lebih cepat. 🌇",
+          "sunrise_time": "Tetapkan waktu tetap (HH:MM:SS) untuk matahari terbit. 🌅",
+          "initial_transition": "Durasi transisi pertama saat lampu berubah dari `mati` ke `hidup` dalam hitungan detik. ⏲️",
+          "brightness_mode_time_dark": "(Diabaikan jika `brightness_mode='default'`) Durasi dalam hitungan detik untuk meningkatkan/menurunkan kecerahan sebelum/sesudah matahari terbit/terbenam. 📈📉",
+          "max_sunrise_time": "Atur waktu matahari terbit virtual terkini (HH:MM:SS), memungkinkan matahari terbit lebih cepat. 🌅",
+          "send_split_delay": "Waktu tunda (ms) antara `separate_turn_on_commands` untuk lampu yang tidak mendukung pengaturan kecerahan dan warna secara bersamaan. ⏲️"
+        },
+        "data": {
+          "detect_non_ha_changes": "detect_non_ha_changes: Mendeteksi dan menghentikan adaptasi untuk perubahan status non-`light.turn_on`. Perlu mengaktifkan `take_over_control`. 🕵️ Perhatian: ⚠️ Beberapa lampu mungkin salah menunjukkan status 'hidup' yang dapat mengakibatkan lampu menyala secara tidak terduga. Nonaktifkan fitur ini jika Anda mengalami masalah seperti itu.",
+          "multi_light_intercept": "multi_light_intercept: Cegat dan sesuaikan panggilan `light.turn_on` yang menargetkan banyak lampu. ➗⚠️ Hal ini dapat mengakibatkan satu panggilan `light.turn_on` terpecah menjadi beberapa panggilan, misalnya saat lampu berada di sakelar yang berbeda. Membutuhkan `intercept` untuk diaktifkan.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Saat menyalakan lampu pada awalnya. Jika disetel ke `true`, Pencahayaan Adaptif hanya beradaptasi jika `light.turn_on` dipanggil tanpa menentukan warna atau kecerahan. ❌🌈 Misalnya mencegah adaptasi saat mengaktifkan scene. Jika `false`, Pencahayaan Adaptif beradaptasi terlepas dari keberadaan warna atau kecerahan di `service_data` awal. Perlu mengaktifkan `take_over_control`. 🕵️ ",
+          "skip_redundant_commands": "skip_redundant_commands: Lewati pengiriman perintah adaptasi yang status targetnya sudah sama dengan status cahaya yang diketahui. Meminimalkan lalu lintas jaringan dan meningkatkan respons adaptasi dalam beberapa situasi. 📉Nonaktifkan jika status cahaya fisik tidak sinkron dengan status rekaman HA.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Gunakan panggilan `light.turn_on` terpisah untuk warna dan kecerahan, diperlukan untuk beberapa jenis lampu. 🔀",
+          "max_color_temp": "max_color_temp: Suhu warna terdingin dalam Kelvin. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Kalau lebih memilih penyesuaian warna RGB dibandingkan suhu warna terang jika memungkinkan. 🌈",
+          "max_brightness": "max_brightness: Persentase kecerahan maksimum. 💡",
+          "intercept": "intercept: Cegat dan sesuaikan panggilan `light.turn_on` untuk mengaktifkan adaptasi warna dan kecerahan seketika. 🏎️ Nonaktifkan untuk lampu yang tidak mendukung `light.turn_on` dengan warna dan kecerahan.",
+          "only_once": "only_once: Sesuaikan lampu hanya saat menyala (`true`) atau terus sesuaikan (`false`). 🔄",
+          "take_over_control": "take_over_control: Nonaktifkan Pencahayaan Adaptif jika sumber lain memanggil `light.turn_on` saat lampu menyala dan sedang diadaptasi. Perhatikan bahwa ini memanggil `homeassistant.update_entity` setiap `interval`! 🔒",
+          "lights": "lights: Daftar entity_ids  lampu yang akan dikontrol (boleh kosong). 🌟",
+          "min_brightness": "min_brightness: Persentase kecerahan minimum. 💡",
+          "min_color_temp": "min_color_temp: Suhu warna terhangat dalam Kelvin. 🔥",
+          "transition_until_sleep": "transition_until_sleep: Jika diaktifkan, Pencahayaan Adaptif akan menganggap pengaturan tidur sebagai minimum, dan beralih ke nilai ini setelah matahari terbenam. 🌙",
+          "include_config_in_attributes": "include_config_in_attributes: Tampilkan semua opsi sebagai atribut pada sakelar di Home Assistant ketika diatur ke `true`. 📝"
+        },
+        "title": "Opsi Pencahayaan Adaptif",
+        "description": "Konfigurasikan komponen Pencahayaan Adaptif. Nama opsi selaras dengan pengaturan YAML. Jika Anda telah menentukan entri ini di YAML, tidak ada opsi yang akan muncul di sini. Untuk grafik interaktif yang menunjukkan efek parameter, kunjungi [aplikasi web ini](https://basnijholt.github.io/adaptive-lighting). Untuk detail lebih lanjut, lihat [dokumentasi resmi](https://github.com/basnijholt/adaptive-lighting#readme)."
+      }
+    },
+    "error": {
+      "option_error": "Opsi tidak valid",
+      "entity_missing": "Satu atau lebih entitas cahaya yang dipilih hilang dari Home Assistant"
+    }
+  },
+  "title": "Pencahayaan Adaptif",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Setiap instance dapat berisi banyak lampu!",
+        "title": "Pilih nama untuk instance Pencahayaan Adaptif"
+      }
+    },
+    "abort": {
+      "already_configured": "Perangkat ini sudah dikonfigurasi"
+    }
+  }
+}

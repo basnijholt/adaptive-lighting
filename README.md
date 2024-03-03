@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-64-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-85-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -79,7 +79,7 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
 
 ## :gear: Configuration
 
-Adaptive Lighting supports configuration through both YAML and the frontend (**Configuration** -> **Integrations** -> **Adaptive Lighting**, **Adaptive Lighting** -> **Options**), with identical option names in both methods.
+Adaptive Lighting supports configuration through both YAML and the frontend (**Settings** -> **Devices and Services** -> **Adaptive Lighting**, **Adaptive Lighting** -> **Options**), with identical option names in both methods.
 
 ```yaml
 # Example configuration.yaml entry
@@ -87,6 +87,7 @@ adaptive_lighting:
   lights:
     - light.living_room_lights
 ```
+Note: If you plan to strictly use the UI, the `adaptive_lighting:` entry must still be added to the YAML.
 
 Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the benefits of intelligent, sun-synchronized lighting today!
 
@@ -547,6 +548,33 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Z-weapon"><img src="https://avatars.githubusercontent.com/u/13939632?v=4?s=100" width="100px;" alt="Z-weapon"/><br /><sub><b>Z-weapon</b></sub></a><br /><a href="#translation-Z-weapon" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kylebjordahl"><img src="https://avatars.githubusercontent.com/u/3489222?v=4?s=100" width="100px;" alt="Kyle Bjordahl"/><br /><sub><b>Kyle Bjordahl</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=kylebjordahl" title="Code">💻</a> <a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Akylebjordahl" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/olekbruks"><img src="https://avatars.githubusercontent.com/u/8738016?v=4?s=100" width="100px;" alt="Olek Bruks"/><br /><sub><b>Olek Bruks</b></sub></a><br /><a href="#translation-olekbruks" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://gabrielebaldassarre.com"><img src="https://avatars.githubusercontent.com/u/1724406?v=4?s=100" width="100px;" alt="Gabriele Baldassarre"/><br /><sub><b>Gabriele Baldassarre</b></sub></a><br /><a href="#translation-theclue" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/pbaart"><img src="https://avatars.githubusercontent.com/u/2856849?v=4?s=100" width="100px;" alt="Pepijn Baart"/><br /><sub><b>Pepijn Baart</b></sub></a><br /><a href="#translation-pbaart" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://ovoi.io"><img src="https://avatars.githubusercontent.com/u/3490616?v=4?s=100" width="100px;" alt="Artem Pastukhov"/><br /><sub><b>Artem Pastukhov</b></sub></a><br /><a href="#translation-pastukhov" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://stefany.eu"><img src="https://avatars.githubusercontent.com/u/57348587?v=4?s=100" width="100px;" alt="Martin Štefany"/><br /><sub><b>Martin Štefany</b></sub></a><br /><a href="#translation-mstefany" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/quenthal"><img src="https://avatars.githubusercontent.com/u/17827203?v=4?s=100" width="100px;" alt="quenthal"/><br /><sub><b>quenthal</b></sub></a><br /><a href="#translation-quenthal" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Luki72"><img src="https://avatars.githubusercontent.com/u/22493116?v=4?s=100" width="100px;" alt="Luki72"/><br /><sub><b>Luki72</b></sub></a><br /><a href="#translation-Luki72" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/pantan-cymk"><img src="https://avatars.githubusercontent.com/u/87476229?v=4?s=100" width="100px;" alt="pantan-cymk"/><br /><sub><b>pantan-cymk</b></sub></a><br /><a href="#translation-pantan-cymk" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/yousaf465"><img src="https://avatars.githubusercontent.com/u/83491212?v=4?s=100" width="100px;" alt="yousaf465"/><br /><sub><b>yousaf465</b></sub></a><br /><a href="#translation-yousaf465" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/baylanger"><img src="https://avatars.githubusercontent.com/u/5240348?v=4?s=100" width="100px;" alt="Pierre Belanger"/><br /><sub><b>Pierre Belanger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=baylanger" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://www.jan-sigurd.com"><img src="https://avatars.githubusercontent.com/u/8410766?v=4?s=100" width="100px;" alt="Jan-Sigurd Sørensen"/><br /><sub><b>Jan-Sigurd Sørensen</b></sub></a><br /><a href="#translation-jansigu" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/EF01"><img src="https://avatars.githubusercontent.com/u/20759250?v=4?s=100" width="100px;" alt="EF01"/><br /><sub><b>EF01</b></sub></a><br /><a href="#translation-EF01" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/MrSnakeSPb"><img src="https://avatars.githubusercontent.com/u/68160409?v=4?s=100" width="100px;" alt="Mr Snake"/><br /><sub><b>Mr Snake</b></sub></a><br /><a href="#translation-MrSnakeSPb" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/hungrymachine1"><img src="https://avatars.githubusercontent.com/u/73683742?v=4?s=100" width="100px;" alt="hungrymachine1"/><br /><sub><b>hungrymachine1</b></sub></a><br /><a href="#translation-hungrymachine1" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/4D4M-Github"><img src="https://avatars.githubusercontent.com/u/123521171?v=4?s=100" width="100px;" alt="4D4M-Github"/><br /><sub><b>4D4M-Github</b></sub></a><br /><a href="#translation-4D4M-Github" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/sayaivan"><img src="https://avatars.githubusercontent.com/u/49090860?v=4?s=100" width="100px;" alt="Ivan"/><br /><sub><b>Ivan</b></sub></a><br /><a href="#translation-sayaivan" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://www.floca.be"><img src="https://avatars.githubusercontent.com/u/13313104?v=4?s=100" width="100px;" alt="Florent Cardoen"/><br /><sub><b>Florent Cardoen</b></sub></a><br /><a href="#translation-Fllorent0D" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/moemeli"><img src="https://avatars.githubusercontent.com/u/73445184?v=4?s=100" width="100px;" alt="moemeli"/><br /><sub><b>moemeli</b></sub></a><br /><a href="#translation-moemeli" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/saya6k"><img src="https://avatars.githubusercontent.com/u/63517312?v=4?s=100" width="100px;" alt="saya6k"/><br /><sub><b>saya6k</b></sub></a><br /><a href="#translation-saya6k" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/droans"><img src="https://avatars.githubusercontent.com/u/49721649?v=4?s=100" width="100px;" alt="droans"/><br /><sub><b>droans</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=droans" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>

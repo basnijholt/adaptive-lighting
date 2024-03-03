@@ -1,0 +1,70 @@
+{
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sleep_brightness": {
+          "description": "Valojen kirkkausmäärä prosenteissa unitilassa (sleep mode)."
+        },
+        "sunrise_offset": {
+          "description": "Muuta auringonnousun aikaa positiivisella tai negatiivisella korjauksella määritettynä sekunneissa."
+        },
+        "initial_transition": {
+          "description": "Ensimmäisen siirtymän kesto sekunneissa, kun valot kytketään 'off'-tilasta 'on'-tilaan."
+        },
+        "autoreset_control_seconds": {
+          "description": "Resetoi manuaalisen ohjauksen automaattisesti määritetyn sekuntimäärän jälkeen. Aseta arvoon 0 jos et halua käyttää asetusta."
+        },
+        "only_once": {
+          "description": "Adaptoi valoja vain kun ne kytketään päälle ('true') tai adaptoi niitä jatkuvasti ('false')"
+        },
+        "max_color_temp": {
+          "description": "Kylmin värilämpötila Kelvin-asteikolla."
+        },
+        "sunset_offset": {
+          "description": "Muuta auringonlaskun aikaa positiivisella tai negatiivisella korjauksella määritettynä sekunneissa."
+        },
+        "send_split_delay": {
+          "description": "Viive (ms) `separate_turn_on_commands` välillä valoille, jotka eivät tue yhtäaikaista kirkkauden ja värilämpötilan säätöä."
+        },
+        "transition": {
+          "description": "Valojen siirtymän kesto sekunneissa, kun valaistusta muutetaan."
+        }
+      }
+    },
+    "apply": {
+      "description": "Asettaa nykyiset Adaptiivisen Valaistuksen asetukset valoihin.",
+      "fields": {
+        "lights": {
+          "description": "Valo (tai lista valoista) joihin näitä asetuksia sovelletaan."
+        },
+        "transition": {
+          "description": "Valojen siirtymän kesto sekunneissa, kun valaistusta muutetaan."
+        }
+      }
+    }
+  },
+  "title": "Adaptiivinen valaistus",
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "autoreset_control_seconds": "Resetoi manuaalisen ohjauksen automaattisesti määritetyn sekuntimäärän jälkeen. Aseta arvoon 0 jos et halua käyttää asetusta.",
+          "sleep_brightness": "Valojen kirkkausmäärä prosenteissa unitilassa (sleep mode).",
+          "sunrise_offset": "Muuta auringonnousun aikaa positiivisella tai negatiivisella korjauksella määritettynä sekunneissa.",
+          "transition": "Valojen siirtymän kesto sekunneissa, kun valaistusta muutetaan.",
+          "brightness_mode": "Kirkkaus-moodi jota käytetään. Mahdolliset arvot ovat `default`, `linear`, and `tanh` (käyttää arvoja `brightness_mode_time_dark` ja `brightness_mode_time_light`).",
+          "sunset_offset": "Muuta auringonlaskun aikaa positiivisella tai negatiivisella korjauksella määritettynä sekunneissa.",
+          "initial_transition": "Ensimmäisen siirtymän kesto sekunneissa, kun valot kytketään 'off'-tilasta 'on'-tilaan.",
+          "send_split_delay": "Viive (ms) `separate_turn_on_commands` välillä valoille, jotka eivät tue yhtäaikaista kirkkauden ja värilämpötilan säätöä."
+        }
+      }
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Valitse nimi tälle Adaptiivisen Valaistuksen esiintymälle"
+      }
+    }
+  }
+}
