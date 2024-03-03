@@ -22,7 +22,7 @@ from custom_components.adaptive_lighting.adaptation_utils import (
 
 
 @pytest.mark.parametrize(
-    "input_data,expected_data_list",
+    ("input_data", "expected_data_list"),
     [
         (
             {"foo": 1},
@@ -72,7 +72,7 @@ async def test_split_service_call_data(input_data, expected_data_list):
 
 
 @pytest.mark.parametrize(
-    "service_data,state,service_data_expected",
+    ("service_data", "state", "service_data_expected"),
     [
         (
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
@@ -106,7 +106,7 @@ async def test_remove_redundant_attributes(
 
 
 @pytest.mark.parametrize(
-    "service_data,expected_relevant",
+    ("service_data", "expected_relevant"),
     [
         (
             {ATTR_ENTITY_ID: "light.test"},
@@ -130,12 +130,12 @@ async def test_has_relevant_service_data_attributes(
     service_data: ServiceData,
     expected_relevant: bool,
 ):
-    """Test the determination of relevancy of service data"""
+    """Test the determination of relevancy of service data."""
     assert _has_relevant_service_data_attributes(service_data) == expected_relevant
 
 
 @pytest.mark.parametrize(
-    "service_datas,filter_by_state,service_datas_expected",
+    ("service_datas", "filter_by_state", "service_datas_expected"),
     [
         (
             [{ATTR_ENTITY_ID: "light.test"}],
@@ -219,7 +219,13 @@ async def test_create_service_call_data_iterator(
 
 
 @pytest.mark.parametrize(
-    "service_data,split,filter_by_state,service_datas_expected,sleep_time_expected",
+    (
+        "service_data",
+        "split",
+        "filter_by_state",
+        "service_datas_expected",
+        "sleep_time_expected",
+    ),
     [
         (
             {

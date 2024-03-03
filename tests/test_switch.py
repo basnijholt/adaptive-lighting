@@ -2,6 +2,7 @@
 
 # pylint: disable=protected-access
 import asyncio
+import contextlib
 import datetime
 import logging
 from copy import deepcopy
@@ -388,7 +389,7 @@ async def test_adaptive_lighting_switches(hass):
     assert len(data.keys()) == 5
 
 
-@pytest.mark.parametrize("lat,long,timezone", LAT_LONG_TZS)
+@pytest.mark.parametrize(("lat", "long", "timezone"), LAT_LONG_TZS)
 async def test_adaptive_lighting_time_zones_with_default_settings(
     hass,
     lat,
@@ -408,7 +409,7 @@ async def test_adaptive_lighting_time_zones_with_default_settings(
     )
 
 
-@pytest.mark.parametrize("lat,long,timezone", LAT_LONG_TZS)
+@pytest.mark.parametrize(("lat", "long", "timezone"), LAT_LONG_TZS)
 async def test_adaptive_lighting_time_zones_and_sun_settings(
     hass,
     lat,
@@ -779,10 +780,10 @@ async def test_manual_control(
 
     # Check that when no lights are specified, all are reset
     await change_manual_control(True, {CONF_LIGHTS: switch.lights})
-    assert all([manual_control[eid] for eid in switch.lights])
+    assert all(manual_control[eid] for eid in switch.lights)
     # do not pass "lights" so reset all
     await change_manual_control(False, {})
-    assert all([not manual_control[eid] for eid in switch.lights])
+    assert all(not manual_control[eid] for eid in switch.lights)
 
     # Turn off light and turn on using adaptive_lighting.apply
     await turn_light(False)
@@ -991,12 +992,12 @@ def test_attributes_have_changed():
         ATTR_RGB_COLOR: (255, 0, 0),
         ATTR_COLOR_TEMP_KELVIN: 300,
     }
-    kwargs = dict(
-        light="light.test",
-        adapt_brightness=True,
-        adapt_color=True,
-        context=Context(),
-    )
+    kwargs = {
+        "light": "light.test",
+        "adapt_brightness": True,
+        "adapt_color": True,
+        "context": Context(),
+    }
     assert not _attributes_have_changed(
         old_attributes=attributes_1,
         new_attributes=attributes_1,
@@ -1189,14 +1190,16 @@ async def test_state_change_handlers(hass):
     await asyncio.sleep(transition_used / 3)
     # Ensure the timer still exists
     timer = listener.transition_timers.get(ENTITY_LIGHT_1)
-    assert timer and timer.is_running()
+    assert timer
+    assert timer.is_running()
     last_service_data = deepcopy(current_service_data)
     await update()
     assert not switch.manager.manual_control[ENTITY_LIGHT_1]
     await update()
     assert not switch.manager.manual_control[ENTITY_LIGHT_1]
     timer = listener.transition_timers.get(ENTITY_LIGHT_1)
-    assert timer and timer.is_running()
+    assert timer
+    assert timer.is_running()
     # Ensure the light did not adapt during the transition.
     assert last_service_data == current_service_data
 
@@ -1491,10 +1494,8 @@ async def test_service_calls_task_cancellation(hass):
 
     switch.manager.cancel_ongoing_adaptation_calls(entity_id)
 
-    try:
+    with contextlib.suppress(asyncio.CancelledError):
         await task
-    except asyncio.CancelledError:
-        pass
 
     assert task.cancelled()
 
@@ -1675,7 +1676,7 @@ async def test_proactive_adaptation_transition_override(hass):
 
 
 async def setup_proactive_multiple_lights_two_switches(hass):
-    lights_instances = await setup_lights(hass)
+    await setup_lights(hass)
     # Setup switches
     lights = [
         ENTITY_LIGHT_1,
@@ -2142,7 +2143,7 @@ async def test_light_group(
 
 
 @pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])
-@pytest.mark.parametrize("dark,light", ([900, 1800], [1800, 900], [1800, 1800]))
+@pytest.mark.parametrize(("dark", "light"), ([900, 1800], [1800, 900], [1800, 1800]))
 async def test_brightness_mode(hass, brightness_mode, dark, light):
     """Test brightness mode.
 
