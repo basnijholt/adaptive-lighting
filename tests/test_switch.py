@@ -1615,7 +1615,6 @@ async def test_proactive_adaptation_transition_override(hass):
         },
         True,
     )
-    _LOGGER.debug("yolo before")
     with patch.object(
         light3,
         "async_turn_on",
@@ -1634,7 +1633,6 @@ async def test_proactive_adaptation_transition_override(hass):
             {ATTR_ENTITY_ID: ENTITY_LIGHT_3, ATTR_TRANSITION: 456},
             blocking=True,
         )
-        _LOGGER.debug("yolo after")
 
     # Assert that default is used when no transition is specified in service call
     assert patched_async_turn_on.call_args_list, patched_async_turn_on.call_args_list
