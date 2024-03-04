@@ -70,7 +70,6 @@ from homeassistant.components.adaptive_lighting.switch import (
     is_our_context,
     is_our_context_id,
 )
-from homeassistant.components.demo.light import DemoLight
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
@@ -82,6 +81,7 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.components.template.light import LightTemplate
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
@@ -238,7 +238,7 @@ async def setup_lights_and_switch(
     hass,
     extra_conf=None,
     all_lights: bool = False,
-) -> tuple[AdaptiveSwitch, list[DemoLight]]:
+) -> tuple[AdaptiveSwitch, list[LightTemplate]]:
     """Create switch and demo lights."""
     # Setup demo lights and turn on
     lights_instances = await setup_lights(hass)

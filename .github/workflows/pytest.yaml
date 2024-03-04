@@ -85,6 +85,7 @@ jobs:
       - name: Run pytest
         timeout-minutes: 60
         run: |
+          export PYTHONPATH=${PYTHONPATH}:${PWD}
           cd core
           python3 -X dev -m pytest \
             -vvv \
