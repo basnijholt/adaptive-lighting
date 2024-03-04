@@ -27,10 +27,26 @@ jobs:
           - python-version: "3.10"
             core-version: "2023.4.6"
           - python-version: "3.10"
-            core-version: "2023.5.2"
+            core-version: "2023.5.4"
           - python-version: "3.11"
-            core-version: "2023.6.1"
+            core-version: "2023.6.3"
           - python-version: "3.11"
+            core-version: "2023.7.3"
+          - python-version: "3.11"
+            core-version: "2023.8.4"
+          - python-version: "3.11"
+            core-version: "2023.9.3"
+          - python-version: "3.11"
+            core-version: "2023.10.5"
+          - python-version: "3.11"
+            core-version: "2023.11.3"
+          - python-version: "3.11"
+            core-version: "2023.12.4"
+          - python-version: "3.11"
+            core-version: "2024.1.6"
+          - python-version: "3.11"
+            core-version: "2024.2.5"
+          - python-version: "3.12"
             core-version: "dev"
     steps:
       - name: Check out code from GitHub
@@ -56,6 +72,11 @@ jobs:
         run: |
           cd core
 
+          # Link homeassitant.components.adaptive_lighting
+          cd homeassistant/components
+          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
+          cd -
+
           # Link adaptive_lighting tests
           cd tests/components/
           ln -fs ../../../tests adaptive_lighting
@@ -71,10 +92,8 @@ jobs:
             -qq \
             --timeout=9 \
             --durations=10 \
-            --cov="custom_components.adaptive_lighting" \
+            --cov="homeassistant" \
             --cov-report=xml \
             -o console_output_style=count \
             -p no:sugar \
             tests/components/adaptive_lighting
-        env:
-          HA_CLONE: true

@@ -1,11 +1,7 @@
 """Test Adaptive Lighting config flow."""
 
 from homeassistant import data_entry_flow
-from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.const import CONF_NAME
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-from custom_components.adaptive_lighting.const import (
+from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     DEFAULT_NAME,
@@ -13,6 +9,10 @@ from custom_components.adaptive_lighting.const import (
     NONE_STR,
     VALIDATION_TUPLES,
 )
+from homeassistant.config_entries import SOURCE_IMPORT
+from homeassistant.const import CONF_NAME
+
+from tests.common import MockConfigEntry
 
 DEFAULT_DATA = {key: default for key, default, _ in VALIDATION_TUPLES}
 
