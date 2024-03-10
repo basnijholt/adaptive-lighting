@@ -780,6 +780,7 @@ async def test_auto_reset_manual_control(hass):
 
     async def update():
         await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
+        await asyncio.gather(*switch.manager.adaptation_tasks)
         await hass.async_block_till_done()
 
     async def turn_light(state, **kwargs):
@@ -813,10 +814,10 @@ async def test_auto_reset_manual_control(hass):
     )
 
     # Do a couple of quick changes and check that light is not reset
-    for i in range(3):
+    for i in range(15):  # do 15 changes to get to >0.1s
         _LOGGER.debug("Quick change %s", i)
         await turn_light(True, brightness=(i + 1) * 20)
-        await asyncio.sleep(0.05)  # Less than 0.1
+        await asyncio.sleep(0.01)  # Less than 0.1
         assert manual_control[light.entity_id]
 
     await update()
