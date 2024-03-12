@@ -1415,8 +1415,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         adapt_brightness = self.adapt_brightness_switch.is_on
         adapt_color = self.adapt_color_switch.is_on
-        assert isinstance(adapt_brightness, bool)
-        assert isinstance(adapt_color, bool)
+        assert isinstance(adapt_brightness, bool | None)
+        assert isinstance(adapt_color, bool | None)
         tasks = []
         for light in filtered_lights:
             manually_controlled = (
