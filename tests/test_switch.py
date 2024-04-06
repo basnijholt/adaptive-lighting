@@ -96,6 +96,7 @@ from homeassistant.const import (
     STATE_OFF,
     STATE_ON,
 )
+from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
@@ -1340,17 +1341,20 @@ def mock_area_registry(
     """Mock the Area Registry."""
     registry = ar.AreaRegistry(hass)
     registry._area_data = {}
-    area_in_floor = ar.AreaEntry(
-        id="test-area",
-        name="Test area",
-        aliases={},
-        normalized_name="test-area",
-        floor_id="test-floor",
-        icon=None,
-        picture=None,
-    )
+    area_kwargs = {
+        "name": "Test Area",
+        "normalized_name": "test-area",
+        "aliases": {},
+        "id": "test-area",
+        "picture": None,
+    }
+    year, month = (int(x) for x in ha_version.split(".")[:2])
+    if year >= 2024 and month >= 3:
+        area_kwargs["icon"] = None
+        area_kwargs["floor_id"] = "test-floor"
+    area = ar.AreaEntry(**area_kwargs)
     registry.areas = ar.AreaRegistryItems()
-    registry.areas[area_in_floor.id] = area_in_floor
+    registry.areas[area.id] = area
     hass.data[ar.DATA_REGISTRY] = registry
     return registry
 
