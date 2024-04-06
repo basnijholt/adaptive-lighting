@@ -1361,15 +1361,8 @@ def mock_area_registry(
         area_kwargs["floor_id"] = "test-floor"
 
     # This mess... 🤯
-    if dt == datetime.date(2024, 2, 1) or dt == datetime.date(2024, 3, 1):
-        registry.areas = ar.AreaRegistryItems()
-    elif dt == datetime.date(2024, 4, 1):
-        from homeassistant.helpers.normalized_name_base_registry import (
-            NormalizedNameBaseRegistryItems,
-        )
-
-        registry.areas = NormalizedNameBaseRegistryItems[ar.AreaEntry]
-    elif dt >= datetime.date(2024, 5, 1):
+    if dt >= datetime.date(2024, 2, 1) and dt != datetime.date(2024, 4, 1):
+        # 2024.4 removed AreaRegistryItems and then added it back in 2024.5
         registry.areas = ar.AreaRegistryItems()
     else:
         registry.areas = OrderedDict()
