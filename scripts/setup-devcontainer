@@ -2,5 +2,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
+git clone https://github.com/home-assistant/core.git
+
 ./scripts/install_ha
 pre-commit install-hooks
