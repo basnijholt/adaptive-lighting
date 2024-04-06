@@ -16,6 +16,7 @@ import homeassistant.util.dt as dt_util
 import pytest
 import ulid_transform
 import voluptuous.error
+from flaky import flaky
 from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
     _create_service_call_data_iterator,
@@ -777,11 +778,7 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1]
 
 
-# This test seems to always fail in CI on 2023.8.4
-@pytest.mark.skipif(
-    ha_version[:6] == "2023.8",
-    reason="Manual control might be broken on 2023.8",
-)
+@flaky(max_runs=3, min_passes=1)
 async def test_auto_reset_manual_control(hass):
     switch, (light, *_) = await setup_lights_and_switch(
         hass,
