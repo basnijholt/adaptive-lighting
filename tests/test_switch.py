@@ -1351,7 +1351,7 @@ def mock_area_registry(
     }
     year, month = (int(x) for x in ha_version.split(".")[:2])
     dt = datetime.date(year, month, 1)
-    if dt >= datetime.date(2022, 12, 1):
+    if dt >= datetime.date(2023, 1, 1):
         area_kwargs["aliases"] = {}
     if dt >= datetime.date(2024, 2, 1):
         area_kwargs["icon"] = None
@@ -1359,7 +1359,7 @@ def mock_area_registry(
         area_kwargs["floor_id"] = "test-floor"
 
     # This mess... 🤯
-    if dt == datetime.date(2024, 3, 1):
+    if dt == datetime.date(2024, 2, 1) or dt == datetime.date(2024, 3, 1):
         registry.areas = ar.AreaRegistryItems()
     elif dt == datetime.date(2024, 4, 1):
         from homeassistant.helpers.normalized_name_base_registry import (
