@@ -1,0 +1,19 @@
+{
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcije prilagodljivog osvjetljenja"
+      }
+    }
+  },
+  "title": "prilagodi svjetlinu",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "only_once": {
+          "description": "Prilagodi svjetla samo kada su uključena (true) ili ih neprestano prilagođavaj (false). 🔄"
+        }
+      }
+    }
+  }
+}

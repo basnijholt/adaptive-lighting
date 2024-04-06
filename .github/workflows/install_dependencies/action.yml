@@ -34,11 +34,4 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        echo "::warning::### WARNING! Deprecation warnings muted with option '--use-pep517' please address this at some point in pytest.yaml. ###"
-        pip install -r core/requirements.txt --use-pep517
-        # because they decided to pull codecov the package from PyPI...
-        sed -i '/codecov/d' core/requirements_test.txt
-        pip install -r core/requirements_test.txt --use-pep517
-        pip install -e core/ --use-pep517
-        pip install ulid-transform # this is in Adaptive-lighting's manifest.json
-        pip install $(python test_dependencies.py) --use-pep517
+        ./scripts/install_ha
