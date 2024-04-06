@@ -97,12 +97,13 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
 from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 
-from tests.common import MockConfigEntry, mock_area_registry
+from tests.common import MockConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1326,6 +1327,34 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
+
+
+# Vendored in this function as it was broken
+# https://github.com/home-assistant/core/pull/112150
+# Then removed: https://github.com/home-assistant/core/pull/112172
+# Then re-added: https://github.com/home-assistant/core/pull/113453
+def mock_area_registry(
+    hass: HomeAssistant,
+    mock_entries: dict[str, ar.AreaEntry] | None = None,
+) -> ar.AreaRegistry:
+    """Mock the Area Registry.
+
+    This should only be used if you need to mock/re-stage a clean mocked
+    area registry in your current hass object. It can be useful to,
+    for example, pre-load the registry with items.
+
+    This mock will thus replace the existing registry in the running hass.
+
+    If you just need to access the existing registry, use the `area_registry`
+    fixture instead.
+    """
+    registry = ar.AreaRegistry(hass)
+    registry.areas = ar.AreaRegistryItems()
+    for key, entry in mock_entries.items():
+        registry.areas[key] = entry
+
+    hass.data[ar.DATA_REGISTRY] = registry
+    return registry
 
 
 async def test_light_switch_in_specific_area(hass):
