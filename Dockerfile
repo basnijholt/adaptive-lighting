@@ -7,7 +7,7 @@
 # Optionally build the image yourself with:
 # docker build -t basnijholt/adaptive-lighting:latest .
 
-FROM python:3.11-buster
+FROM python:3.12-bookworm
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -16,12 +16,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
-RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
-
-# Install home-assistant/core dependencies
-RUN pip3 install -r /core/requirements.txt --use-pep517 && \
-    pip3 install -r /core/requirements_test.txt --use-pep517 && \
-    pip3 install -e /core/ --use-pep517
+RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git /core
 
 # Copy the Adaptive Lighting repository
 COPY . /app/
@@ -32,8 +27,8 @@ RUN ln -s /app/custom_components/adaptive_lighting /core/homeassistant/component
     # For test_dependencies.py
     ln -s /core /app/core
 
-# Install dependencies of components that Adaptive Lighting depends on
-RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
+# Install home-assistant/core dependencies
+RUN /app/scripts/install_ha
 
 WORKDIR /core
 
