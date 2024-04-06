@@ -1349,9 +1349,11 @@ def mock_area_registry(
     fixture instead.
     """
     registry = ar.AreaRegistry(hass)
+    registry._area_data = {}
     registry.areas = ar.AreaRegistryItems()
-    for key, entry in mock_entries.items():
-        registry.areas[key] = entry
+    if mock_entries is not None:
+        for key, entry in mock_entries.items():
+            registry.areas[key] = entry
 
     hass.data[ar.DATA_REGISTRY] = registry
     return registry
