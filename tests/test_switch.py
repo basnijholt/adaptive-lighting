@@ -1333,6 +1333,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 # https://github.com/home-assistant/core/pull/112150 (my PR and reported issue)
 # Then removed: https://github.com/home-assistant/core/pull/112172
 # Then re-added: https://github.com/home-assistant/core/pull/113453
+# However, I did add a version that is slightly modified from my PR.
 def mock_area_registry(
     hass: HomeAssistant,
     mock_entries: dict[str, ar.AreaEntry] | None = None,
