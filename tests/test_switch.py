@@ -1351,9 +1351,9 @@ def mock_area_registry(
     year, month = (int(x) for x in ha_version.split(".")[:2])
     if year <= 2022 and month <= 12:
         area_kwargs["aliases"] = {}
-    elif year >= 2024 and month >= 2:
+    elif year >= 2024 and month == 2:
         area_kwargs["icon"] = None
-    elif year >= 2024 and month >= 3:
+    elif year >= 2024 and month >= 3 and month:
         area_kwargs["icon"] = None
         area_kwargs["floor_id"] = "test-floor"
         registry.areas = ar.AreaRegistryItems()
