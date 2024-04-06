@@ -1330,7 +1330,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
 
 # Vendored in this function as it was broken
-# https://github.com/home-assistant/core/pull/112150
+# https://github.com/home-assistant/core/pull/112150 (my PR and reported issue)
 # Then removed: https://github.com/home-assistant/core/pull/112172
 # Then re-added: https://github.com/home-assistant/core/pull/113453
 def mock_area_registry(
@@ -1350,11 +1350,7 @@ def mock_area_registry(
     """
     registry = ar.AreaRegistry(hass)
     registry._area_data = {}
-    registry.areas = ar.AreaRegistryItems()
-    if mock_entries is not None:
-        for key, entry in mock_entries.items():
-            registry.areas[key] = entry
-
+    registry.areas = mock_entries or ar.AreaEntry()
     hass.data[ar.DATA_REGISTRY] = registry
     return registry
 
