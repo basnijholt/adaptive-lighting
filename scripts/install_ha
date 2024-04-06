@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-set -e
+set -ex
 cd "$(dirname "$0")/.."
 
 pip install -r core/requirements.txt --use-pep517
 
 # Older HA versions still have `codacov` in `requirements_test.txt`
 # however it is removed from PyPI, so we cannot install it
-sed -i '/codecov/d' core/requirements_test.txt
+if grep -q 'codecov' core/requirements_test.txt; then
+    sed -i '/codecov/d' core/requirements_test.txt
+fi
 pip install -r core/requirements_test.txt --use-pep517
 
 pip install -e core/ --use-pep517
