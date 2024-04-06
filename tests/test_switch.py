@@ -5,6 +5,7 @@ import asyncio
 import contextlib
 import datetime
 import logging
+from collections import OrderedDict
 from copy import deepcopy
 from random import randint
 from typing import Any
@@ -1352,8 +1353,10 @@ def mock_area_registry(
     if year >= 2024 and month >= 3:
         area_kwargs["icon"] = None
         area_kwargs["floor_id"] = "test-floor"
+        registry.areas = ar.AreaRegistryItems()
+    else:
+        registry.areas = OrderedDict()
     area = ar.AreaEntry(**area_kwargs)
-    registry.areas = ar.AreaRegistryItems()
     registry.areas[area.id] = area
     hass.data[ar.DATA_REGISTRY] = registry
     return registry
