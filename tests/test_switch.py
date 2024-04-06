@@ -1350,7 +1350,7 @@ def mock_area_registry(
         "picture": None,
     }
     year, month = (int(x) for x in ha_version.split(".")[:2])
-    if year <= 2022 and month >= 12:
+    if year >= 2022 and month >= 12:
         area_kwargs["aliases"] = {}
     if year >= 2024 and month >= 2:
         area_kwargs["icon"] = None
