@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+cd "$(dirname "$0")/.."
+
+pip install -r core/requirements.txt --use-pep517
+
+# because they decided to pull codecov the package from PyPI...
+sed -i '/codecov/d' core/requirements_test.txt
+pip install -r core/requirements_test.txt --use-pep517
+
+pip install -e core/ --use-pep517
+pip install ulid-transform # this is in Adaptive-lighting's manifest.json
+pip install $(python test_dependencies.py) --use-pep517
