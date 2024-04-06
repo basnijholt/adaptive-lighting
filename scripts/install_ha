@@ -4,7 +4,8 @@ cd "$(dirname "$0")/.."
 
 pip install -r core/requirements.txt --use-pep517
 
-# because they decided to pull codecov the package from PyPI...
+# Older HA versions still have `codacov` in `requirements_test.txt`
+# however it is removed from PyPI, so we cannot install it
 sed -i '/codecov/d' core/requirements_test.txt
 pip install -r core/requirements_test.txt --use-pep517
 
