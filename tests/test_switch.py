@@ -1362,8 +1362,15 @@ def mock_area_registry(
 
     # This mess... 🤯
     if dt >= datetime.date(2024, 2, 1) and dt != datetime.date(2024, 4, 1):
-        # 2024.4 removed AreaRegistryItems and then added it back in 2024.5
+        # 2024.4 removed AreaRegistryItems and then added it back in 2024.5:
+        # https://github.com/home-assistant/core/pull/114777
         registry.areas = ar.AreaRegistryItems()
+    elif dt == datetime.date(2024, 4, 1):
+        from homeassistant.helpers.normalized_name_base_registry import (
+            NormalizedNameBaseRegistryItems,
+        )
+
+        registry.areas = NormalizedNameBaseRegistryItems()
     else:
         registry.areas = OrderedDict()
 
