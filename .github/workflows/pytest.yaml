@@ -47,6 +47,10 @@ jobs:
           - python-version: "3.11"
             core-version: "2024.2.5"
           - python-version: "3.12"
+            core-version: "2024.3.3"
+          - python-version: "3.12"
+            core-version: "2024.4.1"
+          - python-version: "3.12"
             core-version: "dev"
     steps:
       - name: Check out code from GitHub
