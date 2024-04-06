@@ -1336,22 +1336,21 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 # However, I did add a version that is slightly modified from my PR.
 def mock_area_registry(
     hass: HomeAssistant,
-    mock_entries: dict[str, ar.AreaEntry] | None = None,
 ) -> ar.AreaRegistry:
-    """Mock the Area Registry.
-
-    This should only be used if you need to mock/re-stage a clean mocked
-    area registry in your current hass object. It can be useful to,
-    for example, pre-load the registry with items.
-
-    This mock will thus replace the existing registry in the running hass.
-
-    If you just need to access the existing registry, use the `area_registry`
-    fixture instead.
-    """
+    """Mock the Area Registry."""
     registry = ar.AreaRegistry(hass)
     registry._area_data = {}
-    registry.areas = mock_entries or ar.AreaEntry()
+    area_in_floor = ar.AreaEntry(
+        id="test-area",
+        name="Test area",
+        aliases={},
+        normalized_name="test-area",
+        floor_id="test-floor",
+        icon=None,
+        picture=None,
+    )
+    registry.areas = ar.AreaRegistryItems()
+    registry.areas[area_in_floor.id] = area_in_floor
     hass.data[ar.DATA_REGISTRY] = registry
     return registry
 
@@ -1359,8 +1358,7 @@ def mock_area_registry(
 async def test_light_switch_in_specific_area(hass):
     switch, (light, *_) = await setup_lights_and_switch(hass)
 
-    area_registry = mock_area_registry(hass)
-    area_registry.async_create("test_area")
+    mock_area_registry(hass)
 
     entity = entity_registry.async_get(hass).async_get_or_create(
         LIGHT_DOMAIN,
@@ -1369,9 +1367,9 @@ async def test_light_switch_in_specific_area(hass):
     )
     entity = entity_registry.async_get(hass).async_update_entity(
         entity.entity_id,
-        area_id="test_area",
+        area_id="test-area",
     )
-    _LOGGER.debug("test_area entity: %s", entity)
+    _LOGGER.debug("test-area entity: %s", entity)
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_ON,
