@@ -1,6 +1,6 @@
 {
     "name": "basnijholt/adaptive_lighting",
-    "image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.11-bullseye",
+    "image": "mcr.microsoft.com/vscode/devcontainers/python:3.12",
     "postCreateCommand": "scripts/setup-devcontainer",
     "forwardPorts": [
         8123

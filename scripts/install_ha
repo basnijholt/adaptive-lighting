@@ -2,15 +2,15 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-pip install -r core/requirements.txt --use-pep517
+pip install -r core/requirements.txt
 
 if grep -q 'codecov' core/requirements_test.txt; then
     # Older HA versions still have `codecov` in `requirements_test.txt`
     # however it is removed from PyPI, so we cannot install it
     sed -i '/codecov/d' core/requirements_test.txt
 fi
-pip install -r core/requirements_test.txt --use-pep517
+pip install -r core/requirements_test.txt
 
-pip install -e core/ --use-pep517
+pip install -e core/
 pip install ulid-transform # this is in Adaptive-lighting's manifest.json
-pip install $(python test_dependencies.py) --use-pep517
+pip install $(python test_dependencies.py)
