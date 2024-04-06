@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -ex
+cd "$(dirname "$0")/.."
+
+cd core/homeassistant/components/
+ln -s ../../../custom_components/adaptive_lighting adaptive_lighting
+cd -
+
+
+cd core/tests/components/
+ln -s ../../../tests/ adaptive_lighting
+cd -
