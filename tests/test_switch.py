@@ -1335,7 +1335,8 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 # https://github.com/home-assistant/core/pull/112150 (my PR and reported issue)
 # Then removed: https://github.com/home-assistant/core/pull/112172
 # Then re-added: https://github.com/home-assistant/core/pull/113453
-# However, I did add a version that is slightly modified from my PR.
+# This version is no longer the same as the one in HA because of the many changes
+# that have been made in 2024.
 def mock_area_registry(
     hass: HomeAssistant,
 ) -> ar.AreaRegistry:
@@ -1352,8 +1353,10 @@ def mock_area_registry(
     if year <= 2022 and month <= 12:
         area_kwargs["aliases"] = {}
     elif year >= 2024 and month == 2:
+        area_kwargs["aliases"] = {}
         area_kwargs["icon"] = None
     elif year >= 2024 and month == 3:
+        area_kwargs["aliases"] = {}
         area_kwargs["icon"] = None
         area_kwargs["floor_id"] = "test-floor"
         registry.areas = ar.AreaRegistryItems()
