@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-88-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-89-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -578,6 +578,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="http://blogs.gnome.org/jonathankang/"><img src="https://avatars.githubusercontent.com/u/5607743?v=4?s=100" width="100px;" alt="Jonathan Kang"/><br /><sub><b>Jonathan Kang</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=JonathanKang" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/scuricvladimir"><img src="https://avatars.githubusercontent.com/u/46634162?v=4?s=100" width="100px;" alt="scuricvladimir"/><br /><sub><b>scuricvladimir</b></sub></a><br /><a href="#translation-scuricvladimir" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Welsyntoffie"><img src="https://avatars.githubusercontent.com/u/47089904?v=4?s=100" width="100px;" alt="Pieter"/><br /><sub><b>Pieter</b></sub></a><br /><a href="#translation-Welsyntoffie" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/san80068259"><img src="https://avatars.githubusercontent.com/u/68324107?v=4?s=100" width="100px;" alt="san80068259"/><br /><sub><b>san80068259</b></sub></a><br /><a href="#translation-san80068259" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
