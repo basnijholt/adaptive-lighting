@@ -20,7 +20,7 @@ jobs:
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install markdown-code-runner and README code dependencies
         run: |
