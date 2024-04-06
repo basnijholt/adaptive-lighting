@@ -1353,10 +1353,18 @@ def mock_area_registry(
         area_kwargs["aliases"] = {}
     elif year >= 2024 and month == 2:
         area_kwargs["icon"] = None
-    elif year >= 2024 and month >= 3 and month:
+    elif year >= 2024 and month == 3:
         area_kwargs["icon"] = None
         area_kwargs["floor_id"] = "test-floor"
         registry.areas = ar.AreaRegistryItems()
+    elif year >= 2024 and month >= 4:
+        from homeassistant.helpers.normalized_name_base_registry import (
+            NormalizedNameBaseRegistryItems,
+        )
+
+        area_kwargs["icon"] = None
+        area_kwargs["floor_id"] = "test-floor"
+        registry.areas = NormalizedNameBaseRegistryItems[ar.AreaEntry]
     else:
         registry.areas = OrderedDict()
     area = ar.AreaEntry(**area_kwargs)
