@@ -2,7 +2,11 @@
 set -e
 cd "$(dirname "$0")/.."
 
-git clone https://github.com/home-assistant/core.git
+# Clone only if the folder doesn't exist
+if [[ ! -d "core" ]]; then
+    git clone --depth 1 --branch dev https://github.com/home-assistant/core.git
+fi
 
+chmod u+w core/
 ./scripts/install_ha
 pre-commit install-hooks

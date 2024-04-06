@@ -16,7 +16,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
-RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
+RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git /core
 
 # Copy the Adaptive Lighting repository
 COPY . /app/
