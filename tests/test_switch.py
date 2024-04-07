@@ -1684,6 +1684,7 @@ async def test_proactive_adaptation_transition_override(hass):
             {ATTR_ENTITY_ID: ENTITY_LIGHT_3, ATTR_TRANSITION: 456},
             blocking=True,
         )
+        await hass.async_block_till_done()
 
     # Assert that default is used when no transition is specified in service call
     assert patched_async_turn_on.call_args_list, patched_async_turn_on.call_args_list
