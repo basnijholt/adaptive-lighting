@@ -7,5 +7,5 @@ if [[ ! -d "core" ]]; then
     git clone --depth 1 --branch dev https://github.com/home-assistant/core.git
 fi
 
-./scripts/install_ha
+./scripts/setup-dependencies
 pre-commit install-hooks
