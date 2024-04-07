@@ -10,8 +10,7 @@ fi
 pip install \
     colorlog==6.7.0 \
     pip>=21.0,<23.2 \
-    ruff==0.0.265 \
-    pre-commit
+    ruff==0.0.265
 
 ./scripts/setup-dependencies
 ./scripts/setup-symlinks
