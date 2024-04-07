@@ -4,10 +4,10 @@ cd "$(dirname "$0")/.."
 
 # Link custom components
 cd core/homeassistant/components/
-ln -s ../../../custom_components/adaptive_lighting adaptive_lighting
+ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
 cd -
 
 # Link tests
 cd core/tests/components/
-ln -s ../../../tests/ adaptive_lighting
+ln -fs ../../../tests/ adaptive_lighting
 cd -

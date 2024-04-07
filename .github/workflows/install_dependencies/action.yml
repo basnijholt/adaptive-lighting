@@ -35,3 +35,4 @@ runs:
       shell: bash
       run: |
         ./scripts/install_ha
+        ./scripts/link
