@@ -8,4 +8,5 @@ if [[ ! -d "core" ]]; then
 fi
 
 ./scripts/setup-dependencies
+./scripts/setup-symlinks
 pre-commit install-hooks
