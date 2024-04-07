@@ -7,5 +7,12 @@ if [[ ! -d "core" ]]; then
     git clone --depth 1 --branch dev https://github.com/home-assistant/core.git
 fi
 
-./scripts/install_ha
+pip install \
+    colorlog==6.7.0 \
+    pip>=21.0,<23.2 \
+    ruff==0.0.265 \
+    pre-commit
+
+./scripts/setup-dependencies
+./scripts/setup-symlinks
 pre-commit install-hooks

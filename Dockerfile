@@ -22,13 +22,10 @@ RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git 
 COPY . /app/
 
 # Setup symlinks in core
-RUN ln -s /app/custom_components/adaptive_lighting /core/homeassistant/components/adaptive_lighting && \
-    ln -s /app/tests /core/tests/components/adaptive_lighting && \
-    # For test_dependencies.py
-    ln -s /core /app/core
+RUN ln -s /core /app/core && /app/scripts/setup-symlinks
 
 # Install home-assistant/core dependencies
-RUN /app/scripts/install_ha
+RUN /app/scripts/setup-dependencies
 
 WORKDIR /core
 

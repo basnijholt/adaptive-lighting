@@ -62,30 +62,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           core-version: ${{ matrix.core-version }}
 
-      - name: Click here for troubleshooting steps if tests break again.
-        run: |
-          echo "::notice::### If tests fail, try these debug steps: ###"
-          echo "::notice::### 1. Replace '-qq' from .github/workflow/pytest.yaml. with '-v' for extra verbosity. ###"
-          echo "::notice::### 2. Push or run action again. ###"
-          echo "::notice::### 3. Check for any log messages in github actions resembling the following using CTRL+F ###
-          echo "::notice::### 4. ERROR:homeassistant.setup:Setup failed for 'component': Unable to import component: No module named ''module'' ###"
-          echo "::notice::### 5. add 'component'.'module' (without the '') from the above log into the 'required' list inside of 'test_dependencies.py' ###"
-          echo "::notice::### 6. Try again! If more issues persist they should be easily solvable by reading the verbose logs now. ###"
-
-      - name: Link custom_components/adaptive_lighting
-        run: |
-          cd core
-
-          # Link homeassitant.components.adaptive_lighting
-          cd homeassistant/components
-          ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
-          cd -
-
-          # Link adaptive_lighting tests
-          cd tests/components/
-          ln -fs ../../../tests adaptive_lighting
-          cd -
-
       - name: Run pytest
         timeout-minutes: 60
         run: |

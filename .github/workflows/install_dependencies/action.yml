@@ -34,4 +34,5 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        ./scripts/install_ha
+        ./scripts/setup-dependencies
+        ./scripts/setup-symlinks
