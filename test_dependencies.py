@@ -36,7 +36,9 @@ required = [
     "components.stream",
     "components.conversation",  # only available after HA≥2023.2
     "components.cloud",
+    "components.ffmpeg",  # needed since 2024.1
 ]
 to_install = [package for r in required for package in deps[r]]
+to_install.append("flaky")
 
 print(" ".join(to_install))  # noqa: T201

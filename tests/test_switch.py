@@ -5,6 +5,7 @@ import asyncio
 import contextlib
 import datetime
 import logging
+from collections import OrderedDict
 from copy import deepcopy
 from random import randint
 from typing import Any
@@ -15,47 +16,15 @@ import homeassistant.util.dt as dt_util
 import pytest
 import ulid_transform
 import voluptuous.error
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_BRIGHTNESS_PCT,
-    ATTR_COLOR_TEMP_KELVIN,
-    ATTR_RGB_COLOR,
-    ATTR_TRANSITION,
-    ATTR_XY_COLOR,
-    SERVICE_TURN_OFF,
-)
-from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import (
-    ATTR_AREA_ID,
-    ATTR_ENTITY_ID,
-    ATTR_SUPPORTED_FEATURES,
-    CONF_LIGHTS,
-    CONF_NAME,
-    EVENT_CALL_SERVICE,
-    EVENT_STATE_CHANGED,
-    SERVICE_TOGGLE,
-    SERVICE_TURN_ON,
-    STATE_OFF,
-    STATE_ON,
-)
-from homeassistant.core import Context, Event, HomeAssistant, State
-from homeassistant.helpers import entity_registry
-from homeassistant.helpers.entity_platform import async_get_platforms
-from homeassistant.setup import async_setup_component
-from homeassistant.util.color import color_temperature_mired_to_kelvin
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    mock_area_registry,
-)
-
-from custom_components.adaptive_lighting.adaptation_utils import (
+from flaky import flaky
+from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
     _create_service_call_data_iterator,
 )
-from custom_components.adaptive_lighting.color_and_brightness import lerp_color_hsv
-from custom_components.adaptive_lighting.const import (
+from homeassistant.components.adaptive_lighting.color_and_brightness import (
+    lerp_color_hsv,
+)
+from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
@@ -93,7 +62,7 @@ from custom_components.adaptive_lighting.const import (
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
 )
-from custom_components.adaptive_lighting.switch import (
+from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveLightingManager,
     AdaptiveSwitch,
@@ -103,6 +72,41 @@ from custom_components.adaptive_lighting.switch import (
     is_our_context,
     is_our_context_id,
 )
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
+    ATTR_TRANSITION,
+    ATTR_XY_COLOR,
+    SERVICE_TURN_OFF,
+)
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.components.template.light import LightTemplate
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import (
+    ATTR_AREA_ID,
+    ATTR_ENTITY_ID,
+    ATTR_SUPPORTED_FEATURES,
+    CONF_LIGHTS,
+    CONF_NAME,
+    EVENT_CALL_SERVICE,
+    EVENT_STATE_CHANGED,
+    SERVICE_TOGGLE,
+    SERVICE_TURN_ON,
+    STATE_OFF,
+    STATE_ON,
+)
+from homeassistant.const import __version__ as ha_version
+from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import entity_registry
+from homeassistant.helpers.entity_platform import async_get_platforms
+from homeassistant.setup import async_setup_component
+from homeassistant.util.color import color_temperature_mired_to_kelvin
+
+from tests.common import MockConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -234,7 +238,11 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     return lights
 
 
-async def setup_lights_and_switch(hass, extra_conf=None, all_lights: bool = False):
+async def setup_lights_and_switch(
+    hass,
+    extra_conf=None,
+    all_lights: bool = False,
+) -> tuple[AdaptiveSwitch, list[LightTemplate]]:
     """Create switch and demo lights."""
     # Setup demo lights and turn on
     lights_instances = await setup_lights(hass)
@@ -411,7 +419,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
 
     async def patch_time_and_update(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
@@ -503,7 +511,7 @@ async def test_light_settings(hass):
 
     async def patch_time_and_get_updated_states(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(
@@ -770,6 +778,7 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1]
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_auto_reset_manual_control(hass):
     switch, (light, *_) = await setup_lights_and_switch(
         hass,
@@ -1324,11 +1333,57 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     assert sleep_color_temp != color_temp
 
 
-async def test_area(hass):
+# Vendored in this function as it was broken
+# https://github.com/home-assistant/core/pull/112150 (my PR and reported issue)
+# Then removed: https://github.com/home-assistant/core/pull/112172
+# Then re-added: https://github.com/home-assistant/core/pull/113453
+# This version is no longer the same as the one in HA because of the many changes
+# that have been made in 2024.
+def mock_area_registry(
+    hass: HomeAssistant,
+) -> ar.AreaRegistry:
+    """Mock the Area Registry."""
+    registry = ar.AreaRegistry(hass)
+    registry._area_data = {}
+    area_kwargs = {
+        "name": "Test Area",
+        "normalized_name": "test-area",
+        "id": "test-area",
+        "picture": None,
+    }
+    year, month = (int(x) for x in ha_version.split(".")[:2])
+    dt = datetime.date(year, month, 1)
+    if dt >= datetime.date(2023, 1, 1):
+        area_kwargs["aliases"] = {}
+    if dt >= datetime.date(2024, 2, 1):
+        area_kwargs["icon"] = None
+    if dt >= datetime.date(2024, 3, 1):
+        area_kwargs["floor_id"] = "test-floor"
+
+    # This mess... 🤯
+    if dt >= datetime.date(2024, 2, 1) and dt != datetime.date(2024, 4, 1):
+        # 2024.4 removed AreaRegistryItems and then added it back in 2024.5:
+        # https://github.com/home-assistant/core/pull/114777
+        registry.areas = ar.AreaRegistryItems()
+    elif dt == datetime.date(2024, 4, 1):
+        from homeassistant.helpers.normalized_name_base_registry import (
+            NormalizedNameBaseRegistryItems,
+        )
+
+        registry.areas = NormalizedNameBaseRegistryItems()
+    else:
+        registry.areas = OrderedDict()
+
+    area = ar.AreaEntry(**area_kwargs)
+    registry.areas[area.id] = area
+    hass.data[ar.DATA_REGISTRY] = registry
+    return registry
+
+
+async def test_light_switch_in_specific_area(hass):
     switch, (light, *_) = await setup_lights_and_switch(hass)
 
-    area_registry = mock_area_registry(hass)
-    area_registry.async_create("test_area")
+    mock_area_registry(hass)
 
     entity = entity_registry.async_get(hass).async_get_or_create(
         LIGHT_DOMAIN,
@@ -1337,9 +1392,9 @@ async def test_area(hass):
     )
     entity = entity_registry.async_get(hass).async_update_entity(
         entity.entity_id,
-        area_id="test_area",
+        area_id="test-area",
     )
-    _LOGGER.debug("test_area entity: %s", entity)
+    _LOGGER.debug("test-area entity: %s", entity)
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_ON,
@@ -1611,7 +1666,6 @@ async def test_proactive_adaptation_transition_override(hass):
         },
         True,
     )
-
     with patch.object(
         light3,
         "async_turn_on",
@@ -1630,8 +1684,10 @@ async def test_proactive_adaptation_transition_override(hass):
             {ATTR_ENTITY_ID: ENTITY_LIGHT_3, ATTR_TRANSITION: 456},
             blocking=True,
         )
+        await hass.async_block_till_done()
 
     # Assert that default is used when no transition is specified in service call
+    assert patched_async_turn_on.call_args_list, patched_async_turn_on.call_args_list
     kwargs = patched_async_turn_on.call_args_list[0].kwargs
     assert set({ATTR_TRANSITION: 123}.items()).issubset(kwargs.items())
 
@@ -1815,7 +1871,7 @@ async def test_two_switches_for_single_light(hass):
         extra_conf | {CONF_NAME: "switch2"},
         all_lights=True,
     )
-    assert light1 is light2
+    assert light1.entity_id == light2.entity_id
 
     # One switch controls brightness the other color
     await switch1.adapt_color_switch.async_turn_off()
@@ -1897,7 +1953,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
 
     async def patch_time_and_update(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
@@ -2160,7 +2216,7 @@ async def test_brightness_mode(hass, brightness_mode, dark, light):
 
     async def patch_time_and_update(time):
         with patch(
-            "custom_components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)

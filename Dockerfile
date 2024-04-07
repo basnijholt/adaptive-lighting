@@ -7,7 +7,7 @@
 # Optionally build the image yourself with:
 # docker build -t basnijholt/adaptive-lighting:latest .
 
-FROM python:3.11-buster
+FROM python:3.12-bookworm
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -16,30 +16,21 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
-RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
-
-# Install home-assistant/core dependencies
-RUN pip3 install -r /core/requirements.txt --use-pep517 && \
-    pip3 install -r /core/requirements_test.txt --use-pep517 && \
-    pip3 install -e /core/ --use-pep517
+RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git /core
 
 # Copy the Adaptive Lighting repository
 COPY . /app/
 
 # Setup symlinks in core
-RUN ln -s /app/tests /core/tests/components/adaptive_lighting && \
-    # For test_dependencies.py
-    ln -s /core /app/core
+RUN ln -s /core /app/core && /app/scripts/setup-symlinks
 
-# Install dependencies of components that Adaptive Lighting depends on
-RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
+# Install home-assistant/core dependencies
+RUN /app/scripts/setup-dependencies
 
 WORKDIR /core
 
 # Make 'custom_components/adaptive_lighting' imports available to tests
 ENV PYTHONPATH="${PYTHONPATH}:/app"
-# Enable testing against HA clone (instead of pytest_homeassistant_custom_component)
-ENV HA_CLONE=true
 
 ENTRYPOINT ["python3", \
     # Enable Python development mode
@@ -53,7 +44,7 @@ ENTRYPOINT ["python3", \
     # Print the 10 slowest tests
     "--durations=10", \
     # Measure code coverage for the 'homeassistant' package
-    "--cov=custom_components.adaptive_lighting", \
+    "--cov='homeassistant'", \
     # Generate an XML report of the code coverage
     "--cov-report=xml", \
     # Generate an HTML report of the code coverage

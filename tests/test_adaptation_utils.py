@@ -3,15 +3,7 @@
 from unittest.mock import Mock
 
 import pytest
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP_KELVIN,
-    ATTR_TRANSITION,
-)
-from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
-from homeassistant.core import Context, State
-
-from custom_components.adaptive_lighting.adaptation_utils import (
+from homeassistant.components.adaptive_lighting.adaptation_utils import (
     ServiceData,
     _create_service_call_data_iterator,
     _has_relevant_service_data_attributes,
@@ -19,6 +11,13 @@ from custom_components.adaptive_lighting.adaptation_utils import (
     _split_service_call_data,
     prepare_adaptation_data,
 )
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS,
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_TRANSITION,
+)
+from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
+from homeassistant.core import Context, State
 
 
 @pytest.mark.parametrize(
@@ -130,7 +129,7 @@ async def test_has_relevant_service_data_attributes(
     service_data: ServiceData,
     expected_relevant: bool,
 ):
-    """Test the determination of relevancy of service data"""
+    """Test the determination of relevancy of service data."""
     assert _has_relevant_service_data_attributes(service_data) == expected_relevant
 
 

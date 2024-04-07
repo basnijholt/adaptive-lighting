@@ -952,6 +952,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED,
                 self._setup_listeners,
+                run_immediately=False,
             )
         last_state: State | None = await self.async_get_last_state()
         is_new_entry = last_state is None  # newly added to HA
@@ -1658,10 +1659,12 @@ class AdaptiveLightingManager:
             self.hass.bus.async_listen(
                 EVENT_CALL_SERVICE,
                 self.turn_on_off_event_listener,
+                run_immediately=False,
             ),
             self.hass.bus.async_listen(
                 EVENT_STATE_CHANGED,
                 self.state_changed_event_listener,
+                run_immediately=False,
             ),
         ]
 
