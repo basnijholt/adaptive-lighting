@@ -60,6 +60,7 @@ from homeassistant.const import (
     STATE_OFF,
     STATE_ON,
 )
+from homeassistant.const import __version__ as ha_version
 from homeassistant.core import (
     CALLBACK_TYPE,
     Context,
@@ -949,10 +950,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.hass.is_running:
             await self._setup_listeners()
         else:
+            kw = {}
+            year, month = (int(x) for x in ha_version.split(".")[:2])
+            if (year, month) >= (2024, 4):
+                # Added in https://github.com/home-assistant/core/pull/113020
+                kw["run_immediately"] = False
             self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED,
                 self._setup_listeners,
-                run_immediately=False,
+                **kw,
             )
         last_state: State | None = await self.async_get_last_state()
         is_new_entry = last_state is None  # newly added to HA
