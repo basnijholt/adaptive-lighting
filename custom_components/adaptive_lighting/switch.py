@@ -953,6 +953,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             kw = {}
             year, month = (int(x) for x in ha_version.split(".")[:2])
             if (year, month) >= (2024, 4):
+                # Added in https://github.com/home-assistant/core/pull/113020
                 kw["run_immediately"] = False
             self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED,
