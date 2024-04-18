@@ -111,8 +111,8 @@ class SunEvents:
         solar_noon = self.astral_location.noon(dt, local=False)
         solar_midnight = self.astral_location.midnight(dt, local=False)
 
-        solar_sunrise= self.astral_location.sunrise(dt, local=False)
-        solar_sunset= self.astral_location.sunset(dt, local=False)
+        solar_sunrise = self.astral_location.sunrise(dt, local=False)
+        solar_sunset = self.astral_location.sunset(dt, local=False)
 
         sunrise_offset = solar_sunrise - sunrise
         sunset_offset = solar_sunset - sunset
