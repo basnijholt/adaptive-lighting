@@ -819,6 +819,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "erdnaxela02",
+      "name": "Frosh",
+      "avatar_url": "https://avatars.githubusercontent.com/u/21007415?v=4",
+      "profile": "https://github.com/erdnaxela02",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
