@@ -828,6 +828,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "rafaeltmiranda",
+      "name": "Rafael Miranda",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47206949?v=4",
+      "profile": "https://www.linkedin.com/in/rafaeltmiranda/",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
