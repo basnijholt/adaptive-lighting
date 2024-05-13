@@ -7,7 +7,7 @@
           "description": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰"
         },
         "only_once": {
-          "description": "Adaptar as luzes apenas quando estão ligadas (`true`) ou continuar a adaptá-las (`false`)."
+          "description": "Adaptar as luzes apenas quando estas estão ligadas (`true`) ou continuar a adaptá-las (`false`)."
         },
         "sunset_offset": {
           "description": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰"
