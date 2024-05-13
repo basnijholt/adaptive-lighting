@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-91-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-92-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -581,6 +581,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/san80068259"><img src="https://avatars.githubusercontent.com/u/68324107?v=4?s=100" width="100px;" alt="san80068259"/><br /><sub><b>san80068259</b></sub></a><br /><a href="#translation-san80068259" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/erdnaxela02"><img src="https://avatars.githubusercontent.com/u/21007415?v=4?s=100" width="100px;" alt="Frosh"/><br /><sub><b>Frosh</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=erdnaxela02" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/rafaeltmiranda/"><img src="https://avatars.githubusercontent.com/u/47206949?v=4?s=100" width="100px;" alt="Rafael Miranda"/><br /><sub><b>Rafael Miranda</b></sub></a><br /><a href="#translation-rafaeltmiranda" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/rVlad93"><img src="https://avatars.githubusercontent.com/u/60452666?v=4?s=100" width="100px;" alt="rVlad93"/><br /><sub><b>rVlad93</b></sub></a><br /><a href="#translation-rVlad93" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
