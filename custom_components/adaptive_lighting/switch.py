@@ -954,7 +954,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             },
             name=self._name,
             entry_type=DeviceEntryType.SERVICE,
-    )
+        )
 
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
