@@ -70,7 +70,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import entity_platform, entity_registry
-from homeassistant.helpers.device_registry import DeviceInfo, DeviceEntryType
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
@@ -945,6 +945,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Return true if adaptive lighting is on."""
         return self._state
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info, used to group this and adjacent entities in the UI."""
+        return DeviceInfo(
+            identifiers={
+                (DOMAIN, self._name),
+            },
+            name=self._name,
+            entry_type=DeviceEntryType.SERVICE,
+    )
+
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
         if self.hass.is_running:
@@ -1591,14 +1602,14 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
+        """Return the device info, used to group this and adjacent entities in the UI."""
         return DeviceInfo(
             identifiers={
-                (DOMAIN, self._config_name)
+                (DOMAIN, self._config_name),
             },
             name=f"Adaptive Lighting: {self._config_name}",
-            entry_type=DeviceEntryType.SERVICE
+            entry_type=DeviceEntryType.SERVICE,
         )
-
 
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
