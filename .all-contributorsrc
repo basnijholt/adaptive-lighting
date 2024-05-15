@@ -846,6 +846,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "MrEbbinghaus",
+      "name": "Björn Ebbinghaus",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2965273?v=4",
+      "profile": "https://blog.ebbinghaus.me/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
