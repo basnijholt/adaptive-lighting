@@ -73,7 +73,7 @@ from homeassistant.core import (
 )
 from homeassistant.helpers import entity_platform, entity_registry
 
-if MAJOR_VERSION < 2024 and MINOR_VERSION < 9:
+if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
     from homeassistant.helpers.entity import DeviceInfo
 else:
     from homeassistant.helpers.device_registry import DeviceInfo
