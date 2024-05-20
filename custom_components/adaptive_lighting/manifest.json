@@ -4,7 +4,7 @@
   "after_dependencies": ["light"],
   "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1", "@protyposis"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["light"],
   "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
