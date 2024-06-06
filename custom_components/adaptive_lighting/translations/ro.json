@@ -1,1 +1,72 @@
-{}
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Fiecare instanţă poate conţine mai multe lumini!"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "brightness_mode_time_light": "(Se ignoră dacă `modul_de_luminozitate='implicit'`) Durată în secunde a modificării luminozităţii în sus/jos cand poziţia sorelui este înainte sau după răsărit/apus.",
+          "sunrise_offset": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde.⏰",
+          "autoreset_control_seconds": "Resetare automată al controlului manual după un număr de secunde. Setaţi la 0 pentru a dezactiva.",
+          "brightness_mode": "Mod de luminozitate de utilizat. Valorile posibile sunt: 'implicit', 'liniar' şi 'hiperbolic' ( ultilizează 'mod_luminozitate_timp_de_noapte' şi 'mod_luminozitate_timp_de_zi').",
+          "sleep_brightness": "Procentul luminozităţii luminilor în modul 'somn'.",
+          "interval": "Frecvenţa adaptării luminilor, în secunde.",
+          "sunset_offset": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde."
+        },
+        "title": "Opţiuni Iluminare Adaptivă",
+        "data": {
+          "adapt_only_on_bare_turn_on": "adaptează_doar_la_comanda_de_arpindere:  La aprinderea iniţială a luminilor. Dacă este activat, IA va adapta luminile doar dacă se invocă  'light.turn_on' fără a specifica culoarea sau luminozitatea. Aceasta, de exemplu, previne adaptarea atunci când se activează o scenă. Dacă este dezactivat,IA va adaptata luminile indiferent de prezența  valorilor culorii sau luminozității în service_data. Necesită activarea opţiunii 'preia_controlul. "
+        }
+      }
+    }
+  },
+  "title": "Iluminare Adaptivă",
+  "services": {
+    "apply": {
+      "description": "Aplicaţi luminilor setările curente ale Iluminiării Adaptive luminilor.",
+      "fields": {
+        "lights": {
+          "description": "O lumină (sau listă de lumini) pentru care să se aplice setările."
+        }
+      }
+    },
+    "change_switch_settings": {
+      "fields": {
+        "entity_id": {
+          "description": "Numele entităţii."
+        },
+        "sleep_brightness": {
+          "description": "Procentul luminozităţii luminilor în modul 'somn'."
+        },
+        "sleep_transition": {
+          "description": "Durata de tranziție (în secunde) atunci când modul de „somn” este activat."
+        },
+        "autoreset_control_seconds": {
+          "description": "Resetare automată al controlului manual după un număr de secunde. Setaţi la 0 pentru a dezactiva."
+        },
+        "only_once": {
+          "description": "Adaptează luminile doar la pornire ('activat') sau adaptează continuu ('dezactivat')."
+        },
+        "sunrise_offset": {
+          "description": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde.⏰"
+        },
+        "sunset_offset": {
+          "description": "Ajustați ora apusului cu un decalaj pozitiv sau negativ în secunde."
+        }
+      },
+      "description": "Schimbați orice setări dorită în comutator. Toate opțiunile de aici sunt la fel ca în fluxul de configurare."
+    },
+    "set_manual_control": {
+      "fields": {
+        "lights": {
+          "description": "Numele luminii (luminilor) , dacă nu sunt specificate, sunt selectate toate luminile ce aparţin de comutator."
+        }
+      }
+    }
+  }
+}
