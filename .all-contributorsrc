@@ -864,6 +864,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "lachezar-gizdov",
+      "name": "Lucho Gizdov",
+      "avatar_url": "https://avatars.githubusercontent.com/u/11273726?v=4",
+      "profile": "https://carmodsheaven.com",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
