@@ -820,6 +820,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.lights: list[str] = data[CONF_LIGHTS]
         self.hue_keyword = data[CONF_HUE_KEYWORD]
 
+        # Set bridge
+        try:
+            config_entries = hass.config_entries.async_entries(domain="hue")
+            config_entry = config_entries[0]
+            self.hue_bridge = aiohue_BenoitAnastay.HueBridgeV1(
+                config_entry.data["host"],
+                config_entry.data["api_key"],
+            )
+        except Exception as e:
+            raise e
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(data=data, defaults=None)
@@ -1247,6 +1257,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
+        async with aiohttp.ClientSession() as session:
+            await self.update_hue_run(session, service_data)
+
         return prepare_adaptation_data(
             self.hass,
             light,
@@ -1272,9 +1285,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
-        if self.hue_keyword is not None:
-            async with aiohttp.ClientSession() as session:
-                await self.update_hue_run(session)
 
         data = await self.prepare_adaptation_data(
             light,
@@ -1573,37 +1583,31 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force=True,
         )
 
-    async def update_hue_run(self,websession):
+    async def update_hue_run(self, websession, service_data: ServiceData):
         """Function updating HUE scene"""
-        try:
-            entriesJson = open('/config/.storage/core.config_entries',)
-            response = json.load(entriesJson)
+        if self.hue_keyword is None:
+            return
 
-            for entry in response["data"]["entries"]:
-                if entry["domain"] == "hue":
-                    break
-            bridge = aiohue_BenoitAnastay.HueBridgeV1(
-                entry["data"]["host"],
-                entry["data"]["api_key"],
-            )
-        except Exception as e:
-            raise e
-        if bridge is None:
-            if self._hue_username is None:
-                return False
-            bridges = await discover_nupnp(websession)
-            bridge = bridges[0]
-            bridge.username = self._hue_username
-
-        await bridge.initialize()
-        for id in bridge.scenes:
-            scene = bridge.scenes[id]
+        _LOGGER.debug(
+                "%s: Will updates scenes containing %s",
+                self._name,
+                self.hue_keyword,
+        )
+        await self.hue_bridge.initialize()
+        for id in self.hue_bridge.scenes:
+            scene = self.hue_bridge.scenes[id]
             if self.hue_keyword in scene.name:
-                color_temp = self._settings["color_temp_kelvin"]
+                _LOGGER.debug(
+                    "%s: Updating %s",
+                    self._name,
+                    scene.name,
+                )
+                color_temp = service_data["color_temp_kelvin"]
+                brightness = service_data["brightness"]
                 lightstates = await scene.lightstates
                 for light_id in scene.lights:
                     try:
-                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=int(round(254 * self._settings["brightness_pct"] / 100)),ct=color_temp)
+                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=brightness,ct=color_temp)
                     except Exception:
                         _LOGGER.error(
                             "Cannot update scene %s",
