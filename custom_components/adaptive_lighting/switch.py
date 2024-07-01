@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import aiohue_BenoitAnastay
 import asyncio
 import datetime
 import logging
@@ -10,8 +11,6 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
-import aiohttp
-import aiohue_BenoitAnastay
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
@@ -116,7 +115,6 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
-    CONF_HUE_KEYWORD,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERCEPT,
@@ -150,6 +148,7 @@ from .const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONF_HUE_KEYWORD,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -826,8 +825,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 config_entry.data["host"],
                 config_entry.data["api_key"],
             )
-        except Exception as e:
-            raise e
+        except Exception:
+            _LOGGER.exception(
+                            "Cannot set hue bridge",
+                        )
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(data=data, defaults=None)
@@ -1255,8 +1256,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        async with aiohttp.ClientSession() as session:
-            await self.update_hue_run(session, service_data)
+        await self.update_hue_run(service_data)
 
         return prepare_adaptation_data(
             self.hass,
@@ -1581,19 +1581,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force=True,
         )
 
-    async def update_hue_run(self, websession, service_data: ServiceData):
-        """Function updating HUE scene"""
+    async def update_hue_run(self, service_data: ServiceData):
+        """Function updating HUE scene."""
         if self.hue_keyword is None:
             return
 
         _LOGGER.debug(
-            "%s: Will updates scenes containing %s",
-            self._name,
-            self.hue_keyword,
+                "%s: Will updates scenes containing %s",
+                self._name,
+                self.hue_keyword,
         )
         await self.hue_bridge.initialize()
-        for id in self.hue_bridge.scenes:
-            scene = self.hue_bridge.scenes[id]
+        for scene_id in self.hue_bridge.scenes:
+            scene = self.hue_bridge.scenes[scene_id]
             if self.hue_keyword in scene.name:
                 _LOGGER.debug(
                     "%s: Updating %s",
@@ -1605,18 +1605,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lightstates = await scene.lightstates
                 for light_id in scene.lights:
                     try:
-                        await scene.set_lightstate(
-                            id=light_id,
-                            on=lightstates[light_id]["on"],
-                            bri=brightness,
-                            ct=color_temp,
-                        )
+                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=brightness,ct=color_temp)
                     except Exception:
-                        _LOGGER.error(
+                        _LOGGER.exception(
                             "Cannot update scene %s",
                             id,
                         )
-
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
