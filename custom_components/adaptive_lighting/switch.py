@@ -2548,7 +2548,7 @@ class AdaptiveLightingManager:
             and id_off_to_on == turn_on_event.context.id
         )
 
-    async def just_turned_off(  # noqa: PLR0911, PLR0912
+    async def just_turned_off(  # noqa: PLR0911
         self,
         entity_id: str,
     ) -> bool:
