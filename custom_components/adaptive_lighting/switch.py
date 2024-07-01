@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-import aiohttp
-import aiohue_BenoitAnastay
-import json
 import datetime
 import logging
 import zoneinfo
-from aiohue_BenoitAnastay.discovery import discover_nupnp
 from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
+import aiohttp
+import aiohue_BenoitAnastay
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
@@ -118,6 +116,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_HUE_KEYWORD,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERCEPT,
@@ -151,7 +150,6 @@ from .const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
-    CONF_HUE_KEYWORD,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -1589,9 +1587,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         _LOGGER.debug(
-                "%s: Will updates scenes containing %s",
-                self._name,
-                self.hue_keyword,
+            "%s: Will updates scenes containing %s",
+            self._name,
+            self.hue_keyword,
         )
         await self.hue_bridge.initialize()
         for id in self.hue_bridge.scenes:
@@ -1607,12 +1605,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lightstates = await scene.lightstates
                 for light_id in scene.lights:
                     try:
-                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=brightness,ct=color_temp)
+                        await scene.set_lightstate(
+                            id=light_id,
+                            on=lightstates[light_id]["on"],
+                            bri=brightness,
+                            ct=color_temp,
+                        )
                     except Exception:
                         _LOGGER.error(
                             "Cannot update scene %s",
                             id,
                         )
+
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
