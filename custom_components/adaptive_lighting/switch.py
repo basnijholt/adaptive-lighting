@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import aiohue_BenoitAnastay
 import asyncio
 import datetime
 import logging
@@ -11,6 +10,7 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
+import aiohue_BenoitAnastay
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
@@ -115,6 +115,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_HUE_KEYWORD,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERCEPT,
@@ -148,7 +149,6 @@ from .const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
-    CONF_HUE_KEYWORD,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -827,8 +827,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
         except Exception:
             _LOGGER.exception(
-                            "Cannot set hue bridge",
-                        )
+                "Cannot set hue bridge",
+            )
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(data=data, defaults=None)
@@ -1587,9 +1587,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         _LOGGER.debug(
-                "%s: Will updates scenes containing %s",
-                self._name,
-                self.hue_keyword,
+            "%s: Will updates scenes containing %s",
+            self._name,
+            self.hue_keyword,
         )
         await self.hue_bridge.initialize()
         for scene_id in self.hue_bridge.scenes:
@@ -1605,12 +1605,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 lightstates = await scene.lightstates
                 for light_id in scene.lights:
                     try:
-                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=brightness,ct=color_temp)
+                        await scene.set_lightstate(
+                            id=light_id,
+                            on=lightstates[light_id]["on"],
+                            bri=brightness,
+                            ct=color_temp,
+                        )
                     except Exception:
                         _LOGGER.exception(
                             "Cannot update scene %s",
                             id,
                         )
+
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
