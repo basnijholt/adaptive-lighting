@@ -7,6 +7,6 @@
   "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
-  "requirements": ["ulid-transform"],
+  "requirements": ["ulid-transform","aiohue-BenoitAnastay"],
   "version": "1.22.0"
 }

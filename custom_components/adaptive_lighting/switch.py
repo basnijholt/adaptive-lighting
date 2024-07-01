@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import aiohttp
+import aiohue_BenoitAnastay
+import json
 import datetime
 import logging
 import zoneinfo
+from aiohue_BenoitAnastay.discovery import discover_nupnp
 from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
@@ -147,6 +151,7 @@ from .const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONF_HUE_KEYWORD,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -813,6 +818,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = data[CONF_NAME]
         self._interval: timedelta = data[CONF_INTERVAL]
         self.lights: list[str] = data[CONF_LIGHTS]
+        self.hue_keyword = data[CONF_HUE_KEYWORD]
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
@@ -1266,6 +1272,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return
+        if self.hue_keyword is not None:
+            async with aiohttp.ClientSession() as session:
+                await self.update_hue_run(session)
 
         data = await self.prepare_adaptation_data(
             light,
@@ -1564,6 +1573,42 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force=True,
         )
 
+    async def update_hue_run(self,websession):
+        """Function updating HUE scene"""
+        try:
+            entriesJson = open('/config/.storage/core.config_entries',)
+            response = json.load(entriesJson)
+
+            for entry in response["data"]["entries"]:
+                if entry["domain"] == "hue":
+                    break
+            bridge = aiohue_BenoitAnastay.HueBridgeV1(
+                entry["data"]["host"],
+                entry["data"]["api_key"],
+            )
+        except Exception as e:
+            raise e
+        if bridge is None:
+            if self._hue_username is None:
+                return False
+            bridges = await discover_nupnp(websession)
+            bridge = bridges[0]
+            bridge.username = self._hue_username
+
+        await bridge.initialize()
+        for id in bridge.scenes:
+            scene = bridge.scenes[id]
+            if self.hue_keyword in scene.name:
+                color_temp = self._settings["color_temp_kelvin"]
+                lightstates = await scene.lightstates
+                for light_id in scene.lights:
+                    try:
+                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=int(round(254 * self._settings["brightness_pct"] / 100)),ct=color_temp)
+                    except Exception:
+                        _LOGGER.error(
+                            "Cannot update scene %s",
+                            id,
+                        )
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
