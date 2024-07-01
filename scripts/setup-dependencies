@@ -13,4 +13,5 @@ pip install -r core/requirements_test.txt
 
 pip install -e core/
 pip install ulid-transform # this is in Adaptive-lighting's manifest.json
+pip install aiohue-BenoitAnastay # same as above
 pip install $(python test_dependencies.py)
