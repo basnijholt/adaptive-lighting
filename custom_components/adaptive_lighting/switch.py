@@ -89,6 +89,7 @@ from homeassistant.helpers.template import area_entities
 from homeassistant.loader import bind_hass
 from homeassistant.util import slugify
 from homeassistant.util.color import (
+    color_temperature_kelvin_to_mired,
     color_temperature_to_rgb,
     color_xy_to_RGB,
 )
@@ -1587,30 +1588,27 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         _LOGGER.debug(
-            "%s: Will updates scenes containing %s",
-            self._name,
-            self.hue_keyword,
+                "%s: Will updates scenes containing %s",
+                self._name,
+                self.hue_keyword,
         )
         await self.hue_bridge.initialize()
         for scene_id in self.hue_bridge.scenes:
             scene = self.hue_bridge.scenes[scene_id]
             if self.hue_keyword in scene.name:
+                color_temp = color_temperature_kelvin_to_mired(service_data[ATTR_COLOR_TEMP_KELVIN])
+                brightness = round(254 * self._settings["brightness_pct"] / 100)
                 _LOGGER.debug(
-                    "%s: Updating %s",
+                    "%s: Updating %s with values bri:%s, color_temp:%s",
                     self._name,
                     scene.name,
+                    brightness,
+                    color_temp
                 )
-                color_temp = service_data["color_temp_kelvin"]
-                brightness = service_data["brightness"]
                 lightstates = await scene.lightstates
                 for light_id in scene.lights:
                     try:
-                        await scene.set_lightstate(
-                            id=light_id,
-                            on=lightstates[light_id]["on"],
-                            bri=brightness,
-                            ct=color_temp,
-                        )
+                        await scene.set_lightstate(id=light_id,on=lightstates[light_id]["on"],bri=brightness,ct=color_temp)
                     except Exception:
                         _LOGGER.exception(
                             "Cannot update scene %s",
