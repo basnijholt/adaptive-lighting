@@ -87,7 +87,7 @@ adaptive_lighting:
   lights:
     - light.living_room_lights
 ```
-Note: If you plan to strictly use the UI, the `adaptive_lighting:` entry must still be added to the YAML.
+Note: ~~If you plan to strictly use the UI, the `adaptive_lighting:` entry must still be added to the YAML.~~ This isn't true (anymore?). If you do add an entry to the YAML, the options page will stay empty and uneditable. Removing the entry and adding the integration via de UI, enables all options.
 
 Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the benefits of intelligent, sun-synchronized lighting today!
 
