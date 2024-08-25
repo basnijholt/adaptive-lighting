@@ -638,7 +638,9 @@ def _expand_light_groups(
 
 
 def _is_light_group(state: State) -> bool:
-    return "entity_id" in state.attributes
+    return "entity_id" in state.attributes and not state.attributes.get(
+        "is_hue_group", False
+    )
 
 
 @bind_hass
