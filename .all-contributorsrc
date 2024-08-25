@@ -882,6 +882,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "brietman",
+      "name": "brietman",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17436537?v=4",
+      "profile": "https://github.com/brietman",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
