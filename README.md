@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-96-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-97-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -588,6 +588,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Marck"><img src="https://avatars.githubusercontent.com/u/18088281?v=4?s=100" width="100px;" alt="Marck"/><br /><sub><b>Marck</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Marck" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://carmodsheaven.com"><img src="https://avatars.githubusercontent.com/u/11273726?v=4?s=100" width="100px;" alt="Lucho Gizdov"/><br /><sub><b>Lucho Gizdov</b></sub></a><br /><a href="#translation-lachezar-gizdov" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/MizterB"><img src="https://avatars.githubusercontent.com/u/5458030?v=4?s=100" width="100px;" alt="MizterB"/><br /><sub><b>MizterB</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=MizterB" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/brietman"><img src="https://avatars.githubusercontent.com/u/17436537?v=4?s=100" width="100px;" alt="brietman"/><br /><sub><b>brietman</b></sub></a><br /><a href="#translation-brietman" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
