@@ -72,6 +72,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import entity_platform, entity_registry
+from homeassistant.helpers.entity_component import async_update_entity
 
 if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
     from homeassistant.helpers.entity import DeviceInfo
@@ -638,7 +639,10 @@ def _expand_light_groups(
 
 
 def _is_light_group(state: State) -> bool:
-    return "entity_id" in state.attributes
+    return "entity_id" in state.attributes and not state.attributes.get(
+        "is_hue_group",
+        False,
+    )
 
 
 @bind_hass
@@ -2489,7 +2493,7 @@ class AdaptiveLightingManager:
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
         # can happen e.g. using zigbee2mqtt with 'report: false' in device settings.
-        await self.hass.helpers.entity_component.async_update_entity(light)
+        await async_update_entity(self.hass, light)
         refreshed_state = self.hass.states.get(light)
         assert refreshed_state is not None
 
