@@ -1596,7 +1596,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         brightness = self._settings["brightness_pct"]
 
         async with HueBridgeV2(
-            config_entry.data["host"], config_entry.data["api_key"]
+            config_entry.data["host"],
+            config_entry.data["api_key"]
         ) as bridge:
             for scene in bridge.scenes:
                 if self.hue_keyword in scene.metadata.name:
@@ -1610,7 +1611,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     actions = list()
                     for action in scene.actions:
                         action.target = ResourceIdentifier(
-                            rid=action.target.rid, rtype="light"
+                            rid=action.target.rid,
+                            rtype="light"
                         )
                         action.action.color_temperature.mirek = color_temp
                         action.action.dimming.brightness = brightness
