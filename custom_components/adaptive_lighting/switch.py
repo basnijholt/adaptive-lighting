@@ -1597,7 +1597,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             scene = self.hue_bridge.scenes[scene_id]
             if self.hue_keyword in scene.name:
                 color_temp = color_temperature_kelvin_to_mired(
-                    service_data[ATTR_COLOR_TEMP_KELVIN]
+                    service_data[ATTR_COLOR_TEMP_KELVIN],
                 )
                 brightness = round(254 * self._settings["brightness_pct"] / 100)
                 _LOGGER.debug(
