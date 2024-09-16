@@ -1616,9 +1616,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                             rtype="light",
                         )
                         light = bridge.lights.get(action.target.rid)
-                        color_temp = clamp(color_temp,
-                                           light.color_temperature.mirek_schema.mirek_minimum,
-                                           light.color_temperature.mirek_schema.mirek_maximum,
+                        color_temp = clamp(
+                            color_temp,
+                            light.color_temperature.mirek_schema.mirek_minimum,
+                            light.color_temperature.mirek_schema.mirek_maximum,
                         )
                         action.action.color_temperature.mirek = color_temp
                         action.action.dimming.brightness = brightness
