@@ -1252,7 +1252,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        await self.update_hue_run(service_data)
+        await self.update_hue_run()
 
         return prepare_adaptation_data(
             self.hass,
@@ -1577,7 +1577,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force=True,
         )
 
-    async def update_hue_run(self, service_data: ServiceData):
+    async def update_hue_run(self):
         """Function updating HUE scene."""
         if self.hue_keyword is None:
             return
@@ -1591,8 +1591,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         config_entry = config_entries[0]
 
         color_temp = color_temperature_kelvin_to_mired(
-            service_data[ATTR_COLOR_TEMP_KELVIN],
+            self._settings["color_temp_kelvin"],
         )
+
         brightness = self._settings["brightness_pct"]
 
         async with HueBridgeV2(
@@ -1613,6 +1614,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         action.target = ResourceIdentifier(
                             rid=action.target.rid,
                             rtype="light",
+                        )
+                        light = bridge.lights.get(action.target.rid)
+                        color_temp = clamp(color_temp,
+                                           light.color_temperature.mirek_schema.mirek_minimum,
+                                           light.color_temperature.mirek_schema.mirek_maximum,
                         )
                         action.action.color_temperature.mirek = color_temp
                         action.action.dimming.brightness = brightness
