@@ -10,14 +10,12 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
-from aiohue import HueBridgeV2
-from aiohue.v2.models.scene import ScenePut
-from .hue_utils import ResourceIdentifier
-
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
+from aiohue import HueBridgeV2
+from aiohue.v2.models.scene import ScenePut
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
@@ -77,6 +75,8 @@ from homeassistant.core import (
 )
 from homeassistant.helpers import entity_platform, entity_registry
 from homeassistant.helpers.entity_component import async_update_entity
+
+from .hue_utils import ResourceIdentifier
 
 if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
     from homeassistant.helpers.entity import DeviceInfo
@@ -1591,11 +1591,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         config_entry = config_entries[0]
 
         color_temp = color_temperature_kelvin_to_mired(
-                    service_data[ATTR_COLOR_TEMP_KELVIN],
-                )
+            service_data[ATTR_COLOR_TEMP_KELVIN],
+        )
         brightness = self._settings["brightness_pct"]
 
-        async with HueBridgeV2(config_entry.data["host"], config_entry.data["api_key"]) as bridge:
+        async with HueBridgeV2(
+            config_entry.data["host"], config_entry.data["api_key"]
+        ) as bridge:
             for scene in bridge.scenes:
                 if self.hue_keyword in scene.metadata.name:
                     _LOGGER.debug(
@@ -1607,9 +1609,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     )
                     actions = list()
                     for action in scene.actions:
-                        action.target=ResourceIdentifier(rid=action.target.rid,rtype='light')
-                        action.action.color_temperature.mirek=color_temp
-                        action.action.dimming.brightness=brightness
+                        action.target = ResourceIdentifier(
+                            rid=action.target.rid, rtype="light"
+                        )
+                        action.action.color_temperature.mirek = color_temp
+                        action.action.dimming.brightness = brightness
                         actions.append(action)
                     update_obj = ScenePut(actions=actions)
                     await bridge.scenes.scene.update(scene.id, update_obj)

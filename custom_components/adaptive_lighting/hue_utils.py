@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 
+
 @dataclass
 class ResourceIdentifier:
-    """
-    Represent a ResourceIdentifier object as used by the Hue api.
+    """Represent a ResourceIdentifier object as used by the Hue api.
 
     clip-api.schema.json#/definitions/ResourceIdentifierGet
     clip-api.schema.json#/definitions/ResourceIdentifierPost
