@@ -1252,8 +1252,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         context = context or self.create_context("adapt_lights")
 
-        await self.update_hue_run()
-
         return prepare_adaptation_data(
             self.hass,
             light,
@@ -1400,6 +1398,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             ),
         )
         self.async_write_ha_state()
+
+        await self.update_hue_run()
 
         if not force and self._only_once:
             return
