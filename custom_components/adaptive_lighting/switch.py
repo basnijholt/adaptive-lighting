@@ -10,7 +10,10 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
-import aiohue_BenoitAnastay
+from aiohue import HueBridgeV2
+from aiohue.v2.models.scene import ScenePut
+from .hue_utils import ResourceIdentifier
+
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
@@ -818,18 +821,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.lights: list[str] = data[CONF_LIGHTS]
         self.hue_keyword = data[CONF_HUE_KEYWORD]
 
-        # Set bridge
-        try:
-            config_entries = hass.config_entries.async_entries(domain="hue")
-            config_entry = config_entries[0]
-            self.hue_bridge = aiohue_BenoitAnastay.HueBridgeV1(
-                config_entry.data["host"],
-                config_entry.data["api_key"],
-            )
-        except Exception:
-            _LOGGER.exception(
-                "Cannot set hue bridge",
-            )
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(data=data, defaults=None)
@@ -1592,35 +1583,32 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._name,
             self.hue_keyword,
         )
-        await self.hue_bridge.initialize()
-        for scene_id in self.hue_bridge.scenes:
-            scene = self.hue_bridge.scenes[scene_id]
-            if self.hue_keyword in scene.name:
-                color_temp = color_temperature_kelvin_to_mired(
+        config_entries = self.hass.config_entries.async_entries(domain="hue")
+        config_entry = config_entries[0]
+
+        color_temp = color_temperature_kelvin_to_mired(
                     service_data[ATTR_COLOR_TEMP_KELVIN],
                 )
-                brightness = round(254 * self._settings["brightness_pct"] / 100)
-                _LOGGER.debug(
-                    "%s: Updating %s with values bri:%s, color_temp:%s",
-                    self._name,
-                    scene.name,
-                    brightness,
-                    color_temp,
-                )
-                lightstates = await scene.lightstates
-                for light_id in scene.lights:
-                    try:
-                        await scene.set_lightstate(
-                            id=light_id,
-                            on=lightstates[light_id]["on"],
-                            bri=brightness,
-                            ct=color_temp,
-                        )
-                    except Exception:
-                        _LOGGER.exception(
-                            "Cannot update scene %s",
-                            id,
-                        )
+        brightness = self._settings["brightness_pct"]
+
+        async with HueBridgeV2(config_entry.data["host"], config_entry.data["api_key"]) as bridge:
+            for scene in bridge.scenes:
+                if self.hue_keyword in scene.metadata.name:
+                    _LOGGER.debug(
+                        "%s: Updating %s with values bri:%s, color_temp:%s",
+                        self._name,
+                        scene.metadata.name,
+                        brightness,
+                        color_temp,
+                    )
+                    actions = list()
+                    for action in scene.actions:
+                        action.target=ResourceIdentifier(rid=action.target.rid,rtype='light')
+                        action.action.color_temperature.mirek=color_temp
+                        action.action.dimming.brightness=brightness
+                        actions.append(action)
+                    update_obj = ScenePut(actions=actions)
+                    await bridge.scenes.scene.update(scene.id, update_obj)
 
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
