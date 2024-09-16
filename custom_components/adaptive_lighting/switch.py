@@ -1608,7 +1608,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         brightness,
                         color_temp,
                     )
-                    actions = list()
+                    actions = []
                     for action in scene.actions:
                         action.target = ResourceIdentifier(
                             rid=action.target.rid,

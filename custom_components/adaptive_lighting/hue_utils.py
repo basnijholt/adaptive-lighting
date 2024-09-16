@@ -1,4 +1,4 @@
-"""Help fixing a serialization issue"""
+"""Help fixing a serialization issue."""
 
 from dataclasses import dataclass
 
