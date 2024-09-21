@@ -1594,7 +1594,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._settings["color_temp_kelvin"],
         )
 
-        brightness = self._settings["brightness_pct"]
+        brightness = round(self._settings["brightness_pct"], 2)
 
         async with HueBridgeV2(
             config_entry.data["host"],
