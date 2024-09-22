@@ -207,7 +207,8 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 _DOMAIN_SHORT = "al"
 
 # The interval of time between each scene updates
-HUE_SCENE_UPDATE_DELAY = 300 # 5 minutes
+HUE_SCENE_UPDATE_DELAY = 300  # 5 minutes
+
 
 def create_context(
     name: str,
@@ -1585,8 +1586,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         timer = self.manager.hue_scene_update_timers.get(self.hue_keyword)
-        if (timer is not None
-                and timer.is_running()):
+        if timer is not None and timer.is_running():
             _LOGGER.debug(
                 "%s: Not updating %s because there is throttle, remaining_time:%s",
                 self._name,
@@ -2220,7 +2220,6 @@ class AdaptiveLightingManager:
 
     def start_hue_scene_update_throttle(self, scene: str) -> None:
         """Set a timer between each scene update call."""
-
         _LOGGER.debug(
             "Start throttle timer of %s seconds for scene %s",
             HUE_SCENE_UPDATE_DELAY,
@@ -2234,7 +2233,9 @@ class AdaptiveLightingManager:
                 scene,
             )
 
-        self._handle_timer(scene, self.hue_scene_update_timers, HUE_SCENE_UPDATE_DELAY, reset)
+        self._handle_timer(
+            scene, self.hue_scene_update_timers, HUE_SCENE_UPDATE_DELAY, reset
+        )
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
