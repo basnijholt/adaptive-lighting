@@ -206,6 +206,8 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
 
+# The interval of time between each scene updates
+HUE_SCENE_UPDATE_DELAY = 300 # 5 minutes
 
 def create_context(
     name: str,
@@ -1582,6 +1584,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.hue_keyword is None:
             return
 
+        timer = self.manager.hue_scene_update_timers.get(self.hue_keyword)
+        if (timer is not None
+                and timer.is_running()):
+            _LOGGER.debug(
+                "%s: Not updating %s because there is throttle, remaining_time:%s",
+                self._name,
+                self.hue_keyword,
+                timer.remaining_time(),
+            )
+            return
+
+        self.manager.start_hue_scene_update_throttle(self.hue_keyword)
+
         _LOGGER.debug(
             "%s: Will updates scenes containing %s",
             self._name,
@@ -1742,6 +1757,9 @@ class AdaptiveLightingManager:
 
         # Track light transitions
         self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
+
+        # Handle HUE delay to avoid overloading the bridge
+        self.hue_scene_update_timers: dict[str, _AsyncSingleShotTimer] = {}
 
         # Track _execute_cancellable_adaptation_calls tasks
         self.adaptation_tasks = set()
@@ -2199,6 +2217,24 @@ class AdaptiveLightingManager:
             )
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
+
+    def start_hue_scene_update_throttle(self, scene: str) -> None:
+        """Set a timer between each scene update call."""
+
+        _LOGGER.debug(
+            "Start throttle timer of %s seconds for scene %s",
+            HUE_SCENE_UPDATE_DELAY,
+            scene,
+        )
+
+        async def reset():
+            # Called when the timer expires, doesn't need to do anything
+            _LOGGER.debug(
+                "Throttle finished for scene %s",
+                scene,
+            )
+
+        self._handle_timer(scene, self.hue_scene_update_timers, HUE_SCENE_UPDATE_DELAY, reset)
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
         """Set the time after which the lights are automatically reset."""
