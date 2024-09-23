@@ -2234,7 +2234,10 @@ class AdaptiveLightingManager:
             )
 
         self._handle_timer(
-            scene, self.hue_scene_update_timers, HUE_SCENE_UPDATE_DELAY, reset
+            scene,
+            self.hue_scene_update_timers,
+            HUE_SCENE_UPDATE_DELAY,
+            reset,
         )
 
     def set_auto_reset_manual_control_times(self, lights: list[str], time: float):
