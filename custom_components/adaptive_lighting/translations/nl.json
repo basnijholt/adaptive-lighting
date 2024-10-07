@@ -43,7 +43,7 @@
           "sunset_time": "sunset_time: handmatige onderdrukking van de zonsondergangstijd, indien 'Geen', wordt de werkelijke zonsopgangstijd op uw locatie gebruikt (UU:MM:SS)",
           "min_sunset_time": "min_sunset_time: handmatige onderdrukking van de minimale zonsondergangstijd, indien 'Geen', wordt de werkelijke zonsondergangstijd op uw locatie gebruikt (UU:MM:SS)",
           "take_over_control": "take_over_control: Als iets anders dan Adaptieve verlichting 'light.turn_on' roept wanneer een lamp al aan is, stop dan met het aanpassen van het licht totdat het (of de schakelaar) uit -> aan gaat.",
-          "detect_non_ha_changes": "detect_non_ha_changes: detecteert alle >10% wijzigingen aan de lichten (ook buiten HA), vereist dat 'take_over_control' is ingeschakeld (heet 'homeassistant.update_entity' elke 'interval'!)",
+          "detect_non_ha_changes": "detect_non_ha_changes: Detecteert en stopt aanpassingen voor`light.turn_on` statuswijzigingen. Vereist dat`take_over_control` is ingeschakeld. 🕵️ Voorzichtig: ⚠️ Sommige lampen kunnen een 'aan' status vals aangeven, wat kan leiden tot onverwacht inschakelen van lampen. Schakel deze functie uit als je dergelijke problemen tegenkomt.",
           "transition": "Overgangstijd bij het aanbrengen van een wijziging op de lichten (seconden)",
           "adapt_delay": "adapt_delay: wachttijd tussen het inschakelen van het licht (seconden) en het aanbrengen van wijzigingen in de lichtstatus door Adaptieve verlichting. Kan flikkering voorkomen.",
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Bij het initieel inschakelen van de lampen. Als dit op `true` is ingesteld, past Av alleen aan als `light.turn_on` wordt aangeroepen zonder een kleur of helderheid te specificeren. ❌🌈 Dit voorkomt bijvoorbeeld aanpassing bij het activeren van een scène. Als het `false` is, past Av aan ongeacht de aanwezigheid van kleur of helderheid in de initiële `service_data`. `take_over_control` moet ingeschakeld zijn. 🕵️ ",
@@ -121,7 +121,7 @@
           "description": "Duur van de eerste overgang wanneer de lampen van `uit` naar `aan`gaan, in seconden. ⏲️"
         },
         "take_over_control": {
-          "description": "Schakel Adaptieve verlichting uit wanneer een andere bron `light.turn_on` aanroept terwijl de lampen aan staan en worden aangepast. N.b. dit zal `homeassistant.update_entity` elke `interval` uitvoeren."
+          "description": "Schakel Adaptieve verlichting uit als een andere bron `light.turn_on` aanroept terwijl de lampen aan zijn en worden aangepast. Let op dit roept`homeassistant.update_entity` elke `interval`aan."
         },
         "detect_non_ha_changes": {
           "description": "Detecteert en stopt aanpassingen voor niet-`light.turn_on` state veranderingen. `take_over_control` moet actief zijn. 🕵️ Let op:⚠️Sommige lampen kunnen incorrect een 'on' state weergeven, wat resulteert in lampen die onverwacht aan gaan. Schakel deze feature uit wanneer deze fout zich voordoet."
