@@ -59,11 +59,12 @@ The `adaptive_lighting.manual_control` event is fired when a light is marked as 
 - [:robot: Automation examples](#robot-automation-examples)
 - [Additional Information](#additional-information)
 - [:sos: Troubleshooting](#sos-troubleshooting)
-  - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
     - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
     - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
-    - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
+      - [Zigbee2MQTT](#zigbee2mqtt)
+      - [ZHA](#zha)
+  - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
     - [:bulb: Bulb-Specific Issues](#bulb-bulb-specific-issues)
 - [:bar_chart: Graphs!](#bar_chart-graphs)
   - [:sunny: Sun Position](#sunny-sun-position)
@@ -353,7 +354,7 @@ logger:
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
 
-### :exclamation: Common Problems & Solutions
+Please include your [Adaptive Lighting Configuration](https://github.com/basnijholt/adaptive-lighting/discussions/503)
 
 #### :bulb: Lights Not Responding or Turning On by Themselves
 
@@ -389,9 +390,26 @@ This sends a single broadcast command to adjust all bulbs, improving response ti
 As a rule of thumb, if you always control lights together (e.g., bulbs in a ceiling fixture), they should be in a Zigbee group.
 Expose only the group (not individual bulbs) in Home Assistant Dashboards and external systems like Google Home or Apple HomeKit.
 
-> :warning: **If you control lights individually, `manual_control` cannot behave correctly! If you need to control lights individually as well, use a [Home Assistant Light Group](https://www.home-assistant.io/integrations/group/).**
+##### Zigbee2MQTT
+[Ensure your Zigbee2MQTT is configured correctly to work with Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting/discussions/506).
 
-#### :rainbow: Light Colors Not Matching
+Still need help? Please check out the following resources:
+- [Zigbee2MQTT | FAQ](https://www.zigbee2mqtt.io/guide/faq/)
+- [Zigbee2MQTT | Configuration](https://www.zigbee2mqtt.io/guide/configuration/)
+- [Zigbee2MQTT | Device-Specific Configurations](https://www.zigbee2mqtt.io/supported-devices/)
+
+##### ZHA
+We recommend Zigbee2MQTT as it's widely considered to be the best performer.
+However if you'd like to debug ZHA check out the following articles:
+
+https://www.home-assistant.io/integrations/zha/#troubleshooting specifically [ZHA EXCEPTION AND DEVIATION HANDLING](https://www.home-assistant.io/integrations/zha/#zha-exception-and-deviation-handling)
+
+For ZHA we recommend the following addons:
+1.  [ZHA-Toolkit](https://github.com/mdeweerd/zha-toolkit)
+2.  [ZHA-Device-Handlers](https://github.com/zigpy/zha-device-handlers) also available [here](https://pypi.org/project/zha-quirks/)
+
+### :rainbow: Light Colors Not Matching
+> :warning: **If you control lights individually, `manual_control` cannot behave correctly! If you need to control lights individually as well, use a [Home Assistant Light Group](https://www.home-assistant.io/integrations/group/).**
 
 Bulbs from different manufacturers or models may have varying color temperature specifications. For instance, if you have two Adaptive Lighting configurations—one with only Philips Hue White Ambiance bulbs and another with a mix of Philips Hue White Ambiance and Sengled bulbs—the Philips Hue bulbs may appear to have different color temperatures despite having identical settings.
 
