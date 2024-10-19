@@ -1347,7 +1347,6 @@ def mock_area_registry(
     registry._area_data = {}
     area_kwargs = {
         "name": "Test Area",
-        "normalized_name": "test-area",
         "id": "test-area",
         "picture": None,
     }
