@@ -9,28 +9,30 @@
 
 FROM python:3.12-bookworm
 
+# Make 'custom_components/adaptive_lighting' imports available to tests
+ENV PYTHONPATH="${PYTHONPATH}:/app"
+
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
     build-essential libssl-dev libffi-dev python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone home-assistant/core
+WORKDIR /core
+
+# Clone home-assistant/core and setup symlinks
 RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git /core
-
-# Copy the Adaptive Lighting repository
-COPY . /app/
-
-# Setup symlinks in core
+RUN mkdir /app
+COPY ./scripts /app/scripts
 RUN ln -s /core /app/core && /app/scripts/setup-symlinks
 
 # Install home-assistant/core dependencies
+COPY ./test_dependencies.py /app/test_dependencies.py
 RUN /app/scripts/setup-dependencies
 
-WORKDIR /core
-
-# Make 'custom_components/adaptive_lighting' imports available to tests
-ENV PYTHONPATH="${PYTHONPATH}:/app"
+# Copy the remaining Adaptive Lighting repository, do this last so most changes
+# won't require rebuilding the entire image.
+COPY . /app/
 
 ENTRYPOINT ["python3", \
     # Enable Python development mode
@@ -57,4 +59,4 @@ ENTRYPOINT ["python3", \
     "-o", "console_output_style=count"]
 
 # Run tests in the 'tests/components/adaptive_lighting' directory
-CMD ["tests/components/adaptive_lighting"]
+CMD ["/core/tests/components/adaptive_lighting"]

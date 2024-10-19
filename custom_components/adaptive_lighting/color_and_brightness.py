@@ -105,30 +105,21 @@ class SunEvents:
         sunrise: datetime.datetime | None = None,
     ) -> tuple[datetime.datetime, datetime.datetime]:
         """Return the (adjusted) noon and midnight times for the given datetime."""
-        if (
-            self.sunrise_time is None
-            and self.sunset_time is None
-            and self.min_sunrise_time is None
-            and self.max_sunrise_time is None
-            and self.min_sunset_time is None
-            and self.max_sunset_time is None
-        ):
-            solar_noon = self.astral_location.noon(dt, local=False)
-            solar_midnight = self.astral_location.midnight(dt, local=False)
-            return solar_noon, solar_midnight
+        sunrise = sunrise or self.sunrise(dt)
+        sunset = sunset or self.sunset(dt)
 
-        if sunset is None:
-            sunset = self.sunset(dt)
-        if sunrise is None:
-            sunrise = self.sunrise(dt)
+        solar_noon = self.astral_location.noon(dt, local=False)
+        solar_midnight = self.astral_location.midnight(dt, local=False)
 
-        middle = abs(sunset - sunrise) / 2
-        if sunset > sunrise:
-            noon = sunrise + middle
-            midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
-        else:
-            midnight = sunset + middle
-            noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
+        solar_sunrise = self.astral_location.sunrise(dt, local=False)
+        solar_sunset = self.astral_location.sunset(dt, local=False)
+
+        sunrise_offset = solar_sunrise - sunrise
+        sunset_offset = solar_sunset - sunset
+
+        noon = solar_noon - sunrise_offset
+        midnight = solar_midnight - sunset_offset
+
         return noon, midnight
 
     def sun_events(self, dt: datetime.datetime) -> list[tuple[str, float]]:
