@@ -80,8 +80,31 @@ jobs:
             -qq \
             --timeout=9 \
             --durations=10 \
-            --cov="homeassistant" \
+            --cov="homeassistant/components/adaptive_lighting" \
             --cov-report=xml \
+            --cov-report=html \
             -o console_output_style=count \
             -p no:sugar \
             tests/components/adaptive_lighting
+
+      - name: ReportGenerator
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.1.19
+        with:
+          reports: 'core/coverage.xml'
+          targetdir: 'coveragereport'
+          reporttypes: 'HtmlInline;Cobertura'
+          assemblyfilters: '+*'
+          classfilters: '+*'
+          filefilters: '+*'
+          verbosity: 'Info'
+          tag: '${{ github.run_number }}_${{ github.run_id }}'
+
+      - name: Push Coverage Report to Branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -B coverage-report
+          mv coveragereport coverage-report
+          git add coverage-report
+          git commit -m "Update coverage report"
+          git push -f origin coverage-report
