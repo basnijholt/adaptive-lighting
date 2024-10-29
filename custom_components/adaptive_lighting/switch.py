@@ -1560,8 +1560,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._name,
             event,
         )
-        # Reset the manually controlled status when the "sleep mode" changes
-        self.manager.reset(*self.lights)
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("sleep", parent=event.context),
             transition=self._sleep_transition,
