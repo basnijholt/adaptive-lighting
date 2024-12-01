@@ -208,6 +208,7 @@ class SunLightSettings:
     max_color_temp: int
     min_brightness: int
     min_color_temp: int
+    reduce_daytime_brightness: int
     sleep_brightness: int
     sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
     sleep_color_temp: int
@@ -306,12 +307,17 @@ class SunLightSettings:
             return self.sleep_brightness
         assert self.brightness_mode in ("default", "linear", "tanh")
         if self.brightness_mode == "default":
-            return self._brightness_pct_default(dt)
-        if self.brightness_mode == "linear":
-            return self._brightness_pct_linear(dt)
-        if self.brightness_mode == "tanh":
-            return self._brightness_pct_tanh(dt)
-        return None
+            brightness = self._brightness_pct_default(dt)
+        elif self.brightness_mode == "linear":
+            brightness = self._brightness_pct_linear(dt)
+        elif self.brightness_mode == "tanh":
+            brightness = self._brightness_pct_tanh(dt)
+        else:
+            return None
+        sun_position = self.sun.sun_position(dt)
+        if sun_position > 0:
+            brightness *= 1 - sun_position * (self.reduce_daytime_brightness / 100)
+        return brightness
 
     def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""

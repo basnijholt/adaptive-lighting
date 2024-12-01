@@ -69,6 +69,9 @@ DOCS[CONF_MIN_BRIGHTNESS] = "Minimum brightness percentage. 💡"
 CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP = "min_color_temp", 2000
 DOCS[CONF_MIN_COLOR_TEMP] = "Warmest color temperature in Kelvin. 🔥"
 
+CONF_REDUCE_DAYTIME_BRIGHTNESS, DEFAULT_REDUCE_DAYTIME_BRIGHTNESS = "reduce_daytime_brightness", 0
+DOCS[CONF_REDUCE_DAYTIME_BRIGHTNESS] = "Reduce brightness during the daytime (%)"
+
 CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE = "only_once", False
 DOCS[CONF_ONLY_ONCE] = (
     "Adapt lights only when they are turned on (`true`) or keep adapting them "
@@ -305,6 +308,7 @@ VALIDATION_TUPLES = [
     (CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS, int_between(1, 100)),
     (CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP, int_between(1000, 10000)),
     (CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP, int_between(1000, 10000)),
+    (CONF_REDUCE_DAYTIME_BRIGHTNESS, DEFAULT_REDUCE_DAYTIME_BRIGHTNESS , int_between(0, 100)),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
     (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
     (

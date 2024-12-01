@@ -227,6 +227,7 @@ app_ui = ui.page_fluid(
             ui.input_slider("max_brightness", "max_brightness", 1, 100, 100, post="%"),
             ui.input_numeric("min_color_temp", "min_color_temp", 2000),
             ui.input_numeric("max_color_temp", "max_color_temp", 6666),
+            ui.input_slider("reduce_daytime_brightness", "reduce_daytime_brightness", 0, 100, 0, post="%"),
             ui.input_slider(
                 "sleep_brightness",
                 "sleep_brightness",
@@ -308,6 +309,7 @@ def _kw(input):
         "min_brightness": input.min_brightness(),
         "min_color_temp": input.min_color_temp(),
         "max_color_temp": input.max_color_temp(),
+        "reduce_daytime_brightness": input.reduce_daytime_brightness(),
         "sleep_brightness": input.sleep_brightness(),
         "sleep_rgb_or_color_temp": input.sleep_rgb_or_color_temp(),
         "sleep_color_temp": input.sleep_color_temp(),

@@ -129,6 +129,12 @@ change_switch_settings:
       example: 2000
       selector:
         text: null
+    reduce_daytime_brightness:
+      description: Reduction of brightness during the day. 🌞
+      required: false
+      example: 50
+      selector:
+        text: null
     only_once:
       description: Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄
       example: false
