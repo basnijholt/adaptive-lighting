@@ -873,6 +873,24 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "MizterB",
+      "name": "MizterB",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5458030?v=4",
+      "profile": "https://github.com/MizterB",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "brietman",
+      "name": "brietman",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17436537?v=4",
+      "profile": "https://github.com/brietman",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,

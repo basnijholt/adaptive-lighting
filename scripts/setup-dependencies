@@ -9,6 +9,11 @@ if grep -q 'codecov' core/requirements_test.txt; then
     # however it is removed from PyPI, so we cannot install it
     sed -i '/codecov/d' core/requirements_test.txt
 fi
+
+if grep -q 'mypy-dev==1.10.0a3' core/requirements_test.txt; then
+    # mypy-dev==1.10.0a3 seems to not be available anymore, HA 2024.4 and 2024.5 are affected
+    sed -i 's/mypy-dev==1.10.0a3/mypy-dev==1.10.0b1/' core/requirements_test.txt
+fi
 pip install -r core/requirements_test.txt
 
 pip install -e core/
