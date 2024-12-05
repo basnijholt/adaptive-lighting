@@ -909,6 +909,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "immeteor2",
+      "name": "immeteor2",
+      "avatar_url": "https://avatars.githubusercontent.com/u/125735487?v=4",
+      "profile": "https://github.com/immeteor2",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
