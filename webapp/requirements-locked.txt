@@ -39,7 +39,7 @@ mdit-py-plugins==0.4.0
     # via shiny
 mdurl==0.1.2
     # via markdown-it-py
-packaging==23.2
+packaging==24.2
     # via
     #   htmltools
     #   shinyswatch
