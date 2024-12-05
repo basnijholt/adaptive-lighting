@@ -43,7 +43,7 @@ packaging==24.2
     # via
     #   htmltools
     #   shinyswatch
-python-multipart==0.0.18
+python-multipart==0.0.19
     # via shiny
 pytz==2024.2
     # via astral
