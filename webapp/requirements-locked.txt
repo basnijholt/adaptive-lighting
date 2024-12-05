@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements-locked.txt requirements.txt
 #
-anyio==4.2.0
+anyio==4.7.0
     # via
     #   starlette
     #   watchfiles
