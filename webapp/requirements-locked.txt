@@ -23,7 +23,7 @@ click==8.1.7
     #   uvicorn
 h11==0.14.0
     # via uvicorn
-htmltools==0.5.1
+htmltools==0.6.0
     # via
     #   shiny
     #   shinyswatch
