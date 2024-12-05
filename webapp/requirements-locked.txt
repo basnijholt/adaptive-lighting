@@ -69,7 +69,7 @@ uc-micro-py==1.0.2
     # via linkify-it-py
 uvicorn==0.25.0
     # via shiny
-watchfiles==0.21.0
+watchfiles==0.24.0
     # via shiny
 websockets==14.1
     # via shiny
