@@ -71,7 +71,7 @@ uvicorn==0.25.0
     # via shiny
 watchfiles==0.21.0
     # via shiny
-websockets==12.0
+websockets==14.1
     # via shiny
 xstatic-bootswatch==3.3.7.0
     # via shinyswatch
