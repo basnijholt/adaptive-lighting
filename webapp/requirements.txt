@@ -50,7 +50,7 @@ packaging==24.2
     #   htmltools
     #   shiny
     #   shinyswatch
-prompt-toolkit==3.0.36
+prompt-toolkit==3.0.48
     # via
     #   questionary
     #   shiny
