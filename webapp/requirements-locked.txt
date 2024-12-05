@@ -67,7 +67,7 @@ typing-extensions==4.9.0
     #   shinyswatch
 uc-micro-py==1.0.2
     # via linkify-it-py
-uvicorn==0.25.0
+uvicorn==0.32.1
     # via shiny
 watchfiles==1.0.0
     # via shiny
