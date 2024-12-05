@@ -11,6 +11,9 @@
         },
         "sunset_offset": {
           "description": "日の入時間を基準に秒単位で正値もしくは負値で調整する。⏰"
+        },
+        "entity_id": {
+          "description": "スイッチのエンティティID。 📝"
         }
       }
     },

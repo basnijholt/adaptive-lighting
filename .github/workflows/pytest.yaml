@@ -8,7 +8,7 @@ on:
 jobs:
   pytest:
     name: Run pytest
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -62,7 +62,7 @@ jobs:
             core-version: "dev"
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies
