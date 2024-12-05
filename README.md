@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-98-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-99-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -590,6 +590,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/MizterB"><img src="https://avatars.githubusercontent.com/u/5458030?v=4?s=100" width="100px;" alt="MizterB"/><br /><sub><b>MizterB</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=MizterB" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/brietman"><img src="https://avatars.githubusercontent.com/u/17436537?v=4?s=100" width="100px;" alt="brietman"/><br /><sub><b>brietman</b></sub></a><br /><a href="#translation-brietman" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/TamilNeram"><img src="https://avatars.githubusercontent.com/u/67970539?v=4?s=100" width="100px;" alt="தமிழ் நேரம்"/><br /><sub><b>தமிழ் நேரம்</b></sub></a><br /><a href="#translation-TamilNeram" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Thunderstrike116"><img src="https://avatars.githubusercontent.com/u/23220766?v=4?s=100" width="100px;" alt="Thunderstrike116"/><br /><sub><b>Thunderstrike116</b></sub></a><br /><a href="#translation-Thunderstrike116" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
