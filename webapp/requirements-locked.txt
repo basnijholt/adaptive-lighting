@@ -27,7 +27,7 @@ htmltools==0.5.1
     # via
     #   shiny
     #   shinyswatch
-idna==3.6
+idna==3.7
     # via anyio
 linkify-it-py==2.0.2
     # via shiny
