@@ -52,7 +52,7 @@ shiny==1.2.1
     #   -r requirements.txt
     #   shinylive
     #   shinyswatch
-shinylive==0.1.1
+shinylive==0.7.1
     # via -r requirements.txt
 shinyswatch==0.3.1
     # via -r requirements.txt
