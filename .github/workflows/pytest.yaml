@@ -62,7 +62,7 @@ jobs:
             core-version: "dev"
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies
