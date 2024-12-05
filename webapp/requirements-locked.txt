@@ -14,7 +14,7 @@ appdirs==1.4.4
     #   shinylive
 asgiref==3.7.2
     # via shiny
-astral==2.2
+astral==3.2
     # via -r requirements.txt
 click==8.1.7
     # via
