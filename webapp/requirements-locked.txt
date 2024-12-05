@@ -29,7 +29,7 @@ htmltools==0.6.0
     #   shinyswatch
 idna==3.10
     # via anyio
-linkify-it-py==2.0.2
+linkify-it-py==2.0.3
     # via shiny
 markdown-it-py==3.0.0
     # via
