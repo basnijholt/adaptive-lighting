@@ -31,5 +31,8 @@
             ],
             "automerge": true
         }
+    ],
+    "extends": [
+        "config:recommended"
     ]
 }
