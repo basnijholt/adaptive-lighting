@@ -45,7 +45,7 @@ packaging==23.2
     #   shinyswatch
 python-multipart==0.0.18
     # via shiny
-pytz==2023.3.post1
+pytz==2024.2
     # via astral
 shiny==0.5.0
     # via
