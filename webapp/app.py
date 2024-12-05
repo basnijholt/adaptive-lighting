@@ -217,10 +217,9 @@ Dive into the simulator, experiment with different settings, and fine-tune the b
 
 # Shiny UI
 app_ui = ui.page_fluid(
-    shinyswatch.theme.sandstone(),
     ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
     ui.layout_sidebar(
-        ui.panel_sidebar(
+        ui.sidebar(
             ui.input_switch("adapt_until_sleep", "adapt_until_sleep", value=False),
             ui.input_switch("sleep_mode", "sleep_mode", value=False),
             ui.input_slider("min_brightness", "min_brightness", 1, 100, 30, post="%"),
@@ -277,13 +276,12 @@ app_ui = ui.page_fluid(
                 post=" hr",
             ),
         ),
-        ui.panel_main(
-            ui.markdown(desc_top),
-            ui.output_plot(id="brightness_plot"),
-            ui.output_plot(id="color_temp_plot"),
-            ui.markdown(desc_bottom),
-        ),
+        ui.markdown(desc_top),
+        ui.output_plot(id="brightness_plot"),
+        ui.output_plot(id="color_temp_plot"),
+        ui.markdown(desc_bottom),
     ),
+    theme=shinyswatch.theme.sandstone,
 )
 
 
