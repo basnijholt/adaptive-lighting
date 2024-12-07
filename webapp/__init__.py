@@ -1,4 +1,4 @@
 """Initialize the `webapp` package.
 
-This module sets up the application components and handles configuration.
+Set up the application components and handle configuration.
 """
