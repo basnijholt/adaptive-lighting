@@ -2,5 +2,5 @@
 #    uv pip compile --output-file=requirements.txt requirements.txt.in
 astral==2.2
     # via -r requirements.txt.in
-pytz==2023.3.post1
+pytz==2024.2
     # via astral
