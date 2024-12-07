@@ -1,4 +1,5 @@
-"""This is the `webapp` package.
+"""
+Initialize the `webapp` package.
 
-It initializes the application components and handles configuration.
+This module sets up the application components and handles configuration.
 """
