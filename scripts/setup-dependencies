@@ -2,7 +2,7 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-pip install -r core/requirements.txt --root-user-action
+pip install -r core/requirements.txt --root-user-action=ignore
 
 if grep -q 'codecov' core/requirements_test.txt; then
     # Older HA versions still have `codecov` in `requirements_test.txt`
@@ -14,8 +14,8 @@ if grep -q 'mypy-dev==1.10.0a3' core/requirements_test.txt; then
     # mypy-dev==1.10.0a3 seems to not be available anymore, HA 2024.4 and 2024.5 are affected
     sed -i 's/mypy-dev==1.10.0a3/mypy-dev==1.10.0b1/' core/requirements_test.txt
 fi
-pip install -r core/requirements_test.txt --root-user-action
+pip install -r core/requirements_test.txt --root-user-action=ignore
 
-pip install -e core/ --root-user-action
+pip install -e core/ --root-user-action=ignore
 pip install ulid-transform # this is in Adaptive-lighting's manifest.json
-pip install $(python test_dependencies.py) --root-user-action
+pip install $(python test_dependencies.py) --root-user-action=ignore
