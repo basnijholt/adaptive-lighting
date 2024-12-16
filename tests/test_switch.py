@@ -2112,11 +2112,8 @@ async def test_light_group(
         assert events[1].context.id == "testing"
         e1 = events[2].data["service_data"][ATTR_ENTITY_ID]
         e2 = events[3].data["service_data"][ATTR_ENTITY_ID]
-        assert (
-            e1 == "light.light_4"
-            and e2 == "light.light_5"
-            or e1 == "light.light_5"
-            and e2 == "light.light_4"
+        assert (e1 == "light.light_4" and e2 == "light.light_5") or (
+            e1 == "light.light_5" and e2 == "light.light_4"
         )
         assert ":lght:" in events[2].context.id
         assert ":lght:" in events[3].context.id
