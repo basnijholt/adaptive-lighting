@@ -1,0 +1,19 @@
+{
+  "title": "Adaptive Lighting",
+  "options": {
+    "step": {
+      "init": {
+        "title": "Επιλογές Adaptive Lighting"
+      }
+    }
+  },
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "only_once": {
+          "description": "Προσαρμογή των φώτων μόνο όταν είναι αναμμένα (`true`) ή συνεχής προσαρμογή αυτών (`false`). 🔄"
+        }
+      }
+    }
+  }
+}

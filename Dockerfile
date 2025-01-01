@@ -7,7 +7,7 @@
 # Optionally build the image yourself with:
 # docker build -t basnijholt/adaptive-lighting:latest .
 
-FROM python:3.12-bookworm
+FROM python:3.13-bookworm
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
