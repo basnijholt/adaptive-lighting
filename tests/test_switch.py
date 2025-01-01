@@ -99,7 +99,6 @@ from homeassistant.const import (
 )
 from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
-from homeassistant.core_config import async_process_ha_core_config
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -360,6 +359,19 @@ async def test_adaptive_lighting_switches(hass):
     assert UNDO_UPDATE_LISTENER in data
 
     assert len(data.keys()) == 5
+
+
+def async_process_ha_core_config(hass, config):
+    """Set up the Home Assistant configuration."""
+    try:
+        # ha >= "2023.11.0"
+        from homeassistant.core_config import async_process_ha_core_config
+
+        return async_process_ha_core_config(hass, config)
+    except ModuleNotFoundError:
+        import homeassistant.config as config_util
+
+        return config_util.async_process_ha_core_config(hass, config)
 
 
 @pytest.mark.parametrize(("lat", "long", "timezone"), LAT_LONG_TZS)
