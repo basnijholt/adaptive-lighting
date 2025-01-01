@@ -11,7 +11,6 @@ from random import randint
 from typing import Any
 from unittest.mock import Mock, patch
 
-import homeassistant.config as config_util
 import homeassistant.util.dt as dt_util
 import pytest
 import ulid_transform
@@ -100,6 +99,7 @@ from homeassistant.const import (
 )
 from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.core_config import async_process_ha_core_config
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -371,7 +371,7 @@ async def test_adaptive_lighting_time_zones_with_default_settings(
     reset_time_zone,  # pylint: disable=redefined-outer-name
 ):
     """Test setting up the Adaptive Lighting switches with different timezones."""
-    await config_util.async_process_ha_core_config(
+    await async_process_ha_core_config(
         hass,
         {"latitude": lat, "longitude": long, "time_zone": timezone},
     )
@@ -394,7 +394,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
 
     Also test the (sleep) brightness and color temperature settings.
     """
-    await config_util.async_process_ha_core_config(
+    await async_process_ha_core_config(
         hass,
         {"latitude": lat, "longitude": long, "time_zone": timezone},
     )
@@ -1927,7 +1927,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     Also test the (sleep) brightness and color temperature settings.
     """
     lat, long, timezone = (32.87336, -117.22743, "US/Pacific")
-    await config_util.async_process_ha_core_config(
+    await async_process_ha_core_config(
         hass,
         {"latitude": lat, "longitude": long, "time_zone": timezone},
     )
