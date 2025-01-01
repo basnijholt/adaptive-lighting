@@ -1371,6 +1371,8 @@ def mock_area_registry(
         area_kwargs["icon"] = None
     if dt >= datetime.date(2024, 3, 1):
         area_kwargs["floor_id"] = "test-floor"
+    if dt >= datetime.date(2024, 11, 1):
+        area_kwargs.pop("normalized_name")
 
     # This mess... 🤯
     if dt >= datetime.date(2024, 2, 1) and dt != datetime.date(2024, 4, 1):
