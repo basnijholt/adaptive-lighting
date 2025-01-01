@@ -936,6 +936,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "marazmarci",
+      "name": "Márton Maráz",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1349654?v=4",
+      "profile": "https://github.com/marazmarci",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
