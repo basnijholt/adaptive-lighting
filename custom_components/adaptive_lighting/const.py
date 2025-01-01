@@ -28,7 +28,7 @@ CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
 )
 DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Detects and halts adaptations for non-`light.turn_on` state changes. "
-    "Needs `take_over_control` enabled. 🕵️ "
+    "Needs `take_over_control` enabled. 🕵️"
     "Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result "
     "in lights turning on unexpectedly. "
     "Disable this feature if you encounter such issues."
