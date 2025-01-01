@@ -1,6 +1,5 @@
 """Test Adaptive Lighting config flow."""
 
-from homeassistant import data_entry_flow
 from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -11,6 +10,7 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_NAME
+from homeassistant.data_entry_flow import FlowResultType
 
 from tests.common import MockConfigEntry
 
@@ -24,7 +24,7 @@ async def test_flow_manual_configuration(hass):
         context={"source": "user"},
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "user"
     assert result["handler"] == "adaptive_lighting"
 
@@ -32,7 +32,7 @@ async def test_flow_manual_configuration(hass):
         result["flow_id"],
         user_input={CONF_NAME: "living room"},
     )
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "living room"
 
 
@@ -46,7 +46,7 @@ async def test_import_success(hass):
         data=data,
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == DEFAULT_NAME
     for key, value in data.items():
         assert result["data"][key] == value
@@ -65,7 +65,7 @@ async def test_options(hass):
     await hass.config_entries.async_setup(entry.entry_id)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
 
     data = DEFAULT_DATA.copy()
@@ -75,7 +75,7 @@ async def test_options(hass):
         result["flow_id"],
         user_input=data,
     )
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == FlowResultType.CREATE_ENTRY
     for key, value in data.items():
         assert result["data"][key] == value
 
