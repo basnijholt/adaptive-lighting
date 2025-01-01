@@ -28,7 +28,7 @@ CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
 )
 DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Detects and halts adaptations for non-`light.turn_on` state changes. "
-    "Needs `take_over_control` enabled. 🕵️"
+    "Needs `take_over_control` enabled. 🕵️ "
     "Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result "
     "in lights turning on unexpectedly. "
     "Disable this feature if you encounter such issues."
@@ -84,7 +84,7 @@ DOCS[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = (
     "invoked without specifying color or brightness. ❌🌈 "
     "This e.g., prevents adaptation when activating a scene. "
     "If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. "
-    "Needs `take_over_control` enabled. 🕵️ "
+    "Needs `take_over_control` enabled. 🕵️"
 )
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
