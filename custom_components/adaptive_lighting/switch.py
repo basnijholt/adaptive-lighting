@@ -54,6 +54,8 @@ from homeassistant.const import (
     EVENT_CALL_SERVICE,
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_STATE_CHANGED,
+    MAJOR_VERSION,
+    MINOR_VERSION,
     SERVICE_TOGGLE,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
@@ -71,6 +73,12 @@ from homeassistant.core import (
 )
 from homeassistant.helpers import entity_platform, entity_registry
 from homeassistant.helpers.entity_component import async_update_entity
+
+if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
+    from homeassistant.helpers.entity import DeviceInfo
+else:
+    from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
@@ -631,7 +639,10 @@ def _expand_light_groups(
 
 
 def _is_light_group(state: State) -> bool:
-    return "entity_id" in state.attributes
+    return "entity_id" in state.attributes and not state.attributes.get(
+        "is_hue_group",
+        False,
+    )
 
 
 @bind_hass
@@ -945,6 +956,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Return true if adaptive lighting is on."""
         return self._state
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info, used to group this and adjacent entities in the UI."""
+        return DeviceInfo(
+            identifiers={
+                (DOMAIN, self._name),
+            },
+            name=self._name,
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
         if self.hass.is_running:
@@ -953,7 +975,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED,
                 self._setup_listeners,
-                run_immediately=False,
             )
         last_state: State | None = await self.async_get_last_state()
         is_new_entry = last_state is None  # newly added to HA
@@ -1565,9 +1586,9 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._icon = icon
         self._state: bool | None = None
         self._which = which
-        name = data[CONF_NAME]
-        self._unique_id = f"{name}_{slugify(self._which)}"
-        self._name = f"Adaptive Lighting {which}: {name}"
+        self._config_name = data[CONF_NAME]
+        self._unique_id = f"{self._config_name}_{slugify(self._which)}"
+        self._name = f"Adaptive Lighting {which}: {self._config_name}"
         self._initial_state = initial_state
 
     @property
@@ -1589,6 +1610,17 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
     def is_on(self) -> bool | None:
         """Return true if adaptive lighting is on."""
         return self._state
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info, used to group this and adjacent entities in the UI."""
+        return DeviceInfo(
+            identifiers={
+                (DOMAIN, self._config_name),
+            },
+            name=f"Adaptive Lighting: {self._config_name}",
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
@@ -1660,12 +1692,10 @@ class AdaptiveLightingManager:
             self.hass.bus.async_listen(
                 EVENT_CALL_SERVICE,
                 self.turn_on_off_event_listener,
-                run_immediately=False,
             ),
             self.hass.bus.async_listen(
                 EVENT_STATE_CHANGED,
                 self.state_changed_event_listener,
-                run_immediately=False,
             ),
         ]
 

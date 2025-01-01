@@ -28,8 +28,69 @@
         },
         "transition": {
           "description": "Valojen siirtymän kesto sekunneissa, kun valaistusta muutetaan."
+        },
+        "sleep_color_temp": {
+          "description": "Värilämpötila lepotilassa (käytetään, kun `sleep_rgb_or_color_temp` on `color_temp`) kelvineinä. 😴"
+        },
+        "detect_non_ha_changes": {
+          "description": "Havaitsee ja pysäyttää mukautukset ei-\"light.turn_on\" -tilanmuutoksille. Vaatii \"take_over_control\":n käyttöönoton. 🕵️ Varoitus: ⚠️ Jotkut valot saatavat osoittaa virheellisesti 'on'-tilan, mikä voi johtaa valojen syttymiseen odottamatta. Poista tämä ominaisuus käytöstä, jos kohtaat tällaisia ongelmia."
+        },
+        "sunrise_time": {
+          "description": "Aseta kiinteä aika (TT:MM:SS) auringonnousulle. 🌅"
+        },
+        "use_defaults": {
+          "description": "Asettaa oletusarvot, joita ei ole määritetty tässä palvelukutsussa. Vaihtoehdot: \"nykyinen\" (oletus, säilyttää nykyiset arvot), \"tehdas\" (palauttaa dokumentoituihin oletusasetuksiin) tai \"kokoonpano\" (palaa kokoonpanon oletusasetusten vaihtamiseksi). ⚙️"
+        },
+        "max_sunrise_time": {
+          "description": "Aseta viimeisin virtuaalinen auringonnousuaika (TT:MM:SS), aikaisempia auringonnousuja sallien. 🌅"
+        },
+        "separate_turn_on_commands": {
+          "description": "Käytä erillisiä \"light.turn_on\" -kutsuja värin ja kirkkauden määrittämiseksi, joita tarvitaan joissakin valotyypeissä. 🔀"
+        },
+        "entity_id": {
+          "description": "Kytkimen entiteettitunnus. 📝"
+        },
+        "turn_on_lights": {
+          "description": "Sytytetäänkö valot, jotka ovat tällä hetkellä pois päältä. 🔆"
+        },
+        "include_config_in_attributes": {
+          "description": "Näytä kaikki vaihtoehdot attribuutteina kotiavustajan kytkimellä, kun sen arvo on \"true\". 📝"
+        },
+        "sleep_transition": {
+          "description": "Siirtymän kesto, kun \"lepotila\" vaihdetaan sekunneiksi. 😴"
+        },
+        "max_brightness": {
+          "description": "Enimmäiskirkkausprosentti. 💡"
+        },
+        "min_brightness": {
+          "description": "Vähittäiskirkkausprosentti. 💡"
+        },
+        "sleep_rgb_color": {
+          "description": "RGB-väri lepotilassa (käytetään, kun `sleep_rgb_or_color_temp` on \"rgb_color\"). 🌈"
+        },
+        "sunset_time": {
+          "description": "Aseta kiinteä aika (TT:MM:SS) auringonlaskulle. 🌇"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Käytä joko `\"rgb_color\"` tai `\"color_temp\"` lepotilassa. 🌙"
+        },
+        "min_color_temp": {
+          "description": "Lämpimin värilämpötila kelvineissä. 🔥"
+        },
+        "prefer_rgb_color": {
+          "description": "Halutaanko RGB-värinsäätö mieluummin valon värilämpötilan sijaan, kun mahdollista. 🌈"
+        },
+        "take_over_control": {
+          "description": "Poista Adaptive Lighting käytöstä, jos toinen lähde kutsuu `light.turn_on`, kun valot ovat päällä ja niitä mukautetaan. Huomaa, että tämä kutsuu `homeassistant.update_entity` joka `interval`! 🔒"
+        },
+        "min_sunset_time": {
+          "description": "Aseta aikaisin virtuaalinen auringonlaskuaika (TT:MM:SS), myöhempiä auringonlaskuja sallien. 🌇"
+        },
+        "adapt_delay": {
+          "description": "Odotusaika (sekunteina) valon syttymisen ja Adaptive Lightingin muutosten käyttöönoton välillä. Saattaa auttaa välttämään välkkymistä. ⏲️"
         }
-      }
+      },
+      "description": "Muuta haluamiasi asetuksia kytkimessä. Kaikki vaihtoehdot ovat samat kuin kokoonpanon kulussa."
     },
     "apply": {
       "description": "Asettaa nykyiset Adaptiivisen Valaistuksen asetukset valoihin.",
@@ -39,8 +100,37 @@
         },
         "transition": {
           "description": "Valojen siirtymän kesto sekunneissa, kun valaistusta muutetaan."
+        },
+        "entity_id": {
+          "description": "Kytkimen `entity_id` ja käytettävät asetukset. 📝"
+        },
+        "adapt_brightness": {
+          "description": "Mukautetaanko valon kirkkautta. 🌞"
+        },
+        "adapt_color": {
+          "description": "Mukautetaanko tukivalojen väriä. 🌈"
+        },
+        "prefer_rgb_color": {
+          "description": "Halutaanko RGB-värinsäätö mieluummin valon värilämpötilan sijaan, kun mahdollista. 🌈"
+        },
+        "turn_on_lights": {
+          "description": "Sytytetäänkö valot, jotka ovat tällä hetkellä pois päältä. 🔆"
         }
       }
+    },
+    "set_manual_control": {
+      "fields": {
+        "lights": {
+          "description": "Valojen entity_id(s), jos sitä ei ole määritetty, kaikki kytkimen valot valitaan. 💡"
+        },
+        "entity_id": {
+          "description": "Kytkimen `entity_id`, jolla valo määritetään `manuaalisesti ohjattavaksi`. 📝"
+        },
+        "manual_control": {
+          "description": "Lisätäänkö (\"true\") vai poistetaanko (\"false\") valo \"manual_control\"-luettelosta. 🔒"
+        }
+      },
+      "description": "Merkitse, onko valo 'manuaalisesti ohjattu'."
     }
   },
   "title": "Adaptiivinen valaistus",
@@ -55,16 +145,57 @@
           "brightness_mode": "Kirkkaus-moodi jota käytetään. Mahdolliset arvot ovat `default`, `linear`, and `tanh` (käyttää arvoja `brightness_mode_time_dark` ja `brightness_mode_time_light`).",
           "sunset_offset": "Muuta auringonlaskun aikaa positiivisella tai negatiivisella korjauksella määritettynä sekunneissa.",
           "initial_transition": "Ensimmäisen siirtymän kesto sekunneissa, kun valot kytketään 'off'-tilasta 'on'-tilaan.",
-          "send_split_delay": "Viive (ms) `separate_turn_on_commands` välillä valoille, jotka eivät tue yhtäaikaista kirkkauden ja värilämpötilan säätöä."
-        }
+          "send_split_delay": "Viive (ms) `separate_turn_on_commands` välillä valoille, jotka eivät tue yhtäaikaista kirkkauden ja värilämpötilan säätöä.",
+          "sleep_color_temp": "Värilämpötila lepotilassa (käytetään, kun `sleep_rgb_or_color_temp` on `color_temp`) kelvineinä. 😴",
+          "brightness_mode_time_dark": "(Ohitetaan, jos `brightness_mode='default'`) Kesto sekunteina kirkkauden lisäämiseen/vähentämiseen auringonnousun/auringonlaskun jälkeen/ennen. 📈📉.",
+          "adapt_delay": "Odotusaika (sekunteina) valon syttymisen ja Adaptive Lightingin muutosten käyttöönoton välillä. Saattaa auttaa välttämään välkkymistä. ⏲️",
+          "sleep_transition": "Siirtymän kesto, kun \"lepotila\" vaihdetaan sekunneiksi. 😴",
+          "interval": "Tiheys valojen mukauttamiseen sekunneissa. 🔄",
+          "brightness_mode_time_light": "(Ohitetaan, jos `brightness_mode='default'`) Kesto sekunteina kirkkauden lisäämiseen/vähentämiseen auringonnousun/auringonlaskun jälkeen/ennen. 📈📉.",
+          "sleep_rgb_color": "RGB-väri lepotilassa (käytetään, kun `sleep_rgb_or_color_temp` on \"rgb_color\"). 🌈",
+          "sunrise_time": "Aseta kiinteä aika (TT:MM:SS) auringonnousulle. 🌅",
+          "sunset_time": "Aseta kiinteä aika (TT:MM:SS) auringonlaskulle. 🌇",
+          "min_sunset_time": "Aseta aikaisin virtuaalinen auringonlaskuaika (TT:MM:SS), myöhempiä auringonlaskuja sallien. 🌅",
+          "min_sunrise_time": "Aseta aikaisin virtuaalinen auringonnousuaika (TT:MM:SS), myöhempiä auringonnousuja sallien. 🌅",
+          "max_sunrise_time": "Aseta aikaisin virtuaalinen auringonnousuaika (TT:MM:SS), aikaisempia auringonnousuja sallien. 🌅",
+          "sleep_rgb_or_color_temp": "Käytä joko `\"rgb_color\"` tai `\"color_temp\"` lepotilassa. 🌙"
+        },
+        "description": "Määritä Adaptive Lighting -komponentti. Vaihtoehtojen nimet vastaavat YAML-asetuksia. Jos olet määrittänyt tämän merkinnän YAML:ssa, tässä ei näy vaihtoehtoja. Interaktiiviset kaaviot, jotka esittelevät parametrien vaikutuksia, on [tässä verkkosovelluksessa](https://basnijholt.github.io/adaptive-lighting). Lisätietoja löytyy [virallisesta dokumentaatiosta](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "data": {
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Kun valot sytytetään ensimmäisen kerran. Jos asetuksena on \"true\", Adaptive Lighting mukautuu vain, jos \"light.turn_on\" kutsutaan määrittelemättä väriä tai kirkkautta. ❌🌈 Tämä esimerkiksi estää mukautumisen näkymää aktivoitaessa. Jos \"false\", Adaptive Lighting mukautuu riippumatta siitä, onko alkuperäisessä \"service_data\"-arvossa väri tai kirkkaus. Vaatii \"take_over_control\":n käyttöönoton. 🕵️ ",
+          "multi_light_intercept": "multi_light_intercept: sieppaa ja mukauta light.turn_on-kutsut, jotka kohdistuvat useisiin valoihin. ➗⚠️ Tämä saattaa johtaa yksittäisen light.turn_on-kutsun jakamiseen useiksi kutsuiksi, esimerkiksi kun valot ovat eri kytkimissä. Vaadi `intercept`:n käyttöönotto.",
+          "only_once": "only_once: Mukauta valot vain, kun ne ovat päällä (\"true\") tai mukauta niitä jatkuvasti (\"false\"). 🔄",
+          "skip_redundant_commands": "skip_redundant_commands: Ohita mukautuskomentojen lähettäminen, joiden kohdetila on jo yhtä suuri kuin valon tunnettu tila. Minimoi verkkoliikenteen ja parantaa mukautumisvastetta joissain tilanteissa. 📉 Poista käytöstä, jos fyysiset valotilat eivät ole synkronoitu kotiavustajan tallennetun tilan kanssa.",
+          "take_over_control": "take_over_control: Poista mukautuva valaistus käytöstä, jos toinen lähde kutsuu `light.turn_on`, kun valot ovat päällä ja niitä mukautetaan. Huomaa, että tämä kutsuu `homeassistant.update_entity` joka `interval`! 🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: Havaitsee ja pysäyttää mukautukset ei-\"light.turn_on\" -tilanmuutoksille. Vaatii \"take_over_control\" käyttöönoton. 🕵️ Varoitus: ⚠️ Jotkut valot saatavat osoittaa virheellisesti 'on'-tilan, mikä voi johtaa valojen syttymiseen odottamatta. Poista tämä ominaisuus käytöstä, jos kohtaat tällaisia ongelmia.",
+          "lights": "lights: Luettelo ohjattavista valon entity_ids:stä (voi olla tyhjä). 🌟",
+          "max_brightness": "max_brightness: Enimmäiskirkkausprosentti. 💡",
+          "max_color_temp": "max_color_temp: Kylmin värilämpötila kelvineinä. ❄️",
+          "min_brightness": "min_brightness: Vähittäiskirkkausprosentti. 💡",
+          "min_color_temp": "min_color_temp: Lämpimin värilämpötila kelvineinä. 🔥",
+          "prefer_rgb_color": "prefer_rgb_color: valitaanko RGB-värien säätö valon värilämpötilan sijaan, kun mahdollista. 🌈",
+          "transition_until_sleep": "shift_until_sleep: Kun käytössä, Adaptive Lighting käsittelee lepoasetukset miniminä ja siirtyy näihin arvoihin auringonlaskun jälkeen. 🌙",
+          "include_config_in_attributes": "include_config_in_attributes: Näytä kaikki vaihtoehdot attribuutteina Kotiavustajan kytkimessä, kun asetuksena on \"true\". 📝",
+          "intercept": "intercept: sieppaa ja mukauta \"light.turn_on\"-kutsut mahdollistamaan välitön värin ja kirkkauden mukauttaminen. 🏎️ Poista käytöstä valot, jotka eivät tue \"light.turn_on\" värin ja kirkkauden kanssa.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Käytä erillisiä `light.turn_on`-kutsuja värin ja kirkkauden määrittämiseksi, joita tarvitaan joissakin valotyypeissä. 🔀"
+        },
+        "title": "Adaptive Lightingin vaihtoehdot"
       }
+    },
+    "error": {
+      "option_error": "Virheellinen vaihtoehto",
+      "entity_missing": "Kotiavustajasta puuttuu yksi tai useampi valittu valoentiteetti"
     }
   },
   "config": {
     "step": {
       "user": {
-        "title": "Valitse nimi tälle Adaptiivisen Valaistuksen esiintymälle"
+        "title": "Valitse nimi tälle Adaptiivisen Valaistuksen esiintymälle",
+        "description": "Jokainen esiintymä voi sisältää useita valoja!"
       }
+    },
+    "abort": {
+      "already_configured": "Tämä laite on jo määritetty"
     }
   }
 }

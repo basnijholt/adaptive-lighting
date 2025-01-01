@@ -18,7 +18,7 @@ If you need help with using or configuring Adaptive Lighting, please [open a Q&A
 Please confirm that you have completed the following steps:
 
 - [ ] I have updated to the [latest Adaptive Lighting version](https://github.com/basnijholt/adaptive-lighting/releases) available in [HACS](https://hacs.xyz/).
-- [ ] I have reviewed the [Troubleshooting Section](https://github.com/basnijholt/adaptive-lighting#troubleshooting) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
+- [ ] I have reviewed the [Troubleshooting Section](https://github.com/basnijholt/adaptive-lighting#sos-troubleshooting) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
 - [ ] (If using Zigbee2MQTT) I have read the [Zigbee2MQTT troubleshooting guide](https://github.com/basnijholt/adaptive-lighting#zigbee2mqtt) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
 - [ ] I have checked the [V2 Roadmap](https://github.com/basnijholt/adaptive-lighting/discussions/291) and [open issues](https://github.com/basnijholt/adaptive-lighting/issues) to ensure my issue isn't a duplicate.
 
