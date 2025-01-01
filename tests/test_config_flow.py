@@ -114,6 +114,7 @@ async def test_import_twice(hass):
         )
 
 
+# TODO: Fix, broken for all supported versions
 async def test_changing_options_when_using_yaml(hass):
     """Test changing options when using YAML."""
     entry = MockConfigEntry(

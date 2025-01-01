@@ -1602,6 +1602,7 @@ async def test_proactive_adaptation(hass):
     assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
 
 
+# TODO: Breaks since 2024.5.0!
 async def test_proactive_adaptation_with_separate_commands(hass):
     """Validate that a split proactive adaptation yields one additional service call."""
     switch, _ = await setup_lights_and_switch(
