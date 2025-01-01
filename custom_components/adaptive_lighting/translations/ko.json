@@ -1,269 +1,269 @@
 {
-    "title": "적응형 조명",
-    "config": {
-        "step": {
-            "user": {
-                "title": "적응형 조명 인스턴스 이름 선택",
-                "description": "각 인스턴스는 여러 조명을 포함할 수 있습니다!",
-                "data": {
-                    "name": "이름"
-                }
-            }
-        },
-        "abort": {
-            "already_configured": "이 장치는 이미 구성되었습니다"
+  "title": "적응형 조명",
+  "config": {
+    "step": {
+      "user": {
+        "title": "적응형 조명 인스턴스 이름 선택",
+        "description": "각 인스턴스는 여러 조명을 포함할 수 있습니다!",
+        "data": {
+          "name": "이름"
         }
+      }
     },
-    "options": {
-        "step": {
-            "init": {
-                "title": "적응형 조명 옵션",
-                "description": "적응형 조명 구성요소를 구성합니다. 옵션 이름은 YAML 설정과 일치합니다. 이 항목을 YAML에서 정의한 경우 여기에 옵션이 표시되지 않습니다. 매개변수 효과를 시연하는 인터랙티브 그래프는 [이 웹 앱](https://basnijholt.github.io/adaptive-lighting)에서 확인할 수 있습니다. 자세한 내용은 [공식 문서](https://github.com/basnijholt/adaptive-lighting#readme)를 참조하세요.",
-                "data": {
-                    "lights": "조명: 제어될 조명 entity_ids의 목록 (비어 있을 수 있음). 🌟",
-                    "interval": "간격",
-                    "transition": "전환",
-                    "initial_transition": "초기 전환",
-                    "min_brightness": "최소 밝기: 밝기 최소 퍼센트. 💡",
-                    "max_brightness": "최대 밝기: 밝기 최대 퍼센트. 💡",
-                    "min_color_temp": "최소 색온도: 켈빈으로 표시된 가장 따뜻한 색온도. 🔥",
-                    "max_color_temp": "최대 색온도: 켈빈으로 표시된 가장 차가운 색온도. ❄️",
-                    "prefer_rgb_color": "RGB 색상 선호: 가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
-                    "sleep_brightness": "수면 밝기",
-                    "sleep_rgb_or_color_temp": "수면 rgb_or_color_temp",
-                    "sleep_color_temp": "수면 색온도",
-                    "sleep_rgb_color": "수면 RGB 색상",
-                    "sleep_transition": "수면 전환",
-                    "transition_until_sleep": "수면까지 전환: 활성화되면, 적응형 조명은 수면 설정을 최소값으로 취급하고 일몰 후 이 값으로 전환합니다. 🌙",
-                    "sunrise_time": "일출 시간",
-                    "min_sunrise_time": "최소 일출 시간",
-                    "max_sunrise_time": "최대 일출 시간",
-                    "sunrise_offset": "일출 오프셋",
-                    "sunset_time": "일몰 시간",
-                    "min_sunset_time": "최소 일몰 시간",
-                    "max_sunset_time": "최대 일몰 시간",
-                    "sunset_offset": "일몰 오프셋",
-                    "brightness_mode": "밝기 모드",
-                    "brightness_mode_time_dark": "어두울 때 밝기 모드 시간",
-                    "brightness_mode_time_light": "밝을 때 밝기 모드 시간",
-                    "take_over_control": "제어 인계: 다른 소스가 조명이 켜져 있고 조정 중일 때 `light.turn_on`을 호출하면 적응형 조명을 비활성화합니다. 이는 매 `간격`마다 `homeassistant.update_entity`를 호출합니다! 🔒",
-                    "detect_non_ha_changes": "비HA 변경 감지: `light.turn_on`이 아닌 상태 변경을 감지하고 조정을 중단합니다. `take_over_control`이 활성화되어 있어야 합니다. 🕵️ 주의: ⚠️ 일부 조명은 잘못된 '켜짐' 상태를 나타낼 수 있으며, 이로 인해 조명이 예상치 못하게 켜질 수 있습니다. 이러한 문제가 발생하면 이 기능을 비활성화하세요.",
-                    "autoreset_control_seconds": "자동 제어 리셋 초",
-                    "only_once": "한 번만: 조명을 켤 때만 조정 (`true`) 또는 계속해서 조정 (`false`). 🔄",
-                    "adapt_only_on_bare_turn_on": "초기 켜짐 시 조정만: 조명을 처음 켤 때. `true`로 설정하면 `light.turn_on`이 색상이나 밝기를 지정하지 않고 호출될 때만 AL이 조정합니다. ❌🌈 예를 들어, 장면을 활성화할 때 조정을 방지합니다. `false`로 설정하면, AL은 초기 `service_data`에 색상이나 밝기의 존재 여부와 관계없이 조정합니다. `take_over_control`이 활성화되어 있어야 합니다. 🕵️",
-                    "separate_turn_on_commands": "분리된 켜기 명령 사용: 일부 조명 유형에 필요한 색상과 밝기에 대해 별도의 `light.turn_on` 호출을 사용합니다. 🔀",
-                    "send_split_delay": "분할 전송 지연",
-                    "adapt_delay": "조정 지연",
-                    "skip_redundant_commands": "중복 명령 건너뛰기: 목표 상태가 이미 조명의 알려진 상태와 동일한 조정 명령을 보내지 않습니다. 네트워크 트래픽을 최소화하고 일부 상황에서 조정 반응성을 향상시킵니다. 📉 물리적 조명 상태가 HA의 기록된 상태와 동기화되지 않는 경우 비활성화하세요.",
-                    "intercept": "가로채기: 색상과 밝기의 즉각적인 조정을 가능하게 하기 위해 `light.turn_on` 호출을 가로챕니다. 🏎️ 색상과 밝기를 지원하지 않는 조명에 대해 비활성화합니다.",
-                    "multi_light_intercept": "다중 조명 가로채기: 여러 조명을 대상으로 하는 `light.turn_on` 호출을 가로채고 조정합니다. ➗⚠️ 이는 단일 `light.turn_on` 호출을 여러 호출로 분할할 수 있음을 의미합니다. 예를 들어, 조명이 다른 스위치에 있을 때. `intercept`가 활성화되어 있어야 합니다.",
-                    "include_config_in_attributes": "속성에 구성 포함: `true`로 설정하면 Home Assistant에서 스위치의 모든 옵션을 속성으로 표시합니다. 📝"
-                },
-                "data_description": {
-                    "interval": "조명을 조정하는 빈도, 초 단위. 🔄",
-                    "transition": "조명이 변경될 때 전환 기간, 초 단위. 🕑",
-                    "initial_transition": "조명이 `off`에서 `on`으로 바뀔 때 첫 번째 전환의 지속 시간, 초 단위. ⏲️",
-                    "sleep_brightness": "수면 모드에서 조명의 밝기 퍼센트. 😴",
-                    "sleep_rgb_or_color_temp": "수면 모드에서 `\"rgb_color\"` 또는 `\"color_temp\"` 사용. 🌙",
-                    "sleep_color_temp": "수면 모드에서 색온도 (sleep_rgb_or_color_temp가 `color_temp`일 때 사용) 켈빈 단위. 😴",
-                    "sleep_rgb_color": "수면 모드에서 RGB 색상 (sleep_rgb_or_color_temp가 \"rgb_color\"일 때 사용). 🌈",
-                    "sleep_transition": "\"수면 모드\"가 전환될 때 전환 기간, 초 단위. 😴",
-                    "sunrise_time": "일출 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌅",
-                    "min_sunrise_time": "가장 이른 가상 일출 시간 (HH:MM:SS)을 설정하여 더 늦은 일출을 허용. 🌅",
-                    "max_sunrise_time": "가장 늦은 가상 일출 시간 (HH:MM:SS)을 설정하여 더 일찍 일출을 허용. 🌅",
-                    "sunrise_offset": "양수 또는 음수 오프셋(초)으로 일출 시간을 조정. ⏰",
-                    "sunset_time": "일몰 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌇",
-                    "min_sunset_time": "가장 이른 가상 일몰 시간 (HH:MM:SS)을 설정하여 더 늦은 일몰을 허용. 🌇",
-                    "max_sunset_time": "가장 늦은 가상 일몰 시간 (HH:MM:SS)을 설정하여 더 일찍 일몰을 허용. 🌇",
-                    "sunset_offset": "양수 또는 음수 오프셋(초)으로 일몰 시간을 조정. ⏰",
-                    "brightness_mode": "사용할 밝기 모드. 가능한 값은 `default`, `linear`, `tanh` (uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈",
-                    "brightness_mode_time_dark": "(`brightness_mode='default'`인 경우 무시됨) 일출/일몰 전/후에 밝기를 높이거나 낮추는 데 걸리는 시간, 초 단위. 📈📉",
-                    "brightness_mode_time_light": "(`brightness_mode='default'`인 경우 무시됨) 일출/일몰 후/전에 밝기를 높이거나 낮추는 데 걸리는 시간, 초 단위. 📈📉.",
-                    "autoreset_control_seconds": "특정 초 후에 수동 제어를 자동으로 재설정. 0으로 설정하면 비활성화됩니다. ⏲️",
-                    "send_split_delay": "`separate_turn_on_commands`에 대한 호출 사이의 지연 시간(밀리초)으로, 밝기와 색상을 동시에 설정하지 않는 조명에 대한 지연. ⏲️",
-                    "adapt_delay": "조명을 켠 후 적응형 조명이 변경 사항을 적용하기까지의 대기 시간(초). 깜박임을 피하는 데 도움이 될 수 있습니다. ⏲️"
-                }
-            }
-        },
-        "error": {
-            "option_error": "잘못된 옵션",
-            "entity_missing": "선택한 하나 이상의 조명 엔티티가 Home Assistant에서 누락됨"
-        }
-    },
-    "services": {
-        "apply": {
-            "name": "적용",
-            "description": "현재 적응형 조명 설정을 조명에 적용합니다.",
-            "fields": {
-                "entity_id": {
-                    "description": "설정을 적용할 스위치의 `entity_id`. 📝",
-                    "name": "entity_id"
-                },
-                "lights": {
-                    "description": "설정을 적용할 조명(또는 조명 목록). 💡",
-                    "name": "lights"
-                },
-                "transition": {
-                    "description": "조명 변경 시 전환 기간, 초 단위. 🕑",
-                    "name": "transition"
-                },
-                "adapt_brightness": {
-                    "description": "조명의 밝기를 조정할지 여부. 🌞",
-                    "name": "adapt_brightness"
-                },
-                "adapt_color": {
-                    "description": "지원하는 조명의 색상을 조정할지 여부. 🌈",
-                    "name": "adapt_color"
-                },
-                "prefer_rgb_color": {
-                    "description": "가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
-                    "name": "prefer_rgb_color"
-                },
-                "turn_on_lights": {
-                    "description": "현재 꺼져 있는 조명을 켤지 여부. 🔆",
-                    "name": "turn_on_lights"
-                }
-            }
-        },
-        "set_manual_control": {
-            "name": "수동 제어 설정",
-            "description": "조명이 '수동 제어됨'으로 표시되었는지 여부를 표시합니다.",
-            "fields": {
-                "entity_id": {
-                    "description": "`수동 제어됨`으로 (표시 해제)할 스위치의 `entity_id`. 📝",
-                    "name": "entity_id"
-                },
-                "lights": {
-                    "description": "조명의 entity_id(들), 지정하지 않으면 스위치의 모든 조명이 선택됩니다. 💡",
-                    "name": "lights"
-                },
-                "manual_control": {
-                    "description": "\"수동 제어\" 목록에서 조명을 추가(\"true\") 또는 제거(\"false\")할지 여부. 🔒",
-                    "name": "manual_control"
-                }
-            }
-        },
-        "change_switch_settings": {
-            "name": "스위치 설정 변경",
-            "description": "스위치에서 원하는 모든 설정을 변경하세요. 여기에 있는 모든 옵션은 구성 흐름에서와 같습니다.",
-            "fields": {
-                "entity_id": {
-                    "description": "스위치의 Entity ID. 📝",
-                    "name": "entity_id"
-                },
-                "use_defaults": {
-                    "description": "이 서비스 호출에서 지정되지 않은 기본값을 설정합니다. 옵션: \"현재\"(기본값, 현재 값을 유지), \"공장\"(문서화된 기본값으로 재설정), 또는 \"구성\"(스위치 구성 기본값으로 되돌림). ⚙️",
-                    "name": "use_defaults"
-                },
-                "include_config_in_attributes": {
-                    "description": "`true`로 설정하면 Home Assistant에서 스위치의 모든 옵션을 속성으로 표시합니다. 📝",
-                    "name": "include_config_in_attributes"
-                },
-                "turn_on_lights": {
-                    "description": "현재 꺼져 있는 조명을 켤지 여부. 🔆",
-                    "name": "turn_on_lights"
-                },
-                "initial_transition": {
-                    "description": "조명이 `off`에서 `on`으로 바뀔 때 첫 번째 전환의 지속 시간, 초 단위. ⏲️",
-                    "name": "initial_transition"
-                },
-                "sleep_transition": {
-                    "description": "\"수면 모드\"가 전환될 때 전환 기간, 초 단위. 😴",
-                    "name": "sleep_transition"
-                },
-                "max_brightness": {
-                    "description": "최대 밝기 퍼센트. 💡",
-                    "name": "max_brightness"
-                },
-                "max_color_temp": {
-                    "description": "켈빈으로 표시된 가장 차가운 색온도. ❄️",
-                    "name": "max_color_temp"
-                },
-                "min_brightness": {
-                    "description": "최소 밝기 퍼센트. 💡",
-                    "name": "min_brightness"
-                },
-                "min_color_temp": {
-                    "description": "켈빈으로 표시된 가장 따뜻한 색온도. 🔥",
-                    "name": "min_color_temp"
-                },
-                "only_once": {
-                    "description": "조명을 켤 때만 조정 (`true`) 또는 계속해서 조정 (`false`). 🔄",
-                    "name": "only_once"
-                },
-                "prefer_rgb_color": {
-                    "description": "가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
-                    "name": "prefer_rgb_color"
-                },
-                "separate_turn_on_commands": {
-                    "description": "일부 조명 유형에 필요한 색상과 밝기에 대해 별도의 `light.turn_on` 호출을 사용합니다. 🔀",
-                    "name": "separate_turn_on_commands"
-                },
-                "send_split_delay": {
-                    "description": "밝기와 색상을 동시에 설정하지 않는 조명에 대한 `separate_turn_on_commands` 호출 사이의 지연 시간(밀리초). ⏲️",
-                    "name": "send_split_delay"
-                },
-                "sleep_brightness": {
-                    "description": "수면 모드에서 조명의 밝기 퍼센트. 😴",
-                    "name": "sleep_brightness"
-                },
-                "sleep_rgb_or_color_temp": {
-                    "description": "수면 모드에서 `\"rgb_color\"` 또는 `\"color_temp\"` 사용. 🌙",
-                    "name": "sleep_rgb_or_color_temp"
-                },
-                "sleep_rgb_color": {
-                    "description": "수면 모드에서 RGB 색상 (sleep_rgb_or_color_temp가 \"rgb_color\"일 때 사용). 🌈",
-                    "name": "sleep_rgb_color"
-                },
-                "sleep_color_temp": {
-                    "description": "수면 모드에서 색온도 (sleep_rgb_or_color_temp가 `color_temp`일 때 사용) 켈빈 단위. 😴",
-                    "name": "sleep_color_temp"
-                },
-                "sunrise_offset": {
-                    "description": "양수 또는 음수 오프셋(초)으로 일출 시간을 조정. ⏰",
-                    "name": "sunrise_offset"
-                },
-                "sunrise_time": {
-                    "description": "일출 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌅",
-                    "name": "sunrise_time"
-                },
-                "sunset_offset": {
-                    "description": "양수 또는 음수 오프셋(초)으로 일몰 시간을 조정. ⏰",
-                    "name": "sunset_offset"
-                },
-                "sunset_time": {
-                    "description": "일몰 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌇",
-                    "name": "sunset_time"
-                },
-                "max_sunrise_time": {
-                    "description": "가장 늦은 가상 일출 시간 (HH:MM:SS)을 설정하여 더 일찍 일출을 허용. 🌅",
-                    "name": "max_sunrise_time"
-                },
-                "min_sunset_time": {
-                    "description": "가장 이른 가상 일몰 시간 (HH:MM:SS)을 설정하여 더 늦은 일몰을 허용. 🌇",
-                    "name": "min_sunset_time"
-                },
-                "take_over_control": {
-                    "description": "다른 소스가 조명이 켜져 있고 조정 중일 때 `light.turn_on`을 호출하면 적응형 조명을 비활성화합니다. 이는 매 `간격`마다 `homeassistant.update_entity`를 호출합니다! 🔒",
-                    "name": "take_over_control"
-                },
-                "detect_non_ha_changes": {
-                    "description": "`light.turn_on`이 아닌 상태 변경을 감지하고 조정을 중단합니다. `take_over_control`이 활성화되어 있어야 합니다. 🕵️ 주의: ⚠️ 일부 조명은 잘못된 '켜짐' 상태를 나타낼 수 있으며, 이로 인해 조명이 예상치 못하게 켜질 수 있습니다. 이러한 문제가 발생하면 이 기능을 비활성화하세요.",
-                    "name": "detect_non_ha_changes"
-                },
-                "transition": {
-                    "description": "조명이 변경될 때 전환 기간, 초 단위. 🕑",
-                    "name": "transition"
-                },
-                "adapt_delay": {
-                    "description": "조명을 켠 후 적응형 조명이 변경 사항을 적용하기까지의 대기 시간(초). 깜박임을 피하는 데 도움이 될 수 있습니다. ⏲️",
-                    "name": "adapt_delay"
-                },
-                "autoreset_control_seconds": {
-                    "description": "특정 초 후에 수동 제어를 자동으로 재설정. 0으로 설정하면 비활성화됩니다. ⏲️",
-                    "name": "autoreset_control_seconds"
-                }
-            }
-        }
+    "abort": {
+      "already_configured": "이 장치는 이미 구성되었습니다"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "적응형 조명 옵션",
+        "description": "적응형 조명 구성요소를 구성합니다. 옵션 이름은 YAML 설정과 일치합니다. 이 항목을 YAML에서 정의한 경우 여기에 옵션이 표시되지 않습니다. 매개변수 효과를 시연하는 인터랙티브 그래프는 [이 웹 앱](https://basnijholt.github.io/adaptive-lighting)에서 확인할 수 있습니다. 자세한 내용은 [공식 문서](https://github.com/basnijholt/adaptive-lighting#readme)를 참조하세요.",
+        "data": {
+          "lights": "조명: 제어될 조명 entity_ids의 목록 (비어 있을 수 있음). 🌟",
+          "interval": "간격",
+          "transition": "전환",
+          "initial_transition": "초기 전환",
+          "min_brightness": "최소 밝기: 밝기 최소 퍼센트. 💡",
+          "max_brightness": "최대 밝기: 밝기 최대 퍼센트. 💡",
+          "min_color_temp": "최소 색온도: 켈빈으로 표시된 가장 따뜻한 색온도. 🔥",
+          "max_color_temp": "최대 색온도: 켈빈으로 표시된 가장 차가운 색온도. ❄️",
+          "prefer_rgb_color": "RGB 색상 선호: 가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
+          "sleep_brightness": "수면 밝기",
+          "sleep_rgb_or_color_temp": "수면 rgb_or_color_temp",
+          "sleep_color_temp": "수면 색온도",
+          "sleep_rgb_color": "수면 RGB 색상",
+          "sleep_transition": "수면 전환",
+          "transition_until_sleep": "수면까지 전환: 활성화되면, 적응형 조명은 수면 설정을 최소값으로 취급하고 일몰 후 이 값으로 전환합니다. 🌙",
+          "sunrise_time": "일출 시간",
+          "min_sunrise_time": "최소 일출 시간",
+          "max_sunrise_time": "최대 일출 시간",
+          "sunrise_offset": "일출 오프셋",
+          "sunset_time": "일몰 시간",
+          "min_sunset_time": "최소 일몰 시간",
+          "max_sunset_time": "최대 일몰 시간",
+          "sunset_offset": "일몰 오프셋",
+          "brightness_mode": "밝기 모드",
+          "brightness_mode_time_dark": "어두울 때 밝기 모드 시간",
+          "brightness_mode_time_light": "밝을 때 밝기 모드 시간",
+          "take_over_control": "제어 인계: 다른 소스가 조명이 켜져 있고 조정 중일 때 `light.turn_on`을 호출하면 적응형 조명을 비활성화합니다. 이는 매 `간격`마다 `homeassistant.update_entity`를 호출합니다! 🔒",
+          "detect_non_ha_changes": "비HA 변경 감지: `light.turn_on`이 아닌 상태 변경을 감지하고 조정을 중단합니다. `take_over_control`이 활성화되어 있어야 합니다. 🕵️ 주의: ⚠️ 일부 조명은 잘못된 '켜짐' 상태를 나타낼 수 있으며, 이로 인해 조명이 예상치 못하게 켜질 수 있습니다. 이러한 문제가 발생하면 이 기능을 비활성화하세요.",
+          "autoreset_control_seconds": "자동 제어 리셋 초",
+          "only_once": "한 번만: 조명을 켤 때만 조정 (`true`) 또는 계속해서 조정 (`false`). 🔄",
+          "adapt_only_on_bare_turn_on": "초기 켜짐 시 조정만: 조명을 처음 켤 때. `true`로 설정하면 `light.turn_on`이 색상이나 밝기를 지정하지 않고 호출될 때만 AL이 조정합니다. ❌🌈 예를 들어, 장면을 활성화할 때 조정을 방지합니다. `false`로 설정하면, AL은 초기 `service_data`에 색상이나 밝기의 존재 여부와 관계없이 조정합니다. `take_over_control`이 활성화되어 있어야 합니다. 🕵️",
+          "separate_turn_on_commands": "분리된 켜기 명령 사용: 일부 조명 유형에 필요한 색상과 밝기에 대해 별도의 `light.turn_on` 호출을 사용합니다. 🔀",
+          "send_split_delay": "분할 전송 지연",
+          "adapt_delay": "조정 지연",
+          "skip_redundant_commands": "중복 명령 건너뛰기: 목표 상태가 이미 조명의 알려진 상태와 동일한 조정 명령을 보내지 않습니다. 네트워크 트래픽을 최소화하고 일부 상황에서 조정 반응성을 향상시킵니다. 📉 물리적 조명 상태가 HA의 기록된 상태와 동기화되지 않는 경우 비활성화하세요.",
+          "intercept": "가로채기: 색상과 밝기의 즉각적인 조정을 가능하게 하기 위해 `light.turn_on` 호출을 가로챕니다. 🏎️ 색상과 밝기를 지원하지 않는 조명에 대해 비활성화합니다.",
+          "multi_light_intercept": "다중 조명 가로채기: 여러 조명을 대상으로 하는 `light.turn_on` 호출을 가로채고 조정합니다. ➗⚠️ 이는 단일 `light.turn_on` 호출을 여러 호출로 분할할 수 있음을 의미합니다. 예를 들어, 조명이 다른 스위치에 있을 때. `intercept`가 활성화되어 있어야 합니다.",
+          "include_config_in_attributes": "속성에 구성 포함: `true`로 설정하면 Home Assistant에서 스위치의 모든 옵션을 속성으로 표시합니다. 📝"
+        },
+        "data_description": {
+          "interval": "조명을 조정하는 빈도, 초 단위. 🔄",
+          "transition": "조명이 변경될 때 전환 기간, 초 단위. 🕑",
+          "initial_transition": "조명이 `off`에서 `on`으로 바뀔 때 첫 번째 전환의 지속 시간, 초 단위. ⏲️",
+          "sleep_brightness": "수면 모드에서 조명의 밝기 퍼센트. 😴",
+          "sleep_rgb_or_color_temp": "수면 모드에서 `\"rgb_color\"` 또는 `\"color_temp\"` 사용. 🌙",
+          "sleep_color_temp": "수면 모드에서 색온도 (sleep_rgb_or_color_temp가 `color_temp`일 때 사용) 켈빈 단위. 😴",
+          "sleep_rgb_color": "수면 모드에서 RGB 색상 (sleep_rgb_or_color_temp가 \"rgb_color\"일 때 사용). 🌈",
+          "sleep_transition": "\"수면 모드\"가 전환될 때 전환 기간, 초 단위. 😴",
+          "sunrise_time": "일출 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌅",
+          "min_sunrise_time": "가장 이른 가상 일출 시간 (HH:MM:SS)을 설정하여 더 늦은 일출을 허용. 🌅",
+          "max_sunrise_time": "가장 늦은 가상 일출 시간 (HH:MM:SS)을 설정하여 더 일찍 일출을 허용. 🌅",
+          "sunrise_offset": "양수 또는 음수 오프셋(초)으로 일출 시간을 조정. ⏰",
+          "sunset_time": "일몰 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌇",
+          "min_sunset_time": "가장 이른 가상 일몰 시간 (HH:MM:SS)을 설정하여 더 늦은 일몰을 허용. 🌇",
+          "max_sunset_time": "가장 늦은 가상 일몰 시간 (HH:MM:SS)을 설정하여 더 일찍 일몰을 허용. 🌇",
+          "sunset_offset": "양수 또는 음수 오프셋(초)으로 일몰 시간을 조정. ⏰",
+          "brightness_mode": "사용할 밝기 모드. 가능한 값은 `default`, `linear`, `tanh` (uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈",
+          "brightness_mode_time_dark": "(`brightness_mode='default'`인 경우 무시됨) 일출/일몰 전/후에 밝기를 높이거나 낮추는 데 걸리는 시간, 초 단위. 📈📉",
+          "brightness_mode_time_light": "(`brightness_mode='default'`인 경우 무시됨) 일출/일몰 후/전에 밝기를 높이거나 낮추는 데 걸리는 시간, 초 단위. 📈📉.",
+          "autoreset_control_seconds": "특정 초 후에 수동 제어를 자동으로 재설정. 0으로 설정하면 비활성화됩니다. ⏲️",
+          "send_split_delay": "`separate_turn_on_commands`에 대한 호출 사이의 지연 시간(밀리초)으로, 밝기와 색상을 동시에 설정하지 않는 조명에 대한 지연. ⏲️",
+          "adapt_delay": "조명을 켠 후 적응형 조명이 변경 사항을 적용하기까지의 대기 시간(초). 깜박임을 피하는 데 도움이 될 수 있습니다. ⏲️"
+        }
+      }
+    },
+    "error": {
+      "option_error": "잘못된 옵션",
+      "entity_missing": "선택한 하나 이상의 조명 엔티티가 Home Assistant에서 누락됨"
+    }
+  },
+  "services": {
+    "apply": {
+      "name": "적용",
+      "description": "현재 적응형 조명 설정을 조명에 적용합니다.",
+      "fields": {
+        "entity_id": {
+          "description": "설정을 적용할 스위치의 `entity_id`. 📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "설정을 적용할 조명(또는 조명 목록). 💡",
+          "name": "lights"
+        },
+        "transition": {
+          "description": "조명 변경 시 전환 기간, 초 단위. 🕑",
+          "name": "transition"
+        },
+        "adapt_brightness": {
+          "description": "조명의 밝기를 조정할지 여부. 🌞",
+          "name": "adapt_brightness"
+        },
+        "adapt_color": {
+          "description": "지원하는 조명의 색상을 조정할지 여부. 🌈",
+          "name": "adapt_color"
+        },
+        "prefer_rgb_color": {
+          "description": "가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
+          "name": "prefer_rgb_color"
+        },
+        "turn_on_lights": {
+          "description": "현재 꺼져 있는 조명을 켤지 여부. 🔆",
+          "name": "turn_on_lights"
+        }
+      }
+    },
+    "set_manual_control": {
+      "name": "수동 제어 설정",
+      "description": "조명이 '수동 제어됨'으로 표시되었는지 여부를 표시합니다.",
+      "fields": {
+        "entity_id": {
+          "description": "`수동 제어됨`으로 (표시 해제)할 스위치의 `entity_id`. 📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "조명의 entity_id(들), 지정하지 않으면 스위치의 모든 조명이 선택됩니다. 💡",
+          "name": "lights"
+        },
+        "manual_control": {
+          "description": "\"수동 제어\" 목록에서 조명을 추가(\"true\") 또는 제거(\"false\")할지 여부. 🔒",
+          "name": "manual_control"
+        }
+      }
+    },
+    "change_switch_settings": {
+      "name": "스위치 설정 변경",
+      "description": "스위치에서 원하는 모든 설정을 변경하세요. 여기에 있는 모든 옵션은 구성 흐름에서와 같습니다.",
+      "fields": {
+        "entity_id": {
+          "description": "스위치의 Entity ID. 📝",
+          "name": "entity_id"
+        },
+        "use_defaults": {
+          "description": "이 서비스 호출에서 지정되지 않은 기본값을 설정합니다. 옵션: \"현재\"(기본값, 현재 값을 유지), \"공장\"(문서화된 기본값으로 재설정), 또는 \"구성\"(스위치 구성 기본값으로 되돌림). ⚙️",
+          "name": "use_defaults"
+        },
+        "include_config_in_attributes": {
+          "description": "`true`로 설정하면 Home Assistant에서 스위치의 모든 옵션을 속성으로 표시합니다. 📝",
+          "name": "include_config_in_attributes"
+        },
+        "turn_on_lights": {
+          "description": "현재 꺼져 있는 조명을 켤지 여부. 🔆",
+          "name": "turn_on_lights"
+        },
+        "initial_transition": {
+          "description": "조명이 `off`에서 `on`으로 바뀔 때 첫 번째 전환의 지속 시간, 초 단위. ⏲️",
+          "name": "initial_transition"
+        },
+        "sleep_transition": {
+          "description": "\"수면 모드\"가 전환될 때 전환 기간, 초 단위. 😴",
+          "name": "sleep_transition"
+        },
+        "max_brightness": {
+          "description": "최대 밝기 퍼센트. 💡",
+          "name": "max_brightness"
+        },
+        "max_color_temp": {
+          "description": "켈빈으로 표시된 가장 차가운 색온도. ❄️",
+          "name": "max_color_temp"
+        },
+        "min_brightness": {
+          "description": "최소 밝기 퍼센트. 💡",
+          "name": "min_brightness"
+        },
+        "min_color_temp": {
+          "description": "켈빈으로 표시된 가장 따뜻한 색온도. 🔥",
+          "name": "min_color_temp"
+        },
+        "only_once": {
+          "description": "조명을 켤 때만 조정 (`true`) 또는 계속해서 조정 (`false`). 🔄",
+          "name": "only_once"
+        },
+        "prefer_rgb_color": {
+          "description": "가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
+          "name": "prefer_rgb_color"
+        },
+        "separate_turn_on_commands": {
+          "description": "일부 조명 유형에 필요한 색상과 밝기에 대해 별도의 `light.turn_on` 호출을 사용합니다. 🔀",
+          "name": "separate_turn_on_commands"
+        },
+        "send_split_delay": {
+          "description": "밝기와 색상을 동시에 설정하지 않는 조명에 대한 `separate_turn_on_commands` 호출 사이의 지연 시간(밀리초). ⏲️",
+          "name": "send_split_delay"
+        },
+        "sleep_brightness": {
+          "description": "수면 모드에서 조명의 밝기 퍼센트. 😴",
+          "name": "sleep_brightness"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "수면 모드에서 `\"rgb_color\"` 또는 `\"color_temp\"` 사용. 🌙",
+          "name": "sleep_rgb_or_color_temp"
+        },
+        "sleep_rgb_color": {
+          "description": "수면 모드에서 RGB 색상 (sleep_rgb_or_color_temp가 \"rgb_color\"일 때 사용). 🌈",
+          "name": "sleep_rgb_color"
+        },
+        "sleep_color_temp": {
+          "description": "수면 모드에서 색온도 (sleep_rgb_or_color_temp가 `color_temp`일 때 사용) 켈빈 단위. 😴",
+          "name": "sleep_color_temp"
+        },
+        "sunrise_offset": {
+          "description": "양수 또는 음수 오프셋(초)으로 일출 시간을 조정. ⏰",
+          "name": "sunrise_offset"
+        },
+        "sunrise_time": {
+          "description": "일출 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌅",
+          "name": "sunrise_time"
+        },
+        "sunset_offset": {
+          "description": "양수 또는 음수 오프셋(초)으로 일몰 시간을 조정. ⏰",
+          "name": "sunset_offset"
+        },
+        "sunset_time": {
+          "description": "일몰 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌇",
+          "name": "sunset_time"
+        },
+        "max_sunrise_time": {
+          "description": "가장 늦은 가상 일출 시간 (HH:MM:SS)을 설정하여 더 일찍 일출을 허용. 🌅",
+          "name": "max_sunrise_time"
+        },
+        "min_sunset_time": {
+          "description": "가장 이른 가상 일몰 시간 (HH:MM:SS)을 설정하여 더 늦은 일몰을 허용. 🌇",
+          "name": "min_sunset_time"
+        },
+        "take_over_control": {
+          "description": "다른 소스가 조명이 켜져 있고 조정 중일 때 `light.turn_on`을 호출하면 적응형 조명을 비활성화합니다. 이는 매 `간격`마다 `homeassistant.update_entity`를 호출합니다! 🔒",
+          "name": "take_over_control"
+        },
+        "detect_non_ha_changes": {
+          "description": "`light.turn_on`이 아닌 상태 변경을 감지하고 조정을 중단합니다. `take_over_control`이 활성화되어 있어야 합니다. 🕵️ 주의: ⚠️ 일부 조명은 잘못된 '켜짐' 상태를 나타낼 수 있으며, 이로 인해 조명이 예상치 못하게 켜질 수 있습니다. 이러한 문제가 발생하면 이 기능을 비활성화하세요.",
+          "name": "detect_non_ha_changes"
+        },
+        "transition": {
+          "description": "조명이 변경될 때 전환 기간, 초 단위. 🕑",
+          "name": "transition"
+        },
+        "adapt_delay": {
+          "description": "조명을 켠 후 적응형 조명이 변경 사항을 적용하기까지의 대기 시간(초). 깜박임을 피하는 데 도움이 될 수 있습니다. ⏲️",
+          "name": "adapt_delay"
+        },
+        "autoreset_control_seconds": {
+          "description": "특정 초 후에 수동 제어를 자동으로 재설정. 0으로 설정하면 비활성화됩니다. ⏲️",
+          "name": "autoreset_control_seconds"
+        }
+      }
+    }
+  }
 }
