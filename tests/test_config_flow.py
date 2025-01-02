@@ -127,11 +127,6 @@ def mock_config_entries_async_forward_entry_setup() -> Generator[AsyncMock]:
         yield mock_fn
 
 
-# TODO: Fix, broken for all supported versions
-# But in ≤2024.5 it gives homeassistant.config_entries.UnknownEntry: cd69dbda65bd3f86e9a32d974cdfa23f
-# and ≥2024.6 it times out
-
-
 async def test_changing_options_when_using_yaml(
     hass,
     mock_config_entries_async_forward_entry_setup,
@@ -146,8 +141,8 @@ async def test_changing_options_when_using_yaml(
     )
     entry.add_to_hass(hass)
 
-    await hass.block_till_done()
     await hass.config_entries.async_setup(entry.entry_id)
+    await hass.block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
