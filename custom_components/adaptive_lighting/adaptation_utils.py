@@ -69,8 +69,8 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
         transition /= len(service_datas)
 
-        for service_data in service_datas:
-            service_data[ATTR_TRANSITION] = transition
+        for _service_data in service_datas:
+            _service_data[ATTR_TRANSITION] = transition
 
     return service_datas
 

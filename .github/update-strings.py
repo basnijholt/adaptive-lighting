@@ -22,7 +22,7 @@ data = {}
 data_description = {}
 for k, _, typ in const.VALIDATION_TUPLES:
     desc = const.DOCS[k]
-    if len(desc) > 40 and typ != bool and typ != cv.entity_ids:
+    if len(desc) > 40 and typ not in (bool, cv.entity_ids):
         data[k] = k
         data_description[k] = desc
     else:
