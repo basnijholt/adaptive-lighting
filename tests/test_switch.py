@@ -408,7 +408,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
     """
     await async_process_ha_core_config(
         hass,
-        {"latitude": lat, "longitude": long, "time_zone": timezone},
+        {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
     _, switch = await setup_switch(
         hass,
@@ -1944,7 +1944,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     lat, long, timezone = (32.87336, -117.22743, "US/Pacific")
     await async_process_ha_core_config(
         hass,
-        {"latitude": lat, "longitude": long, "time_zone": timezone},
+        {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
     switch, lights = await setup_lights_and_switch(
         hass,
