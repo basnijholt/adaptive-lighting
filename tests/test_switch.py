@@ -1602,7 +1602,6 @@ async def test_proactive_adaptation(hass):
     assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
 
 
-# TODO: Breaks since 2024.5.0!
 async def test_proactive_adaptation_with_separate_commands(hass):
     """Validate that a split proactive adaptation yields one additional service call."""
     switch, _ = await setup_lights_and_switch(
@@ -1623,11 +1622,16 @@ async def test_proactive_adaptation_with_separate_commands(hass):
         },
     )
 
-    event_context_ids = await _turn_on_and_track_event_contexts(
+    events = await _turn_on_and_track_event_contexts(
         hass,
         "test_context",
         ENTITY_LIGHT_3,
+        return_full_events=True,
     )
+    # Wait for all adaptation tasks to complete
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+    event_context_ids = [event.context.id for event in events]
 
     # Expect two service calls
     assert len(event_context_ids) == 2, event_context_ids
