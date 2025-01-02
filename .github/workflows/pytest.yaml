@@ -14,22 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-version: "3.10"
-            core-version: "2022.11.5"
-          - python-version: "3.10"
-            core-version: "2022.12.9"
-          - python-version: "3.10"
-            core-version: "2023.1.7"
-          - python-version: "3.10"
-            core-version: "2023.2.5"
-          - python-version: "3.10"
-            core-version: "2023.3.6"
-          - python-version: "3.10"
-            core-version: "2023.4.6"
-          - python-version: "3.10"
-            core-version: "2023.5.4"
-          - python-version: "3.11"
-            core-version: "2023.6.3"
           - python-version: "3.11"
             core-version: "2023.7.3"
           - python-version: "3.11"
@@ -66,7 +50,7 @@ jobs:
             core-version: "2024.11.3"
           - python-version: "3.12"
             core-version: "2024.12.0"
-          - python-version: "3.12"
+          - python-version: "3.13"
             core-version: "dev"
     steps:
       - name: Check out code from GitHub
@@ -82,6 +66,7 @@ jobs:
         timeout-minutes: 60
         run: |
           export PYTHONPATH=${PYTHONPATH}:${PWD}
+          source .venv/bin/activate
           cd core
           python3 -X dev -m pytest \
             -vvv \
