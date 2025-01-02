@@ -1,5 +1,9 @@
 """Test Adaptive Lighting config flow."""
 
+from collections.abc import Generator
+from unittest.mock import AsyncMock, patch
+
+import pytest
 from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -114,10 +118,24 @@ async def test_import_twice(hass):
         )
 
 
+@pytest.fixture
+def mock_config_entries_async_forward_entry_setup() -> Generator[AsyncMock]:
+    """Mock async_forward_entry_setup."""
+    with patch(
+        "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+    ) as mock_fn:
+        yield mock_fn
+
+
 # TODO: Fix, broken for all supported versions
 # But in ≤2024.5 it gives homeassistant.config_entries.UnknownEntry: cd69dbda65bd3f86e9a32d974cdfa23f
 # and ≥2024.6 it times out
-async def test_changing_options_when_using_yaml(hass):
+
+
+async def test_changing_options_when_using_yaml(
+    hass,
+    mock_config_entries_async_forward_entry_setup,
+):
     """Test changing options when using YAML."""
     entry = MockConfigEntry(
         domain=DOMAIN,
