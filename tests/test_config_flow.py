@@ -116,9 +116,7 @@ async def test_import_twice(hass):
         )
 
 
-async def test_changing_options_when_using_yaml(
-    hass,
-):
+async def test_changing_options_when_using_yaml(hass):
     """Test changing options when using YAML."""
     entry = MockConfigEntry(
         domain=DOMAIN,
