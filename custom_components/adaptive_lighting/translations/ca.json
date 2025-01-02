@@ -11,15 +11,42 @@
           "autoreset_control_seconds": "Restableix automàticament el control manual al cap d'uns segons. Posar a 0 per desactivar. ⏲️",
           "brightness_mode": "Mode de brillantor a utilitzar. Els valors possibles són `default`, \"linear\" i \"tanh\" (utilitza `brightness_mode_time_dark` i `brightness_mode_time_light`). 📈",
           "sleep_color_temp": "Temperatura de color en mode nit (s'utilitza quan `sleep_rgb_or_color_temp` és `color_temp`) en Kelvin. 😴",
-          "sleep_brightness": "Percentatge de brillantor de les llums en mode nit. 😴"
+          "sleep_brightness": "Percentatge de brillantor de les llums en mode nit. 😴",
+          "interval": "Freqüència d'adaptació de les llums, en segons. 🔄",
+          "sleep_transition": "Durada de la transició en commutar el \"mode nocturn\", en segons. 🕑",
+          "sleep_rgb_color": "Color RGB en mode nocturn (s'utilitza quan `sleep_rgb_or_color_temp` és \"rgb_color\"). 🌈",
+          "transition": "Durada de la transició en canviar les llums, en segons. 🕑",
+          "sunrise_time": "Indica una hora fixa (HH:MM:SS) per a la sortida del sol. 🌅",
+          "sleep_rgb_or_color_temp": "Utilitza `\"rgb_color\"` o `\"color_temp\"` durant el mode nocturn. 🌙",
+          "sunset_time": "Indica una hora fixa (HH:MM:SS) per a la posta de sol. 🌇",
+          "brightness_mode_time_dark": "(S'ignora si `brightness_mode='default'`) La durada en segons de la variació de la brillantor abans/despres de la sortida/posta de sol. 📈📉.",
+          "brightness_mode_time_light": "(S'ignora si `brightness_mode='default'`) La durada en segons de la variació de la brillantor abans/despres de la sortida/posta de sol. 📈📉.",
+          "adapt_delay": "Temps d'espera (en segons) entre l'encesa de la llum i els canvis per part d'Adaptive Lighting. Pot ajudar a evitar els parpalleigs. ⏲️"
         },
         "title": "Opcions Il·luminació Adaptativa",
         "data": {
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Quan s'encenen les llums inicialment. Si el valor és `true`, AL adapta només si s'ha cridat `light.turn_on` sense especificar color o brillantor. ❌🌈 Això impedeix l'adaptació quan s'activa una escena. Si el valor és `false`, AL adapta independentment de la presencia de color o brillantor en les dades inicials `service_data`. Necessita `take_over_control` habilitat. 🕵️ ",
-          "detect_non_ha_changes": "detect_non_ha_changes: Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita `take_over_control` habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguessin inesperadament. Desactiva aquesta funció si trobes aquests problemes."
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Quan s'encenen les llums inicialment. Si el valor és `true`, AL adapta només si s'ha cridat `light.turn_on` sense especificar color o brillantor. ❌🌈 Això impedeix l'adaptació quan s'activa una escena. Si el valor és `false`, AL adapta independentment de la presencia de color o brillantor en les dades inicials `service_data`. Necessita `take_over_control` habilitat. 🕵️",
+          "detect_non_ha_changes": "detect_non_ha_changes: Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita que `take_over_control` estigui habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguin inesperadament. Desactiva aquesta funció si trobes aquests problemes.",
+          "lights": "lights: Llista d'entity_ids dels llums a controlar (pot estar buida). 🌟",
+          "min_brightness": "min_brightness: Percentatge mínim de brillantor. 💡",
+          "max_brightness": "max_brightness: Percentatge màxim de brillantor. 💡",
+          "min_color_temp": "min_color_temp: Temperatura de color més càlida en graus Kelvin. 🔥",
+          "max_color_temp": "max_color_temp: Temperatura de color més freda en graus Kelvin. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Si prefereixes l'ajustament del color RGB en lloc de la temperatura de color, quan sigui possible. 🌈",
+          "take_over_control": "take_over_control: Inhabilita Adaptive Lighting si una altra font crida `light.turn_on` quan les llums estan enceses i en procés d'adaptació. Tingues present que això cridarà `homeassistant.update_entity` cada `interval`! 🔒",
+          "only_once": "only_once: Adapta els llums només quan s'encenen (`true`) o segueix adaptant-les (`false`). 🔄",
+          "separate_turn_on_commands": "separate_turn_on_commands: Separa les crides de `light.turn_on` per a color i brillantor; necessari per alguns tipus de llums. 🔀",
+          "include_config_in_attributes": "include_config_in_attributes: Mostra totes les opcions com atributs a l'interruptor de Home Assistant quan s'estableix com a `true`. 📝",
+          "multi_light_intercept": "multi_light_intercept: Intercepta i adapta les crides `light.turn_on` dirigides a múltiples llums. ➗⚠️ Pot provocar la divisió d'una crida única `light.turn_on` en múltiples crides, com ara, quan les llums són en interruptors diferents. Necessita que `intercept` estigui habilitat.",
+          "transition_until_sleep": "transition_until_sleep: Si s'activa, Adaptive Lighting considerarà els ajustaments del mode nocturn com a mínims, fent una transició cap aquests valors després de la posta de sol. 🌙",
+          "intercept": "intercept: Intercepta i adapta les crides `light.turn_on` per permetre canvis instantanis de color i brillantor. 🏎️ Inhabilita-ho per a llums que no admeten `light.turn_on` amb color i brillantor."
         },
         "description": "Configura un component d'Adaptive Lighting. Els noms de les opcions s'alineen amb la configuració de YAML. Si has definit aquesta entrada a YAML, aquí no apareixerà cap opció. Per veure gràfics interactius que demostren efectes de paràmetres, visita [aquesta aplicació web] (https://basnijholt.github.io/adaptive-lighting). Per a més detalls, pots veure la [documentació oficial] (https://github.com/basnijholt/adaptive-lighting#readme)."
       }
+    },
+    "error": {
+      "option_error": "Opció invàlida",
+      "entity_missing": "Una o més de les entitats de llum seleccionades no es troba a Home Assistant"
     }
   },
   "services": {
@@ -50,10 +77,58 @@
           "description": "Retard (ms) entre `separate_turn_on_commands` per als llums que no admeten la configuració simultània de brillantor i color. ⏲️"
         },
         "detect_non_ha_changes": {
-          "description": "Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita `take_over_control` habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguessin inesperadament. Desactiva aquesta funció si trobes aquests problemes."
+          "description": "Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita que `take_over_control` estigui habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguessin inesperadament. Desactiva aquesta funció si trobes aquests problemes."
         },
         "take_over_control": {
           "description": "Desactiva Adaptive Lighting si una altra font crida `light.turn_on` mentre els llums estan encesos i adaptats. Tingues en compte que això crida `homeassistant.update_entity` cada `interval`! 🔒"
+        },
+        "entity_id": {
+          "description": "ID de la entitat de l'interruptor. 📝"
+        },
+        "turn_on_lights": {
+          "description": "Si s'encenen les llums que estan apagades en aquest moment. 🔆"
+        },
+        "initial_transition": {
+          "description": "Durada de la primera transició quan les llums canvien  `off` cap a `on` en segons. ⏲️"
+        },
+        "sleep_transition": {
+          "description": "Durada de la transició en commutar el \"mode nocturn\", en segons. 🕑"
+        },
+        "max_brightness": {
+          "description": "Percentatge màxim de brillantor. 💡"
+        },
+        "min_brightness": {
+          "description": "Percentatge mínim de brillantor. 💡"
+        },
+        "prefer_rgb_color": {
+          "description": "Si es prefereix ajustar el color RGB en lloc de la temperatura de color, quan sigui possible. 🌈"
+        },
+        "min_color_temp": {
+          "description": "Temperatura de color més càlida, en graus Kelvin. 🔥"
+        },
+        "separate_turn_on_commands": {
+          "description": "Utilitza crides independents per a `light.turn_on` per color i brillantor; necessari per alguns tipus de llums. 🔀"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Utilitza `\"rgb_color\"` o `\"color_temp\"` durant el mode nocturn. 🌙"
+        },
+        "sleep_rgb_color": {
+          "description": "Color RGB en mode nocturn (s'utilitza quan `sleep_rgb_or_color_temp` és \"rgb_color\"). 🌈"
+        },
+        "sunrise_time": {
+          "description": "Indica una hora fixa (HH:MM:SS) per a la sortida del sol. 🌅"
+        },
+        "sunset_time": {
+          "description": "Indica una hora fixa (HH:MM:SS) per a la posta de sol. 🌇"
+        },
+        "transition": {
+          "description": "Durada de la transició en canviar les llums, en segons. 🕑"
+        },
+        "adapt_delay": {
+          "description": "Temps d'espera (en segons) entre l'encesa de la llum i els canvis per part d'Adaptive Lighting. Pot ajudar a evitar els parpalleigs. ⏲️"
+        },
+        "use_defaults": {
+          "description": "Defineix els valors per defecte que no s'especifiquin a la crida del servei. Opcions: \"current\" (per defecte, manté els valors actuals), \"factory\" (restaura els valors documentats per defecte), o \"configuration\" (retorna als valors per defecte de l'interruptor). ⚙️"
         }
       },
       "description": "Canvia les opcions de configuració que vulguis al commutador. Totes les opcions d'aquí són les mateixes que en el flux de configuració."
@@ -62,16 +137,37 @@
       "fields": {
         "lights": {
           "description": "Una llum (o una llista de llums) a la qual aplicar la configuració. 💡"
+        },
+        "transition": {
+          "description": "Durada de la transició en canviar les llums, en segons. 🕑"
+        },
+        "prefer_rgb_color": {
+          "description": "Si es prefereix ajustar el color RGB en lloc de la temperatura de color, quan sigui possible. 🌈"
+        },
+        "turn_on_lights": {
+          "description": "Si s'encenen les llums que estan apagades en aquest moment. 🔆"
         }
       },
       "description": "Aplica la configuració actual d'Adaptive Lighting a les llums."
+    },
+    "set_manual_control": {
+      "description": "Indica quan una llum està 'controlada manualment'.",
+      "fields": {
+        "lights": {
+          "description": "entity_id(s) de les llums; si no s'especifica es seleccionaran totes les llums de l'interruptor. 💡"
+        }
+      }
     }
   },
   "config": {
     "step": {
       "user": {
-        "title": "Tria un nom per a la instància d'Adaptive Lighting"
+        "title": "Tria un nom per a la instància d'Adaptive Lighting",
+        "description": "Cada instància pot contenir múltiples llums!"
       }
+    },
+    "abort": {
+      "already_configured": "Aquest dispositiu ja està configurat"
     }
   }
 }
