@@ -49,7 +49,9 @@ jobs:
           - python-version: "3.12"
             core-version: "2024.11.3"
           - python-version: "3.12"
-            core-version: "2024.12.0"
+            core-version: "2024.12.5"
+          - python-version: "3.12"
+            core-version: "2025.1.0b5"
           - python-version: "3.13"
             core-version: "dev"
     steps:
