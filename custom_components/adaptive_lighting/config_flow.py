@@ -84,9 +84,13 @@ def validate_options(user_input, errors):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
+            super().__init__(*args, **kwargs)
+            # https://github.com/home-assistant/core/pull/129651
+        else:
+            self.config_entry = args[0]
 
     async def async_step_init(self, user_input=None):
         """Handle options flow."""
