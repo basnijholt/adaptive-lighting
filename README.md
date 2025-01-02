@@ -96,12 +96,12 @@ Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the
 All of the configuration options are listed below, along with their default values.
 The YAML and frontend configuration methods support all of the options listed below.
 
-<!-- START_CODE -->
+<!-- CODE:START -->
 <!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
 <!-- print(_docs_helpers.generate_config_markdown_table()) -->
-<!-- END_CODE -->
+<!-- CODE:END -->
 
-<!-- START_OUTPUT -->
+<!-- OUTPUT:START -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
 | Variable name                  | Description                                                                                                                                                                                                                                                                                                                                      | Default        | Type                                   |
 |:-------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:---------------------------------------|
@@ -144,7 +144,7 @@ The YAML and frontend configuration methods support all of the options listed be
 | `multi_light_intercept`        | Intercept and adapt `light.turn_on` calls that target multiple lights. ➗⚠️ This might result in splitting up a single `light.turn_on` call into multiple calls, e.g., when lights are in different switches. Requires `intercept` to be enabled.                                                                                                 | `True`         | `bool`                                 |
 | `include_config_in_attributes` | Show all options as attributes on the switch in Home Assistant when set to `true`. 📝                                                                                                                                                                                                                                                             | `False`        | `bool`                                 |
 
-<!-- END_OUTPUT -->
+<!-- OUTPUT:END -->
 
 Full example:
 
@@ -179,12 +179,12 @@ adaptive_lighting:
 
 `adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
 
-<!-- START_CODE -->
+<!-- CODE:START -->
 <!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
 <!-- print(_docs_helpers.generate_apply_markdown_table()) -->
-<!-- END_CODE -->
+<!-- CODE:END -->
 
-<!-- START_OUTPUT -->
+<!-- OUTPUT:START -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
 | Service data attribute   | Description                                                                          | Required   | Type                 |
 |:-------------------------|:-------------------------------------------------------------------------------------|:-----------|:---------------------|
@@ -196,17 +196,17 @@ adaptive_lighting:
 | `prefer_rgb_color`       | Whether to prefer RGB color adjustment over light color temperature when possible. 🌈 | ❌          | bool                 |
 | `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                  | ❌          | bool                 |
 
-<!-- END_OUTPUT -->
+<!-- OUTPUT:END -->
 #### `adaptive_lighting.set_manual_control`
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
 
-<!-- START_CODE -->
+<!-- CODE:START -->
 <!-- from homeassistant.components.adaptive_lighting import _docs_helpers -->
 <!-- print(_docs_helpers.generate_set_manual_control_markdown_table()) -->
-<!-- END_CODE -->
+<!-- CODE:END -->
 
-<!-- START_OUTPUT -->
+<!-- OUTPUT:START -->
 <!-- THIS CONTENT IS AUTOMATICALLY GENERATED -->
 | Service data attribute   | Description                                                                                    | Required   | Type                 |
 |:-------------------------|:-----------------------------------------------------------------------------------------------|:-----------|:---------------------|
@@ -214,7 +214,7 @@ adaptive_lighting:
 | `lights`                 | entity_id(s) of lights, if not specified, all lights in the switch are selected. 💡             | ❌          | list of `entity_id`s |
 | `manual_control`         | Whether to add ("true") or remove ("false") the light from the "manual_control" list. 🔒        | ❌          | bool                 |
 
-<!-- END_OUTPUT -->
+<!-- OUTPUT:END -->
 #### `adaptive_lighting.change_switch_settings`
 
 `adaptive_lighting.change_switch_settings` (new in 1.7.0) Change any of the above configuration options of Adaptive Lighting (such as `sunrise_time` or `prefer_rgb_color`) with a service call directly from your script/automation.

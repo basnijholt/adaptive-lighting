@@ -24,7 +24,7 @@ jobs:
 
       - name: Install markdown-code-runner and README code dependencies
         run: |
-          pip install markdown-code-runner==1.0.0 pandas tabulate
+          pip install markdown-code-runner==2.1.0 pandas tabulate
 
       - name: Run markdown-code-runner
         run: markdown-code-runner --debug README.md
