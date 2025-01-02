@@ -1,5 +1,7 @@
 """Test Adaptive Lighting config flow."""
 
+from unittest.mock import patch
+
 from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -114,9 +116,6 @@ async def test_import_twice(hass):
         )
 
 
-# TODO: Fix, broken for all supported versions
-# But in ≤2024.5 it gives homeassistant.config_entries.UnknownEntry: cd69dbda65bd3f86e9a32d974cdfa23f
-# and ≥2024.6 it times out
 async def test_changing_options_when_using_yaml(hass):
     """Test changing options when using YAML."""
     entry = MockConfigEntry(
@@ -127,9 +126,9 @@ async def test_changing_options_when_using_yaml(hass):
         options={},
     )
     entry.add_to_hass(hass)
-
-    await hass.block_till_done()
-    await hass.config_entries.async_setup(entry.entry_id)
+    with patch.object(hass.config_entries, "async_forward_entry_setups"):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
