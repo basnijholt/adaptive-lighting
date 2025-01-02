@@ -385,7 +385,7 @@ async def test_adaptive_lighting_time_zones_with_default_settings(
     """Test setting up the Adaptive Lighting switches with different timezones."""
     await async_process_ha_core_config(
         hass,
-        {"latitude": lat, "longitude": long, "time_zone": timezone},
+        {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
     _, switch = await setup_switch(hass, {})
     # Shouldn't raise an exception ever
