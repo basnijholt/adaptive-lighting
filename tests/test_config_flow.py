@@ -1,9 +1,7 @@
 """Test Adaptive Lighting config flow."""
 
-from collections.abc import Generator
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-import pytest
 from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -118,18 +116,8 @@ async def test_import_twice(hass):
         )
 
 
-@pytest.fixture
-def mock_config_entries_async_forward_entry_setup() -> Generator[AsyncMock]:
-    """Mock async_forward_entry_setup."""
-    with patch(
-        "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-    ) as mock_fn:
-        yield mock_fn
-
-
 async def test_changing_options_when_using_yaml(
     hass,
-    mock_config_entries_async_forward_entry_setup,
 ):
     """Test changing options when using YAML."""
     entry = MockConfigEntry(
@@ -140,9 +128,9 @@ async def test_changing_options_when_using_yaml(
         options={},
     )
     entry.add_to_hass(hass)
-
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.block_till_done()
+    with patch.object(hass.config_entries, "async_forward_entry_setups"):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
