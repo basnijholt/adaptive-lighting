@@ -1,6 +1,5 @@
 """Test Adaptive Lighting config flow."""
 
-from homeassistant import data_entry_flow
 from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -11,6 +10,7 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_NAME
+from homeassistant.data_entry_flow import FlowResultType
 
 from tests.common import MockConfigEntry
 
@@ -24,7 +24,7 @@ async def test_flow_manual_configuration(hass):
         context={"source": "user"},
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "user"
     assert result["handler"] == "adaptive_lighting"
 
@@ -32,7 +32,7 @@ async def test_flow_manual_configuration(hass):
         result["flow_id"],
         user_input={CONF_NAME: "living room"},
     )
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "living room"
 
 
@@ -46,7 +46,7 @@ async def test_import_success(hass):
         data=data,
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == DEFAULT_NAME
     for key, value in data.items():
         assert result["data"][key] == value
@@ -65,7 +65,7 @@ async def test_options(hass):
     await hass.config_entries.async_setup(entry.entry_id)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
 
     data = DEFAULT_DATA.copy()
@@ -75,7 +75,7 @@ async def test_options(hass):
         result["flow_id"],
         user_input=data,
     )
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == FlowResultType.CREATE_ENTRY
     for key, value in data.items():
         assert result["data"][key] == value
 
@@ -114,6 +114,9 @@ async def test_import_twice(hass):
         )
 
 
+# TODO: Fix, broken for all supported versions
+# But in ≤2024.5 it gives homeassistant.config_entries.UnknownEntry: cd69dbda65bd3f86e9a32d974cdfa23f
+# and ≥2024.6 it times out
 async def test_changing_options_when_using_yaml(hass):
     """Test changing options when using YAML."""
     entry = MockConfigEntry(
@@ -125,6 +128,7 @@ async def test_changing_options_when_using_yaml(hass):
     )
     entry.add_to_hass(hass)
 
+    await hass.block_till_done()
     await hass.config_entries.async_setup(entry.entry_id)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)

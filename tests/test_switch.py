@@ -11,7 +11,6 @@ from random import randint
 from typing import Any
 from unittest.mock import Mock, patch
 
-import homeassistant.config as config_util
 import homeassistant.util.dt as dt_util
 import pytest
 import ulid_transform
@@ -362,6 +361,19 @@ async def test_adaptive_lighting_switches(hass):
     assert len(data.keys()) == 5
 
 
+def async_process_ha_core_config(hass, config):
+    """Set up the Home Assistant configuration."""
+    try:
+        # ha >= "2023.11.0"
+        from homeassistant.core_config import async_process_ha_core_config
+
+        return async_process_ha_core_config(hass, config)
+    except ModuleNotFoundError:
+        import homeassistant.config as config_util
+
+        return config_util.async_process_ha_core_config(hass, config)
+
+
 @pytest.mark.parametrize(("lat", "long", "timezone"), LAT_LONG_TZS)
 async def test_adaptive_lighting_time_zones_with_default_settings(
     hass,
@@ -371,9 +383,9 @@ async def test_adaptive_lighting_time_zones_with_default_settings(
     reset_time_zone,  # pylint: disable=redefined-outer-name
 ):
     """Test setting up the Adaptive Lighting switches with different timezones."""
-    await config_util.async_process_ha_core_config(
+    await async_process_ha_core_config(
         hass,
-        {"latitude": lat, "longitude": long, "time_zone": timezone},
+        {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
     _, switch = await setup_switch(hass, {})
     # Shouldn't raise an exception ever
@@ -394,9 +406,9 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
 
     Also test the (sleep) brightness and color temperature settings.
     """
-    await config_util.async_process_ha_core_config(
+    await async_process_ha_core_config(
         hass,
-        {"latitude": lat, "longitude": long, "time_zone": timezone},
+        {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
     _, switch = await setup_switch(
         hass,
@@ -1359,6 +1371,8 @@ def mock_area_registry(
         area_kwargs["icon"] = None
     if dt >= datetime.date(2024, 3, 1):
         area_kwargs["floor_id"] = "test-floor"
+    if dt >= datetime.date(2024, 11, 1):
+        area_kwargs.pop("normalized_name")
 
     # This mess... 🤯
     if dt >= datetime.date(2024, 2, 1) and dt != datetime.date(2024, 4, 1):
@@ -1608,11 +1622,16 @@ async def test_proactive_adaptation_with_separate_commands(hass):
         },
     )
 
-    event_context_ids = await _turn_on_and_track_event_contexts(
+    events = await _turn_on_and_track_event_contexts(
         hass,
         "test_context",
         ENTITY_LIGHT_3,
+        return_full_events=True,
     )
+    # Wait for all adaptation tasks to complete
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+    event_context_ids = [event.context.id for event in events]
 
     # Expect two service calls
     assert len(event_context_ids) == 2, event_context_ids
@@ -1927,9 +1946,9 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     Also test the (sleep) brightness and color temperature settings.
     """
     lat, long, timezone = (32.87336, -117.22743, "US/Pacific")
-    await config_util.async_process_ha_core_config(
+    await async_process_ha_core_config(
         hass,
-        {"latitude": lat, "longitude": long, "time_zone": timezone},
+        {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
     switch, lights = await setup_lights_and_switch(
         hass,
@@ -2112,11 +2131,8 @@ async def test_light_group(
         assert events[1].context.id == "testing"
         e1 = events[2].data["service_data"][ATTR_ENTITY_ID]
         e2 = events[3].data["service_data"][ATTR_ENTITY_ID]
-        assert (
-            e1 == "light.light_4"
-            and e2 == "light.light_5"
-            or e1 == "light.light_5"
-            and e2 == "light.light_4"
+        assert (e1 == "light.light_4" and e2 == "light.light_5") or (
+            e1 == "light.light_5" and e2 == "light.light_4"
         )
         assert ":lght:" in events[2].context.id
         assert ":lght:" in events[3].context.id

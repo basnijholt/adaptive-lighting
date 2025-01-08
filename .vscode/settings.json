@@ -1,0 +1,20 @@
+{
+    "files.associations": {
+        "*.yaml": "home-assistant"
+    },
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "-vvv",
+        "-qq",
+        "--timeout=9",
+        "--durations=10",
+        "--cov=homeassistant",
+        "--cov-report=xml",
+        "-o",
+        "console_output_style=count",
+        "-p",
+        "no:sugar",
+        "core/tests/components/adaptive_lighting"
+    ]
+}

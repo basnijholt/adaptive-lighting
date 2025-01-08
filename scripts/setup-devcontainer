@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -ex
 cd "$(dirname "$0")/.."
 
 # Clone only if the folder doesn't exist
@@ -8,10 +8,10 @@ if [[ ! -d "core" ]]; then
 fi
 
 pip install \
-    colorlog==6.7.0 \
-    pip>=21.0,<23.2 \
-    ruff==0.0.265
+    colorlog \
+    pip \
+    ruff
 
 ./scripts/setup-dependencies
 ./scripts/setup-symlinks
-pre-commit install-hooks
+uv run pre-commit install-hooks

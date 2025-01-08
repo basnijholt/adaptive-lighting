@@ -5,7 +5,7 @@ import logging
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_NAME, MAJOR_VERSION, MINOR_VERSION
 from homeassistant.core import callback
 
 from .const import (  # pylint: disable=unused-import
@@ -58,6 +58,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
+        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
+            # https://github.com/home-assistant/core/pull/129651
+            return OptionsFlowHandler()
         return OptionsFlowHandler(config_entry)
 
 
@@ -81,9 +84,13 @@ def validate_options(user_input, errors):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
+            super().__init__(*args, **kwargs)
+            # https://github.com/home-assistant/core/pull/129651
+        else:
+            self.config_entry = args[0]
 
     async def async_step_init(self, user_input=None):
         """Handle options flow."""

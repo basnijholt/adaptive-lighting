@@ -84,7 +84,7 @@ DOCS[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = (
     "invoked without specifying color or brightness. ❌🌈 "
     "This e.g., prevents adaptation when activating a scene. "
     "If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. "
-    "Needs `take_over_control` enabled. 🕵️ "
+    "Needs `take_over_control` enabled. 🕵️"
 )
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False

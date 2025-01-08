@@ -26,8 +26,15 @@
         },
         "transition": {
           "description": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+        },
+        "max_color_temp": {
+          "description": "Cor mais fria em Kelvin. ❄️"
+        },
+        "sleep_brightness": {
+          "description": "Porcentagem do brilho da lâmpadas no modo \"sleep mode\"."
         }
-      }
+      },
+      "description": "Muda alguma configuração que você quiser no interruptor. Todas as opções aqui são as mesmas que estão no processo de configuração."
     },
     "apply": {
       "description": "Aplica as definições atuais da Iluminação Adaptativa às luzes.",
@@ -60,9 +67,12 @@
           "sunset_offset": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰",
           "sleep_transition": "Duração da transição quando o \"modo dormir\" é alternado em segundos. 😴",
           "autoreset_control_seconds": "Reiniciar o controlo manual automaticamente após um número de segundos. Definir 0 para desativar. ⏲️",
-          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑",
+          "sleep_brightness": "Porcentagem do brilho da lâmpadas no modo \"sleep mode\".",
+          "brightness_mode": "Brilho que irá ser usado. Possíveis valores são `default`, `linear` e `tanh`(usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈"
         },
-        "title": "Opções da Iluminação Adaptativa"
+        "title": "Opções da Iluminação Adaptativa",
+        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app](https://basnijholt.github.io/adaptive-lighting). Para mais detalhes, veja a [documentação oficial](https://github.com/basnijholt/adaptive-lighting#readme)."
       }
     },
     "error": {
