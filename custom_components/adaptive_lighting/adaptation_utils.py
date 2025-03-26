@@ -92,6 +92,18 @@ def _remove_redundant_attributes(
     }
 
 
+def _remove_brightness_increases(
+    service_data: ServiceData,
+    state: State,
+) -> ServiceData:
+    """Filter service data by removing brightness increases."""
+    return {
+        k: v
+        for k, v in service_data.items()
+        if k != ATTR_BRIGHTNESS or k not in state.attributes or v <= state.attributes[k]
+    }
+
+
 def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
     """Determines whether the service data justifies an adaptation service call.
 
@@ -107,6 +119,7 @@ async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
     filter_by_state: bool,
+    skip_brightness_increases: bool,
 ) -> AsyncGenerator[ServiceData]:
     """Enumerates and filters a list of service datas on the fly.
 
@@ -118,15 +131,23 @@ async def _create_service_call_data_iterator(
     flexibility because entity states can change while the items are iterated.
     """
     for service_data in service_datas:
-        if filter_by_state and (entity_id := service_data.get(ATTR_ENTITY_ID)):
+        if (filter_by_state or skip_brightness_increases) and (
+            entity_id := service_data.get(ATTR_ENTITY_ID)
+        ):
             current_entity_state = hass.states.get(entity_id)
 
             # Filter data to remove attributes that equal the current state
             if current_entity_state is not None:
-                service_data = _remove_redundant_attributes(  # noqa: PLW2901
-                    service_data,
-                    state=current_entity_state,
-                )
+                if filter_by_state:
+                    service_data = _remove_redundant_attributes(  # noqa: PLW2901
+                        service_data,
+                        state=current_entity_state,
+                    )
+                if skip_brightness_increases:
+                    service_data = _remove_brightness_increases(  # noqa: PLW2901
+                        service_data,
+                        state=current_entity_state,
+                    )
 
             # Emit service data if it still contains relevant attributes (else try next)
             if _has_relevant_service_data_attributes(service_data):
@@ -197,6 +218,7 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
     force: bool,
+    skip_brightness_increases: bool,
 ) -> AdaptationData:
     """Prepares a data object carrying all data required to execute an adaptation."""
     _LOGGER.debug(
@@ -218,6 +240,7 @@ def prepare_adaptation_data(
         hass,
         service_datas,
         filter_by_state,
+        skip_brightness_increases,
     )
 
     lighting_type = _identify_lighting_type(service_data)
