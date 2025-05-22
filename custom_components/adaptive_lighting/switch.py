@@ -243,7 +243,6 @@ def is_our_context(context: Context | None, which: str | None = None) -> bool:
     return is_our_context_id(context.id, which)
 
 
-@bind_hass
 def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -272,7 +271,6 @@ class NoSwitchFoundError(ValueError):
     """No switches found for lights."""
 
 
-@bind_hass
 def _switch_with_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -303,7 +301,6 @@ def _switch_with_lights(
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-@bind_hass
 def _switches_from_service_call(
     hass: HomeAssistant,
     service_call: ServiceCall,
@@ -616,7 +613,6 @@ def _is_state_event(event: Event, from_or_to_state: Iterable[str]):
     )
 
 
-@bind_hass
 def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
@@ -645,7 +641,6 @@ def _is_light_group(state: State) -> bool:
     )
 
 
-@bind_hass
 def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     assert state is not None
