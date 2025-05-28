@@ -86,7 +86,6 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.template import area_entities
-from homeassistant.loader import bind_hass
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
