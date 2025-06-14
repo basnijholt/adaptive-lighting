@@ -1,0 +1,32 @@
+{
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴"
+        },
+        "title": "Configuración de Iluminación Adaptativa"
+      }
+    }
+  },
+  "title": "Iluminación Adaptativa",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sleep_brightness": {
+          "description": "Porcentaxe de brillo das luces en modo durmir. 😴"
+        },
+        "only_once": {
+          "description": "Adaptar luces só cando estean acesas (`true`) ou mantelas adaptándose (`false`). 🔄"
+        }
+      }
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Escolle un nome para a instancia de Iluminación Dinámica"
+      }
+    }
+  }
+}
