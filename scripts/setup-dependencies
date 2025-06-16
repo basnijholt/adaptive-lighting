@@ -19,6 +19,9 @@ fi
 if grep -q 'mypy-dev==1.12.0a2' core/requirements_test.txt; then
     sed -i 's/mypy-dev==1.12.0a2/mypy-dev==1.12.0b1/' core/requirements_test.txt
 fi
+if grep -q 'mypy-dev==1.14.0a3' core/requirements_test.txt; then
+    sed -i 's/mypy-dev==1.14.0a3/mypy-dev==1.14.0a7/' core/requirements_test.txt
+fi
 uv pip install -r core/requirements_test.txt
 
 uv pip install -e core/
