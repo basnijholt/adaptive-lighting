@@ -972,6 +972,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "tinutac",
+      "name": "tinutac",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2151553?v=4",
+      "profile": "https://github.com/tinutac",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
