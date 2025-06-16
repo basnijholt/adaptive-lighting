@@ -2,8 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "description": "Fiecare instanţă poate conţine mai multe lumini!"
+        "description": "Fiecare instanţă poate conţine mai multe lumini!",
+        "title": "Alege un nume pentru instanța de Iluminare Adaptivă"
       }
+    },
+    "abort": {
+      "already_configured": "Acest dispozitiv este deja configurat"
     }
   },
   "options": {

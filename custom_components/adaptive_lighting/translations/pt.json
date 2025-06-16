@@ -72,7 +72,17 @@
           "brightness_mode": "Brilho que irá ser usado. Possíveis valores são `default`, `linear` e `tanh`(usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈"
         },
         "title": "Opções da Iluminação Adaptativa",
-        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app](https://basnijholt.github.io/adaptive-lighting). Para mais detalhes, veja a [documentação oficial](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app](https://basnijholt.github.io/adaptive-lighting). Para mais detalhes, veja a [documentação oficial](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "data": {
+          "lights": "lights: Lista das entity_ids das luzes para serem controladas (pode ser vazia). 🌟",
+          "min_brightness": "min_brightness: Percentagem minima de brilho. 💡",
+          "max_brightness": "max_brightness: Percentagem máxima de brilho. 💡",
+          "min_color_temp": "min_color_temp: Cor mais quente em Kelvin. 🔥",
+          "max_color_temp": "max_color_temp: Cor mais fria em Kelvin. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Quando possível escolher ajuste em RGB em vez de temperatura da cor. 🌈",
+          "transition_until_sleep": "transition_until_sleep: Quando ativado, Adaptive Lighting usará as definições do modo noturno como os mínimos, passando para esses valores no por do sol. 🌙",
+          "take_over_control": "take_over_control: Desativa Adaptive Lighting se alguma fonte chamar`light.turn_on` enquanto as luzes estiverem ligadas e a serem controladas. Tomar nota que esta opção chama o serviço `homeassistant.update_entity` a cada `interval`! 🔒"
+        }
       }
     },
     "error": {
