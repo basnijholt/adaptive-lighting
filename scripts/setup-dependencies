@@ -2,24 +2,13 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-pip install uv
-uv venv
-source .venv/bin/activate
+if grep -q 'mypy-dev==1.14.0a3' core/requirements_test.txt; then
+    # mypy-dev==1.14.0a3 seems to not be available anymore, HA 2024.12 is affected
+    sed -i 's/mypy-dev==1.14.0a3/mypy-dev==1.14.0a7/' core/requirements_test.txt
+fi
 
 uv pip install -r core/requirements.txt
-
-if grep -q 'codecov' core/requirements_test.txt; then
-    # Older HA versions still have `codecov` in `requirements_test.txt`
-    # however it is removed from PyPI, so we cannot install it
-    sed -i '/codecov/d' core/requirements_test.txt
-fi
-
-if grep -q 'mypy-dev==1.10.0a3' core/requirements_test.txt; then
-    # mypy-dev==1.10.0a3 seems to not be available anymore, HA 2024.4 and 2024.5 are affected
-    sed -i 's/mypy-dev==1.10.0a3/mypy-dev==1.10.0b1/' core/requirements_test.txt
-fi
 uv pip install -r core/requirements_test.txt
-
 uv pip install -e core/
 uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
 uv pip install $(python test_dependencies.py)
