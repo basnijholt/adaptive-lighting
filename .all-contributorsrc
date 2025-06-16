@@ -1026,6 +1026,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "bittin",
+      "name": "Luna Jernberg",
+      "avatar_url": "https://avatars.githubusercontent.com/u/43197?v=4",
+      "profile": "https://github.com/bittin",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
