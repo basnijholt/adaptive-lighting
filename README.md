@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-108-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-109-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -606,6 +606,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/xuars"><img src="https://avatars.githubusercontent.com/u/197080354?v=4?s=100" width="100px;" alt="xuars"/><br /><sub><b>xuars</b></sub></a><br /><a href="#translation-xuars" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/tinutac"><img src="https://avatars.githubusercontent.com/u/2151553?v=4?s=100" width="100px;" alt="tinutac"/><br /><sub><b>tinutac</b></sub></a><br /><a href="#translation-tinutac" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/amelenty"><img src="https://avatars.githubusercontent.com/u/29466876?v=4?s=100" width="100px;" alt="amelenty"/><br /><sub><b>amelenty</b></sub></a><br /><a href="#translation-amelenty" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://ua.linkedin.com/in/rostyslav-dudka"><img src="https://avatars.githubusercontent.com/u/15959384?v=4?s=100" width="100px;" alt="Rostyslav Dudka"/><br /><sub><b>Rostyslav Dudka</b></sub></a><br /><a href="#translation-yeaxi" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
