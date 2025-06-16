@@ -502,7 +502,7 @@ def lerp_color_hsv(
     )
 
     # Convert back to RGB
-    rgb = tuple(int(round(x * 255)) for x in colorsys.hsv_to_rgb(*hsv))
+    rgb = tuple(round(x * 255) for x in colorsys.hsv_to_rgb(*hsv))
     assert all(0 <= x <= 255 for x in rgb), f"Invalid RGB color: {rgb}"
     return cast("tuple[int, int, int]", rgb)
 
