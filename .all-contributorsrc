@@ -990,6 +990,60 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "amelenty",
+      "name": "amelenty",
+      "avatar_url": "https://avatars.githubusercontent.com/u/29466876?v=4",
+      "profile": "https://github.com/amelenty",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "yeaxi",
+      "name": "Rostyslav Dudka",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15959384?v=4",
+      "profile": "https://ua.linkedin.com/in/rostyslav-dudka",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "helderfmf",
+      "name": "Helder Ferreira",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5622687?v=4",
+      "profile": "https://github.com/helderfmf",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "mrpiotr-dev",
+      "name": "Piotr Laszczkowski",
+      "avatar_url": "https://avatars.githubusercontent.com/u/11849621?v=4",
+      "profile": "http://mrpiotr.dev",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "rezaalmanda",
+      "name": "Reza",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22217419?v=4",
+      "profile": "http://rezaalmanda.github.io",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "bittin",
+      "name": "Luna Jernberg",
+      "avatar_url": "https://avatars.githubusercontent.com/u/43197?v=4",
+      "profile": "https://github.com/bittin",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,

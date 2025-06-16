@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-108-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-113-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -606,6 +606,14 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/xuars"><img src="https://avatars.githubusercontent.com/u/197080354?v=4?s=100" width="100px;" alt="xuars"/><br /><sub><b>xuars</b></sub></a><br /><a href="#translation-xuars" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/tinutac"><img src="https://avatars.githubusercontent.com/u/2151553?v=4?s=100" width="100px;" alt="tinutac"/><br /><sub><b>tinutac</b></sub></a><br /><a href="#translation-tinutac" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/defaultpage"><img src="https://avatars.githubusercontent.com/u/22825202?v=4?s=100" width="100px;" alt="Default User"/><br /><sub><b>Default User</b></sub></a><br /><a href="#translation-defaultpage" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/amelenty"><img src="https://avatars.githubusercontent.com/u/29466876?v=4?s=100" width="100px;" alt="amelenty"/><br /><sub><b>amelenty</b></sub></a><br /><a href="#translation-amelenty" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://ua.linkedin.com/in/rostyslav-dudka"><img src="https://avatars.githubusercontent.com/u/15959384?v=4?s=100" width="100px;" alt="Rostyslav Dudka"/><br /><sub><b>Rostyslav Dudka</b></sub></a><br /><a href="#translation-yeaxi" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/helderfmf"><img src="https://avatars.githubusercontent.com/u/5622687?v=4?s=100" width="100px;" alt="Helder Ferreira"/><br /><sub><b>Helder Ferreira</b></sub></a><br /><a href="#translation-helderfmf" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://mrpiotr.dev"><img src="https://avatars.githubusercontent.com/u/11849621?v=4?s=100" width="100px;" alt="Piotr Laszczkowski"/><br /><sub><b>Piotr Laszczkowski</b></sub></a><br /><a href="#translation-mrpiotr-dev" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="http://rezaalmanda.github.io"><img src="https://avatars.githubusercontent.com/u/22217419?v=4?s=100" width="100px;" alt="Reza"/><br /><sub><b>Reza</b></sub></a><br /><a href="#translation-rezaalmanda" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/bittin"><img src="https://avatars.githubusercontent.com/u/43197?v=4?s=100" width="100px;" alt="Luna Jernberg"/><br /><sub><b>Luna Jernberg</b></sub></a><br /><a href="#translation-bittin" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
