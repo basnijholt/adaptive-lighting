@@ -1008,6 +1008,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "mrpiotr-dev",
+      "name": "Piotr Laszczkowski",
+      "avatar_url": "https://avatars.githubusercontent.com/u/11849621?v=4",
+      "profile": "http://mrpiotr.dev",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
