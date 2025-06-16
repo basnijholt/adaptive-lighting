@@ -1044,6 +1044,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "jawilson",
+      "name": "Jeff Wilson",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1368827?v=4",
+      "profile": "http://jeffalwilson.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
