@@ -2,8 +2,6 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-uv venv
-
 uv pip install -r core/requirements.txt
 
 if grep -q 'codecov' core/requirements_test.txt; then

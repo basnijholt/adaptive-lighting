@@ -21,6 +21,7 @@ RUN ln -s /core /app/core && /app/scripts/setup-symlinks
 # Install home-assistant/core dependencies
 RUN mkdir -p /venv
 ENV UV_PROJECT_ENVIRONMENT=/venv UV_PYTHON=3.13 PATH="/venv/bin:$PATH"
+RUN uv venv
 RUN /app/scripts/setup-dependencies
 
 WORKDIR /app/core

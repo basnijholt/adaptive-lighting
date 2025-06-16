@@ -36,5 +36,6 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
+        uv venv --python ${{ inputs.python-version }}
         ./scripts/setup-dependencies
         ./scripts/setup-symlinks
