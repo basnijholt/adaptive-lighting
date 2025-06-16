@@ -10,7 +10,9 @@
 
 [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) is a custom component for [Home Assistant](https://www.home-assistant.io/) that intelligently adjusts the brightness and color of your lights 💡 based on the sun's position, while still allowing for manual control.
 
-Download and install directly through [HACS (Home Assistant Community Store)](https://hacs.xyz/)
+Download and install directly through [HACS (Home Assistant Community Store)](https://hacs.xyz/):
+
+[![Open your Home Assistant instance and open the Adaptive Lighting integration inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=basnijholt&repository=adaptive-lighting&category=integration)
 
 By automatically adapting the settings of your lights throughout the day, Adaptive Lighting helps maintain your natural circadian rhythm 😴, which can lead to improved sleep, mood, and overall well-being. Experience cooler color temperatures at noon, gradually transitioning to warmer colors at sunset and sunrise.
 
