@@ -981,6 +981,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "defaultpage",
+      "name": "Default User",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22825202?v=4",
+      "profile": "https://github.com/defaultpage",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
