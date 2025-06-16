@@ -31,6 +31,8 @@ runs:
       uses: actions/setup-python@v5.3.0
       with:
         python-version: ${{ inputs.python-version }}
+    - name: Set up UV
+      uses: astral-sh/setup-uv@v6
     - name: Install dependencies
       shell: bash
       run: |
