@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-105-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-106-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -601,6 +601,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/marazmarci"><img src="https://avatars.githubusercontent.com/u/1349654?v=4?s=100" width="100px;" alt="Márton Maráz"/><br /><sub><b>Márton Maráz</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=marazmarci" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Sara492"><img src="https://avatars.githubusercontent.com/u/63058202?v=4?s=100" width="100px;" alt="Sara492"/><br /><sub><b>Sara492</b></sub></a><br /><a href="#translation-Sara492" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/enpaga"><img src="https://avatars.githubusercontent.com/u/180730931?v=4?s=100" width="100px;" alt="enpaga"/><br /><sub><b>enpaga</b></sub></a><br /><a href="#translation-enpaga" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/xuars"><img src="https://avatars.githubusercontent.com/u/197080354?v=4?s=100" width="100px;" alt="xuars"/><br /><sub><b>xuars</b></sub></a><br /><a href="#translation-xuars" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
