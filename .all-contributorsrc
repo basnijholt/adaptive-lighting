@@ -1017,6 +1017,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "rezaalmanda",
+      "name": "Reza",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22217419?v=4",
+      "profile": "http://rezaalmanda.github.io",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
