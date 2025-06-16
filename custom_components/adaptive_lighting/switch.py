@@ -76,7 +76,6 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.template import area_entities
-from homeassistant.loader import bind_hass
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -226,7 +225,6 @@ def is_our_context(context: Context | None, which: str | None = None) -> bool:
     return is_our_context_id(context.id, which)
 
 
-@bind_hass
 def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -244,7 +242,7 @@ def _switches_with_lights(
         if entry is None:  # entry might be disabled and therefore missing
             continue
         switch = data[config.entry_id][SWITCH_DOMAIN]
-        switch._expand_light_groups()
+        switch._expand_light_groups(hass=hass)
         # Check if any of the lights are in the switch's lights
         if set(switch.lights) & set(all_check_lights):
             switches.append(switch)
@@ -255,7 +253,6 @@ class NoSwitchFoundError(ValueError):
     """No switches found for lights."""
 
 
-@bind_hass
 def _switch_with_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -286,7 +283,6 @@ def _switch_with_lights(
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-@bind_hass
 def _switches_from_service_call(
     hass: HomeAssistant,
     service_call: ServiceCall,
@@ -599,7 +595,6 @@ def _is_state_event(event: Event, from_or_to_state: Iterable[str]):
     )
 
 
-@bind_hass
 def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
@@ -628,7 +623,6 @@ def _is_light_group(state: State) -> bool:
     )
 
 
-@bind_hass
 def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     assert state is not None
@@ -973,8 +967,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Remove the listeners upon removing the component."""
         self._remove_listeners()
 
-    def _expand_light_groups(self) -> None:
-        all_lights = _expand_light_groups(self.hass, self.lights)
+    def _expand_light_groups(self, hass=None) -> None:
+        hass = hass or self.hass
+        all_lights = _expand_light_groups(hass, self.lights)
         self.manager.lights.update(all_lights)
         self.manager.set_auto_reset_manual_control_times(
             all_lights,
