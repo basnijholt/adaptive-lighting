@@ -2,9 +2,7 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-pip install uv
 uv venv
-source .venv/bin/activate
 
 uv pip install -r core/requirements.txt
 
