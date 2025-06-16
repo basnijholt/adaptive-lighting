@@ -16,7 +16,6 @@ import ulid_transform
 import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_EFFECT,
     ATTR_FLASH,
@@ -24,17 +23,8 @@ from homeassistant.components.light import (
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
-    COLOR_MODE_BRIGHTNESS,
-    COLOR_MODE_COLOR_TEMP,
-    COLOR_MODE_HS,
-    COLOR_MODE_RGB,
-    COLOR_MODE_RGBW,
-    COLOR_MODE_RGBWW,
-    COLOR_MODE_XY,
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_COLOR,
-    SUPPORT_COLOR_TEMP,
-    SUPPORT_TRANSITION,
+    ColorMode,
+    LightEntityFeature,
     is_on,
     preprocess_turn_on_alternatives,
 )
@@ -86,7 +76,6 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.template import area_entities
-from homeassistant.loader import bind_hass
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -179,13 +168,6 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-_SUPPORT_OPTS = {
-    "brightness": SUPPORT_BRIGHTNESS,
-    "color_temp": SUPPORT_COLOR_TEMP,
-    "color": SUPPORT_COLOR,
-    "transition": SUPPORT_TRANSITION,
-}
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -243,7 +225,6 @@ def is_our_context(context: Context | None, which: str | None = None) -> bool:
     return is_our_context_id(context.id, which)
 
 
-@bind_hass
 def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -261,7 +242,7 @@ def _switches_with_lights(
         if entry is None:  # entry might be disabled and therefore missing
             continue
         switch = data[config.entry_id][SWITCH_DOMAIN]
-        switch._expand_light_groups()
+        switch._expand_light_groups(hass=hass)
         # Check if any of the lights are in the switch's lights
         if set(switch.lights) & set(all_check_lights):
             switches.append(switch)
@@ -272,7 +253,6 @@ class NoSwitchFoundError(ValueError):
     """No switches found for lights."""
 
 
-@bind_hass
 def _switch_with_lights(
     hass: HomeAssistant,
     lights: list[str],
@@ -303,7 +283,6 @@ def _switch_with_lights(
 
 # For documentation on this function, see integration_entities() from HomeAssistant Core:
 # https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/template.py#L1109
-@bind_hass
 def _switches_from_service_call(
     hass: HomeAssistant,
     service_call: ServiceCall,
@@ -616,7 +595,6 @@ def _is_state_event(event: Event, from_or_to_state: Iterable[str]):
     )
 
 
-@bind_hass
 def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
@@ -645,23 +623,24 @@ def _is_light_group(state: State) -> bool:
     )
 
 
-@bind_hass
 def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     assert state is not None
     supported_features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
     assert isinstance(supported_features, int)
-    supported = {
-        key for key, value in _SUPPORT_OPTS.items() if supported_features & value
-    }
+
+    supported = set()
+
+    if supported_features & LightEntityFeature.TRANSITION:
+        supported.add("transition")
 
     supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())
     color_modes = {
-        COLOR_MODE_RGB,
-        COLOR_MODE_RGBW,
-        COLOR_MODE_RGBWW,
-        COLOR_MODE_XY,
-        COLOR_MODE_HS,
+        ColorMode.RGB,
+        ColorMode.RGBW,
+        ColorMode.RGBWW,
+        ColorMode.XY,
+        ColorMode.HS,
     }
 
     # Adding brightness when color mode is supported, see
@@ -672,10 +651,10 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
             supported.update({"color", "brightness"})
             break
 
-    if COLOR_MODE_COLOR_TEMP in supported_color_modes:
+    if ColorMode.COLOR_TEMP in supported_color_modes:
         supported.update({"color_temp", "brightness"})
 
-    if COLOR_MODE_BRIGHTNESS in supported_color_modes:
+    if ColorMode.BRIGHTNESS in supported_color_modes:
         supported.add("brightness")
 
     return supported
@@ -988,8 +967,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Remove the listeners upon removing the component."""
         self._remove_listeners()
 
-    def _expand_light_groups(self) -> None:
-        all_lights = _expand_light_groups(self.hass, self.lights)
+    def _expand_light_groups(self, hass=None) -> None:
+        hass = hass or self.hass
+        all_lights = _expand_light_groups(hass, self.lights)
         self.manager.lights.update(all_lights)
         self.manager.set_auto_reset_manual_control_times(
             all_lights,
@@ -2009,12 +1989,6 @@ class AdaptiveLightingManager:
                 context.id,
             )
             service_data = {ATTR_ENTITY_ID: skipped, **service_data_copy[CONF_PARAMS]}
-            if (
-                ATTR_COLOR_TEMP in service_data
-                and ATTR_COLOR_TEMP_KELVIN in service_data
-            ):
-                # ATTR_COLOR_TEMP and ATTR_COLOR_TEMP_KELVIN are mutually exclusive
-                del service_data[ATTR_COLOR_TEMP]
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
