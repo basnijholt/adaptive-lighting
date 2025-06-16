@@ -12,6 +12,7 @@ pip install \
     pip \
     ruff
 
+uv venv --python 3.13
 ./scripts/setup-dependencies
 ./scripts/setup-symlinks
 uv run pre-commit install-hooks

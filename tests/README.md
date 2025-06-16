@@ -20,7 +20,7 @@ This command will download the Docker image from [the adaptive-lighting Docker H
 If you prefer to build the image yourself, use the following command:
 
 ```bash
-docker build -t basnijholt/adaptive-lighting:latest --no-cache .
+docker build -t basnijholt/adaptive-lighting:latest --no-cache --progress=plain .
 ```
 
 This might be necessary if the image on Docker Hub is outdated or if the [`test_dependencies.py`](../test_dependencies.py) file is updated.
