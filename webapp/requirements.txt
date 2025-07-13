@@ -68,7 +68,7 @@ python-dateutil==2.9.0.post0
     # via matplotlib
 python-multipart==0.0.20
     # via shiny
-pytz==2023.3.post1
+pytz==2025.2
     # via astral
 questionary==2.1.0
     # via shiny
