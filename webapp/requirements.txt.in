@@ -1,1 +1,4 @@
 astral==2.2
+matplotlib
+shinyswatch
+shiny
