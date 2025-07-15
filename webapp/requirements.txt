@@ -48,7 +48,7 @@ numpy==2.3.1
     # via
     #   contourpy
     #   matplotlib
-orjson==3.10.18
+orjson==3.11.0
     # via shiny
 packaging==25.0
     # via
