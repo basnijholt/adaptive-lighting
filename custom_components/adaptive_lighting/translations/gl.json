@@ -3,7 +3,8 @@
     "step": {
       "init": {
         "data_description": {
-          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴"
+          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴",
+          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`"
         },
         "title": "Configuración de Iluminación Adaptativa"
       }
