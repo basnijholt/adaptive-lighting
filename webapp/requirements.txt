@@ -42,7 +42,7 @@ mdit-py-plugins==0.4.2
     # via shiny
 mdurl==0.1.2
     # via markdown-it-py
-narwhals==1.46.0
+narwhals==1.47.1
     # via shiny
 numpy==2.3.1
     # via
