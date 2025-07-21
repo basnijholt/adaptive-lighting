@@ -39,7 +39,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r webapp/requirements.txt
+          pip install -r webapp/requirements-dev.txt
           pip install shinylive
 
       - name: Build the WebAssembly app
