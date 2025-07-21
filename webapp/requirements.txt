@@ -30,7 +30,7 @@ mdit-py-plugins==0.4.2
     # via shiny
 mdurl==0.1.2
     # via markdown-it-py
-narwhals==1.46.0
+narwhals==1.48.0
     # via shiny
 orjson==3.10.18
     # via shiny
