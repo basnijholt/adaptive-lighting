@@ -32,7 +32,7 @@ mdurl==0.1.2
     # via markdown-it-py
 narwhals==1.46.0
     # via shiny
-orjson==3.10.18
+orjson==3.11.0
     # via shiny
 packaging==25.0
     # via
