@@ -2,7 +2,7 @@ To run this app locally, install the requirements and run `shiny run`.
 
 ```
 $ cd webapp
-$ pip install -r requirements.txt
+$ pip install -r requirements-dev.txt
 $ shiny run
 ```
 
