@@ -11,4 +11,5 @@ uv pip install -r core/requirements.txt
 uv pip install -r core/requirements_test.txt
 uv pip install -e core/
 uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
+uv pip install aiohue
 uv pip install $(python test_dependencies.py)
