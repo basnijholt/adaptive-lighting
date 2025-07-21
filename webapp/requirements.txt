@@ -38,7 +38,7 @@ markdown-it-py==3.0.0
     # via
     #   mdit-py-plugins
     #   shiny
-matplotlib==3.8.4
+matplotlib==3.10.3
     # via -r requirements.txt.in
 mdit-py-plugins==0.4.2
     # via shiny
