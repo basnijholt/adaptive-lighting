@@ -88,28 +88,28 @@ def color_difference_redmean(
 
 def ensure_bool(val: Any, name: str) -> bool:
     """Ensures that val is a true Boolean and converts common string representations.
-    
+
     This function validates and converts values from external sources (Service-Calls,
     configurations) to true Boolean values. It prevents problems with string Booleans
     like "true"/"false", which in Python could be interpreted as truthy/falsy.
-    
+
     Parameters
     ----------
     val
         The value to validate
     name
         Name of the parameter for better error messages
-        
+
     Returns
     -------
     bool
         The validated Boolean value
-        
+
     Raises
     ------
     ValueError
         If the value cannot be converted to a Boolean
-        
+
     Examples
     --------
     >>> ensure_bool(True, "test")
@@ -120,6 +120,7 @@ def ensure_bool(val: Any, name: str) -> bool:
     False
     >>> ensure_bool("invalid", "test")
     ValueError: Parameter 'test' must be a Boolean, but is: 'invalid'
+
     """
     if isinstance(val, bool):
         return val
