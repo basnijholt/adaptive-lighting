@@ -475,7 +475,8 @@ async def async_setup_entry(  # noqa: PLR0915
             switch.manager.lights.update(all_lights)
             for light in all_lights:
                 if ensure_bool(data[CONF_TURN_ON_LIGHTS], CONF_TURN_ON_LIGHTS) or is_on(
-                    hass, light
+                    hass,
+                    light,
                 ):
                     context = switch.create_context(
                         "service",
@@ -486,13 +487,16 @@ async def async_setup_entry(  # noqa: PLR0915
                         context=context,
                         transition=data[CONF_TRANSITION],
                         adapt_brightness=ensure_bool(
-                            data[ATTR_ADAPT_BRIGHTNESS], ATTR_ADAPT_BRIGHTNESS
+                            data[ATTR_ADAPT_BRIGHTNESS],
+                            ATTR_ADAPT_BRIGHTNESS,
                         ),
                         adapt_color=ensure_bool(
-                            data[ATTR_ADAPT_COLOR], ATTR_ADAPT_COLOR
+                            data[ATTR_ADAPT_COLOR],
+                            ATTR_ADAPT_COLOR,
                         ),
                         prefer_rgb_color=ensure_bool(
-                            data[CONF_PREFER_RGB_COLOR], CONF_PREFER_RGB_COLOR
+                            data[CONF_PREFER_RGB_COLOR],
+                            CONF_PREFER_RGB_COLOR,
                         ),
                         force=True,
                     )
@@ -870,12 +874,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
         self._take_over_control = ensure_bool(
-            data[CONF_TAKE_OVER_CONTROL], CONF_TAKE_OVER_CONTROL
+            data[CONF_TAKE_OVER_CONTROL],
+            CONF_TAKE_OVER_CONTROL,
         )
         if not self._take_over_control and (
             ensure_bool(data[CONF_DETECT_NON_HA_CHANGES], CONF_DETECT_NON_HA_CHANGES)
             or ensure_bool(
-                data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON], CONF_ADAPT_ONLY_ON_BARE_TURN_ON
+                data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON],
+                CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
             )
         ):
             _LOGGER.warning(
@@ -886,18 +892,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._take_over_control = True
         self._detect_non_ha_changes = ensure_bool(
-            data[CONF_DETECT_NON_HA_CHANGES], CONF_DETECT_NON_HA_CHANGES
+            data[CONF_DETECT_NON_HA_CHANGES],
+            CONF_DETECT_NON_HA_CHANGES,
         )
         self._adapt_only_on_bare_turn_on = ensure_bool(
-            data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON], CONF_ADAPT_ONLY_ON_BARE_TURN_ON
+            data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON],
+            CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
         )
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = ensure_bool(
-            data[CONF_SKIP_REDUNDANT_COMMANDS], CONF_SKIP_REDUNDANT_COMMANDS
+            data[CONF_SKIP_REDUNDANT_COMMANDS],
+            CONF_SKIP_REDUNDANT_COMMANDS,
         )
         self._intercept = ensure_bool(data[CONF_INTERCEPT], CONF_INTERCEPT)
         self._multi_light_intercept = ensure_bool(
-            data[CONF_MULTI_LIGHT_INTERCEPT], CONF_MULTI_LIGHT_INTERCEPT
+            data[CONF_MULTI_LIGHT_INTERCEPT],
+            CONF_MULTI_LIGHT_INTERCEPT,
         )
         if not self._intercept and self._multi_light_intercept:
             _LOGGER.warning(

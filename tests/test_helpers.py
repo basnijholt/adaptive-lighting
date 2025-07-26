@@ -43,16 +43,16 @@ class TestEnsureBool:
         """Test that invalid values raise ValueError."""
         with pytest.raises(ValueError, match="Parameter ‘test’ must be a Boolean"):
             ensure_bool("invalid", "test")
-        
+
         with pytest.raises(ValueError, match="Parameter 'test' must be a Boolean"):
             ensure_bool(123, "test")
-        
+
         with pytest.raises(ValueError, match="Parameter 'test' must be a Boolean"):
             ensure_bool(None, "test")
-        
+
         with pytest.raises(ValueError, match="Parameter 'test' must be a Boolean"):
             ensure_bool([], "test")
-        
+
         with pytest.raises(ValueError, match="Parameter 'test' must be a Boolean"):
             ensure_bool({}, "test")
 
@@ -60,6 +60,6 @@ class TestEnsureBool:
         """Test that error messages include the actual value."""
         with pytest.raises(ValueError, match="but is: 'invalid'"):
             ensure_bool("invalid", "test")
-        
+
         with pytest.raises(ValueError, match="but is: 123"):
-            ensure_bool(123, "test") 
+            ensure_bool(123, "test")
