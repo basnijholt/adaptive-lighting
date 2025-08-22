@@ -229,12 +229,11 @@ def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
     expand_light_groups: bool = True,
-) -> list["AdaptiveSwitch"]:
+) -> list[AdaptiveSwitch]:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
     data = hass.data[DOMAIN]
-    from typing import List
-    switches: List["AdaptiveSwitch"] = []
+    switches: list[AdaptiveSwitch] = []
     all_check_lights = (
         _expand_light_groups(hass, lights) if expand_light_groups else set(lights)
     )
@@ -623,6 +622,7 @@ def _is_light_group(state: State) -> bool:
         False,
     )
 
+
 def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     assert state is not None
@@ -634,7 +634,7 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     if supported_features & LightEntityFeature.TRANSITION:
         supported.add("transition")
 
-    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set()) # type: ignore
+    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())  # type: ignore
     color_modes = {
         ColorMode.RGB,
         ColorMode.RGBW,
@@ -658,6 +658,7 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
         supported.add("brightness")
 
     return supported
+
 
 # All comparisons should be done with RGB since
 # converting anything to color temp is inaccurate.
@@ -1131,7 +1132,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._remove_listeners()
         self.manager.reset(*self.lights)
 
-    async def _async_update_at_interval_action(self, now: Any = None) -> None:  # noqa: ARG002
+    async def _async_update_at_interval_action(
+        self, now: Any = None
+    ) -> None:  # noqa: ARG002
         """Update the attributes and maybe adapt the lights."""
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("interval"),
@@ -2114,7 +2117,9 @@ class AdaptiveLightingManager:
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
 
-    def set_auto_reset_manual_control_times(self, lights: list[str], time: float) -> None:
+    def set_auto_reset_manual_control_times(
+        self, lights: list[str], time: float
+    ) -> None:
         """Set the time after which the lights are automatically reset."""
         if time == 0:
             return
@@ -2671,7 +2676,7 @@ class AdaptiveLightingManager:
 
 
 class _AsyncSingleShotTimer:
-    def __init__(self, delay: float, callback: "Callable[[], None | Any]") -> None:
+    def __init__(self, delay: float, callback: Callable[[], None | Any]) -> None:
         """Initialize the timer."""
         self.delay = delay
         self.callback = callback

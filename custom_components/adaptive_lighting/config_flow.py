@@ -46,7 +46,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle configuration by YAML file."""
         if user_input is None:
             return self.async_abort(reason="no_data")
-        
+
         await self.async_set_unique_id(user_input[CONF_NAME])
         # Keep a list of switches that are configured via YAML
         data = self.hass.data.setdefault(DOMAIN, {})
@@ -61,7 +61,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> "OptionsFlowHandler":
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> "OptionsFlowHandler":
         """Get the options flow for this handler."""
         if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
             # https://github.com/home-assistant/core/pull/129651
@@ -125,8 +127,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 )
                 all_lights.append(configured_light)
                 all_lights_with_names[configured_light] = configured_light
-        
-        light_options = {entity_id: f"{name} ({entity_id})" for entity_id, name in all_lights_with_names.items()}
+
+        light_options = {
+            entity_id: f"{name} ({entity_id})"
+            for entity_id, name in all_lights_with_names.items()
+        }
         to_replace = {CONF_LIGHTS: cv.multi_select(light_options)}
 
         options_schema = {}

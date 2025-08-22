@@ -376,7 +376,7 @@ class SunLightSettings:
     def get_settings(
         self,
         is_sleep: bool,
-        transition: float | int | None,
+        transition: float | None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 

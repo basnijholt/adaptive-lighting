@@ -1,7 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
 
-from typing import Any, List, Tuple, Optional
 from datetime import timedelta
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -293,11 +293,13 @@ DOCS_APPLY = {
     CONF_LIGHTS: "A light (or list of lights) to apply the settings to. 💡",
 }
 
+
 def int_between(min_int: int, max_int: int) -> vol.All:
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
-VALIDATION_TUPLES: List[Tuple[str, Any, Any]] = [
+
+VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),  # type: ignore
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
@@ -370,6 +372,7 @@ VALIDATION_TUPLES: List[Tuple[str, Any, Any]] = [
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
 ]
 
+
 def timedelta_as_int(value: timedelta) -> float:
     """Convert a `datetime.timedelta` object to an integer.
 
@@ -402,7 +405,8 @@ def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
         return vol.All(validation, vol.Coerce(coerce))
     return validation
 
-def replace_none_str(value: Any, replace_with: Optional[Any] = None) -> Any:
+
+def replace_none_str(value: Any, replace_with: Any | None = None) -> Any:
     """Replace "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
 
@@ -440,8 +444,8 @@ def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_ENTITY_ID): cv.entity_ids, # type: ignore
-        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids, # type: ignore
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore
         vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
     },
 )

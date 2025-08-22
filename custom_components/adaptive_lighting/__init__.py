@@ -2,12 +2,12 @@
 
 import logging
 from typing import Any, Optional
-import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE
-from homeassistant.core import HomeAssistant, Event
+from homeassistant.core import Event, HomeAssistant
 
 from .const import (
     _DOMAIN_SCHEMA,
@@ -35,13 +35,15 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+
 async def reload_configuration_yaml(event: Event) -> None:
     """Reload configuration.yaml."""
-    hass: Optional[HomeAssistant] = event.data["hass"] if "hass" in event.data else None
+    hass: HomeAssistant | None = event.data["hass"] if "hass" in event.data else None
     if hass is not None:
         await hass.services.async_call("homeassistant", "check_config", {})
     else:
         _LOGGER.error("HomeAssistant instance not found in event data.")
+
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Import integration from config."""
