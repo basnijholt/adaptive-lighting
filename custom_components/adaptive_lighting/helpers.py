@@ -1,6 +1,8 @@
 """Helper functions for the Adaptive Lighting custom components."""
 
 from __future__ import annotations
+from typing import Any, Dict
+from homeassistant.core import HomeAssistant
 
 import base64
 import math
@@ -83,3 +85,11 @@ def color_difference_redmean(
     green_term = 4 * delta_g**2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
     return math.sqrt(red_term + green_term + blue_term)
+
+def get_friendly_name(hass: HomeAssistant, entity_id: str) -> str:
+    """Retrieve the friendly name of an entity."""
+    state = hass.states.get(entity_id)
+    if state and hasattr(state, "attributes"):
+        attributes: Dict[str, Any] = dict(getattr(state, "attributes", {}))
+        return attributes.get("friendly_name", entity_id)
+    return entity_id

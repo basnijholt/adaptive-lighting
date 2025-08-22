@@ -54,7 +54,7 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     common_data = {k: service_data[k] for k in common_attrs if k in service_data}
 
     attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
-    service_datas = []
+    service_datas: list[dict[str, Any]] = []
 
     for attributes in attributes_split_sequence:
         split_data = {
@@ -84,10 +84,11 @@ def _remove_redundant_attributes(
     Removes all attributes from service call data whose values are already present
     in the target entity's state.
     """
+    attributes: dict[str, Any] = dict(state.attributes)
     return {
         k: v
         for k, v in service_data.items()
-        if k not in state.attributes or v != state.attributes[k]
+        if k not in attributes or v != attributes[k]
     }
 
 

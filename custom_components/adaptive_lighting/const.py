@@ -1,5 +1,8 @@
 """Constants for the Adaptive Lighting integration."""
 
+from typing import Any, List, Tuple, Optional
+from datetime import timedelta
+
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.light import VALID_TRANSITION
@@ -290,14 +293,12 @@ DOCS_APPLY = {
     CONF_LIGHTS: "A light (or list of lights) to apply the settings to. 💡",
 }
 
-
-def int_between(min_int, max_int):
+def int_between(min_int: int, max_int: int) -> vol.All:
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
-
-VALIDATION_TUPLES = [
-    (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
+VALIDATION_TUPLES: List[Tuple[str, Any, Any]] = [
+    (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),  # type: ignore
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
@@ -310,7 +311,7 @@ VALIDATION_TUPLES = [
     (
         CONF_SLEEP_RGB_OR_COLOR_TEMP,
         DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,
-        selector.SelectSelector(
+        selector.SelectSelector(  # type: ignore
             selector.SelectSelectorConfig(
                 options=["color_temp", "rgb_color"],
                 multiple=False,
@@ -322,7 +323,7 @@ VALIDATION_TUPLES = [
     (
         CONF_SLEEP_RGB_COLOR,
         DEFAULT_SLEEP_RGB_COLOR,
-        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
+        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),  # type: ignore
     ),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
@@ -337,7 +338,7 @@ VALIDATION_TUPLES = [
     (
         CONF_BRIGHTNESS_MODE,
         DEFAULT_BRIGHTNESS_MODE,
-        selector.SelectSelector(
+        selector.SelectSelector(  # type: ignore
             selector.SelectSelectorConfig(
                 options=["default", "linear", "tanh"],
                 multiple=False,
@@ -369,8 +370,7 @@ VALIDATION_TUPLES = [
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
 ]
 
-
-def timedelta_as_int(value):
+def timedelta_as_int(value: timedelta) -> float:
     """Convert a `datetime.timedelta` object to an integer.
 
     This integer can be serialized to json but a timedelta cannot.
@@ -380,7 +380,7 @@ def timedelta_as_int(value):
 
 # conf_option: (validator, coerce) tuples
 # these validators cannot be serialized but can be serialized when coerced by coerce.
-EXTRA_VALIDATION = {
+EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_INTERVAL: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_TIME: (cv.time, str),
@@ -395,15 +395,14 @@ EXTRA_VALIDATION = {
 }
 
 
-def maybe_coerce(key, validation):
+def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
     """Coerce the validation into a json serializable type."""
     validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
     if coerce is not None:
         return vol.All(validation, vol.Coerce(coerce))
     return validation
 
-
-def replace_none_str(value, replace_with=None):
+def replace_none_str(value: Any, replace_with: Optional[Any] = None) -> Any:
     """Replace "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
 
@@ -421,12 +420,12 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
-def apply_service_schema(initial_transition: int = 1):
+def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
     """Return the schema for the apply service."""
     return vol.Schema(
         {
-            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
-            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore
             vol.Optional(
                 CONF_TRANSITION,
                 default=initial_transition,
@@ -441,8 +440,8 @@ def apply_service_schema(initial_transition: int = 1):
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
-        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids, # type: ignore
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids, # type: ignore
         vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
     },
 )

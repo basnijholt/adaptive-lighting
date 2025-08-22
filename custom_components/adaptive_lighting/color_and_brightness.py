@@ -375,8 +375,8 @@ class SunLightSettings:
 
     def get_settings(
         self,
-        is_sleep,
-        transition,
+        is_sleep: bool,
+        transition: float | int | None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
@@ -507,7 +507,7 @@ def lerp_color_hsv(
     return cast("tuple[int, int, int]", rgb)
 
 
-def lerp(x, x1, x2, y1, y2):
+def lerp(x: float, x1: float, x2: float, y1: float, y2: float) -> float:
     """Linearly interpolate between two values."""
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
 
