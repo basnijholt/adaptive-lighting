@@ -1,1 +1,69 @@
-{}
+{
+  "title": "自適應照明",
+  "config": {
+    "step": {
+      "user": {
+        "title": "為自適應照明實例選擇一個名稱",
+        "description": "每個實例可以包含多個燈光！",
+        "data": {
+          "name": "名稱"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "此設備已配置"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "自適應照明選項",
+        "description": "配置自適應照明元件。選項名稱與 YAML 設定對齊。如果在 YAML 中已定義此條目，這裡將不顯示任何選項。若需互動式圖表展示參數效果，請訪問 [此 Web 應用程式](https://basnijholt.github.io/adaptive-lighting)。更多詳情請參閱 [官方文檔](https://github.com/basnijholt/adaptive-lighting#readme)。",
+        "data": {
+          "lights": "lights：要控制的燈光實體 ID 列表（可為空）。🌟",
+          "interval": "頻率(interval)",
+          "transition": "過渡(transition)",
+          "initial_transition": "初始過渡(initial_transition)",
+          "min_brightness": "min_brightness：最小亮度百分比。💡",
+          "max_brightness": "max_brightness：最大亮度百分比。💡",
+          "min_color_temp": "min_color_temp：最暖的色溫，單位開爾文。🔥",
+          "max_color_temp": "max_color_temp：最冷的色溫，單位開爾文。❄️",
+          "prefer_rgb_color": "prefer_rgb_color：是否在可能時優先使用 RGB 顏色調整而非燈光色溫。🌈",
+          "sleep_brightness": "睡眠模式亮度(sleep_brightness)",
+          "sleep_rgb_or_color_temp": "睡眠模式 RGB 或色溫(sleep_rgb_or_color_temp)",
+          "sleep_color_temp": "睡眠模式色溫(sleep_color_temp)",
+          "sleep_rgb_color": "睡眠模式 RGB 顏色(sleep_rgb_color)",
+          "sleep_transition": "睡眠模式過渡時間(sleep_transition)",
+          "transition_until_sleep": "transition_until_sleep：啟用時，自適應照明將睡眠設定視為最小值，日落後過渡到這些值。🌙",
+          "sunrise_time": "日出時間(sunrise_time)",
+          "min_sunrise_time": "最早日出時間(min_sunrise_time)",
+          "max_sunrise_time": "最晚日出時間(max_sunrise_time)",
+          "sunrise_offset": "日出時間偏移(sunrise_offset)",
+          "sunset_time": "日落時間(sunset_time)",
+          "min_sunset_time": "最早日落時間(min_sunset_time)",
+          "max_sunset_time": "最晚日落時間(max_sunset_time)",
+          "sunset_offset": "日落時間偏移(sunset_offset)",
+          "brightness_mode": "亮度模式(brightness_mode)",
+          "brightness_mode_time_dark": "變暗時間(brightness_mode_time_dark)",
+          "brightness_mode_time_light": "變亮時間(brightness_mode_time_light)",
+          "take_over_control": "take_over_control：如果在燈光處於開啟且正在適應時，另一來源呼叫 `light.turn_on`，則禁用自適應照明。注意：此功能每個 interval 都會呼叫 `homeassistant.update_entity`！🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes：偵測非 `light.turn_on` 狀態變更並停止自適應。需啟用 `take_over_control`。🕵️ 注意：⚠️ 有些燈光可能錯誤顯示為「開啟」，可能導致燈光意外打開。如遇此問題請關閉此功能。",
+          "autoreset_control_seconds": "自動重置時間(autoreset_control_seconds)",
+          "only_once": "only_once：僅在開啟時調整燈光 (`true`) 或持續調整 (`false`)。🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on：首次開啟燈光時。如果設為 `true`，AL 僅在未指定顏色或亮度時才適應。❌🌈 避免啟用場景時進行適應。若為 `false`，無論初始 service_data 是否有顏色或亮度，AL 都會適應。需啟用 `take_over_control`。🕵️",
+          "separate_turn_on_commands": "separate_turn_on_commands：某些燈光類型需使用分開 `light.turn_on` 呼叫設定顏色與亮度。🔀",
+          "send_split_delay": "指令發送延遲(send_split_delay)",
+          "adapt_delay": "自適應照明延遲(adapt_delay)",
+          "skip_redundant_commands": "skip_redundant_commands：跳過目標狀態已等於燈光已知狀態的適應命令。可減少網路流量並提升適應反應。📉 若物理燈光狀態與 HA 記錄不同步，請關閉。",
+          "intercept": "intercept：攔截並適應 `light.turn_on` 呼叫以實現即時顏色與亮度調整。🏎️ 不支援此功能的燈光請關閉。",
+          "multi_light_intercept": "multi_light_intercept：攔截並適應針對多燈的 `light.turn_on` 呼叫。➗⚠️ 可能將單一呼叫拆成多個，例如燈光位於不同開關時。需啟用 intercept。",
+          "include_config_in_attributes": "include_config_in_attributes：設定為 `true` 時，Home Assistant 開關會顯示所有選項為屬性。📝"
+        }
+      }
+    },
+    "error": {
+      "option_error": "無效的選項",
+      "entity_missing": "一個或多個選擇的燈光實體在 Home Assistant 中不存在"
+    }
+  }
+}
