@@ -39,7 +39,11 @@
           "sunset_time": "sunset_time: substituição manual do horário do pôr do sol, se 'Nenhum', ele usa o horário real do nascer do sol em sua localização (HH:MM:SS)",
           "take_over_control": "take_over_control: Se qualquer coisa, exceto Adaptive Lighting, chamar 'light.turn_on' quando uma luz já estiver acesa, pare de adaptar essa luz até que ela (ou o interruptor) desligue -> ligue.",
           "detect_non_ha_changes": "detect_non_ha_changes: detecta todas as alterações > 10% feitas nas luzes (também fora do HA), requer que 'take_over_control' seja ativado (chama 'homeassistant.update_entity' a cada 'intervalo'!)",
-          "transition": "Tempo de transição ao aplicar uma mudança nas luzes (segundos)"
+          "transition": "Tempo de transição ao aplicar uma mudança nas luzes (segundos)",
+          "skip_redundant_commands": "skip_redundant_commands: Deixar de enviar comandos de adaptação cujo estado alvo já seja igual ao estado atual da luz. Minimiza o tráfego de rede e melhora a responsividade da adaptação em algumas situações. 📉Desative se os estados físicos das luzes podem ficar diferentes do estado registrado no HA.",
+          "transition_until_sleep": "transition_until_sleep: Quando ativada, a Iluminação Adaptativa considerará as configurações de sono como o valor mínimo, transicionando para esses valores após o pôr do sol. 🌙",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Ao ligar as luzes inicialmente. Se definido como `true`, a Iluminação Adaptativa se adapta somente se o comando `light.turn_on` for chamado sem especificar cor ou brilho. ❌🌈 Isso, por exemplo, impede a adaptação ao ativar uma cena. Se false, a Iluminação Adaptativa se adapta independentemente da presença de cor ou brilho nos dados iniciais do `service_data`. Precisa de `take_over_control` ativado. 🕵️",
+          "intercept": "intercept: Interceptar e adaptar os chamados `light.turn_on` para ativar a adaptação instantânea de cor e brilho. 🏎️ Desative para luzes que não suportam `light.turn_on` com cor e brilho."
         }
       }
     },
