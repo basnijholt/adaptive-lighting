@@ -40,7 +40,8 @@
           "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
           "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)",
           "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙",
-          "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️ "
+          "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️",
+          "include_config_in_attributes": "include_config_in_attributes: Vis alle indstillinger som attributter for kontakten når dette er sat til »true«. 📝"
         },
         "data_description": {
           "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
@@ -59,7 +60,9 @@
           "sunrise_offset": "Juster solopgangstiden med en positiv eller negativ offset på få sekunder. ⏰",
           "max_sunset_time": "Indstil den seneste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solnedgange. 🌇",
           "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴",
-          "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈"
+          "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈",
+          "send_split_delay": "Forsinkelse (ms) mellem »separate_turn_on_commands« for lyskilder som ikke understøtter simultane styrke- og farveindstillinger. ⏲️",
+          "initial_transition": "Den første overgangs varighed når lysene ændres fra »off« til »on« i sekunder. ⏲️"
         }
       }
     },
@@ -153,12 +156,26 @@
         },
         "sleep_color_temp": {
           "description": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴"
+        },
+        "send_split_delay": {
+          "description": "Forsinkelse (ms) mellem »separate_turn_on_commands« for lyskilder som ikke understøtter simultane styrke- og farveindstillinger. ⏲️"
+        },
+        "detect_non_ha_changes": {
+          "description": "Opdager og stopper tilpasningen ved tilstandsændringer, som ikke er udløst af »light.turn_on«. Indstillingen »take_over_control« skal være aktiveret. 🕵️ Advarsel: ⚠️ Nogle lyskilder kan rapportere en falsk tændt-tilstand, hvilket kan medføre af lyskilden tændes når det ikke er meningen. Slå denne funktion fra, hvis du oplever dette problem."
+        },
+        "initial_transition": {
+          "description": "Den første overgangs varighed når lysene ændres fra »off« til »on« i sekunder. ⏲️"
         }
       },
       "description": "Skift de indstillinger du ønsker i kontakten. Alle muligheder her er de samme som i konfigurationsflowet."
     },
     "set_manual_control": {
-      "description": "Markér om et lys er 'manuelt kontrolleret'."
+      "description": "Markér om et lys er 'manuelt kontrolleret'.",
+      "fields": {
+        "lights": {
+          "description": "entity_id(er) af lys, hvis ikke specificeret, vil alle lys i kontakten være valgt. 💡"
+        }
+      }
     }
   }
 }
