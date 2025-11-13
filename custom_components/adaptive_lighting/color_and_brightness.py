@@ -318,8 +318,8 @@ class SunLightSettings:
         if sun_position == 0 or not self.adapt_until_sleep:
             return self.min_color_temp
         if self.adapt_until_sleep and sun_position < 0:
-            delta = abs(self.min_color_temp - self.sleep_color_temp)
-            ct = (delta * abs(1 + sun_position)) + self.sleep_color_temp
+            delta = self.min_color_temp - self.sleep_color_temp
+            ct = (delta * (1 + sun_position)) + self.sleep_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
         msg = "Should not happen"
         raise ValueError(msg)
