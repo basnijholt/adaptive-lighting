@@ -12,7 +12,7 @@ from datetime import timedelta
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from homeassistant_util_color import (
+from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
@@ -318,9 +318,27 @@ class SunLightSettings:
         if sun_position == 0 or not self.adapt_until_sleep:
             return self.min_color_temp
         if self.adapt_until_sleep and sun_position < 0:
-            delta = abs(self.min_color_temp - self.sleep_color_temp)
-            ct = (delta * abs(1 + sun_position)) + self.sleep_color_temp
+            delta = self.min_color_temp - self.sleep_color_temp
+            ct = (delta * (1 + sun_position)) + self.sleep_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
+        msg = "Should not happen"
+        raise ValueError(msg)
+
+    def color_temp_mired(self, sun_position: float) -> int:
+        """Calculate the color temperature in Mired."""
+        min_mired = math.floor(1000000 / self.max_color_temp) # mired is reciprocal to kelvin
+        max_mired = math.floor(1000000 / self.min_color_temp)
+        sleep_mired = math.floor(1000000 / self.sleep_color_temp)
+        if sun_position > 0:
+            delta = max_mired - min_mired
+            ct = (delta * (1 - sun_position)) + min_mired # the higher the sun, the lower the mired & vv
+            return round(ct)
+        if sun_position == 0 or not self.adapt_until_sleep:
+            return max_mired
+        if self.adapt_until_sleep and sun_position < 0:
+            delta = max_mired - sleep_mired
+            ct = (delta * (1 + sun_position)) + sleep_mired
+            return round(ct)
         msg = "Should not happen"
         raise ValueError(msg)
 
@@ -332,11 +350,12 @@ class SunLightSettings:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[float, float, float]
+        color_temp_mired: float
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
         brightness_pct = self.brightness_pct(dt, is_sleep)
         if is_sleep:
-            color_temp_kelvin = self.sleep_color_temp
+            color_temp_mired = math.floor(1000000 / self.sleep_color_temp)
             rgb_color = self.sleep_rgb_color
         elif (
             self.sleep_rgb_or_color_temp == "rgb_color"
@@ -353,18 +372,18 @@ class SunLightSettings:
                 self.sleep_rgb_color,
                 sun_position,
             )
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_mired = self.color_temp_mired(sun_position)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
-            rgb_color = color_temperature_to_rgb(color_temp_kelvin)
-        # backwards compatibility for versions < 1.3.1 - see #403
-        color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
+            color_temp_mired = self.color_temp_mired(sun_position)
+            rgb_color = color_temperature_to_rgb(math.floor(1000000 / color_temp_mired))
+        color_temp_kelvin = math.floor(1000000 / color_temp_mired)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {
             "brightness_pct": brightness_pct,
             "color_temp_kelvin": color_temp_kelvin,
+            # backwards compatibility for versions < 1.3.1 - see #403
             "color_temp_mired": color_temp_mired,
             "rgb_color": rgb_color,
             "xy_color": xy_color,
