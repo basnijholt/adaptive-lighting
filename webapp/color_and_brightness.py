@@ -12,7 +12,7 @@ from datetime import timedelta
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from homeassistant.util.color import (
+from homeassistant_util_color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
