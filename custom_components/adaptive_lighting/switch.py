@@ -767,6 +767,30 @@ def _attributes_have_changed(
                 context.id,
             )
             return True
+
+    if (
+        adapt_color
+        and (
+            (
+                old_attributes.get(ATTR_COLOR_TEMP_KELVIN)
+                and not new_attributes.get(ATTR_COLOR_TEMP_KELVIN)
+            )
+            or (
+                old_attributes.get(ATTR_RGB_COLOR)
+                and not new_attributes.get(ATTR_RGB_COLOR)
+            )
+        )
+    ):
+        last_mode = "color_temp" if old_attributes.get(ATTR_COLOR_TEMP_KELVIN) else "rgb"
+        current_mode = "color_temp" if new_attributes.get(ATTR_COLOR_TEMP_KELVIN) else "rgb"
+        _LOGGER.debug(
+            "Light mode of %s changed from %s to %s with context.id='%s'",
+            light,
+            last_mode,
+            current_mode,
+            context.id,
+        )
+        return True
     return False
 
 
