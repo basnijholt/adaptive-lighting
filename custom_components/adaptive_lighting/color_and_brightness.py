@@ -311,12 +311,16 @@ class SunLightSettings:
 
     def color_temp_mired(self, sun_position: float) -> int:
         """Calculate the color temperature in Mired."""
-        min_mired = math.floor(1000000 / self.max_color_temp) # mired is reciprocal to kelvin: min<->max
+        min_mired = math.floor(
+            1000000 / self.max_color_temp
+        )  # mired is reciprocal to kelvin: min<->max
         max_mired = math.floor(1000000 / self.min_color_temp)
         sleep_mired = math.floor(1000000 / self.sleep_color_temp)
         if sun_position > 0:
             delta = max_mired - min_mired
-            ct = (delta * (1 - sun_position)) + min_mired # the higher the sun, the lower the mired & vv
+            ct = (
+                delta * (1 - sun_position)
+            ) + min_mired  # the higher the sun, the lower the mired & vv
             return round(ct)
         if sun_position == 0 or not self.adapt_until_sleep:
             return max_mired
