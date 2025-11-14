@@ -309,24 +309,9 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
-    def color_temp_kelvin(self, sun_position: float) -> int:
-        """Calculate the color temperature in Kelvin."""
-        if sun_position > 0:
-            delta = self.max_color_temp - self.min_color_temp
-            ct = (delta * sun_position) + self.min_color_temp
-            return 5 * round(ct / 5)  # round to nearest 5
-        if sun_position == 0 or not self.adapt_until_sleep:
-            return self.min_color_temp
-        if self.adapt_until_sleep and sun_position < 0:
-            delta = self.min_color_temp - self.sleep_color_temp
-            ct = (delta * (1 + sun_position)) + self.sleep_color_temp
-            return 5 * round(ct / 5)  # round to nearest 5
-        msg = "Should not happen"
-        raise ValueError(msg)
-
     def color_temp_mired(self, sun_position: float) -> int:
         """Calculate the color temperature in Mired."""
-        min_mired = math.floor(1000000 / self.max_color_temp) # mired is reciprocal to kelvin
+        min_mired = math.floor(1000000 / self.max_color_temp) # mired is reciprocal to kelvin: min<->max
         max_mired = math.floor(1000000 / self.min_color_temp)
         sleep_mired = math.floor(1000000 / self.sleep_color_temp)
         if sun_position > 0:
