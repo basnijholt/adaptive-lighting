@@ -341,6 +341,7 @@ class SunLightSettings:
         brightness_pct = self.brightness_pct(dt, is_sleep)
         if is_sleep:
             color_temp_mired = math.floor(1000000 / self.sleep_color_temp)
+            color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
         elif (
             self.sleep_rgb_or_color_temp == "rgb_color"
@@ -358,11 +359,12 @@ class SunLightSettings:
                 sun_position,
             )
             color_temp_mired = self.color_temp_mired(sun_position)
+            color_temp_kelvin = math.floor(1000000 / color_temp_mired)
             force_rgb_color = True
         else:
             color_temp_mired = self.color_temp_mired(sun_position)
-            rgb_color = color_temperature_to_rgb(math.floor(1000000 / color_temp_mired))
-        color_temp_kelvin = math.floor(1000000 / color_temp_mired)
+            color_temp_kelvin = math.floor(1000000 / color_temp_mired)
+            rgb_color = color_temperature_to_rgb(color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
         return {
