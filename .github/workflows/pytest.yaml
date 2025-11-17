@@ -32,7 +32,7 @@ jobs:
             python-version: "3.13"
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies
