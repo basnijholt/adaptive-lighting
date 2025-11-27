@@ -75,7 +75,6 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
-from homeassistant.helpers.template import area_entities
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -153,7 +152,7 @@ from .const import (
     apply_service_schema,
     replace_none_str,
 )
-from .hass_utils import setup_service_call_interceptor
+from .hass_utils import area_entities, setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
