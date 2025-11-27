@@ -1062,6 +1062,24 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Tommatheussen",
+      "name": "Tom Matheussen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13683094?v=4",
+      "profile": "https://github.com/Tommatheussen",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "ams2990",
+      "name": "ams2990",
+      "avatar_url": "https://avatars.githubusercontent.com/u/488907?v=4",
+      "profile": "https://github.com/ams2990",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

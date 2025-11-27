@@ -26,13 +26,23 @@ jobs:
             python-version: "3.13"
           - core-version: "2025.5.3"
             python-version: "3.13"
-          - core-version: "2025.6.1"
+          - core-version: "2025.6.3"
+            python-version: "3.13"
+          - core-version: "2025.7.4"
+            python-version: "3.13"
+          - core-version: "2025.8.3"
+            python-version: "3.13"
+          - core-version: "2025.9.4"
+            python-version: "3.13"
+          - core-version: "2025.10.4"
+            python-version: "3.13"
+          - core-version: "2025.11.3"
             python-version: "3.13"
           - core-version: "dev"
             python-version: "3.13"
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies

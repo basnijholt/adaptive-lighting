@@ -65,6 +65,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveLightingManager,
     AdaptiveSwitch,
+    SimpleSwitch,
     _attributes_have_changed,
     color_difference_redmean,
     create_context,
@@ -82,7 +83,16 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-from homeassistant.components.template.light import LightTemplate
+
+try:
+    # HA >= 2025.8
+    from homeassistant.components.template.light import (
+        StateLightEntity as LightTemplate,
+    )
+except ImportError:
+    # HA < 2025.8
+    from homeassistant.components.template.light import LightTemplate
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
@@ -2266,3 +2276,76 @@ async def test_brightness_mode(hass, brightness_mode, dark, light):
     # After sunrise the brightness should be light_brightness
     await patch_time_and_update(after_sunrise)
     assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], light_brightness)
+
+
+async def test_simple_switch_initial_state_not_none(hass):
+    """Test that SimpleSwitch._state is not None after __init__.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1264
+
+    When an entity is disabled in Home Assistant, async_added_to_hass() is never
+    called. Previously, SimpleSwitch._state was initialized to None and only set
+    to True/False in async_added_to_hass(). This caused an infinite loop in
+    AdaptiveSwitch._setup_listeners() which waits for all SimpleSwitch._state
+    to be not None.
+
+    The fix is to initialize _state to the initial_state value in __init__.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: DEFAULT_NAME})
+    entry.add_to_hass(hass)
+
+    # Create a SimpleSwitch without calling async_added_to_hass
+    # (simulating a disabled entity)
+    switch = SimpleSwitch(
+        which="Test",
+        initial_state=True,
+        hass=hass,
+        config_entry=entry,
+        icon="mdi:test",
+    )
+
+    # Before the fix: _state would be None, causing infinite loop
+    # After the fix: _state should be the initial_state value
+    assert switch._state is not None, (
+        "SimpleSwitch._state should not be None after __init__. "
+        "This would cause an infinite loop in _setup_listeners when the entity is disabled."
+    )
+    assert switch._state is True  # Should be the initial_state value
+
+
+async def test_simple_switch_state_after_async_added_to_hass(hass):
+    """Test that SimpleSwitch._state is properly set after async_added_to_hass.
+
+    This ensures the fix for #1264 doesn't break normal entity initialization.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: DEFAULT_NAME})
+    entry.add_to_hass(hass)
+
+    # Create switches with different initial states
+    switch_true = SimpleSwitch(
+        which="Test True",
+        initial_state=True,
+        hass=hass,
+        config_entry=entry,
+        icon="mdi:test",
+    )
+    switch_false = SimpleSwitch(
+        which="Test False",
+        initial_state=False,
+        hass=hass,
+        config_entry=entry,
+        icon="mdi:test",
+    )
+
+    # Verify initial state is set correctly
+    assert switch_true._state is True
+    assert switch_false._state is False
+
+    # Call async_added_to_hass (simulating normal entity setup)
+    # Since there's no last state, it should use the initial_state
+    await switch_true.async_added_to_hass()
+    await switch_false.async_added_to_hass()
+
+    # State should still be correct after async_added_to_hass
+    assert switch_true._state is True
+    assert switch_false._state is False

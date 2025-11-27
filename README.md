@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-116-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-118-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -616,6 +616,8 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/bittin"><img src="https://avatars.githubusercontent.com/u/43197?v=4?s=100" width="100px;" alt="Luna Jernberg"/><br /><sub><b>Luna Jernberg</b></sub></a><br /><a href="#translation-bittin" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://jeffalwilson.com"><img src="https://avatars.githubusercontent.com/u/1368827?v=4?s=100" width="100px;" alt="Jeff Wilson"/><br /><sub><b>Jeff Wilson</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=jawilson" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/TermeHansen"><img src="https://avatars.githubusercontent.com/u/6922018?v=4?s=100" width="100px;" alt="Rasmus Lundsgaard"/><br /><sub><b>Rasmus Lundsgaard</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=TermeHansen" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Tommatheussen"><img src="https://avatars.githubusercontent.com/u/13683094?v=4?s=100" width="100px;" alt="Tom Matheussen"/><br /><sub><b>Tom Matheussen</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Tommatheussen" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ams2990"><img src="https://avatars.githubusercontent.com/u/488907?v=4?s=100" width="100px;" alt="ams2990"/><br /><sub><b>ams2990</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=ams2990" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>

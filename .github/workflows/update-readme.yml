@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies

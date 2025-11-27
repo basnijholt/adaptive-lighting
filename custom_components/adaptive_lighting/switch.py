@@ -75,7 +75,6 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
-from homeassistant.helpers.template import area_entities
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -153,7 +152,7 @@ from .const import (
     apply_service_schema,
     replace_none_str,
 )
-from .hass_utils import setup_service_call_interceptor
+from .hass_utils import area_entities, setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
@@ -1589,7 +1588,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         data = validate(config_entry)
         self._icon = icon
-        self._state: bool | None = None
+        self._state: bool = initial_state
         self._which = which
         self._config_name = data[CONF_NAME]
         self._unique_id = f"{self._config_name}_{slugify(self._which)}"
@@ -2706,7 +2705,6 @@ class _AsyncSingleShotTimer:
 
     async def _run(self):
         """Run the timer. Don't call this directly, use start() instead."""
-        self.start_time = dt_util.utcnow()
         await asyncio.sleep(self.delay)
         if self.callback:
             if asyncio.iscoroutinefunction(self.callback):
@@ -2722,6 +2720,10 @@ class _AsyncSingleShotTimer:
         """Start the timer."""
         if self.task is not None and not self.task.done():
             self.task.cancel()
+        # Set start_time before creating task to avoid race condition
+        # where is_running() returns True but start_time is still None
+        # See: https://github.com/basnijholt/adaptive-lighting/issues/1272
+        self.start_time = dt_util.utcnow()
         self.task = asyncio.create_task(self._run())
 
     def cancel(self):
