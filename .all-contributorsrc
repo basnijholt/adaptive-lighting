@@ -1134,6 +1134,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "plageoj",
+      "name": "Masayuki Sugahara",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10688301?v=4",
+      "profile": "https://plageoj.me",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
