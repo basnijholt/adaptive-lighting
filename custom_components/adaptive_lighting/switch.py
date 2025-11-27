@@ -2680,7 +2680,6 @@ class _AsyncSingleShotTimer:
 
     async def _run(self):
         """Run the timer. Don't call this directly, use start() instead."""
-        self.start_time = dt_util.utcnow()
         await asyncio.sleep(self.delay)
         if self.callback:
             if asyncio.iscoroutinefunction(self.callback):
@@ -2696,6 +2695,10 @@ class _AsyncSingleShotTimer:
         """Start the timer."""
         if self.task is not None and not self.task.done():
             self.task.cancel()
+        # Set start_time before creating task to avoid race condition
+        # where is_running() returns True but start_time is still None
+        # See: https://github.com/basnijholt/adaptive-lighting/issues/1272
+        self.start_time = dt_util.utcnow()
         self.task = asyncio.create_task(self._run())
 
     def cancel(self):
