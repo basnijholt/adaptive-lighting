@@ -1,6 +1,7 @@
 """Config flow for Adaptive Lighting integration."""
 
 import logging
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -40,7 +41,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_import(self, user_input=None):
+    async def async_step_import(self, user_input: dict[str, Any]):
         """Handle configuration by YAML file."""
         await self.async_set_unique_id(user_input[CONF_NAME])
         # Keep a list of switches that are configured via YAML
