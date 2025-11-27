@@ -15,7 +15,8 @@ def area_entities(hass: HomeAssistant, area_id: str):
     """Get all entities linked to an area."""
     ent_reg = entity_registry.async_get(hass)
     entity_ids = [
-        entry.entity_id for entry in entity_registry.async_entries_for_area(ent_reg, area_id)
+        entry.entity_id
+        for entry in entity_registry.async_entries_for_area(ent_reg, area_id)
     ]
     dev_reg = device_registry.async_get(hass)
     entity_ids.extend(
@@ -24,9 +25,10 @@ def area_entities(hass: HomeAssistant, area_id: str):
             for device in device_registry.async_entries_for_area(dev_reg, area_id)
             for entity in entity_registry.async_entries_for_device(ent_reg, device.id)
             if entity.area_id is None
-        ]
+        ],
     )
     return entity_ids
+
 
 def setup_service_call_interceptor(
     hass: HomeAssistant,

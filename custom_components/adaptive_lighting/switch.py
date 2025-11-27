@@ -152,7 +152,7 @@ from .const import (
     apply_service_schema,
     replace_none_str,
 )
-from .hass_utils import setup_service_call_interceptor, area_entities
+from .hass_utils import area_entities, setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
