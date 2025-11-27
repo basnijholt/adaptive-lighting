@@ -17,21 +17,37 @@
   "options": {
     "step": {
       "init": {
-        "title": "Adaptive Lighting options",
-        "description": "Configure an Adaptive Lighting component. Option names align with the YAML settings. If you've defined this entry in YAML, no options will appear here. For interactive graphs that demonstrate parameter effects, visit [this web app](https://basnijholt.github.io/adaptive-lighting). For further details, see the [official documentation](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "title": "Basic Settings",
+        "description": "Configure the most common Adaptive Lighting options. After submitting, you can optionally configure advanced settings or save directly. If you've defined this entry in YAML, no options will appear here. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "lights: List of light entity_ids to be controlled (may be empty). 🌟",
           "interval": "interval",
           "transition": "transition",
-          "initial_transition": "initial_transition",
           "min_brightness": "min_brightness: Minimum brightness percentage. 💡",
           "max_brightness": "max_brightness: Maximum brightness percentage. 💡",
           "min_color_temp": "min_color_temp: Warmest color temperature in Kelvin. 🔥",
           "max_color_temp": "max_color_temp: Coldest color temperature in Kelvin. ❄️",
-          "prefer_rgb_color": "prefer_rgb_color: Whether to prefer RGB color adjustment over light color temperature when possible. 🌈",
           "sleep_brightness": "sleep_brightness",
+          "sleep_color_temp": "sleep_color_temp"
+        },
+        "data_description": {
+          "interval": "Frequency to adapt the lights, in seconds. 🔄",
+          "transition": "Duration of transition when lights change, in seconds. 🕑",
+          "sleep_brightness": "Brightness percentage of lights in sleep mode. 😴",
+          "sleep_color_temp": "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴"
+        },
+        "menu_options": {
+          "advanced": "Configure advanced options",
+          "finish": "Save and finish"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "description": "Configure advanced Adaptive Lighting options. Most users don't need to change these settings.",
+        "data": {
+          "initial_transition": "initial_transition",
+          "prefer_rgb_color": "prefer_rgb_color: Whether to prefer RGB color adjustment over light color temperature when possible. 🌈",
           "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp",
-          "sleep_color_temp": "sleep_color_temp",
           "sleep_rgb_color": "sleep_rgb_color",
           "sleep_transition": "sleep_transition",
           "transition_until_sleep": "transition_until_sleep: When enabled, Adaptive Lighting will treat sleep settings as the minimum, transitioning to these values after sunset. 🌙",
@@ -60,12 +76,8 @@
           "include_config_in_attributes": "include_config_in_attributes: Show all options as attributes on the switch in Home Assistant when set to `true`. 📝"
         },
         "data_description": {
-          "interval": "Frequency to adapt the lights, in seconds. 🔄",
-          "transition": "Duration of transition when lights change, in seconds. 🕑",
           "initial_transition": "Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️",
-          "sleep_brightness": "Brightness percentage of lights in sleep mode. 😴",
           "sleep_rgb_or_color_temp": "Use either `\"rgb_color\"` or `\"color_temp\"` in sleep mode. 🌙",
-          "sleep_color_temp": "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴",
           "sleep_rgb_color": "RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is \"rgb_color\"). 🌈",
           "sleep_transition": "Duration of transition when \"sleep mode\" is toggled in seconds. 😴",
           "sunrise_time": "Set a fixed time (HH:MM:SS) for sunrise. 🌅",

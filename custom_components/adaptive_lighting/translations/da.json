@@ -21,32 +21,45 @@
         "description": "Alle indstillinger tilhørende en Adaptiv Belysnings komponent. Indstillingernes navne svarer til YAML indstillingernes. Ingen indstillinger vises hvis du allerede har konfigureret den i YAML.",
         "data": {
           "lights": "lights: lyskilder",
-          "initial_transition": "initial_transition: Hvor lang overgang når lyset går fra 'off' til 'on' eller når 'sleep_state' skiftes. (i sekunder)",
           "interval": "interval: Tid imellem opdateringer (i sekunder)",
           "max_brightness": "max_brightness: Højeste lysstyrke i cyklussen. (%)",
           "max_color_temp": "max_color_temp: Koldeste lystemperatur i cyklussen. (Kelvin)",
           "min_brightness": "min_brightness: Laveste lysstyrke i cyklussen. (%)",
           "min_color_temp": "min_color_temp: Varmeste lystemperatur i cyklussen. (Kelvin)",
+          "sleep_brightness": "sleep_brightness, Lysstyrke for Sleep Mode. (%)",
+          "sleep_color_temp": "sleep_color_temp: Farvetemperatur under Sleep Mode. (Kelvin)",
+          "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)"
+        },
+        "data_description": {
+          "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
+          "sleep_brightness": "Lysstyrkeprocent af lys i søvntilstand. 😴",
+          "transition": "Varighed af overgang, når lys ændres, i sekunder. 🕑",
+          "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴"
+        },
+        "menu_options": {
+          "advanced": "Konfigurer avancerede indstillinger",
+          "finish": "Gem og afslut"
+        }
+      },
+      "advanced": {
+        "title": "Avancerede indstillinger",
+        "description": "Konfigurer avancerede Adaptive Lighting indstillinger. De fleste brugere behøver ikke at ændre disse indstillinger.",
+        "data": {
+          "initial_transition": "initial_transition: Hvor lang overgang når lyset går fra 'off' til 'on' eller når 'sleep_state' skiftes. (i sekunder)",
           "only_once": "only_once: Juster udelukkende lysene adaptivt i øjeblikket de tændes.",
           "prefer_rgb_color": "prefer_rgb_color: Brug 'rgb_color' istedet for 'color_temp' når muligt.",
           "separate_turn_on_commands": "separate_turn_on_commands: Adskil kommandoerne for hver attribut (color, brightness, etc.) ved 'light.turn_on' (nødvendigt for bestemte lys).",
-          "sleep_brightness": "sleep_brightness, Lysstyrke for Sleep Mode. (%)",
-          "sleep_color_temp": "sleep_color_temp: Farvetemperatur under Sleep Mode. (Kelvin)",
           "sunrise_offset": "sunrise_offset: Hvor længe før (-) eller efter (+) at definere solopgangen i cyklussen (+/- sekunder)",
           "sunrise_time": "sunrise_time: Manuel overstyring af solopgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt din lokation. (HH:MM:SS)",
           "sunset_offset": "sunset_offset: Hvor længe før (-) eller efter (+) at definere solnedgangen i cyklussen (+/- sekunder)",
           "sunset_time": "sunset_time: Manuel overstyring af solnedgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt for din lokation. (HH:MM:SS)",
           "take_over_control": "take_over_control: Hvis andet end Adaptiv Belysning kalder 'light.turn_on' på et lys der allerede er tændt, afbryd adaptering af lyset indtil at det tændes igen.",
           "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
-          "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)",
           "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙",
           "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️",
           "include_config_in_attributes": "include_config_in_attributes: Vis alle indstillinger som attributter for kontakten når dette er sat til »true«. 📝"
         },
         "data_description": {
-          "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
-          "sleep_brightness": "Lysstyrkeprocent af lys i søvntilstand. 😴",
-          "transition": "Varighed af overgang, når lys ændres, i sekunder. 🕑",
           "sleep_rgb_or_color_temp": "Brug enten `\"rgb_farve\"` eller `\"farve_temp\"` i søvntilstand. 🌙",
           "sleep_transition": "Varigheden af overgangen, når \"sovetilstand\" skiftes, i sekunder. 😴",
           "sunrise_time": "Sæt en fast tid (HH:MM:SS) for solopgang. 🌅",
@@ -59,7 +72,6 @@
           "sunset_offset": "Juster solnedgang tid med et positivt eller negativt offset, i sekunder. ⏰",
           "sunrise_offset": "Juster solopgangstiden med en positiv eller negativ offset på få sekunder. ⏰",
           "max_sunset_time": "Indstil den seneste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solnedgange. 🌇",
-          "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴",
           "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈",
           "send_split_delay": "Forsinkelse (ms) mellem »separate_turn_on_commands« for lyskilder som ikke understøtter simultane styrke- og farveindstillinger. ⏲️",
           "initial_transition": "Den første overgangs varighed når lysene ændres fra »off« til »on« i sekunder. ⏲️"

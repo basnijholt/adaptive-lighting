@@ -4,12 +4,24 @@
       "init": {
         "data_description": {
           "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴",
-          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`",
-          "sunrise_offset": "Axusta a hora do amencer cun desfasamento positivo ou negativo en segundos. ⏰",
-          "sunset_offset": "Axusta a hora da posta de sol cun desfasamento positivo ou negativo en segundos. ⏰",
           "interval": "Frecuencia para adaptar as luces, en segundos. 🔄"
         },
-        "title": "Configuración de Iluminación Adaptativa"
+        "title": "Configuración de Iluminación Adaptativa",
+        "menu_options": {
+          "advanced": "Configurar opcións avanzadas",
+          "finish": "Gardar e rematar"
+        },
+        "data": {}
+      },
+      "advanced": {
+        "title": "Configuración avanzada",
+        "description": "Configura as opcións avanzadas de Adaptive Lighting. A maioría dos usuarios non precisan cambiar esta configuración.",
+        "data": {},
+        "data_description": {
+          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`",
+          "sunrise_offset": "Axusta a hora do amencer cun desfasamento positivo ou negativo en segundos. ⏰",
+          "sunset_offset": "Axusta a hora da posta de sol cun desfasamento positivo ou negativo en segundos. ⏰"
+        }
       }
     }
   },
