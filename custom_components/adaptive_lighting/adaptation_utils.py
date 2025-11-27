@@ -84,10 +84,11 @@ def _remove_redundant_attributes(
     Removes all attributes from service call data whose values are already present
     in the target entity's state.
     """
+    attributes: dict[str, Any] = dict(state.attributes)
     return {
         k: v
         for k, v in service_data.items()
-        if k not in state.attributes or v != state.attributes[k]
+        if k not in attributes or v != attributes[k]
     }
 
 

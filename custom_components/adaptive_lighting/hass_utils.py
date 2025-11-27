@@ -47,7 +47,7 @@ def setup_service_call_interceptor(
         # This is necessary to replace a registered service handler with our
         # proxy handler to intercept calls.
         registered_services = (
-            hass.services._services  # pylint: disable=protected-access
+            hass.services._services  # pylint: disable=protected-access  # type: ignore[attr-defined]
         )
     except AttributeError as error:
         msg = (
@@ -68,7 +68,9 @@ def setup_service_call_interceptor(
             data = dict(call.data)
 
             # Call interceptor
-            await intercept_func(call, data)
+            result = intercept_func(call, data)
+            if result is not None:
+                await result
 
             # Convert data back to read-only
             call.data = ReadOnlyDict(data)
@@ -79,7 +81,13 @@ def setup_service_call_interceptor(
                 call.data,
             )
         # Call original service handler with processed data
-        await existing_service.job.target(call)
+        import asyncio
+
+        target = existing_service.job.target
+        if asyncio.iscoroutinefunction(target):
+            await target(call)
+        else:
+            target(call)
 
     hass.services.async_register(
         domain,
@@ -88,7 +96,7 @@ def setup_service_call_interceptor(
         existing_service.schema,
     )
 
-    def remove():
+    def remove() -> None:
         # Remove the interceptor by reinstalling the original service handler
         hass.services.async_register(
             domain,
