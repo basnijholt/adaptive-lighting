@@ -85,7 +85,9 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 
 try:
     # HA >= 2025.8
-    from homeassistant.components.template.light import StateLightEntity as LightTemplate
+    from homeassistant.components.template.light import (
+        StateLightEntity as LightTemplate,
+    )
 except ImportError:
     # HA < 2025.8
     from homeassistant.components.template.light import LightTemplate
