@@ -156,6 +156,7 @@ from .hass_utils import area_entities, setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
+    ensure_bool,
     int_to_base36,
     remove_vowels,
     short_hash,
@@ -472,7 +473,10 @@ async def async_setup_entry(  # noqa: PLR0915
                 all_lights = _expand_light_groups(hass, lights)
             switch.manager.lights.update(all_lights)
             for light in all_lights:
-                if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
+                if ensure_bool(data[CONF_TURN_ON_LIGHTS], CONF_TURN_ON_LIGHTS) or is_on(
+                    hass,
+                    light,
+                ):
                     context = switch.create_context(
                         "service",
                         parent=service_call.context,
@@ -481,9 +485,18 @@ async def async_setup_entry(  # noqa: PLR0915
                         light,
                         context=context,
                         transition=data[CONF_TRANSITION],
-                        adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
-                        adapt_color=data[ATTR_ADAPT_COLOR],
-                        prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
+                        adapt_brightness=ensure_bool(
+                            data[ATTR_ADAPT_BRIGHTNESS],
+                            ATTR_ADAPT_BRIGHTNESS,
+                        ),
+                        adapt_color=ensure_bool(
+                            data[ATTR_ADAPT_COLOR],
+                            ATTR_ADAPT_COLOR,
+                        ),
+                        prefer_rgb_color=ensure_bool(
+                            data[CONF_PREFER_RGB_COLOR],
+                            CONF_PREFER_RGB_COLOR,
+                        ),
                         force=True,
                     )
 
@@ -502,7 +515,7 @@ async def async_setup_entry(  # noqa: PLR0915
                 all_lights = switch.lights
             else:
                 all_lights = _expand_light_groups(hass, lights)
-            if service_call.data[CONF_MANUAL_CONTROL]:
+            if ensure_bool(service_call.data[CONF_MANUAL_CONTROL], CONF_MANUAL_CONTROL):
                 for light in all_lights:
                     _fire_manual_control_event(switch, light, service_call.context)
             else:
@@ -859,9 +872,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._transition = data[CONF_TRANSITION]
         self._adapt_delay = data[CONF_ADAPT_DELAY]
         self._send_split_delay = data[CONF_SEND_SPLIT_DELAY]
-        self._take_over_control = data[CONF_TAKE_OVER_CONTROL]
-        if not data[CONF_TAKE_OVER_CONTROL] and (
-            data[CONF_DETECT_NON_HA_CHANGES] or data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
+        self._take_over_control = ensure_bool(
+            data[CONF_TAKE_OVER_CONTROL],
+            CONF_TAKE_OVER_CONTROL,
+        )
+        if not self._take_over_control and (
+            ensure_bool(data[CONF_DETECT_NON_HA_CHANGES], CONF_DETECT_NON_HA_CHANGES)
+            or ensure_bool(
+                data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON],
+                CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
+            )
         ):
             _LOGGER.warning(
                 "%s: Config mismatch: `detect_non_ha_changes` or `adapt_only_on_bare_turn_on` "
@@ -870,13 +890,25 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._name,
             )
             self._take_over_control = True
-        self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
-        self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
+        self._detect_non_ha_changes = ensure_bool(
+            data[CONF_DETECT_NON_HA_CHANGES],
+            CONF_DETECT_NON_HA_CHANGES,
+        )
+        self._adapt_only_on_bare_turn_on = ensure_bool(
+            data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON],
+            CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
+        )
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
-        self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
-        self._intercept = data[CONF_INTERCEPT]
-        self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
-        if not data[CONF_INTERCEPT] and data[CONF_MULTI_LIGHT_INTERCEPT]:
+        self._skip_redundant_commands = ensure_bool(
+            data[CONF_SKIP_REDUNDANT_COMMANDS],
+            CONF_SKIP_REDUNDANT_COMMANDS,
+        )
+        self._intercept = ensure_bool(data[CONF_INTERCEPT], CONF_INTERCEPT)
+        self._multi_light_intercept = ensure_bool(
+            data[CONF_MULTI_LIGHT_INTERCEPT],
+            CONF_MULTI_LIGHT_INTERCEPT,
+        )
+        if not self._intercept and self._multi_light_intercept:
             _LOGGER.warning(
                 "%s: Config mismatch: `multi_light_intercept` set to `true` requires `intercept`"
                 " to be enabled. Adjusting config and continuing setup with"
