@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import base64
 import math
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import HomeAssistant
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
