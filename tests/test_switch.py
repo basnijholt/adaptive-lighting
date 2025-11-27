@@ -1296,13 +1296,17 @@ async def test_restore_off_state(hass, state):
                     assert not _switch.is_on
 
 
-@pytest.mark.xfail(reason="Offset is larger than half a day")
 async def test_offset_too_large(hass):
-    """Test that update fails when the offset is too large."""
+    """Test that update fails when the sunrise offset is too large.
+
+    A 12-hour offset causes sun events to be out of order (e.g., sunrise after sunset),
+    which makes the adaptive lighting algorithm fail with a ValueError.
+    """
     _, switch = await setup_switch(hass, {CONF_SUNRISE_OFFSET: 3600 * 12})
-    await switch._update_attrs_and_maybe_adapt_lights(
-        context=switch.create_context("test"),
-    )
+    with pytest.raises(ValueError, match="sun events.*not in the expected order"):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("test"),
+        )
     await hass.async_block_till_done()
 
 
