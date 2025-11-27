@@ -4,6 +4,7 @@ import logging
 from collections.abc import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.util.read_only_dict import ReadOnlyDict
 
 from .adaptation_utils import ServiceData
