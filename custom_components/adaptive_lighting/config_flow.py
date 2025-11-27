@@ -102,8 +102,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._basic_options: dict[str, Any] = {}
         self._all_lights_with_names: dict[str, str] = {}
 
-    def _get_lights_schema(self) -> dict[str, Any]:
-        """Get available lights and build the multi-select schema."""
+    def _prepare_lights_schema(self) -> tuple[dict[str, Any], dict[str, str]]:
+        """Get available lights and build the multi-select schema.
+
+        Returns tuple of (to_replace dict for schema, errors dict).
+        Also populates self._all_lights_with_names.
+        """
         conf = self.config_entry
         data = validate(conf)
         errors: dict[str, str] = {}
@@ -130,22 +134,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             entity_id: f"{name} ({entity_id})"
             for entity_id, name in self._all_lights_with_names.items()
         }
-        return {CONF_LIGHTS: cv.multi_select(light_options)}, errors
+        to_replace = {CONF_LIGHTS: cv.multi_select(light_options)}
+        return to_replace, errors
 
     def _build_options_schema(
         self,
+        to_replace: dict[str, Any],
         include: set[str] | None = None,
         exclude: set[str] | None = None,
     ) -> vol.Schema:
         """Build schema for specified options.
 
         Args:
+            to_replace: Dict of option names to replacement validators.
             include: If provided, only include these option names.
             exclude: If provided, exclude these option names.
 
         """
         conf = self.config_entry
-        to_replace, _ = self._get_lights_schema()
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:
@@ -167,7 +173,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(step_id="init", data_schema=None)
 
-        _, errors = self._get_lights_schema()
+        to_replace, errors = self._prepare_lights_schema()
 
         if user_input is not None:
             validate_options(user_input, errors)
@@ -179,7 +185,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     menu_options=["advanced", "finish"],
                 )
 
-        basic_schema = self._build_options_schema(include=BASIC_OPTIONS)
+        basic_schema = self._build_options_schema(to_replace, include=BASIC_OPTIONS)
         return self.async_show_form(
             step_id="init",
             data_schema=basic_schema,
@@ -197,7 +203,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=combined)
 
-        advanced_schema = self._build_options_schema(exclude=BASIC_OPTIONS)
+        # Need to_replace for building schema (though advanced step doesn't use lights)
+        to_replace, _ = self._prepare_lights_schema()
+        advanced_schema = self._build_options_schema(to_replace, exclude=BASIC_OPTIONS)
         return self.async_show_form(
             step_id="advanced",
             data_schema=advanced_schema,
