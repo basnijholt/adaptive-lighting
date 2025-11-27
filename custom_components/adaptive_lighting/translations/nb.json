@@ -21,24 +21,40 @@
         "description": "Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert adaptive_lighting i din YAML konfigurasjon.",
         "data": {
           "lights": "Lys / Lyskilder",
-          "initial_transition": "'initial_transition': overgangen (i sekunder) når lysene skrus av eller på - eller når 'sleep_state' endres",
           "interval": "'interval': tiden mellom oppdateringer (i sekunder)",
           "max_brightness": "'max_brightness': den høyeste lysstyrken (i prosent) på lysene i løpet av en syklus",
           "max_color_temp": "'max_color_temp': den høyeste fargetemperaturen (i kelvin) på lysene i løpet av en syklus",
           "min_brightness": "'min_brightness': den laveste lysstyrken (i prosent) på lysene i løpet av en syklus",
           "min_color_temp": "'min_color_temp': den laveste fargetemperaturen (i kelvin) på lysene i løpet av en syklus",
+          "sleep_brightness": "'sleep_brightness': lysstyrken på lysene (i prosent) når 'sleep_mode' (søvnmodus) er aktiv",
+          "sleep_color_temp": "'sleep_color_temp': fargetemperaturen på lysene (i kelvin) når 'sleep_mode' (søvnmodus) er aktiv",
+          "transition": "'transition': varigheten (i sekunder) på overgangen når lysene oppdateres "
+        },
+        "data_description": {
+          "sleep_brightness": "Lysstyrkeprosent på lysene i sove modus.",
+          "sleep_color_temp": "Fargetemperatur i sove modus (brukes når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin.",
+          "transition": "Varighet på overgang når lysene  endres, i sekunder.",
+          "interval": "Frekvens til å tilpasse lys, i sekunder."
+        },
+        "menu_options": {
+          "advanced": "Konfigurer avanserte innstillinger",
+          "finish": "Lagre og avslutt"
+        }
+      },
+      "advanced": {
+        "title": "Avanserte innstillinger",
+        "description": "Konfigurer avanserte Adaptive Lighting innstillinger. De fleste brukere trenger ikke å endre disse innstillingene.",
+        "data": {
+          "initial_transition": "'initial_transition': overgangen (i sekunder) når lysene skrus av eller på - eller når 'sleep_state' endres",
           "only_once": "'only_once': anvend innstillingene for adaptiv belysning kun når lysene skrus av eller på",
           "prefer_rgb_color": "'prefer_rgb_color': benytt rgb i stedet for fargetemperatur dersom det er mulig",
           "separate_turn_on_commands": "'separate_turn_on_commands': separer kommandone i 'light.turn_on' for hver attributt (farge, lysstyrke, osv.). Dette kan være nødvendig for enkelte typer lys / lyskilder",
-          "sleep_brightness": "'sleep_brightness': lysstyrken på lysene (i prosent) når 'sleep_mode' (søvnmodus) er aktiv",
-          "sleep_color_temp": "'sleep_color_temp': fargetemperaturen på lysene (i kelvin) når 'sleep_mode' (søvnmodus) er aktiv",
           "sunrise_offset": "'sunrise_offset': hvor lenge før (-) eller etter (+) tidspunktet solen står opp (lokalt) skal defineres som soloppgang (i sekunder)",
           "sunrise_time": "'sunrise_time': definer tidspunktet for soloppgang manuelt (i følgende format: TT:MM:SS)",
           "sunset_offset": "'sunset_offset': hvor lenge før (-) eller etter (+) tidspunktet solen går ned (lokalt) skal defineres som solnedgang (i sekunder)",
           "sunset_time": "'sunset_time': definer tidspunktet for solnedgang manuelt (i følgende format: TT:MM:SS - f. eks: '20:30:00' vil definere tidspunktet for solnegang som halv-ni på kvelden)",
           "take_over_control": "'take_over_control': dersom en annen tjeneste enn adaptiv belysning skrur lysene av eller på, vil automatisk adaptering av lyset stoppes inntil lyset (eller den tilhørende bryteren for adaptiv belysning) blir slått av - og på igjen",
           "detect_non_ha_changes": "'detect_non_ha_changes': registrerer alle endringer i lysstyrke over 10% med opprinnelse utenfor Home Assistant - krever at 'take_over_control' er aktivert (OBS: tilkaller 'homeassistant.update_entity' ved hvert 'interval'!)",
-          "transition": "'transition': varigheten (i sekunder) på overgangen når lysene oppdateres ",
           "transition_until_sleep": "transition_until_sleep: Når aktivert, Adaptive lightning vil behandle sove innstillingene som minimum, bevege seg til disse verdiene etter solnedgang.",
           "skip_redundant_commands": "skip_redundant_commands:  Dropp sending av tilpassnings kommandoer hvor målets tilstand allerede er lik den kjente tilstanden til lyset. Minimerer nettverk trafikk og forbedrer tilpasningens responsitivitet i noen situasjoner. Skru av hvis fysisk tilstand til lyset er ute av synkronisering med HA´s registrere tilstand.",
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_on: Når lysene skrues på. Hvis satt til \"sann\", AL vil bare  hvis \"light.turn_on\" er aktivert uten spesifisert farge og styrke.  Dette f.eks. forhindrer aktivering når en scene aktiveres. Hvis \"false\", AL  vil aktivere uansett om farge og stryke er satt av i opprinnelig \"service_data\". Trenger \"take_over_control\" er aktivert. ",
@@ -51,11 +67,7 @@
           "sunset_offset": "Juster soloppgang tidspunkt med en positiv eller negativ forskyvning i sekunder. ⏰",
           "sleep_rgb_or_color_temp": "Bruk enten `\"rgb_color\"` eller `\"color_temp\"` i sove modus.",
           "sleep_rgb_color": "RGB farger i sove modus (brukes når \"sleep_rgb_or_color_temp\" er \"rgb_color\")",
-          "sleep_brightness": "Lysstyrkeprosent på lysene i sove modus.",
-          "sleep_color_temp": "Fargetemperatur i sove modus (brukes når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin.",
           "initial_transition": "Varighet på første overgang når lysene endres fra `off` til `on` i sekunder.",
-          "transition": "Varighet på overgang når lysene  endres, i sekunder.",
-          "interval": "Frekvens til å tilpasse lys, i sekunder.",
           "sunset_time": "Sett et fast tidspunkt (TT:MM:SS) for solnedgang.",
           "sleep_transition": "Varighet på overgang når \"sleep mode\" er aktivert i sekunder.",
           "sunrise_time": "Sett et fast tidspunkt (TT:MM:SS) for soloppgang.",
