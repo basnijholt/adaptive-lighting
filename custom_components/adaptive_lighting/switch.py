@@ -694,6 +694,58 @@ def _add_missing_attributes(
     return old_attributes, new_attributes
 
 
+def _has_color_mode_changed(
+    light: str,
+    old_attributes: dict[str, Any],
+    new_attributes: dict[str, Any],
+    context: Context,
+) -> bool:
+    """Check if the light's color mode changed (e.g., color_temp to RGB or vice versa).
+
+    This must be called BEFORE _add_missing_attributes() to detect mode changes
+    using the original attributes. See issue #1275.
+    """
+    old_has_color_temp = old_attributes.get(ATTR_COLOR_TEMP_KELVIN) is not None
+    old_has_rgb = old_attributes.get(ATTR_RGB_COLOR) is not None
+    old_has_xy = old_attributes.get(ATTR_XY_COLOR) is not None
+
+    new_has_color_temp = new_attributes.get(ATTR_COLOR_TEMP_KELVIN) is not None
+    new_has_rgb = new_attributes.get(ATTR_RGB_COLOR) is not None
+    new_has_xy = new_attributes.get(ATTR_XY_COLOR) is not None
+
+    # Determine old and new color modes
+    # Priority: color_temp > rgb > xy (matching typical light behavior)
+    if old_has_color_temp:
+        old_mode = "color_temp"
+    elif old_has_rgb:
+        old_mode = "rgb"
+    elif old_has_xy:
+        old_mode = "xy"
+    else:
+        old_mode = None
+
+    if new_has_color_temp:
+        new_mode = "color_temp"
+    elif new_has_rgb:
+        new_mode = "rgb"
+    elif new_has_xy:
+        new_mode = "xy"
+    else:
+        new_mode = None
+
+    # Check if mode changed
+    if old_mode is not None and new_mode is not None and old_mode != new_mode:
+        _LOGGER.debug(
+            "Light mode of %s changed from %s to %s with context.id='%s'",
+            light,
+            old_mode,
+            new_mode,
+            context.id,
+        )
+        return True
+    return False
+
+
 def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
@@ -705,6 +757,17 @@ def _attributes_have_changed(
     # 2023-11-19: HA core no longer removes light domain attributes when off
     # so we must protect for `None` here
     # see https://github.com/home-assistant/core/pull/101946
+
+    # Check for color mode changes BEFORE attribute conversion
+    # This detects external changes like Hue scenes switching from color_temp to RGB
+    # See: https://github.com/basnijholt/adaptive-lighting/issues/1275
+    if adapt_color and _has_color_mode_changed(
+        light,
+        old_attributes,
+        new_attributes,
+        context,
+    ):
+        return True
 
     if adapt_color:
         old_attributes, new_attributes = _add_missing_attributes(
@@ -767,30 +830,6 @@ def _attributes_have_changed(
             )
             return True
 
-    if adapt_color and (
-        (
-            old_attributes.get(ATTR_COLOR_TEMP_KELVIN)
-            and not new_attributes.get(ATTR_COLOR_TEMP_KELVIN)
-        )
-        or (
-            old_attributes.get(ATTR_RGB_COLOR)
-            and not new_attributes.get(ATTR_RGB_COLOR)
-        )
-    ):
-        last_mode = (
-            "color_temp" if old_attributes.get(ATTR_COLOR_TEMP_KELVIN) else "rgb"
-        )
-        current_mode = (
-            "color_temp" if new_attributes.get(ATTR_COLOR_TEMP_KELVIN) else "rgb"
-        )
-        _LOGGER.debug(
-            "Light mode of %s changed from %s to %s with context.id='%s'",
-            light,
-            last_mode,
-            current_mode,
-            context.id,
-        )
-        return True
     return False
 
 
