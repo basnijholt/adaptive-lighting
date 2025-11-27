@@ -1089,6 +1089,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Wijt",
+      "name": "Furkan Kaya",
+      "avatar_url": "https://avatars.githubusercontent.com/u/23127261?v=4",
+      "profile": "https://iamfurkan.com",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
