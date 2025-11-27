@@ -11,5 +11,5 @@ jobs:
   validate_hassfest:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v4.2.2"
+      - uses: "actions/checkout@v6.0.0"
       - uses: home-assistant/actions/hassfest@master

@@ -14,14 +14,14 @@ runs:
   using: "composite"
   steps:
     - name: Check out code from GitHub
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
         ref: ${{ github.ref }}
         persist-credentials: false
         fetch-depth: 0
     - name: Check out code from GitHub
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: home-assistant/core
         path: core
