@@ -1010,26 +1010,36 @@ def test_attributes_have_changed():
             new_attributes=attrs,
             **kwargs,
         )
-    _LOGGER.debug("Test switch from color_temp to rgb_color")
-    assert not _attributes_have_changed(
+    # Test color mode switches - feature added to detect external changes
+    # (e.g., when Hue scenes change light from color_temp to RGB mode)
+    # See: https://github.com/basnijholt/adaptive-lighting/issues/1275
+    #
+    # All mode switches are now detected bidirectionally by checking original
+    # attributes BEFORE conversion in _has_color_mode_changed().
+    _LOGGER.debug(
+        "Test switch from color_temp to rgb_color - should detect mode change",
+    )
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (255, 166, 87)},
         **kwargs,
     )
-    _LOGGER.debug("Test switch from rgb_color to color_temp")
-    assert not _attributes_have_changed(
+    _LOGGER.debug(
+        "Test switch from rgb_color to color_temp - should detect mode change",
+    )
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (255, 166, 87)},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         **kwargs,
     )
-    _LOGGER.debug("Test switch from color_temp to color_xy")
-    assert not _attributes_have_changed(
+    _LOGGER.debug("Test switch from color_temp to color_xy - should detect mode change")
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_XY_COLOR: (0.526, 0.387)},
         **kwargs,
     )
-    _LOGGER.debug("Test switch from color_xy to color_temp")
-    assert not _attributes_have_changed(
+    _LOGGER.debug("Test switch from color_xy to color_temp - should detect mode change")
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_XY_COLOR: (0.526, 0.387)},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         **kwargs,
@@ -2349,3 +2359,102 @@ async def test_simple_switch_state_after_async_added_to_hass(hass):
     # State should still be correct after async_added_to_hass
     assert switch_true._state is True
     assert switch_false._state is False
+
+
+def test_attributes_have_changed_light_mode_switch():
+    """Test detection of external light mode changes (color_temp vs rgb vs xy).
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1275
+
+    When a user activates a Hue Scene (or similar) via an external app, the light
+    may switch from color_temp mode to RGB/XY mode (or vice versa). This should be
+    detected as an external change so AL doesn't immediately override it.
+
+    The _has_color_mode_changed() function checks the original attributes BEFORE
+    any conversion, enabling bidirectional mode change detection.
+    """
+    context = Context()
+    base_kwargs = {
+        "light": "light.test",
+        "adapt_brightness": True,
+        "context": context,
+    }
+
+    # Test 1: adapt_color=True - all mode changes should be detected
+    kwargs_adapt_color = {**base_kwargs, "adapt_color": True}
+
+    # color_temp → RGB
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_adapt_color,
+    ), "Should detect color_temp → RGB mode switch"
+
+    # color_temp → XY
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        **kwargs_adapt_color,
+    ), "Should detect color_temp → XY mode switch"
+
+    # RGB → color_temp
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_adapt_color,
+    ), "Should detect RGB → color_temp mode switch"
+
+    # RGB → XY
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        **kwargs_adapt_color,
+    ), "Should detect RGB → XY mode switch"
+
+    # XY → color_temp
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_adapt_color,
+    ), "Should detect XY → color_temp mode switch"
+
+    # XY → RGB
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_adapt_color,
+    ), "Should detect XY → RGB mode switch"
+
+    # No mode change - same type with same values shouldn't be detected
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_adapt_color,
+    ), "Same color_temp should not be detected as change"
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_adapt_color,
+    ), "Same RGB should not be detected as change"
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        **kwargs_adapt_color,
+    ), "Same XY should not be detected as change"
+
+    # Test 2: adapt_color=False - mode changes should NOT be detected
+    kwargs_no_adapt = {**base_kwargs, "adapt_color": False}
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_no_adapt,
+    ), "Mode change should not be detected when adapt_color=False"
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_no_adapt,
+    ), "RGB → color_temp should not be detected when adapt_color=False"
