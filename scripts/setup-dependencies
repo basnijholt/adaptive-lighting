@@ -6,6 +6,22 @@ if grep -q 'mypy-dev==1.14.0a3' core/requirements_test.txt; then
     # mypy-dev==1.14.0a3 seems to not be available anymore, HA 2024.12 is affected
     sed -i 's/mypy-dev==1.14.0a3/mypy-dev==1.14.0a7/' core/requirements_test.txt
 fi
+if grep -q 'mypy-dev==1.16.0a1' core/requirements_test.txt; then
+    # mypy-dev==1.16.0a1 seems to not be available anymore, HA 2025.2 is affected
+    sed -i 's/mypy-dev==1.16.0a1/mypy-dev==1.16.0a9/' core/requirements_test.txt
+fi
+if grep -q 'mypy-dev==1.16.0a3' core/requirements_test.txt; then
+    # mypy-dev==1.16.0a3 seems to not be available anymore, HA 2025.3 is affected
+    sed -i 's/mypy-dev==1.16.0a3/mypy-dev==1.16.0a9/' core/requirements_test.txt
+fi
+if grep -q 'mypy-dev==1.16.0a7' core/requirements_test.txt; then
+    # mypy-dev==1.16.0a7 seems to not be available anymore, HA 2025.4 is affected
+    sed -i 's/mypy-dev==1.16.0a7/mypy-dev==1.16.0a9/' core/requirements_test.txt
+fi
+if grep -q 'mypy-dev==1.16.0a8' core/requirements_test.txt; then
+    # mypy-dev==1.16.0a8 seems to not be available anymore, HA 2025.5 and 2025.6 is affected
+    sed -i 's/mypy-dev==1.16.0a8/mypy-dev==1.16.0a9/' core/requirements_test.txt
+fi
 
 uv pip install -r core/requirements.txt
 uv pip install -r core/requirements_test.txt

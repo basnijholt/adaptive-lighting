@@ -1,6 +1,6 @@
 {
     "name": "basnijholt/adaptive_lighting",
-    "image": "mcr.microsoft.com/devcontainers/python:1-3.13",
+    "image": "mcr.microsoft.com/devcontainers/python:3-3.13",
     "postCreateCommand": "./scripts/setup-devcontainer && . .venv/bin/activate",
     "forwardPorts": [
         8123

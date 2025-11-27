@@ -107,7 +107,7 @@ async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
     filter_by_state: bool,
-) -> AsyncGenerator[ServiceData, None]:
+) -> AsyncGenerator[ServiceData]:
     """Enumerates and filters a list of service datas on the fly.
 
     If filtering is enabled, every service data is filtered by the current state of
@@ -142,7 +142,7 @@ class AdaptationData:
     entity_id: str
     context: Context
     sleep_time: float
-    service_call_datas: AsyncGenerator[ServiceData, None]
+    service_call_datas: AsyncGenerator[ServiceData]
     force: bool
     max_length: int
     which: Literal["brightness", "color", "both"]

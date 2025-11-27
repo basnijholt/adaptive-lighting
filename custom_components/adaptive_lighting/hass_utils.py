@@ -4,11 +4,31 @@ import logging
 from collections.abc import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.util.read_only_dict import ReadOnlyDict
 
 from .adaptation_utils import ServiceData
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def area_entities(hass: HomeAssistant, area_id: str):
+    """Get all entities linked to an area."""
+    ent_reg = entity_registry.async_get(hass)
+    entity_ids = [
+        entry.entity_id
+        for entry in entity_registry.async_entries_for_area(ent_reg, area_id)
+    ]
+    dev_reg = device_registry.async_get(hass)
+    entity_ids.extend(
+        [
+            entity.entity_id
+            for device in device_registry.async_entries_for_area(dev_reg, area_id)
+            for entity in entity_registry.async_entries_for_device(ent_reg, device.id)
+            if entity.area_id is None
+        ],
+    )
+    return entity_ids
 
 
 def setup_service_call_interceptor(
@@ -27,7 +47,7 @@ def setup_service_call_interceptor(
         # This is necessary to replace a registered service handler with our
         # proxy handler to intercept calls.
         registered_services = (
-            hass.services._services  # pylint: disable=protected-access # type: ignore
+            hass.services._services  # pylint: disable=protected-access  # type: ignore[attr-defined]
         )
     except AttributeError as error:
         msg = (

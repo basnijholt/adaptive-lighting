@@ -57,8 +57,6 @@ def _type_to_str(type_: Any) -> str:  # noqa: PLR0911
 
 
 def generate_config_markdown_table() -> str:
-    import pandas as pd
-
     rows: list[dict[str, str]] = []
     for k, default, type_ in VALIDATION_TUPLES:
         description = DOCS[k]
@@ -87,10 +85,7 @@ def _generate_service_markdown_table(
     schema: dict[str, tuple[Any, Any]] | vol.Schema,
     alternative_docs: dict[str, str] | None = None,
 ) -> str:
-    if isinstance(schema, vol.Schema):
-        schema_dict = _schema_to_dict(schema)
-    else:
-        schema_dict = schema
+    schema_dict = _schema_to_dict(schema) if isinstance(schema, vol.Schema) else schema
     rows: list[dict[str, str]] = []
     for k, (default, type_) in schema_dict.items():
         if alternative_docs is not None and k in alternative_docs:

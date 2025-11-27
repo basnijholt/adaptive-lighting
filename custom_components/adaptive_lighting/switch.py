@@ -75,7 +75,6 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
-from homeassistant.helpers.template import area_entities
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -153,7 +152,7 @@ from .const import (
     apply_service_schema,
     replace_none_str,
 )
-from .hass_utils import setup_service_call_interceptor
+from .hass_utils import area_entities, setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
@@ -626,7 +625,7 @@ def _is_light_group(state: State) -> bool:
 def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     assert state is not None
-    supported_features = int(state.attributes.get(ATTR_SUPPORTED_FEATURES, 0))  # type: ignore
+    supported_features = int(state.attributes.get(ATTR_SUPPORTED_FEATURES, 0))  # type: ignore[arg-type]
     assert isinstance(supported_features, int)
 
     supported: set[str] = set()
@@ -634,7 +633,7 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     if supported_features & LightEntityFeature.TRANSITION:
         supported.add("transition")
 
-    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())  # type: ignore
+    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())  # type: ignore[arg-type]
     color_modes = {
         ColorMode.RGB,
         ColorMode.RGBW,
@@ -695,6 +694,58 @@ def _add_missing_attributes(
     return old_attributes, new_attributes
 
 
+def _has_color_mode_changed(
+    light: str,
+    old_attributes: dict[str, Any],
+    new_attributes: dict[str, Any],
+    context: Context,
+) -> bool:
+    """Check if the light's color mode changed (e.g., color_temp to RGB or vice versa).
+
+    This must be called BEFORE _add_missing_attributes() to detect mode changes
+    using the original attributes. See issue #1275.
+    """
+    old_has_color_temp = old_attributes.get(ATTR_COLOR_TEMP_KELVIN) is not None
+    old_has_rgb = old_attributes.get(ATTR_RGB_COLOR) is not None
+    old_has_xy = old_attributes.get(ATTR_XY_COLOR) is not None
+
+    new_has_color_temp = new_attributes.get(ATTR_COLOR_TEMP_KELVIN) is not None
+    new_has_rgb = new_attributes.get(ATTR_RGB_COLOR) is not None
+    new_has_xy = new_attributes.get(ATTR_XY_COLOR) is not None
+
+    # Determine old and new color modes
+    # Priority: color_temp > rgb > xy (matching typical light behavior)
+    if old_has_color_temp:
+        old_mode = "color_temp"
+    elif old_has_rgb:
+        old_mode = "rgb"
+    elif old_has_xy:
+        old_mode = "xy"
+    else:
+        old_mode = None
+
+    if new_has_color_temp:
+        new_mode = "color_temp"
+    elif new_has_rgb:
+        new_mode = "rgb"
+    elif new_has_xy:
+        new_mode = "xy"
+    else:
+        new_mode = None
+
+    # Check if mode changed
+    if old_mode is not None and new_mode is not None and old_mode != new_mode:
+        _LOGGER.debug(
+            "Light mode of %s changed from %s to %s with context.id='%s'",
+            light,
+            old_mode,
+            new_mode,
+            context.id,
+        )
+        return True
+    return False
+
+
 def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
@@ -706,6 +757,17 @@ def _attributes_have_changed(
     # 2023-11-19: HA core no longer removes light domain attributes when off
     # so we must protect for `None` here
     # see https://github.com/home-assistant/core/pull/101946
+
+    # Check for color mode changes BEFORE attribute conversion
+    # This detects external changes like Hue scenes switching from color_temp to RGB
+    # See: https://github.com/basnijholt/adaptive-lighting/issues/1275
+    if adapt_color and _has_color_mode_changed(
+        light,
+        old_attributes,
+        new_attributes,
+        context,
+    ):
+        return True
 
     if adapt_color:
         old_attributes, new_attributes = _add_missing_attributes(
@@ -767,6 +829,7 @@ def _attributes_have_changed(
                 context.id,
             )
             return True
+
     return False
 
 
@@ -1133,8 +1196,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.manager.reset(*self.lights)
 
     async def _async_update_at_interval_action(
-        self, now: Any = None
-    ) -> None:  # noqa: ARG002
+        self,
+        now: Any = None,  # noqa: ARG002
+    ) -> None:
         """Update the attributes and maybe adapt the lights."""
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("interval"),
@@ -1566,7 +1630,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self.hass = hass
         data = validate(config_entry)
         self._icon = icon
-        self._state: bool | None = None
+        self._state: bool = initial_state
         self._which = which
         self._config_name = data[CONF_NAME]
         self._unique_id = f"{self._config_name}_{slugify(self._which)}"
@@ -2118,7 +2182,9 @@ class AdaptiveLightingManager:
         self._handle_timer(light, self.transition_timers, last_transition, reset)
 
     def set_auto_reset_manual_control_times(
-        self, lights: list[str], time: float
+        self,
+        lights: list[str],
+        time: float,
     ) -> None:
         """Set the time after which the lights are automatically reset."""
         if time == 0:
@@ -2685,7 +2751,6 @@ class _AsyncSingleShotTimer:
 
     async def _run(self) -> None:
         """Run the timer. Don't call this directly, use start() instead."""
-        self.start_time = dt_util.utcnow()
         await asyncio.sleep(self.delay)
         if self.callback:
             if asyncio.iscoroutinefunction(self.callback):
@@ -2701,6 +2766,10 @@ class _AsyncSingleShotTimer:
         """Start the timer."""
         if self.task is not None and not self.task.done():
             self.task.cancel()
+        # Set start_time before creating task to avoid race condition
+        # where is_running() returns True but start_time is still None
+        # See: https://github.com/basnijholt/adaptive-lighting/issues/1272
+        self.start_time = dt_util.utcnow()
         self.task = asyncio.create_task(self._run())
 
     def cancel(self) -> None:

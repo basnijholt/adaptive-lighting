@@ -1,7 +1,7 @@
 """Adaptive Lighting integration in Home-Assistant."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -38,7 +38,7 @@ CONFIG_SCHEMA = vol.Schema(
 
 async def reload_configuration_yaml(event: Event) -> None:
     """Reload configuration.yaml."""
-    hass: HomeAssistant | None = event.data["hass"] if "hass" in event.data else None
+    hass: HomeAssistant | None = event.data.get("hass")
     if hass is not None:
         await hass.services.async_call("homeassistant", "check_config", {})
     else:
