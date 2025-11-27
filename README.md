@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-126-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-127-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -628,6 +628,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/maksim2005UKR"><img src="https://avatars.githubusercontent.com/u/233082001?v=4?s=100" width="100px;" alt="Горпиніч Максим Олександрович"/><br /><sub><b>Горпиніч Максим Олександрович</b></sub></a><br /><a href="#translation-maksim2005UKR" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://plageoj.me"><img src="https://avatars.githubusercontent.com/u/10688301?v=4?s=100" width="100px;" alt="Masayuki Sugahara"/><br /><sub><b>Masayuki Sugahara</b></sub></a><br /><a href="#translation-plageoj" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/therealmate"><img src="https://avatars.githubusercontent.com/u/61843503?v=4?s=100" width="100px;" alt="therealmate"/><br /><sub><b>therealmate</b></sub></a><br /><a href="#translation-therealmate" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dobby5"><img src="https://avatars.githubusercontent.com/u/1346316?v=4?s=100" width="100px;" alt="Dobby"/><br /><sub><b>Dobby</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=dobby5" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
