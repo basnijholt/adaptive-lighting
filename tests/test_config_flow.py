@@ -1,6 +1,5 @@
 """Test Adaptive Lighting config flow."""
 
-import pytest
 from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -115,14 +114,13 @@ async def test_import_twice(hass):
         )
 
 
-# TODO: Fix, broken for all supported versions
-# But in ≤2024.5 it gives homeassistant.config_entries.UnknownEntry: cd69dbda65bd3f86e9a32d974cdfa23f
-# and ≥2024.6 it times out
-# NOTE: Just skip this test for now, currently (2025-06-15) I cannot figure out
-# what this test is even testing.
-async def test_changing_options_when_using_yaml(hass):
-    """Test changing options when using YAML."""
-    pytest.skip(reason="TODO: Fix, broken for all supported versions")
+async def test_options_flow_for_yaml_import(hass):
+    """Test that options flow for YAML-imported entries shows empty form.
+
+    When a config entry is imported from YAML (source=SOURCE_IMPORT),
+    the options flow should show an empty form since the user should
+    modify the YAML configuration directly, not through the UI.
+    """
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=DEFAULT_NAME,
@@ -132,11 +130,18 @@ async def test_changing_options_when_using_yaml(hass):
     )
     entry.add_to_hass(hass)
 
-    await hass.block_till_done()
+    # For YAML imports, the switch setup requires the unique_id to be in
+    # hass.data[DOMAIN]["__yaml__"], otherwise it deletes the entry.
+    # This simulates what async_step_import does.
+    hass.data.setdefault(DOMAIN, {}).setdefault("__yaml__", set()).add(entry.unique_id)
+
     await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={},
-    )
+
+    # For YAML imports, the options flow shows an empty form (data_schema=None)
+    # This is intentional - users should modify YAML, not UI
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "init"
+    assert result.get("data_schema") is None

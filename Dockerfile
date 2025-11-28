@@ -9,6 +9,12 @@
 
 FROM ghcr.io/astral-sh/uv:debian
 
+# Install build dependencies for Python extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 # Clone home-assistant/core
 RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git /core
 

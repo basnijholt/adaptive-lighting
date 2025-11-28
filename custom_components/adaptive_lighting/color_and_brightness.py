@@ -8,8 +8,8 @@ import datetime
 import logging
 import math
 from dataclasses import dataclass
-from datetime import timedelta
-from functools import cached_property, partial
+from datetime import UTC, timedelta
+from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from homeassistant.util.color import (
@@ -17,9 +17,10 @@ from homeassistant.util.color import (
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
+from propcache.api import cached_property
 
 if TYPE_CHECKING:
-    import astral
+    import astral.location
 
 # Same as homeassistant.const.SUN_EVENT_SUNRISE and homeassistant.const.SUN_EVENT_SUNSET
 # We re-define them here to not depend on homeassistant in this file.
@@ -32,7 +33,6 @@ SUN_EVENT_MIDNIGHT = "solar_midnight"
 _ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
-UTC = datetime.timezone.utc
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
 
@@ -44,7 +44,7 @@ class SunEvents:
     """Track the state of the sun and associated light settings."""
 
     name: str
-    astral_location: astral.Location
+    astral_location: astral.location.Location
     sunrise_time: datetime.time | None
     min_sunrise_time: datetime.time | None
     max_sunrise_time: datetime.time | None
@@ -198,7 +198,7 @@ class SunLightSettings:
     """Track the state of the sun and associated light settings."""
 
     name: str
-    astral_location: astral.Location
+    astral_location: astral.location.Location
     adapt_until_sleep: bool
     max_brightness: int
     max_color_temp: int
@@ -296,7 +296,7 @@ class SunLightSettings:
             )
         return clamp(brightness, self.min_brightness, self.max_brightness)
 
-    def brightness_pct(self, dt: datetime.datetime, is_sleep: bool) -> float:
+    def brightness_pct(self, dt: datetime.datetime, is_sleep: bool) -> float | None:
         """Calculate the brightness in %."""
         if is_sleep:
             return self.sleep_brightness
@@ -331,7 +331,7 @@ class SunLightSettings:
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
-        rgb_color: tuple[float, float, float]
+        rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
         brightness_pct = self.brightness_pct(dt, is_sleep)
@@ -375,8 +375,8 @@ class SunLightSettings:
 
     def get_settings(
         self,
-        is_sleep,
-        transition,
+        is_sleep: bool,
+        transition: float | None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
@@ -507,7 +507,7 @@ def lerp_color_hsv(
     return cast("tuple[int, int, int]", rgb)
 
 
-def lerp(x, x1, x2, y1, y2):
+def lerp(x: float, x1: float, x2: float, y1: float, y2: float) -> float:
     """Linearly interpolate between two values."""
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1)
 

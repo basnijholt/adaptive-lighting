@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-116-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-127-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -616,6 +616,21 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/bittin"><img src="https://avatars.githubusercontent.com/u/43197?v=4?s=100" width="100px;" alt="Luna Jernberg"/><br /><sub><b>Luna Jernberg</b></sub></a><br /><a href="#translation-bittin" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://jeffalwilson.com"><img src="https://avatars.githubusercontent.com/u/1368827?v=4?s=100" width="100px;" alt="Jeff Wilson"/><br /><sub><b>Jeff Wilson</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=jawilson" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/TermeHansen"><img src="https://avatars.githubusercontent.com/u/6922018?v=4?s=100" width="100px;" alt="Rasmus Lundsgaard"/><br /><sub><b>Rasmus Lundsgaard</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=TermeHansen" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Tommatheussen"><img src="https://avatars.githubusercontent.com/u/13683094?v=4?s=100" width="100px;" alt="Tom Matheussen"/><br /><sub><b>Tom Matheussen</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Tommatheussen" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ams2990"><img src="https://avatars.githubusercontent.com/u/488907?v=4?s=100" width="100px;" alt="ams2990"/><br /><sub><b>ams2990</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=ams2990" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/DataGhost"><img src="https://avatars.githubusercontent.com/u/3911340?v=4?s=100" width="100px;" alt="DataGhost"/><br /><sub><b>DataGhost</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=DataGhost" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://iamfurkan.com"><img src="https://avatars.githubusercontent.com/u/23127261?v=4?s=100" width="100px;" alt="Furkan Kaya"/><br /><sub><b>Furkan Kaya</b></sub></a><br /><a href="#translation-Wijt" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Rafael4A"><img src="https://avatars.githubusercontent.com/u/32150173?v=4?s=100" width="100px;" alt="Rafael do Amaral Porciuncula"/><br /><sub><b>Rafael do Amaral Porciuncula</b></sub></a><br /><a href="#translation-Rafael4A" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/hhjuhl"><img src="https://avatars.githubusercontent.com/u/84127693?v=4?s=100" width="100px;" alt="hhjuhl"/><br /><sub><b>hhjuhl</b></sub></a><br /><a href="#translation-hhjuhl" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Athishbalu"><img src="https://avatars.githubusercontent.com/u/177029556?v=4?s=100" width="100px;" alt="B.Athish"/><br /><sub><b>B.Athish</b></sub></a><br /><a href="#translation-Athishbalu" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/maksim2005UKR"><img src="https://avatars.githubusercontent.com/u/233082001?v=4?s=100" width="100px;" alt="Горпиніч Максим Олександрович"/><br /><sub><b>Горпиніч Максим Олександрович</b></sub></a><br /><a href="#translation-maksim2005UKR" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://plageoj.me"><img src="https://avatars.githubusercontent.com/u/10688301?v=4?s=100" width="100px;" alt="Masayuki Sugahara"/><br /><sub><b>Masayuki Sugahara</b></sub></a><br /><a href="#translation-plageoj" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/therealmate"><img src="https://avatars.githubusercontent.com/u/61843503?v=4?s=100" width="100px;" alt="therealmate"/><br /><sub><b>therealmate</b></sub></a><br /><a href="#translation-therealmate" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/dobby5"><img src="https://avatars.githubusercontent.com/u/1346316?v=4?s=100" width="100px;" alt="Dobby"/><br /><sub><b>Dobby</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=dobby5" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>

@@ -7,7 +7,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant
 
 from .const import (
     _DOMAIN_SCHEMA,
@@ -22,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["switch"]
 
 
-def _all_unique_names(value):
+def _all_unique_names(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Validate that all entities have a unique profile name."""
     hosts = [device[CONF_NAME] for device in value]
     schema = vol.Schema(vol.Unique())
@@ -36,12 +36,16 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def reload_configuration_yaml(event: dict, hass: HomeAssistant):  # noqa: ARG001
+async def reload_configuration_yaml(event: Event) -> None:
     """Reload configuration.yaml."""
-    await hass.services.async_call("homeassistant", "check_config", {})
+    hass: HomeAssistant | None = event.data.get("hass")
+    if hass is not None:
+        await hass.services.async_call("homeassistant", "check_config", {})
+    else:
+        _LOGGER.error("HomeAssistant instance not found in event data.")
 
 
-async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Import integration from config."""
     if DOMAIN in config:
         for entry in config[DOMAIN]:
@@ -55,7 +59,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up the component."""
     data = hass.data.setdefault(DOMAIN, {})
 
@@ -70,12 +74,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     return True
 
 
-async def async_update_options(hass, config_entry: ConfigEntry):
+async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Update options."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-async def async_unload_entry(hass, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_forward_entry_unload(
         config_entry,

@@ -1,6 +1,7 @@
 """Config flow for Adaptive Lighting integration."""
 
 import logging
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -15,6 +16,7 @@ from .const import (  # pylint: disable=unused-import
     NONE_STR,
     VALIDATION_TUPLES,
 )
+from .helpers import get_friendly_name
 from .switch import _supported_features, validate
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,9 +27,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial step."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_NAME])
@@ -40,8 +42,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_import(self, user_input=None):
+    async def async_step_import(self, user_input: dict[str, Any] | None = None):
         """Handle configuration by YAML file."""
+        if user_input is None:
+            return self.async_abort(reason="no_data")
+
         await self.async_set_unique_id(user_input[CONF_NAME])
         # Keep a list of switches that are configured via YAML
         data = self.hass.data.setdefault(DOMAIN, {})
@@ -56,7 +61,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> "OptionsFlowHandler":
         """Get the options flow for this handler."""
         if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
             # https://github.com/home-assistant/core/pull/129651
@@ -64,7 +71,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return OptionsFlowHandler(config_entry)
 
 
-def validate_options(user_input, errors):
+def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None:
     """Validate the options in the OptionsFlow.
 
     This is an extra validation step because the validators
@@ -84,7 +91,7 @@ def validate_options(user_input, errors):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize options flow."""
         if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
             super().__init__(*args, **kwargs)
@@ -92,7 +99,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         else:
             self.config_entry = args[0]
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Handle options flow."""
         conf = self.config_entry
         data = validate(conf)
@@ -104,11 +111,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        all_lights = [
-            light
+        all_lights_with_names = {
+            light: get_friendly_name(self.hass, light)
             for light in self.hass.states.async_entity_ids("light")
             if _supported_features(self.hass, light)
-        ]
+        }
+        all_lights = list(all_lights_with_names.keys())
         for configured_light in data[CONF_LIGHTS]:
             if configured_light not in all_lights:
                 errors = {CONF_LIGHTS: "entity_missing"}
@@ -118,7 +126,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     configured_light,
                 )
                 all_lights.append(configured_light)
-        to_replace = {CONF_LIGHTS: cv.multi_select(sorted(all_lights))}
+                all_lights_with_names[configured_light] = configured_light
+
+        light_options = {
+            entity_id: f"{name} ({entity_id})"
+            for entity_id, name in all_lights_with_names.items()
+        }
+        to_replace = {CONF_LIGHTS: cv.multi_select(light_options)}
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:

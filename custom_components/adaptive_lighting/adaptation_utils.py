@@ -54,7 +54,7 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     common_data = {k: service_data[k] for k in common_attrs if k in service_data}
 
     attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
-    service_datas = []
+    service_datas: list[dict[str, Any]] = []
 
     for attributes in attributes_split_sequence:
         split_data = {
@@ -84,10 +84,11 @@ def _remove_redundant_attributes(
     Removes all attributes from service call data whose values are already present
     in the target entity's state.
     """
+    attributes: dict[str, Any] = dict(state.attributes)
     return {
         k: v
         for k, v in service_data.items()
-        if k not in state.attributes or v != state.attributes[k]
+        if k not in attributes or v != attributes[k]
     }
 
 
@@ -106,7 +107,7 @@ async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
     filter_by_state: bool,
-) -> AsyncGenerator[ServiceData, None]:
+) -> AsyncGenerator[ServiceData]:
     """Enumerates and filters a list of service datas on the fly.
 
     If filtering is enabled, every service data is filtered by the current state of
@@ -141,7 +142,7 @@ class AdaptationData:
     entity_id: str
     context: Context
     sleep_time: float
-    service_call_datas: AsyncGenerator[ServiceData, None]
+    service_call_datas: AsyncGenerator[ServiceData]
     force: bool
     max_length: int
     which: Literal["brightness", "color", "both"]

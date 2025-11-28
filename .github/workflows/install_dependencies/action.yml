@@ -14,25 +14,25 @@ runs:
   using: "composite"
   steps:
     - name: Check out code from GitHub
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
         ref: ${{ github.ref }}
         persist-credentials: false
         fetch-depth: 0
     - name: Check out code from GitHub
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: home-assistant/core
         path: core
         ref: ${{ inputs.core-version }}
     - name: Set up Python ${{ inputs.python-version }}
       id: python
-      uses: actions/setup-python@v5.6.0
+      uses: actions/setup-python@v6.1.0
       with:
         python-version: ${{ inputs.python-version }}
     - name: Set up UV
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install dependencies
       shell: bash
       run: |

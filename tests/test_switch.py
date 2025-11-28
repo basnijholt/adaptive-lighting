@@ -65,6 +65,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveLightingManager,
     AdaptiveSwitch,
+    SimpleSwitch,
     _attributes_have_changed,
     color_difference_redmean,
     create_context,
@@ -82,7 +83,16 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-from homeassistant.components.template.light import LightTemplate
+
+try:
+    # HA >= 2025.8
+    from homeassistant.components.template.light import (
+        StateLightEntity as LightTemplate,
+    )
+except ImportError:
+    # HA < 2025.8
+    from homeassistant.components.template.light import LightTemplate
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
@@ -1000,26 +1010,36 @@ def test_attributes_have_changed():
             new_attributes=attrs,
             **kwargs,
         )
-    _LOGGER.debug("Test switch from color_temp to rgb_color")
-    assert not _attributes_have_changed(
+    # Test color mode switches - feature added to detect external changes
+    # (e.g., when Hue scenes change light from color_temp to RGB mode)
+    # See: https://github.com/basnijholt/adaptive-lighting/issues/1275
+    #
+    # All mode switches are now detected bidirectionally by checking original
+    # attributes BEFORE conversion in _has_color_mode_changed().
+    _LOGGER.debug(
+        "Test switch from color_temp to rgb_color - should detect mode change",
+    )
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (255, 166, 87)},
         **kwargs,
     )
-    _LOGGER.debug("Test switch from rgb_color to color_temp")
-    assert not _attributes_have_changed(
+    _LOGGER.debug(
+        "Test switch from rgb_color to color_temp - should detect mode change",
+    )
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_RGB_COLOR: (255, 166, 87)},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         **kwargs,
     )
-    _LOGGER.debug("Test switch from color_temp to color_xy")
-    assert not _attributes_have_changed(
+    _LOGGER.debug("Test switch from color_temp to color_xy - should detect mode change")
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_XY_COLOR: (0.526, 0.387)},
         **kwargs,
     )
-    _LOGGER.debug("Test switch from color_xy to color_temp")
-    assert not _attributes_have_changed(
+    _LOGGER.debug("Test switch from color_xy to color_temp - should detect mode change")
+    assert _attributes_have_changed(
         old_attributes={ATTR_BRIGHTNESS: 1, ATTR_XY_COLOR: (0.526, 0.387)},
         new_attributes={ATTR_BRIGHTNESS: 1, ATTR_COLOR_TEMP_KELVIN: 2702},
         **kwargs,
@@ -1276,13 +1296,17 @@ async def test_restore_off_state(hass, state):
                     assert not _switch.is_on
 
 
-@pytest.mark.xfail(reason="Offset is larger than half a day")
 async def test_offset_too_large(hass):
-    """Test that update fails when the offset is too large."""
+    """Test that update fails when the sunrise offset is too large.
+
+    A 12-hour offset causes sun events to be out of order (e.g., sunrise after sunset),
+    which makes the adaptive lighting algorithm fail with a ValueError.
+    """
     _, switch = await setup_switch(hass, {CONF_SUNRISE_OFFSET: 3600 * 12})
-    await switch._update_attrs_and_maybe_adapt_lights(
-        context=switch.create_context("test"),
-    )
+    with pytest.raises(ValueError, match="sun events.*not in the expected order"):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("test"),
+        )
     await hass.async_block_till_done()
 
 
@@ -2266,3 +2290,175 @@ async def test_brightness_mode(hass, brightness_mode, dark, light):
     # After sunrise the brightness should be light_brightness
     await patch_time_and_update(after_sunrise)
     assert is_approx_equal(switch._settings[ATTR_BRIGHTNESS_PCT], light_brightness)
+
+
+async def test_simple_switch_initial_state_not_none(hass):
+    """Test that SimpleSwitch._state is not None after __init__.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1264
+
+    When an entity is disabled in Home Assistant, async_added_to_hass() is never
+    called. Previously, SimpleSwitch._state was initialized to None and only set
+    to True/False in async_added_to_hass(). This caused an infinite loop in
+    AdaptiveSwitch._setup_listeners() which waits for all SimpleSwitch._state
+    to be not None.
+
+    The fix is to initialize _state to the initial_state value in __init__.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: DEFAULT_NAME})
+    entry.add_to_hass(hass)
+
+    # Create a SimpleSwitch without calling async_added_to_hass
+    # (simulating a disabled entity)
+    switch = SimpleSwitch(
+        which="Test",
+        initial_state=True,
+        hass=hass,
+        config_entry=entry,
+        icon="mdi:test",
+    )
+
+    # Before the fix: _state would be None, causing infinite loop
+    # After the fix: _state should be the initial_state value
+    assert switch._state is not None, (
+        "SimpleSwitch._state should not be None after __init__. "
+        "This would cause an infinite loop in _setup_listeners when the entity is disabled."
+    )
+    assert switch._state is True  # Should be the initial_state value
+
+
+async def test_simple_switch_state_after_async_added_to_hass(hass):
+    """Test that SimpleSwitch._state is properly set after async_added_to_hass.
+
+    This ensures the fix for #1264 doesn't break normal entity initialization.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: DEFAULT_NAME})
+    entry.add_to_hass(hass)
+
+    # Create switches with different initial states
+    switch_true = SimpleSwitch(
+        which="Test True",
+        initial_state=True,
+        hass=hass,
+        config_entry=entry,
+        icon="mdi:test",
+    )
+    switch_false = SimpleSwitch(
+        which="Test False",
+        initial_state=False,
+        hass=hass,
+        config_entry=entry,
+        icon="mdi:test",
+    )
+
+    # Verify initial state is set correctly
+    assert switch_true._state is True
+    assert switch_false._state is False
+
+    # Call async_added_to_hass (simulating normal entity setup)
+    # Since there's no last state, it should use the initial_state
+    await switch_true.async_added_to_hass()
+    await switch_false.async_added_to_hass()
+
+    # State should still be correct after async_added_to_hass
+    assert switch_true._state is True
+    assert switch_false._state is False
+
+
+def test_attributes_have_changed_light_mode_switch():
+    """Test detection of external light mode changes (color_temp vs rgb vs xy).
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1275
+
+    When a user activates a Hue Scene (or similar) via an external app, the light
+    may switch from color_temp mode to RGB/XY mode (or vice versa). This should be
+    detected as an external change so AL doesn't immediately override it.
+
+    The _has_color_mode_changed() function checks the original attributes BEFORE
+    any conversion, enabling bidirectional mode change detection.
+    """
+    context = Context()
+    base_kwargs = {
+        "light": "light.test",
+        "adapt_brightness": True,
+        "context": context,
+    }
+
+    # Test 1: adapt_color=True - all mode changes should be detected
+    kwargs_adapt_color = {**base_kwargs, "adapt_color": True}
+
+    # color_temp → RGB
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_adapt_color,
+    ), "Should detect color_temp → RGB mode switch"
+
+    # color_temp → XY
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        **kwargs_adapt_color,
+    ), "Should detect color_temp → XY mode switch"
+
+    # RGB → color_temp
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_adapt_color,
+    ), "Should detect RGB → color_temp mode switch"
+
+    # RGB → XY
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        **kwargs_adapt_color,
+    ), "Should detect RGB → XY mode switch"
+
+    # XY → color_temp
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_adapt_color,
+    ), "Should detect XY → color_temp mode switch"
+
+    # XY → RGB
+    assert _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_adapt_color,
+    ), "Should detect XY → RGB mode switch"
+
+    # No mode change - same type with same values shouldn't be detected
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_adapt_color,
+    ), "Same color_temp should not be detected as change"
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_adapt_color,
+    ), "Same RGB should not be detected as change"
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
+        **kwargs_adapt_color,
+    ), "Same XY should not be detected as change"
+
+    # Test 2: adapt_color=False - mode changes should NOT be detected
+    kwargs_no_adapt = {**base_kwargs, "adapt_color": False}
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        **kwargs_no_adapt,
+    ), "Mode change should not be detected when adapt_color=False"
+
+    assert not _attributes_have_changed(
+        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
+        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
+        **kwargs_no_adapt,
+    ), "RGB → color_temp should not be detected when adapt_color=False"
