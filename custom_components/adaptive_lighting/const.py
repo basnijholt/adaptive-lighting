@@ -293,6 +293,19 @@ DOCS_APPLY = {
     CONF_LIGHTS: "A light (or list of lights) to apply the settings to. 💡",
 }
 
+# Basic options shown at top level in options flow (not in collapsed section)
+BASIC_OPTIONS: set[str] = {
+    CONF_LIGHTS,
+    CONF_MIN_BRIGHTNESS,
+    CONF_MAX_BRIGHTNESS,
+    CONF_MIN_COLOR_TEMP,
+    CONF_MAX_COLOR_TEMP,
+    CONF_SLEEP_BRIGHTNESS,
+    CONF_SLEEP_COLOR_TEMP,
+    CONF_TRANSITION,
+    CONF_INTERVAL,
+}
+
 
 def int_between(min_int: int, max_int: int) -> vol.All:
     """Return an integer between 'min_int' and 'max_int'."""
