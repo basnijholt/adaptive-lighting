@@ -42,10 +42,17 @@ def copy_color_and_brightness_module() -> None:
         )
         new_module = webapp_folder / module.name
         with module.open() as f:
-            lines = [
-                line.replace("homeassistant.util.color", "homeassistant_util_color")
-                for line in f.readlines()
-            ]
+            lines = []
+            for line in f.readlines():
+                line = line.replace(
+                    "homeassistant.util.color",
+                    "homeassistant_util_color",
+                )
+                line = line.replace(
+                    "from propcache.api import cached_property",
+                    "from functools import cached_property",
+                )
+                lines.append(line)
         with new_module.open("r") as f:
             existing_lines = f.readlines()
         if existing_lines != lines:
