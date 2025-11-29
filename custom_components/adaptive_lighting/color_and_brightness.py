@@ -17,7 +17,7 @@ from homeassistant.util.color import (
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
-from propcache.api import cached_property
+from functools import cached_property
 
 if TYPE_CHECKING:
     import astral.location
