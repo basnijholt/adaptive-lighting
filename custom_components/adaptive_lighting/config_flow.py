@@ -167,7 +167,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Combine: basic fields + collapsed advanced section
         full_schema = {
             **basic_schema,
-            vol.Optional("advanced"): section(
+            vol.Required("advanced"): section(
                 vol.Schema(advanced_schema),
                 {"collapsed": True},
             ),
