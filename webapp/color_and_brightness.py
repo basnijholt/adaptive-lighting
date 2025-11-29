@@ -9,7 +9,7 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import UTC, timedelta
-from functools import partial
+from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from homeassistant_util_color import (
@@ -17,7 +17,6 @@ from homeassistant_util_color import (
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
-from functools import cached_property
 
 if TYPE_CHECKING:
     import astral.location
