@@ -3,11 +3,11 @@ name: Update README.md, strings.json, and services.yaml
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - "README.md"
       - "custom_components/adaptive_lighting/const.py"
-      - "github/workflows/update-readme.yml"
+      - ".github/workflows/update-readme.yml"
   pull_request:
 
 jobs:
