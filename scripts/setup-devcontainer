@@ -15,7 +15,6 @@ pip install \
 
 pip cache purge
 
-# Create clean virtual environment
 uv venv --clear --python 3.13
 ./scripts/setup-dependencies
 ./scripts/setup-symlinks
