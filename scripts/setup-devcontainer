@@ -13,7 +13,6 @@ pip install \
     ruff \
     uv
 
-# Clean up pip cache to reduce container size
 pip cache purge
 
 # Create clean virtual environment
