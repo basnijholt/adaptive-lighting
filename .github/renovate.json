@@ -33,6 +33,7 @@
         }
     ],
     "extends": [
-        "config:recommended"
+        "config:recommended",
+        "helpers:pinGitHubActionDigests"
     ]
 }
