@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-127-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-128-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -631,6 +631,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/dobby5"><img src="https://avatars.githubusercontent.com/u/1346316?v=4?s=100" width="100px;" alt="Dobby"/><br /><sub><b>Dobby</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=dobby5" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/lenucksi"><img src="https://avatars.githubusercontent.com/u/2451899?v=4?s=100" width="100px;" alt="lenucksi"/><br /><sub><b>lenucksi</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=lenucksi" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
