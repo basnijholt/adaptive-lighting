@@ -10,9 +10,12 @@ fi
 pip install \
     colorlog \
     pip \
-    ruff
+    ruff \
+    uv
 
-uv venv --python 3.13
+pip cache purge
+
+uv venv --clear --python 3.13
 ./scripts/setup-dependencies
 ./scripts/setup-symlinks
 uv run pre-commit install-hooks
