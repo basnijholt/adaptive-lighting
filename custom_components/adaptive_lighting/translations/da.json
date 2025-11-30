@@ -41,7 +41,10 @@
           "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)",
           "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙",
           "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️",
-          "include_config_in_attributes": "include_config_in_attributes: Vis alle indstillinger som attributter for kontakten når dette er sat til »true«. 📝"
+          "include_config_in_attributes": "include_config_in_attributes: Vis alle indstillinger som attributter for kontakten når dette er sat til »true«. 📝",
+          "skip_redundant_commands": "skip_redundant_commands: Undlad at sende tilpasningskommando, hvis lampens kendte tilstand allerede er lig den ønskede tilstand. Mindsker mængden af netværkstrafik og forbedrer tilpasningens responsivitet i visse situationer. 📉 Slå fra, hvis lampens faktiske tilstand kommer ud af takt med den tilstand, som HA rapporterer.",
+          "intercept": "intercept: Indfang og tilpas »light.turn_on«-kald for at muliggøre øjeblikkelig farve- og lysstyrketilpasning. 🏎️ Slå fra for lyskilder, som ikke understøtter »light.turn_on« med farve og lysstyrke.",
+          "multi_light_intercept": "multi_light_intercept: Indfang og tilpas »light.turn_on«-kald til mere end en enkelt lyskilde. ➗⚠️ Dette kan bevirke at et enkelt »light.turn_on«-kald deles op i flere, f.eks. hvis lyskilderne er forbundet til forskellige kontakter. Forudsætter at »intercept« er slået til."
         },
         "data_description": {
           "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
@@ -62,7 +65,10 @@
           "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴",
           "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈",
           "send_split_delay": "Forsinkelse (ms) mellem »separate_turn_on_commands« for lyskilder som ikke understøtter simultane styrke- og farveindstillinger. ⏲️",
-          "initial_transition": "Den første overgangs varighed når lysene ændres fra »off« til »on« i sekunder. ⏲️"
+          "initial_transition": "Den første overgangs varighed når lysene ændres fra »off« til »on« i sekunder. ⏲️",
+          "sleep_rgb_color": "RGB-farve i søvntilstand (anvendes når »sleep_rgb_or_color_temp« er sat til »rgb_color«). 🌈",
+          "brightness_mode_time_dark": "(Ignoreres hvis »brightness_mode='default'«) Varigheden i sekunder for tilpasningen af lysstyrken ved solopgang eller -nedgang. 📈📉",
+          "brightness_mode_time_light": "(Ignoreres hvis »brightness_mode='default'«) Varigheden i sekunder for tilpasningen af lysstyrken ved solopgang eller -nedgang. 📈📉"
         }
       }
     },
