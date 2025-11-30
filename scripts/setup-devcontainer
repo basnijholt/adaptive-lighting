@@ -7,13 +7,12 @@ if [[ ! -d "core" ]]; then
     git clone --depth 1 --branch dev https://github.com/home-assistant/core.git
 fi
 
-# Install uv package manager (required for venv creation and script execution)
-pip install uv
-
+# Install uv package manager explcitly (required for venv creation and script execution in devcontainer / local usage)
 pip install \
     colorlog \
     pip \
-    ruff
+    ruff \
+    uv 
 
 # Clean up pip cache to reduce container size
 pip cache purge
