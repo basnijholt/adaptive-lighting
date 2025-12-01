@@ -8,8 +8,10 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME, MAJOR_VERSION, MINOR_VERSION
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 
 from .const import (  # pylint: disable=unused-import
+    BASIC_OPTIONS,
     CONF_LIGHTS,
     DOMAIN,
     EXTRA_VALIDATION,
@@ -99,18 +101,32 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         else:
             self.config_entry = args[0]
 
+    def _flatten_section_input(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Flatten section input by merging nested 'advanced' dict into top level."""
+        flat_input: dict[str, Any] = {}
+        for key, value in user_input.items():
+            if key == "advanced" and isinstance(value, dict):
+                flat_input.update(value)
+            else:
+                flat_input[key] = value
+        return flat_input
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        """Handle options flow."""
+        """Handle options flow with collapsible sections."""
         conf = self.config_entry
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(step_id="init", data_schema=None)
-        errors = {}
-        if user_input is not None:
-            validate_options(user_input, errors)
-            if not errors:
-                return self.async_create_entry(title="", data=user_input)
 
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            # Flatten section data before validation
+            flat_input = self._flatten_section_input(user_input)
+            validate_options(flat_input, errors)
+            if not errors:
+                return self.async_create_entry(title="", data=flat_input)
+
+        # Build light selector
         all_lights_with_names = {
             light: get_friendly_name(self.hass, light)
             for light in self.hass.states.async_entity_ids("light")
@@ -119,7 +135,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         all_lights = list(all_lights_with_names.keys())
         for configured_light in data[CONF_LIGHTS]:
             if configured_light not in all_lights:
-                errors = {CONF_LIGHTS: "entity_missing"}
+                errors[CONF_LIGHTS] = "entity_missing"
                 _LOGGER.error(
                     "%s: light entity %s is configured, but was not found",
                     data[CONF_NAME],
@@ -134,14 +150,31 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
         to_replace = {CONF_LIGHTS: cv.multi_select(light_options)}
 
-        options_schema = {}
+        # Build basic options schema (always visible)
+        basic_schema: dict[vol.Optional, Any] = {}
         for name, default, validation in VALIDATION_TUPLES:
-            key = vol.Optional(name, default=conf.options.get(name, default))
-            value = to_replace.get(name, validation)
-            options_schema[key] = value
+            if name in BASIC_OPTIONS:
+                key = vol.Optional(name, default=conf.options.get(name, default))
+                basic_schema[key] = to_replace.get(name, validation)
+
+        # Build advanced options schema (collapsed by default)
+        advanced_schema: dict[vol.Optional, Any] = {}
+        for name, default, validation in VALIDATION_TUPLES:
+            if name not in BASIC_OPTIONS:
+                key = vol.Optional(name, default=conf.options.get(name, default))
+                advanced_schema[key] = to_replace.get(name, validation)
+
+        # Combine: basic fields + collapsed advanced section
+        full_schema = {
+            **basic_schema,
+            vol.Required("advanced"): section(
+                vol.Schema(advanced_schema),
+                {"collapsed": True},
+            ),
+        }
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(options_schema),
+            data_schema=vol.Schema(full_schema),
             errors=errors,
         )

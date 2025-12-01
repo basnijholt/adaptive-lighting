@@ -1,6 +1,7 @@
 """Test Adaptive Lighting config flow."""
 
 from homeassistant.components.adaptive_lighting.const import (
+    BASIC_OPTIONS,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     DEFAULT_NAME,
@@ -15,6 +16,12 @@ from homeassistant.data_entry_flow import FlowResultType
 from tests.common import MockConfigEntry
 
 DEFAULT_DATA = {key: default for key, default, _ in VALIDATION_TUPLES}
+
+# Split DEFAULT_DATA into basic and advanced for section-based input
+BASIC_DATA = {key: value for key, value in DEFAULT_DATA.items() if key in BASIC_OPTIONS}
+ADVANCED_DATA = {
+    key: value for key, value in DEFAULT_DATA.items() if key not in BASIC_OPTIONS
+}
 
 
 async def test_flow_manual_configuration(hass):
@@ -53,7 +60,7 @@ async def test_import_success(hass):
 
 
 async def test_options(hass):
-    """Test updating options."""
+    """Test updating options with collapsible sections."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=DEFAULT_NAME,
@@ -68,20 +75,28 @@ async def test_options(hass):
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
 
-    data = DEFAULT_DATA.copy()
-    data[CONF_SUNRISE_TIME] = NONE_STR
-    data[CONF_SUNSET_TIME] = NONE_STR
+    # Build input with advanced options nested in "advanced" section
+    advanced_data = ADVANCED_DATA.copy()
+    advanced_data[CONF_SUNRISE_TIME] = NONE_STR
+    advanced_data[CONF_SUNSET_TIME] = NONE_STR
+    user_input = {
+        **BASIC_DATA,
+        "advanced": advanced_data,
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input=data,
+        user_input=user_input,
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    for key, value in data.items():
+
+    # Verify flattened data is saved correctly
+    expected_data = {**BASIC_DATA, **advanced_data}
+    for key, value in expected_data.items():
         assert result["data"][key] == value
 
 
 async def test_incorrect_options(hass):
-    """Test updating incorrect options."""
+    """Test updating incorrect options in advanced section."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=DEFAULT_NAME,
@@ -93,13 +108,22 @@ async def test_incorrect_options(hass):
     await hass.config_entries.async_setup(entry.entry_id)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    data = DEFAULT_DATA.copy()
-    data[CONF_SUNRISE_TIME] = "yolo"
-    data[CONF_SUNSET_TIME] = "yolo"
+
+    # Build input with invalid advanced options nested in section
+    advanced_data = ADVANCED_DATA.copy()
+    advanced_data[CONF_SUNRISE_TIME] = "yolo"
+    advanced_data[CONF_SUNSET_TIME] = "yolo"
+    user_input = {
+        **BASIC_DATA,
+        "advanced": advanced_data,
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input=data,
+        user_input=user_input,
     )
+    # Should show form with errors
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "option_error"}
 
 
 async def test_import_twice(hass):
