@@ -21,21 +21,38 @@
         "description": "Všechna nastavení komponenty Adaptivního osvětlení. Názvy možností odpovídají nastavení YAML. Pokud máte v konfiguraci YAML definovánu položku 'adaptive_lighting', nezobrazí se žádné možnosti.",
         "data": {
           "lights": "lights: Seznam světel (entity_id), které mají být ovládané (může být prázdný). 🌟",
-          "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",
-          "sleep_transition": "sleep_transition: Prodleva pro přepnutí do „režimu spánku“ (sekundy)",
           "interval": "interval: Prodleva pro změny osvětlení (v sekundách)",
           "max_brightness": "max_brightness: Nejvyšší jas osvětlení během cyklu. (%)",
           "max_color_temp": "max_color_temp: Nejchladnější odstín cyklu teploty barev. (Kelvin)",
           "min_brightness": "min_brightness: Nejnižší jas osvětlení během cyklu. (%)",
           "min_color_temp": "min_color_temp, Nejteplejší odstín cyklu teploty barev. (Kelvin)",
+          "sleep_brightness": "sleep_brightness, Nastavení jasu pro režim spánku. (%)",
+          "sleep_color_temp": "sleep_color_temp: Nastavení teploty barev pro režim spánku. (v Kelvinech)",
+          "transition": ""
+        },
+        "data_description": {
+          "sleep_color_temp": "Teplota barev v režimu spánku (používá se, když `sleep_rgb_or_color_temp` je `color_temp`) v Kelvinech. 😴",
+          "sleep_brightness": "Jas světel během režimu spánku (v %). 😴",
+          "interval": "Frekvence přizpůsobení světel v sekundách. 🔄",
+          "transition": "Doba trvání přechodu změny světel v sekundách. 🕑"
+        },
+        "menu_options": {
+          "advanced": "Konfigurovat pokročilé možnosti",
+          "finish": "Uložit a dokončit"
+        }
+      },
+      "advanced": {
+        "title": "Pokročilá nastavení",
+        "description": "Konfigurujte pokročilé možnosti Adaptive Lighting. Většina uživatelů tyto nastavení měnit nemusí.",
+        "data": {
+          "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",
+          "sleep_transition": "sleep_transition: Prodleva pro přepnutí do „režimu spánku“ (sekundy)",
           "only_once": "only_once: Přizpůsobení osvětlení pouze při rozsvícení.",
           "prefer_rgb_color": "prefer_rgb_color: Upřednostněte použití 'rgb_color' před 'color_temp'.",
           "separate_turn_on_commands": "separate_turn_on_commands: Oddělení příkazů pro každý atribut (barva, jas, atd.) v atributu 'light.turn_on' (vyžadováno pro některá světla).",
           "send_split_delay": "send_split_delay: prodleva mezi příkazy (milisekundy), když je použit atribut 'separate_turn_on_commands'. Může zajistit správné zpracování obou příkazů.",
-          "sleep_brightness": "sleep_brightness, Nastavení jasu pro režim spánku. (%)",
           "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, použijte 'rgb_color' nebo 'color_temp'",
           "sleep_rgb_color": "sleep_rgb_color, v RGB",
-          "sleep_color_temp": "sleep_color_temp: Nastavení teploty barev pro režim spánku. (v Kelvinech)",
           "sunrise_offset": "sunrise_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu východu slunce (+/- v sekundách)",
           "sunrise_time": "sunrise_time: Manuální přepsání času východu slunce, pokud je „None“, použije se skutečný čas východu slunce ve vaší lokalitě (HH:MM:SS)",
           "max_sunrise_time": "max_sunrise_time: Ruční přepsání nejpozdějšího času východu slunce, pokud je „None“, použije se skutečný čas východu slunce vaší lokality (HH:MM:SS)",
@@ -44,7 +61,6 @@
           "min_sunset_time": "min_sunset_time: Ruční přepsání nejdřívějšího času západu slunce, pokud je „None“, použije se skutečný čas západu slunce vaší lokality (HH:MM:SS)",
           "take_over_control": "take_over_control: Je-li volán 'light.turn_on' z jiného zdroje, než Adaptivním osvětlením, když je světlo již rozsvíceno, přestaňte toto světlo ovládat, dokud není vypnuto -> zapnuto (nebo i vypínačem).",
           "detect_non_ha_changes": "detect_non_ha_changes: detekuje všechny změny >10%  provedených pro osvětlení (také mimo HA), vyžaduje povolení atributu 'take_over_control' (každý 'interval' spouští 'homeassistant.update_entity'!)",
-          "transition": "",
           "adapt_delay": "",
           "transition_until_sleep": "transition_until_sleep: Pokud je zapnuto, Adaptive Lighting bude zacházet s nastavením spánku jako s minimem, na tyto hodnoty přejde po západu slunce. 🌙",
           "multi_light_intercept": "multi_light_intercept: Zachytí a přizpůsobí volání `light.turn_on`, která se zaměřují na více světel. ➗⚠️ To může vést k rozdělení jednoho volání `light.turn_on` na více volání, např. když jsou světla v různých vypínačích. Vyžaduje, aby bylo povoleno `intercept`.",
@@ -55,17 +71,13 @@
         },
         "data_description": {
           "sleep_rgb_or_color_temp": "V režimu spánku se použije buď `\"rgb_color\"`, nebo `\"color_temp\"`. 🌙",
-          "sleep_color_temp": "Teplota barev v režimu spánku (používá se, když `sleep_rgb_or_color_temp` je `color_temp`) v Kelvinech. 😴",
           "sleep_transition": "Doba trvání přechodu do režimu spánku v sekundách. 😴",
           "autoreset_control_seconds": "Automatické resetování ručního ovládání po určitém počtu sekund. Nastavením na 0 se vypne. ⏲️",
           "min_sunset_time": "Nastavte nejbližší virtuální čas západu slunce (HH:MM:SS), abyste mohli nastavit pozdější západ slunce. 🌅",
-          "sleep_brightness": "Jas světel během režimu spánku (v %). 😴",
           "min_sunrise_time": "Nastavte nejbližší virtuální čas východu slunce (HH:MM:SS), abyste mohli nastavit pozdější východ slunce. 🌅",
-          "interval": "Frekvence přizpůsobení světel v sekundách. 🔄",
           "adapt_delay": "Doba čekání (v sekundách) mezi zapnutím světla a změnou adaptivního osvětlení. Mohlo by to pomoci zabránit blikání. ⏲️",
           "sleep_rgb_color": "RGB barva v režimu spánku (používané když `sleep_rgb_or_color_temp` je \"rgb_color\"). 🌈",
           "sunrise_offset": "Upravte čas východu slunce o sekundy dopředu nebo dozadu. ⏰",
-          "transition": "Doba trvání přechodu změny světel v sekundách. 🕑",
           "brightness_mode": "Výběr režimu jasu. Možné hodnoty jsou `default`, `linear` a `tanh` (používá `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
           "brightness_mode_time_light": "(Ignorováno, pokud `brightness_mode='default'`) Doba trvání v sekundách pro zvýšení/snížení jasu po/před východem/západem slunce. 📈📉.",
           "sunset_offset": "Upravte čas západu slunce o sekundy dopředu nebo dozadu. ⏰",

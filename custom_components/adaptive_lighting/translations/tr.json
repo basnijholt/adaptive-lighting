@@ -5,15 +5,32 @@
       "init": {
         "title": "Akıllı Aydınlatma seçenekleri",
         "data": {
-          "adapt_only_on_bare_turn_on": "Işıklar açıldığında geçerlidir. `true` olarak ayarlanırsa, eklenti yalnızca `light.turn_on` işlemi renk veya parlaklık belirtilmeden çağrıldığında uyarlama yapar (örneğin sahne etkinleştirmelerinde uyarlama yapılmaz).  ❌🌈\n`false` olarak ayarlanırsa, renk veya parlaklık belirtilmiş olsa bile uyarlama yapılır. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️",
-          "detect_non_ha_changes": "`detect_non_ha_changes`: `light.turn_on` dışındaki durum değişikliklerini algılar ve uyarlamayı durdurur. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️\nDikkat: ⚠️ Bazı ışıklar yanlışlıkla “açık” durumunu bildirebilir, bu da ışıkların beklenmedik şekilde açılmasına yol açabilir. Böyle bir durumla karşılaşırsanız bu özelliği devre dışı bırakın.",
-          "include_config_in_attributes": "`include_config_in_attributes`: `true` olarak ayarlandığında, tüm seçenekleri Home Assistant’ta anahtarın attribute’ları olarak gösterir. 📝",
-          "intercept": "`intercept`: `light.turn_on` çağrılarını yakalar ve renk ile parlaklığın anında uyarlanmasını sağlar. 🏎️ Renk ve parlaklığı desteklemeyen ışıklar için devre dışı bırakın.",
           "lights": "`lights`: Kontrol edilecek ışıkların entity_id listesi (boş bırakılabilir). 🌟",
           "max_brightness": "`max_brightness`: Maksimum parlaklık yüzdesi. 💡",
           "max_color_temp": "`max_color_temp`: En düşük renk sıcaklığı (Kelvin cinsinden). ❄️",
           "min_brightness": "min_brightness: Minimum parlaklık yüzdesi.💡",
-          "min_color_temp": "`min_color_temp`: En yüksek (sıcak) renk sıcaklığı (Kelvin cinsinden). 🔥",
+          "min_color_temp": "`min_color_temp`: En yüksek (sıcak) renk sıcaklığı (Kelvin cinsinden). 🔥"
+        },
+        "data_description": {
+          "sleep_brightness": "Uyku modundayken ışıkların parlaklık yüzdesi 😴",
+          "sleep_color_temp": "Uyku modunda renk sıcaklığı ( `sleep_rgb_or_color_temp` `color_temp` olarak ayarlandığında kullanılır) Kelvin cinsinden. 😴",
+          "transition": "Işıklar değişirken geçiş süresi (saniye cinsinden). 🕑",
+          "interval": "Işıkların uyarlanma sıklığı (saniye cinsinden). 🔄"
+        },
+        "description": "Bir Adaptive Lighting bileşenini yapılandırın. Seçenek adları YAML ayarlarıyla uyumludur. Eğer bu girdiyi YAML’da tanımladıysanız, burada seçenekler görünmez.  \nParametrelerin etkilerini gösteren etkileşimli grafikler için [bu web uygulamasını](https://basnijholt.github.io/adaptive-lighting) ziyaret edebilirsiniz. Daha fazla bilgi için [resmi dokümantasyona](https://github.com/basnijholt/adaptive-lighting#readme) bakın.",
+        "menu_options": {
+          "advanced": "Gelişmiş seçenekleri yapılandır",
+          "finish": "Kaydet ve bitir"
+        }
+      },
+      "advanced": {
+        "title": "Gelişmiş Ayarlar",
+        "description": "Gelişmiş Adaptive Lighting seçeneklerini yapılandırın. Çoğu kullanıcının bu ayarları değiştirmesine gerek yoktur.",
+        "data": {
+          "adapt_only_on_bare_turn_on": "Işıklar açıldığında geçerlidir. `true` olarak ayarlanırsa, eklenti yalnızca `light.turn_on` işlemi renk veya parlaklık belirtilmeden çağrıldığında uyarlama yapar (örneğin sahne etkinleştirmelerinde uyarlama yapılmaz).  ❌🌈\n`false` olarak ayarlanırsa, renk veya parlaklık belirtilmiş olsa bile uyarlama yapılır. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️",
+          "detect_non_ha_changes": "`detect_non_ha_changes`: `light.turn_on` dışındaki durum değişikliklerini algılar ve uyarlamayı durdurur. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️\nDikkat: ⚠️ Bazı ışıklar yanlışlıkla “açık” durumunu bildirebilir, bu da ışıkların beklenmedik şekilde açılmasına yol açabilir. Böyle bir durumla karşılaşırsanız bu özelliği devre dışı bırakın.",
+          "include_config_in_attributes": "`include_config_in_attributes`: `true` olarak ayarlandığında, tüm seçenekleri Home Assistant’ta anahtarın attribute’ları olarak gösterir. 📝",
+          "intercept": "`intercept`: `light.turn_on` çağrılarını yakalar ve renk ile parlaklığın anında uyarlanmasını sağlar. 🏎️ Renk ve parlaklığı desteklemeyen ışıklar için devre dışı bırakın.",
           "multi_light_intercept": "`multi_light_intercept`: Birden fazla ışığı hedefleyen `light.turn_on` çağrılarını yakalar ve uyarlama yapar. ➗⚠️ Bu, örneğin ışıklar farklı anahtarlardaysa tek bir `light.turn_on` çağrısının birden fazla çağrıya bölünmesine yol açabilir. `intercept` etkin olmalıdır.",
           "only_once": "`only_once`: Işıkları yalnızca açıldıklarında mı uyarlasın (`true`), yoksa sürekli uyarlamaya devam mı etsin (`false`). 🔄",
           "prefer_rgb_color": "`prefer_rgb_color`: Mümkünse ışık renk sıcaklığı yerine RGB renk ayarını tercih edip etmeyeceğini belirler. 🌈",
@@ -27,13 +44,9 @@
           "sunset_offset": "Gün batımı saatini, saniye cinsinden pozitif veya negatif bir kaydırma ile ayarlayın. ⏰",
           "autoreset_control_seconds": "Manuel kontrolü belirtilen saniye sonunda otomatik olarak sıfırlar. Devre dışı bırakmak için 0 olarak ayarlayın. ⏲️",
           "brightness_mode": "Kullanılacak parlaklık modunu belirtir. Olası değerler: `default`, `linear` ve `tanh` (`brightness_mode_time_dark` ve `brightness_mode_time_light` ayarlarını kullanır). 📈",
-          "sleep_brightness": "Uyku modundayken ışıkların parlaklık yüzdesi 😴",
-          "sleep_color_temp": "Uyku modunda renk sıcaklığı ( `sleep_rgb_or_color_temp` `color_temp` olarak ayarlandığında kullanılır) Kelvin cinsinden. 😴",
           "send_split_delay": "Parlaklık ve renk ayarını aynı anda desteklemeyen ışıklar için `separate_turn_on_commands` arasındaki gecikme (ms). ⏲️",
           "initial_transition": "Işıklar `off` durumundan `on` durumuna geçerken ilk geçişin süresi (saniye cinsinden). ⏲️",
-          "transition": "Işıklar değişirken geçiş süresi (saniye cinsinden). 🕑",
           "sleep_transition": "“Uyku modu” açılıp kapatıldığında geçiş süresi (saniye cinsinden). 😴",
-          "interval": "Işıkların uyarlanma sıklığı (saniye cinsinden). 🔄",
           "brightness_mode_time_light": "(`brightness_mode='default'` ise göz ardı edilir) Gün doğumu/gün batımı öncesi/sonrası parlaklığı kademeli olarak artırma/azaltma süresi (saniye cinsinden). 📈📉",
           "brightness_mode_time_dark": "(`brightness_mode='default'` ise göz ardı edilir) Gün doğumu/gün batımı öncesi/sonrası parlaklığı kademeli olarak artırma/azaltma süresi (saniye cinsinden). 📈📉",
           "sleep_rgb_color": "Uyku modunda RGB renk ( `sleep_rgb_or_color_temp` \"rgb_color\" olarak ayarlandığında kullanılır). 🌈",
@@ -45,8 +58,7 @@
           "max_sunset_time": "En geç sanal gün batımı saatini (SS:DD:YY) belirleyin; daha erken gün batımlarına izin verir. 🌇",
           "sleep_rgb_or_color_temp": "Uyku modunda `\"rgb_color\"` veya `\"color_temp\"` kullanın. 🌙",
           "adapt_delay": "Işık açıldıktan sonra Adaptive Lighting’in değişiklikleri uygulamasına kadar bekleme süresi (saniye cinsinden). Titremeyi önlemeye yardımcı olabilir. ⏲️"
-        },
-        "description": "Bir Adaptive Lighting bileşenini yapılandırın. Seçenek adları YAML ayarlarıyla uyumludur. Eğer bu girdiyi YAML’da tanımladıysanız, burada seçenekler görünmez.  \nParametrelerin etkilerini gösteren etkileşimli grafikler için [bu web uygulamasını](https://basnijholt.github.io/adaptive-lighting) ziyaret edebilirsiniz. Daha fazla bilgi için [resmi dokümantasyona](https://github.com/basnijholt/adaptive-lighting#readme) bakın."
+        }
       }
     },
     "error": {

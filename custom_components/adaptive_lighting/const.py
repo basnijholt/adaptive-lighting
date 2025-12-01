@@ -279,6 +279,20 @@ DOCS[CONF_USE_DEFAULTS] = (
 
 TURNING_OFF_DELAY = 5
 
+# Basic options shown in the first step of the options flow
+# These are the most commonly used options that most users will want to configure
+BASIC_OPTIONS: set[str] = {
+    CONF_LIGHTS,
+    CONF_MIN_BRIGHTNESS,
+    CONF_MAX_BRIGHTNESS,
+    CONF_MIN_COLOR_TEMP,
+    CONF_MAX_COLOR_TEMP,
+    CONF_SLEEP_BRIGHTNESS,
+    CONF_SLEEP_COLOR_TEMP,
+    CONF_TRANSITION,
+    CONF_INTERVAL,
+}
+
 DOCS_MANUAL_CONTROL = {
     CONF_ENTITY_ID: "The `entity_id` of the switch in which to (un)mark the "
     "light as being `manually controlled`. 📝",

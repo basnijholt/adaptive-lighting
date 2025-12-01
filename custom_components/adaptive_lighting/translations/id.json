@@ -137,18 +137,50 @@
     "step": {
       "init": {
         "data_description": {
-          "sleep_rgb_or_color_temp": "Gunakan `\"rgb_color\"` atau `\"color_temp\"` dalam mode tidur. 🌙",
           "sleep_color_temp": "Suhu warna dalam mode tidur (digunakan ketika `sleep_rgb_or_color_temp` adalah `color_temp`) dalam Kelvin. 😴",
+          "sleep_brightness": "Persentase kecerahan lampu dalam mode tidur. 😴",
+          "interval": "Frekuensi untuk menyesuaikan lampu, dalam hitungan detik. 🔄",
+          "transition": "Durasi transisi saat lampu berganti, dalam hitungan detik. 🕑"
+        },
+        "data": {
+          "max_color_temp": "max_color_temp: Suhu warna terdingin dalam Kelvin. ❄️",
+          "max_brightness": "max_brightness: Persentase kecerahan maksimum. 💡",
+          "lights": "lights: Daftar entity_ids  lampu yang akan dikontrol (boleh kosong). 🌟",
+          "min_brightness": "min_brightness: Persentase kecerahan minimum. 💡",
+          "min_color_temp": "min_color_temp: Suhu warna terhangat dalam Kelvin. 🔥"
+        },
+        "title": "Opsi Pencahayaan Adaptif",
+        "description": "Konfigurasikan komponen Pencahayaan Adaptif. Nama opsi selaras dengan pengaturan YAML. Jika Anda telah menentukan entri ini di YAML, tidak ada opsi yang akan muncul di sini. Untuk grafik interaktif yang menunjukkan efek parameter, kunjungi [aplikasi web ini](https://basnijholt.github.io/adaptive-lighting). Untuk detail lebih lanjut, lihat [dokumentasi resmi](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "menu_options": {
+          "advanced": "Configure advanced options",
+          "finish": "Save and finish"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "description": "Configure advanced Adaptive Lighting options. Most users don't need to change these settings.",
+        "data": {
+          "detect_non_ha_changes": "detect_non_ha_changes: Mendeteksi dan menghentikan adaptasi untuk perubahan status non-`light.turn_on`. Perlu mengaktifkan `take_over_control`. 🕵️ Perhatian: ⚠️ Beberapa lampu mungkin salah menunjukkan status 'hidup' yang dapat mengakibatkan lampu menyala secara tidak terduga. Nonaktifkan fitur ini jika Anda mengalami masalah seperti itu.",
+          "multi_light_intercept": "multi_light_intercept: Cegat dan sesuaikan panggilan `light.turn_on` yang menargetkan banyak lampu. ➗⚠️ Hal ini dapat mengakibatkan satu panggilan `light.turn_on` terpecah menjadi beberapa panggilan, misalnya saat lampu berada di sakelar yang berbeda. Membutuhkan `intercept` untuk diaktifkan.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Saat menyalakan lampu pada awalnya. Jika diatur ke `true`, AL hanya beradaptasi jika `light.turn_on` dipanggil tanpa menentukan warna atau kecerahan. ❌🌈 Misalnya, mencegah adaptasi ketika mengaktifkan scene. Jika `false`, AL akan beradaptasi tanpa menghiraukan keberadaan warna atau kecerahan dalam `service_data` awal. Perlu `take_over_control` diaktifkan. 🕵️",
+          "skip_redundant_commands": "skip_redundant_commands: Lewati pengiriman perintah adaptasi yang status targetnya sudah sama dengan status cahaya yang diketahui. Meminimalkan lalu lintas jaringan dan meningkatkan respons adaptasi dalam beberapa situasi. 📉Nonaktifkan jika status cahaya fisik tidak sinkron dengan status rekaman HA.",
+          "separate_turn_on_commands": "separate_turn_on_commands: Gunakan panggilan `light.turn_on` terpisah untuk warna dan kecerahan, diperlukan untuk beberapa jenis lampu. 🔀",
+          "prefer_rgb_color": "prefer_rgb_color: Kalau lebih memilih penyesuaian warna RGB dibandingkan suhu warna terang jika memungkinkan. 🌈",
+          "intercept": "intercept: Cegat dan sesuaikan panggilan `light.turn_on` untuk mengaktifkan adaptasi warna dan kecerahan seketika. 🏎️ Nonaktifkan untuk lampu yang tidak mendukung `light.turn_on` dengan warna dan kecerahan.",
+          "only_once": "only_once: Sesuaikan lampu hanya saat menyala (`true`) atau terus sesuaikan (`false`). 🔄",
+          "take_over_control": "take_over_control: Nonaktifkan Pencahayaan Adaptif jika sumber lain memanggil `light.turn_on` saat lampu menyala dan sedang diadaptasi. Perhatikan bahwa ini memanggil `homeassistant.update_entity` setiap `interval`! 🔒",
+          "transition_until_sleep": "transition_until_sleep: Jika diaktifkan, Pencahayaan Adaptif akan menganggap pengaturan tidur sebagai minimum, dan beralih ke nilai ini setelah matahari terbenam. 🌙",
+          "include_config_in_attributes": "include_config_in_attributes: Tampilkan semua opsi sebagai atribut pada sakelar di Home Assistant ketika diatur ke `true`. 📝"
+        },
+        "data_description": {
+          "sleep_rgb_or_color_temp": "Gunakan `\"rgb_color\"` atau `\"color_temp\"` dalam mode tidur. 🌙",
           "sleep_transition": "Durasi transisi ketika \"mode tidur\" diubah, dalam hitungan detik. 😴",
           "autoreset_control_seconds": "Secara otomatis mengatur ulang kontrol manual setelah beberapa detik. Setel ke 0 untuk menonaktifkan. ⏲️",
           "min_sunset_time": "Tetapkan waktu matahari terbenam virtual paling awal (HH:MM:SS), memungkinkan matahari terbenam di kemudian waktu. 🌇",
-          "sleep_brightness": "Persentase kecerahan lampu dalam mode tidur. 😴",
           "min_sunrise_time": "Tetapkan waktu matahari terbit virtual paling awal (HH:MM:SS), memungkinkan matahari terbit di kemudian waktu. 🌅",
-          "interval": "Frekuensi untuk menyesuaikan lampu, dalam hitungan detik. 🔄",
           "adapt_delay": "Waktu tunggu (detik) antara lampu menyala dan penerapan ubahan Pencahayaan Adaptif. Mungkin membantu untuk menghindari kedipan. ⏲️",
           "sleep_rgb_color": "Warna RGB dalam mode tidur (digunakan ketika `sleep_rgb_or_color_temp` adalah \"rgb_color\"). 🌈",
           "sunrise_offset": "Sesuaikan waktu matahari terbit dengan offset positif atau negatif dalam hitungan detik. ⏰",
-          "transition": "Durasi transisi saat lampu berganti, dalam hitungan detik. 🕑",
           "brightness_mode": "Mode kecerahan untuk digunakan. Nilai yang memungkinkan adalah `default`, `linear`, dan `tanh` (menggunakan `brightness_mode_time_dark` dan `brightness_mode_time_light`). 📈",
           "brightness_mode_time_light": "(Ignored if `brightness_mode='default'`) Durasi dalam hitungan detik untuk meningkatkan/menurunkan kecerahan setelah/sebelum matahari terbit/terbenam. 📈📉.",
           "sunset_offset": "Sesuaikan waktu matahari terbenam dengan offset positif atau negatif dalam hitungan detik. ⏰",
@@ -159,27 +191,7 @@
           "brightness_mode_time_dark": "(Diabaikan jika `brightness_mode='default'`) Durasi dalam hitungan detik untuk meningkatkan/menurunkan kecerahan sebelum/sesudah matahari terbit/terbenam. 📈📉",
           "max_sunrise_time": "Atur waktu matahari terbit virtual terkini (HH:MM:SS), memungkinkan matahari terbit lebih cepat. 🌅",
           "send_split_delay": "Waktu tunda (ms) antara `separate_turn_on_commands` untuk lampu yang tidak mendukung pengaturan kecerahan dan warna secara bersamaan. ⏲️"
-        },
-        "data": {
-          "detect_non_ha_changes": "detect_non_ha_changes: Mendeteksi dan menghentikan adaptasi untuk perubahan status non-`light.turn_on`. Perlu mengaktifkan `take_over_control`. 🕵️ Perhatian: ⚠️ Beberapa lampu mungkin salah menunjukkan status 'hidup' yang dapat mengakibatkan lampu menyala secara tidak terduga. Nonaktifkan fitur ini jika Anda mengalami masalah seperti itu.",
-          "multi_light_intercept": "multi_light_intercept: Cegat dan sesuaikan panggilan `light.turn_on` yang menargetkan banyak lampu. ➗⚠️ Hal ini dapat mengakibatkan satu panggilan `light.turn_on` terpecah menjadi beberapa panggilan, misalnya saat lampu berada di sakelar yang berbeda. Membutuhkan `intercept` untuk diaktifkan.",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Saat menyalakan lampu pada awalnya. Jika diatur ke `true`, AL hanya beradaptasi jika `light.turn_on` dipanggil tanpa menentukan warna atau kecerahan. ❌🌈 Misalnya, mencegah adaptasi ketika mengaktifkan scene. Jika `false`, AL akan beradaptasi tanpa menghiraukan keberadaan warna atau kecerahan dalam `service_data` awal. Perlu `take_over_control` diaktifkan. 🕵️",
-          "skip_redundant_commands": "skip_redundant_commands: Lewati pengiriman perintah adaptasi yang status targetnya sudah sama dengan status cahaya yang diketahui. Meminimalkan lalu lintas jaringan dan meningkatkan respons adaptasi dalam beberapa situasi. 📉Nonaktifkan jika status cahaya fisik tidak sinkron dengan status rekaman HA.",
-          "separate_turn_on_commands": "separate_turn_on_commands: Gunakan panggilan `light.turn_on` terpisah untuk warna dan kecerahan, diperlukan untuk beberapa jenis lampu. 🔀",
-          "max_color_temp": "max_color_temp: Suhu warna terdingin dalam Kelvin. ❄️",
-          "prefer_rgb_color": "prefer_rgb_color: Kalau lebih memilih penyesuaian warna RGB dibandingkan suhu warna terang jika memungkinkan. 🌈",
-          "max_brightness": "max_brightness: Persentase kecerahan maksimum. 💡",
-          "intercept": "intercept: Cegat dan sesuaikan panggilan `light.turn_on` untuk mengaktifkan adaptasi warna dan kecerahan seketika. 🏎️ Nonaktifkan untuk lampu yang tidak mendukung `light.turn_on` dengan warna dan kecerahan.",
-          "only_once": "only_once: Sesuaikan lampu hanya saat menyala (`true`) atau terus sesuaikan (`false`). 🔄",
-          "take_over_control": "take_over_control: Nonaktifkan Pencahayaan Adaptif jika sumber lain memanggil `light.turn_on` saat lampu menyala dan sedang diadaptasi. Perhatikan bahwa ini memanggil `homeassistant.update_entity` setiap `interval`! 🔒",
-          "lights": "lights: Daftar entity_ids  lampu yang akan dikontrol (boleh kosong). 🌟",
-          "min_brightness": "min_brightness: Persentase kecerahan minimum. 💡",
-          "min_color_temp": "min_color_temp: Suhu warna terhangat dalam Kelvin. 🔥",
-          "transition_until_sleep": "transition_until_sleep: Jika diaktifkan, Pencahayaan Adaptif akan menganggap pengaturan tidur sebagai minimum, dan beralih ke nilai ini setelah matahari terbenam. 🌙",
-          "include_config_in_attributes": "include_config_in_attributes: Tampilkan semua opsi sebagai atribut pada sakelar di Home Assistant ketika diatur ke `true`. 📝"
-        },
-        "title": "Opsi Pencahayaan Adaptif",
-        "description": "Konfigurasikan komponen Pencahayaan Adaptif. Nama opsi selaras dengan pengaturan YAML. Jika Anda telah menentukan entri ini di YAML, tidak ada opsi yang akan muncul di sini. Untuk grafik interaktif yang menunjukkan efek parameter, kunjungi [aplikasi web ini](https://basnijholt.github.io/adaptive-lighting). Untuk detail lebih lanjut, lihat [dokumentasi resmi](https://github.com/basnijholt/adaptive-lighting#readme)."
+        }
       }
     },
     "error": {

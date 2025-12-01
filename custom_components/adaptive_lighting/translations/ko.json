@@ -23,15 +23,31 @@
           "lights": "조명: 제어될 조명 entity_ids의 목록 (비어 있을 수 있음). 🌟",
           "interval": "간격",
           "transition": "전환",
-          "initial_transition": "초기 전환",
           "min_brightness": "최소 밝기: 밝기 최소 퍼센트. 💡",
           "max_brightness": "최대 밝기: 밝기 최대 퍼센트. 💡",
           "min_color_temp": "최소 색온도: 켈빈으로 표시된 가장 따뜻한 색온도. 🔥",
           "max_color_temp": "최대 색온도: 켈빈으로 표시된 가장 차가운 색온도. ❄️",
-          "prefer_rgb_color": "RGB 색상 선호: 가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
           "sleep_brightness": "수면 밝기",
+          "sleep_color_temp": "수면 색온도"
+        },
+        "data_description": {
+          "interval": "조명을 조정하는 빈도, 초 단위. 🔄",
+          "transition": "조명이 변경될 때 전환 기간, 초 단위. 🕑",
+          "sleep_brightness": "수면 모드에서 조명의 밝기 퍼센트. 😴",
+          "sleep_color_temp": "수면 모드에서 색온도 (sleep_rgb_or_color_temp가 `color_temp`일 때 사용) 켈빈 단위. 😴"
+        },
+        "menu_options": {
+          "advanced": "고급 옵션 구성",
+          "finish": "저장 및 완료"
+        }
+      },
+      "advanced": {
+        "title": "고급 설정",
+        "description": "Adaptive Lighting 고급 옵션을 구성합니다. 대부분의 사용자는 이러한 설정을 변경할 필요가 없습니다.",
+        "data": {
+          "initial_transition": "초기 전환",
+          "prefer_rgb_color": "RGB 색상 선호: 가능할 경우 색온도 조정보다 RGB 색상 조정을 선호하는지 여부. 🌈",
           "sleep_rgb_or_color_temp": "수면 rgb_or_color_temp",
-          "sleep_color_temp": "수면 색온도",
           "sleep_rgb_color": "수면 RGB 색상",
           "sleep_transition": "수면 전환",
           "transition_until_sleep": "수면까지 전환: 활성화되면, 적응형 조명은 수면 설정을 최소값으로 취급하고 일몰 후 이 값으로 전환합니다. 🌙",
@@ -60,12 +76,8 @@
           "include_config_in_attributes": "속성에 구성 포함: `true`로 설정하면 Home Assistant에서 스위치의 모든 옵션을 속성으로 표시합니다. 📝"
         },
         "data_description": {
-          "interval": "조명을 조정하는 빈도, 초 단위. 🔄",
-          "transition": "조명이 변경될 때 전환 기간, 초 단위. 🕑",
           "initial_transition": "조명이 `off`에서 `on`으로 바뀔 때 첫 번째 전환의 지속 시간, 초 단위. ⏲️",
-          "sleep_brightness": "수면 모드에서 조명의 밝기 퍼센트. 😴",
           "sleep_rgb_or_color_temp": "수면 모드에서 `\"rgb_color\"` 또는 `\"color_temp\"` 사용. 🌙",
-          "sleep_color_temp": "수면 모드에서 색온도 (sleep_rgb_or_color_temp가 `color_temp`일 때 사용) 켈빈 단위. 😴",
           "sleep_rgb_color": "수면 모드에서 RGB 색상 (sleep_rgb_or_color_temp가 \"rgb_color\"일 때 사용). 🌈",
           "sleep_transition": "\"수면 모드\"가 전환될 때 전환 기간, 초 단위. 😴",
           "sunrise_time": "일출 시간을 고정된 시간 (HH:MM:SS)으로 설정. 🌅",

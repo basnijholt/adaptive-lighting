@@ -21,30 +21,42 @@
         "description": "Todas as configurações de um componente de iluminação adaptativa. Os nomes das opções correspondem às configurações de YAML. Nenhuma opção será exibida se você tiver a entrada adaptive_lighting definida em sua configuração YAML.",
         "data": {
           "lights": "luzes",
-          "initial_transition": "initial_transition: Quando as luzes mudam de 'off' para 'on'. (segundos)",
-          "sleep_transition": "sleep_transition: Quando 'sleep_state' muda. (segundos)",
           "interval": "interval: Tempo entre as atualizações do switch. (segundos)",
           "max_brightness": "max_brightness: Maior brilho das luzes durante um ciclo. (%)",
           "max_color_temp": "max_color_temp: Matiz mais frio do ciclo de temperatura de cor. (Kelvin)",
           "min_brightness": "min_brightness: Menor brilho das luzes durante um ciclo. (%)",
           "min_color_temp": "min_color_temp, matiz mais quente do ciclo de temperatura de cor. (Kelvin)",
+          "sleep_brightness": "sleep_brightness, configuração de brilho para o modo de suspensão. (%)",
+          "sleep_color_temp": "sleep_color_temp: configuração de temperatura de cor para o modo de suspensão. (Kelvin)",
+          "transition": "Tempo de transição ao aplicar uma mudança nas luzes (segundos)"
+        },
+        "menu_options": {
+          "advanced": "Configurar opções avançadas",
+          "finish": "Salvar e finalizar"
+        },
+        "data_description": {}
+      },
+      "advanced": {
+        "title": "Configurações avançadas",
+        "description": "Configure as opções avançadas do Adaptive Lighting. A maioria dos usuários não precisa alterar essas configurações.",
+        "data": {
+          "initial_transition": "initial_transition: Quando as luzes mudam de 'off' para 'on'. (segundos)",
+          "sleep_transition": "sleep_transition: Quando 'sleep_state' muda. (segundos)",
           "only_once": "only_once: Apenas adapte as luzes ao ligá-las.",
           "prefer_rgb_color": "prefer_rgb_color: Use 'rgb_color' em vez de 'color_temp' quando possível.",
           "separate_turn_on_commands": "separar_turn_on_commands: Separe os comandos para cada atributo (cor, brilho, etc.) em 'light.turn_on' (necessário para algumas luzes).",
-          "sleep_brightness": "sleep_brightness, configuração de brilho para o modo de suspensão. (%)",
-          "sleep_color_temp": "sleep_color_temp: configuração de temperatura de cor para o modo de suspensão. (Kelvin)",
           "sunrise_offset": "sunrise_offset: Quanto tempo antes (-) ou depois (+) para definir o ponto do nascer do sol do ciclo (+/- segundos)",
           "sunrise_time": "sunrise_time: substituição manual do horário do nascer do sol, se 'Nenhum', ele usa o horário real do nascer do sol em sua localização (HH:MM:SS)",
           "sunset_offset": "Sunset_offset: Quanto tempo antes (-) ou depois (+) para definir o ponto de pôr do sol do ciclo (+/- segundos)",
           "sunset_time": "sunset_time: substituição manual do horário do pôr do sol, se 'Nenhum', ele usa o horário real do nascer do sol em sua localização (HH:MM:SS)",
           "take_over_control": "take_over_control: Se qualquer coisa, exceto Adaptive Lighting, chamar 'light.turn_on' quando uma luz já estiver acesa, pare de adaptar essa luz até que ela (ou o interruptor) desligue -> ligue.",
           "detect_non_ha_changes": "detect_non_ha_changes: detecta todas as alterações > 10% feitas nas luzes (também fora do HA), requer que 'take_over_control' seja ativado (chama 'homeassistant.update_entity' a cada 'intervalo'!)",
-          "transition": "Tempo de transição ao aplicar uma mudança nas luzes (segundos)",
           "skip_redundant_commands": "skip_redundant_commands: Deixar de enviar comandos de adaptação cujo estado alvo já seja igual ao estado atual da luz. Minimiza o tráfego de rede e melhora a responsividade da adaptação em algumas situações. 📉Desative se os estados físicos das luzes podem ficar diferentes do estado registrado no HA.",
           "transition_until_sleep": "transition_until_sleep: Quando ativada, a Iluminação Adaptativa considerará as configurações de sono como o valor mínimo, transicionando para esses valores após o pôr do sol. 🌙",
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Ao ligar as luzes inicialmente. Se definido como `true`, a Iluminação Adaptativa se adapta somente se o comando `light.turn_on` for chamado sem especificar cor ou brilho. ❌🌈 Isso, por exemplo, impede a adaptação ao ativar uma cena. Se false, a Iluminação Adaptativa se adapta independentemente da presença de cor ou brilho nos dados iniciais do `service_data`. Precisa de `take_over_control` ativado. 🕵️",
           "intercept": "intercept: Interceptar e adaptar os chamados `light.turn_on` para ativar a adaptação instantânea de cor e brilho. 🏎️ Desative para luzes que não suportam `light.turn_on` com cor e brilho."
-        }
+        },
+        "data_description": {}
       }
     },
     "error": {

@@ -3,12 +3,22 @@
     "step": {
       "init": {
         "title": "Opcije prilagodljivog osvjetljenja",
+        "data_description": {},
+        "data": {},
+        "menu_options": {
+          "advanced": "Configure advanced options",
+          "finish": "Save and finish"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "description": "Configure advanced Adaptive Lighting options. Most users don't need to change these settings.",
+        "data": {
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Prilikom početnog paljenja svjetla. Ako je postavljeno na \"true\", AL se prilagođava samo ako se \"light.turn_on\" pozove bez navođenja boje ili svjetline. ❌🌈 Ovo npr. sprječava prilagodbu prilikom aktiviranja scene. Ako je \"false\", AL se prilagođava bez obzira na prisutnost boje ili svjetline u početnim \"service_data\". Potrebno je omogućiti `take_over_control`. 🕵️ "
+        },
         "data_description": {
           "sunrise_offset": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰",
           "sunset_offset": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰"
-        },
-        "data": {
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Prilikom početnog paljenja svjetla. Ako je postavljeno na \"true\", AL se prilagođava samo ako se \"light.turn_on\" pozove bez navođenja boje ili svjetline. ❌🌈 Ovo npr. sprječava prilagodbu prilikom aktiviranja scene. Ako je \"false\", AL se prilagođava bez obzira na prisutnost boje ili svjetline u početnim \"service_data\". Potrebno je omogućiti `take_over_control`. 🕵️ "
         }
       }
     }

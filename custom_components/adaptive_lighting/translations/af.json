@@ -26,6 +26,16 @@
     "step": {
       "init": {
         "title": "Aanpasbare beligting opsies",
+        "data": {},
+        "data_description": {},
+        "menu_options": {
+          "advanced": "Configure advanced options",
+          "finish": "Save and finish"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "description": "Configure advanced Adaptive Lighting options. Most users don't need to change these settings.",
         "data": {
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Wanneer ligte aanvanklik aangeskakel word. As dit op \"true\" gestel is, pas AL slegs aan as \"light.turn_on\" opgeroep word sonder om kleur of helderheid te spesifiseer. ❌🌈 Dit verhoed bv. aanpassing wanneer 'n toneel geaktiveer word. As `onwaar`, pas AL aan ongeag die teenwoordigheid van kleur of helderheid in die aanvanklike `diens_data`. Moet `oorname_beheer` geaktiveer moet word. 🕵️ "
         },

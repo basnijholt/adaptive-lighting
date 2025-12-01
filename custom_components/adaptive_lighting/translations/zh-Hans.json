@@ -23,15 +23,31 @@
           "lights": "lights：要控制的灯光实体ID列表（可以为空）。🌟",
           "interval": "频率(interval)",
           "transition": "过渡(transition)",
-          "initial_transition": "初始过渡(initial_transition)",
           "min_brightness": "min_brightness：最小亮度百分比。💡",
           "max_brightness": "max_brightness：最大亮度百分比。💡",
           "min_color_temp": "min_color_temp：最暖的色温，以开尔文为单位。🔥",
           "max_color_temp": "max_color_temp：最冷的色温，以开尔文为单位。❄️",
-          "prefer_rgb_color": "prefer_rgb_color：在可能时是否优先使用RGB颜色调整而不是灯光色温。🌈",
           "sleep_brightness": "睡眠模式亮度(sleep_brightness)",
+          "sleep_color_temp": "睡眠模式中的色温(sleep_color_temp)"
+        },
+        "data_description": {
+          "interval": "调整灯光的频率，以秒为单位。🔄",
+          "transition": "灯光变化时的过渡持续时间，以秒为单位。🕑",
+          "sleep_brightness": "睡眠模式中的亮度百分比。😴",
+          "sleep_color_temp": "睡眠模式中的色温（当`sleep_rgb_or_color_temp`为`color_temp`时使用），以开尔文为单位。😴"
+        },
+        "menu_options": {
+          "advanced": "配置高级选项",
+          "finish": "保存并完成"
+        }
+      },
+      "advanced": {
+        "title": "高级设置",
+        "description": "配置自适应照明的高级选项。大多数用户不需要更改这些设置。",
+        "data": {
+          "initial_transition": "初始过渡(initial_transition)",
+          "prefer_rgb_color": "prefer_rgb_color：在可能时是否优先使用RGB颜色调整而不是灯光色温。🌈",
           "sleep_rgb_or_color_temp": "睡眠模式RGB或色温(sleep_rgb_or_color_temp)",
-          "sleep_color_temp": "睡眠模式中的色温(sleep_color_temp)",
           "sleep_rgb_color": "睡眠模式中的RGB颜色(sleep_rgb_color)",
           "sleep_transition": "睡眠模式过渡时间(sleep_transition)",
           "transition_until_sleep": "transition_until_sleep：启用时，自适应照明将将睡眠设置视为最小值，在日落后过渡到这些值。🌙",
@@ -60,12 +76,8 @@
           "include_config_in_attributes": "include_config_in_attributes：在Home Assistant中将所有选项显示为开关的属性时，设置为`true`。📝"
         },
         "data_description": {
-          "interval": "调整灯光的频率，以秒为单位。🔄",
-          "transition": "灯光变化时的过渡持续时间，以秒为单位。🕑",
           "initial_transition": "灯光从“关闭”到“开启”时的第一个过渡持续时间，以秒为单位。⏲️",
-          "sleep_brightness": "睡眠模式中的亮度百分比。😴",
           "sleep_rgb_or_color_temp": "在睡眠模式中使用“rgb_color”或“color_temp”。🌙",
-          "sleep_color_temp": "睡眠模式中的色温（当`sleep_rgb_or_color_temp`为`color_temp`时使用），以开尔文为单位。😴",
           "sleep_rgb_color": "睡眠模式中的RGB颜色（当`sleep_rgb_or_color_temp`为“rgb_color”时使用）。🌈",
           "sleep_transition": "切换“睡眠模式”时的过渡持续时间，以秒为单位。😴",
           "sunrise_time": "设置固定的日出时间（HH:MM:SS）。🌅",
