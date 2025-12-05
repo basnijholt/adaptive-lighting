@@ -8,6 +8,13 @@
         "data": {
           "name": "Name"
         }
+      },
+      "menu": {
+        "title": "Create or Duplicate",
+        "description": "Do you want to create a new instance or duplicate an existing one?",
+        "data": {
+          "action": "Action"
+        }
       }
     },
     "abort": {
