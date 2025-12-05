@@ -64,7 +64,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_NAME])
             self._abort_if_unique_id_configured()
-            options = getattr(self, "source_options", None)
+            options = self.source_options
             return self.async_create_entry(
                 title=user_input[CONF_NAME],
                 data=user_input,
