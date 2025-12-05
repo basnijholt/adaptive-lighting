@@ -29,12 +29,43 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial step."""
+        if user_input is None and self._async_current_entries():
+            return await self.async_step_menu()
+        return await self.async_step_wait_for_name(user_input)
+
+    async def async_step_menu(self, user_input: dict[str, Any] | None = None):
+        """Handle the menu step."""
+        if user_input is not None:
+            if user_input["action"] != "new":
+                entry_id = user_input["action"]
+                entry = self.hass.config_entries.async_get_entry(entry_id)
+                if entry:
+                    self.source_options = dict(entry.options)
+            return await self.async_step_wait_for_name()
+
+        entries = self._async_current_entries()
+        options = {"new": "Create new instance"}
+        for entry in entries:
+            options[entry.entry_id] = f"Duplicate '{entry.title}'"
+
+        return self.async_show_form(
+            step_id="menu",
+            data_schema=vol.Schema(
+                {vol.Required("action", default="new"): vol.In(options)}
+            ),
+        )
+
+    async def async_step_wait_for_name(self, user_input: dict[str, Any] | None = None):
+        """Handle the name step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_NAME])
             self._abort_if_unique_id_configured()
-            return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
+            options = getattr(self, "source_options", None)
+            return self.async_create_entry(
+                title=user_input[CONF_NAME], data=user_input, options=options
+            )
 
         return self.async_show_form(
             step_id="user",
