@@ -51,7 +51,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="menu",
             data_schema=vol.Schema(
-                {vol.Required("action", default="new"): vol.In(options)}
+                {vol.Required("action", default="new"): vol.In(options)},
             ),
         )
 
@@ -64,7 +64,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             options = getattr(self, "source_options", None)
             return self.async_create_entry(
-                title=user_input[CONF_NAME], data=user_input, options=options
+                title=user_input[CONF_NAME],
+                data=user_input,
+                options=options,
             )
 
         return self.async_show_form(
