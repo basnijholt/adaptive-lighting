@@ -28,14 +28,24 @@
   "options": {
     "step": {
       "init": {
+        "data": {},
+        "data_description": {},
+        "title": "明るさの自動調整オプション",
+        "menu_options": {
+          "advanced": "詳細オプションを設定",
+          "finish": "保存して終了"
+        }
+      },
+      "advanced": {
+        "title": "詳細設定",
+        "description": "Adaptive Lightingの詳細オプションを設定します。ほとんどのユーザーはこれらの設定を変更する必要はありません。",
         "data": {
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: 最初に照明オンにするとき。`true`を設定すると、AL(適応型照明）は調色や明るさを指定せずや`light.turn_on`をしたときのみ適応します。❌🌈 例えば、適応型照明をシーンを有効にするときにしないようにする。`false`であれば、`service_data`に最初から、ALはシーンの状態に関係なく調色や明るさを適応する。`take_over_control`を有効にすることが必要。🕵️ "
         },
         "data_description": {
           "sunrise_offset": "日の出時間を基準に秒単位で正値もしくは負値で調整する。⏰",
           "sunset_offset": "日の入時間を基準に秒単位で正値もしくは負値で調整する。⏰"
-        },
-        "title": "明るさの自動調整オプション"
+        }
       }
     }
   }

@@ -3,7 +3,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Επιλογές Adaptive Lighting"
+        "title": "Επιλογές Adaptive Lighting",
+        "menu_options": {
+          "advanced": "Ρύθμιση σύνθετων επιλογών",
+          "finish": "Αποθήκευση και ολοκλήρωση"
+        },
+        "data": {},
+        "data_description": {}
+      },
+      "advanced": {
+        "title": "Σύνθετες ρυθμίσεις",
+        "description": "Ρυθμίστε τις σύνθετες επιλογές του Adaptive Lighting. Οι περισσότεροι χρήστες δεν χρειάζεται να αλλάξουν αυτές τις ρυθμίσεις.",
+        "data": {},
+        "data_description": {}
       }
     }
   },
