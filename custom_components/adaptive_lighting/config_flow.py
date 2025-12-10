@@ -3,11 +3,11 @@
 import logging
 from typing import Any
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME, MAJOR_VERSION, MINOR_VERSION
 from homeassistant.core import callback
+from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
     CONF_LIGHTS,
@@ -16,8 +16,7 @@ from .const import (  # pylint: disable=unused-import
     NONE_STR,
     VALIDATION_TUPLES,
 )
-from .helpers import get_friendly_name
-from .switch import _supported_features, validate
+from .switch import validate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,12 +145,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        all_lights_with_names = {
-            light: get_friendly_name(self.hass, light)
-            for light in self.hass.states.async_entity_ids("light")
-            if _supported_features(self.hass, light)
-        }
-        all_lights = list(all_lights_with_names.keys())
+        # Validate that all configured lights still exist
+        all_lights = set(self.hass.states.async_entity_ids("light"))
         for configured_light in data[CONF_LIGHTS]:
             if configured_light not in all_lights:
                 errors = {CONF_LIGHTS: "entity_missing"}
@@ -160,14 +155,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     data[CONF_NAME],
                     configured_light,
                 )
-                all_lights.append(configured_light)
-                all_lights_with_names[configured_light] = configured_light
 
-        light_options = {
-            entity_id: f"{name} ({entity_id})"
-            for entity_id, name in all_lights_with_names.items()
+        to_replace = {
+            CONF_LIGHTS: EntitySelector(
+                EntitySelectorConfig(
+                    domain="light",
+                    multiple=True,
+                ),
+            ),
         }
-        to_replace = {CONF_LIGHTS: cv.multi_select(light_options)}
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:
