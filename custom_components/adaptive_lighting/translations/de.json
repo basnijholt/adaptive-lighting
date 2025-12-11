@@ -8,6 +8,13 @@
         "data": {
           "name": "Name"
         }
+      },
+      "menu": {
+        "title": "Erstellen oder Duplizieren",
+        "description": "Möchtest du eine neue Instanz erstellen oder eine existierende duplizieren?",
+        "data": {
+          "action": "Aktion"
+        }
       }
     },
     "abort": {
@@ -47,7 +54,7 @@
           "transition": "transition, Wechselzeit in Sekunden",
           "adapt_delay": "adapt_delay: Wartezeit (in Sekunden) zwischen Anschalten des Licht und der Anpassung durch Adaptive Lights. Kann Flackern vermeiden.",
           "skip_redundant_commands": "skip_redundant_commands: Überspringt das Senden von Anpassungsbefehlen, deren Zielzustand bereits mit dem bekannten Zustand der Leuchte übereinstimmt. Minimiert den Netzwerkverkehr und verbessert die Anpassungsreaktion in einigen Situationen. 📉 Deaktivieren, falls der physikalische Zustand der Lichter nicht mehr mit dem Zustand in HA übereinstimmt.",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Beim ersten Einschalten des Lichts. Wenn auf `true` gesetzt, passt AL das Licht nur an, wenn `light.turn_on` ohne eine Angabe von Farbe oder Helligkeit aufgerufen wird. ❌🌈 Dies verhindert z.B. die Anpassung durch AL beim Aktivieren einer Szene. Wenn auf \"false\" gesetzt, passt AL das licht unabhängig von der Angabe von Farbe oder Helligkeit in den ursprünglichen `service_data` an. Benötigt das `take_over_control` aktiviert ist. 🕵️ ",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Beim ersten Einschalten des Lichts. Wenn auf `true` gesetzt, passt AL das Licht nur an, wenn `light.turn_on` ohne eine Angabe von Farbe oder Helligkeit aufgerufen wird. ❌🌈 Dies verhindert z.B. die Anpassung durch AL beim Aktivieren einer Szene. Wenn auf \"false\" gesetzt, passt AL das licht unabhängig von der Angabe von Farbe oder Helligkeit in den ursprünglichen `service_data` an. Benötigt das `take_over_control` aktiviert ist. 🕵️",
           "include_config_in_attributes": "include_config_in_attributes: Alle Optionen als Attribute auf dem Schalter im Home Assistant anzeigen, wenn auf `true` gesetzt. 📝",
           "multi_light_intercept": "multi_light_intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, die auf mehrere Lichter aufrufen. ➗⚠️ Dies kann dazu führen, dass ein einzelner `light.turn_on`-Aufruf in mehrere Aufrufe aufgeteilt wird, z.B. wenn Lichter in verschiedenen Schaltern sind. Erfordert, dass `intercept` aktiviert ist.",
           "transition_until_sleep": "transition_until_sleep: Wenn diese Option aktiviert ist, behandelt die adaptive Beleuchtung die Schlafeinstellungen als Minimum und geht nach Sonnenuntergang zu diesen Werten über. 🌙",
