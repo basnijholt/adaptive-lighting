@@ -44,8 +44,6 @@ from homeassistant.const import (
     EVENT_CALL_SERVICE,
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_STATE_CHANGED,
-    MAJOR_VERSION,
-    MINOR_VERSION,
     SERVICE_TOGGLE,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
@@ -62,13 +60,8 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import entity_platform, entity_registry
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
-
-if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
-    from homeassistant.helpers.entity import DeviceInfo
-else:
-    from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
