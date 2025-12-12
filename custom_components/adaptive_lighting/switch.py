@@ -1746,6 +1746,8 @@ class AdaptiveLightingManager:
         ]
 
         self._proactively_adapting_contexts: dict[str, str] = {}
+        # Counter for creating unique context IDs for manager-level operations
+        self._context_cnt: int = 0
 
         try:
             self.listener_removers.append(
@@ -1808,6 +1810,23 @@ class AdaptiveLightingManager:
         ]
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
+
+    def create_context(
+        self,
+        which: str = "default",
+        parent: Context | None = None,
+    ) -> Context:
+        """Create a context for manager-level operations.
+
+        This is used for contexts that aren't associated with a specific
+        AdaptiveSwitch, such as when handling skipped lights that aren't
+        managed by any switch.
+
+        See: https://github.com/basnijholt/adaptive-lighting/pull/1348
+        """
+        context = create_context("manager", which, self._context_cnt, parent=parent)
+        self._context_cnt += 1
+        return context
 
     def _separate_entity_ids(
         self,
@@ -2046,8 +2065,11 @@ class AdaptiveLightingManager:
             if not has_intercepted:
                 assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
-            # Call light turn_on service for skipped entities
-            context = switch.create_context("skipped")
+            # Call light turn_on service for skipped entities.
+            # Use manager's create_context instead of a switch's to avoid using
+            # an arbitrary switch that has no relationship to the skipped lights.
+            # See: https://github.com/basnijholt/adaptive-lighting/pull/1348
+            context = self.create_context("skipped")
             _LOGGER.debug(
                 "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
@@ -2081,11 +2103,16 @@ class AdaptiveLightingManager:
         # `state_changed_event_listener`, however, this function is called
         # before that one.
         self.reset(*entity_ids, reset_manual_control=False)
-        for entity_id in entity_ids:
-            self.clear_proactively_adapting(entity_id)
+        for eid in entity_ids:
+            self.clear_proactively_adapting(eid)
 
+        # Use the first entity_id for preparing adaptation data since the
+        # intercepted service call applies to all entities in entity_ids.
+        # Previously this used `entity_id` from the for-loop which was the
+        # last entity - see https://github.com/basnijholt/adaptive-lighting/pull/1348
+        first_entity_id = entity_ids[0]
         adaptation_data = await switch.prepare_adaptation_data(
-            entity_id,
+            first_entity_id,
             transition,
         )
         if adaptation_data is None:
