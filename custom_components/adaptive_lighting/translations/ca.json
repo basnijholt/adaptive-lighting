@@ -193,6 +193,13 @@
       "user": {
         "title": "Tria un nom per a la instància d'Adaptive Lighting",
         "description": "Cada instància pot contenir múltiples llums!"
+      },
+      "menu": {
+        "title": "Crear o Duplicar",
+        "description": "Vols crear una nova instància, o duplicar-ne una d'existent?",
+        "data": {
+          "action": "Acció"
+        }
       }
     },
     "abort": {
