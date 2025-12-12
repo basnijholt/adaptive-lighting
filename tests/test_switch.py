@@ -2588,7 +2588,8 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
     # The context should still be recognized as ours
     assert is_our_context_id(skipped_context_id), "Skipped context should be recognized"
     assert is_our_context_id(
-        skipped_context_id, "skipped"
+        skipped_context_id,
+        "skipped",
     ), "Skipped context should have 'skipped' marker"
 
     # Verify the skipped lights are the ones not in any switch
