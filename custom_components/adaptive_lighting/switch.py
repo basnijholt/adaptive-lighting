@@ -2057,6 +2057,7 @@ class AdaptiveLightingManager:
             if not has_intercepted:
                 assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
+            # Call light turn_on service for skipped entities
             context = self.create_context("skipped")
             _LOGGER.debug(
                 "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
