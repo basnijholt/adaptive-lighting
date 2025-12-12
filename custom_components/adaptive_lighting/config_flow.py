@@ -5,7 +5,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME, MAJOR_VERSION, MINOR_VERSION
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
@@ -96,13 +96,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
+        config_entry: config_entries.ConfigEntry,  # noqa: ARG004
     ) -> "OptionsFlowHandler":
         """Get the options flow for this handler."""
-        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
-            # https://github.com/home-assistant/core/pull/129651
-            return OptionsFlowHandler()
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
 def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None:
@@ -125,21 +122,13 @@ def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize options flow."""
-        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
-            super().__init__(*args, **kwargs)
-            # https://github.com/home-assistant/core/pull/129651
-        else:
-            self.config_entry = args[0]
-
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Handle options flow."""
         conf = self.config_entry
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(step_id="init", data_schema=None)
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             validate_options(user_input, errors)
             if not errors:
@@ -156,7 +145,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     configured_light,
                 )
 
-        to_replace = {
+        to_replace: dict[str, Any] = {
             CONF_LIGHTS: EntitySelector(
                 EntitySelectorConfig(
                     domain="light",

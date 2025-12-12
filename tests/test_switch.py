@@ -71,6 +71,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     create_context,
     is_our_context,
     is_our_context_id,
+    short_hash,
 )
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -2462,3 +2463,144 @@ def test_attributes_have_changed_light_mode_switch():
         new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
         **kwargs_no_adapt,
     ), "RGB → color_temp should not be detected when adapt_color=False"
+
+
+# Regression tests for bugs found in PR #1348 by @protyposis
+# See: https://github.com/basnijholt/adaptive-lighting/pull/1348
+
+
+async def test_multi_light_intercept_prepares_adaptation_for_first_entity(hass):
+    """Test that adaptation data is prepared for the first entity, not the last.
+
+    Regression test for a bug where `entity_id` from a for-loop was used after
+    the loop ended, causing `prepare_adaptation_data` to be called with only
+    the last entity's ID instead of the first.
+
+    In `_service_interceptor_turn_on_single_light_handler`:
+    ```python
+    for entity_id in entity_ids:
+        self.clear_proactively_adapting(entity_id)
+
+    adaptation_data = await switch.prepare_adaptation_data(
+        entity_id,  # BUG: This uses the last entity_id from the loop!
+        transition,
+    )
+    ```
+
+    The adaptation data should be prepared for the first entity in the list since
+    that's the one whose service call is being intercepted and modified.
+
+    See: https://github.com/basnijholt/adaptive-lighting/pull/1348
+    """
+    switch, _ = await setup_lights_and_switch(hass, {CONF_INTERCEPT: True}, True)
+
+    # Turn off all lights first
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3]},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # Mock prepare_adaptation_data to track which entity_id it's called with
+    original_prepare = switch.prepare_adaptation_data
+    called_with_entities = []
+
+    async def mock_prepare_adaptation_data(light, *args, **kwargs):
+        called_with_entities.append(light)
+        return await original_prepare(light, *args, **kwargs)
+
+    switch.prepare_adaptation_data = mock_prepare_adaptation_data
+
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+
+    # Turn on multiple lights at once - this triggers the interceptor
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: [ENTITY_LIGHT_1, ENTITY_LIGHT_2]},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # The bug causes prepare_adaptation_data to be called with the LAST entity
+    # (ENTITY_LIGHT_2) instead of the FIRST entity (ENTITY_LIGHT_1)
+    assert len(called_with_entities) >= 1, "prepare_adaptation_data should be called"
+
+    # The first call should be for ENTITY_LIGHT_1 (the first entity in the list)
+    # since the intercepted service call will apply to all entities in entity_ids
+    # BUG: Currently this fails because entity_id is ENTITY_LIGHT_2 (the last one)
+    assert called_with_entities[0] == ENTITY_LIGHT_1, (
+        f"prepare_adaptation_data should be called with the first entity "
+        f"({ENTITY_LIGHT_1}), but was called with {called_with_entities[0]}. "
+        f"This indicates the bug where the last entity from the for-loop is used."
+    )
+
+
+async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
+    """Test that context for skipped lights uses manager, not an arbitrary switch.
+
+    Regression test for a bug where the context for skipped lights was created
+    using `switch.create_context("skipped")` where `switch` was from the last
+    iteration of a for-loop, which had no relationship to the skipped lights.
+
+    The fix uses `self.create_context("skipped")` on the AdaptiveLightingManager
+    instead, which uses "manager" as the context name.
+
+    See: https://github.com/basnijholt/adaptive-lighting/pull/1348
+    """
+    # Setup two switches with different lights
+    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+
+    # Turn on all three lights at once:
+    # - ENTITY_LIGHT_1 is in switch1
+    # - ENTITY_LIGHT_2 is in switch2
+    # - ENTITY_LIGHT_3 is not in any switch (will be skipped)
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        "test_skipped_context",
+        lights,
+        return_full_events=True,
+    )
+
+    # Find the skipped event (contains ":skpp:" in context)
+    skipped_events = [e for e in events if ":skpp:" in e.context.id]
+    assert (
+        len(skipped_events) == 1
+    ), f"Expected 1 skipped event, got {len(skipped_events)}"
+
+    skipped_event = skipped_events[0]
+    skipped_context_id = skipped_event.context.id
+
+    # Extract the name_hash from the context
+    # Context format: {timestamp}:{al}:{name_hash}:{which_short}:{index}
+    context_parts = skipped_context_id.split(":")
+    assert len(context_parts) >= 4, f"Unexpected context format: {skipped_context_id}"
+
+    # The context should still be recognized as ours
+    assert is_our_context_id(skipped_context_id), "Skipped context should be recognized"
+    assert is_our_context_id(
+        skipped_context_id,
+        "skipped",
+    ), "Skipped context should have 'skipped' marker"
+
+    # Verify the skipped lights are the ones not in any switch
+    assert skipped_event.data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
+
+    # After the fix, the context should use "manager" as the name, not a switch name.
+    # The name_hash is the 3rd segment (index 2) in the context ID.
+    name_hash_in_context = context_parts[2]
+    expected_manager_hash = short_hash("manager")
+    assert name_hash_in_context == expected_manager_hash, (
+        f"Skipped context should use 'manager' hash ({expected_manager_hash}), "
+        f"but got {name_hash_in_context}. This indicates the context is still "
+        f"being created from an arbitrary switch instead of the manager."
+    )
