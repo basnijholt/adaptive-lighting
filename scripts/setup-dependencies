@@ -15,3 +15,7 @@ uv pip install $(python test_dependencies.py)
 
 # Install the latest mypy-dev (not pinned since old versions get deleted from PyPI)
 uv pip install --upgrade mypy-dev
+
+# Workaround for aiodns/pycares compatibility issue
+# See: https://github.com/aio-libs/aiodns/issues/214
+uv pip install --upgrade aiodns
