@@ -618,7 +618,8 @@ def _is_light_group(state: State) -> bool:
 def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     state = hass.states.get(light)
     assert state is not None
-    supported_features = int(state.attributes.get(ATTR_SUPPORTED_FEATURES, 0))  # type: ignore[arg-type]
+    supported_features = int(state.attributes.get(
+        ATTR_SUPPORTED_FEATURES, 0))  # type: ignore[arg-type]
     assert isinstance(supported_features, int)
 
     supported: set[str] = set()
@@ -626,7 +627,8 @@ def _supported_features(hass: HomeAssistant, light: str) -> set[str]:
     if supported_features & LightEntityFeature.TRANSITION:
         supported.add("transition")
 
-    supported_color_modes = state.attributes.get(ATTR_SUPPORTED_COLOR_MODES, set())  # type: ignore[arg-type]
+    supported_color_modes = state.attributes.get(
+        ATTR_SUPPORTED_COLOR_MODES, set())  # type: ignore[arg-type]
     color_modes = {
         ColorMode.RGB,
         ColorMode.RGBW,
@@ -1038,23 +1040,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not self.is_on or not self.hass.is_running:
             _LOGGER.debug("%s: Cancelled '_setup_listeners'", self._name)
             return
-
-        while not all(
-            sw._state is not None
-            for sw in [
-                self.sleep_mode_switch,
-                self.adapt_brightness_switch,
-                self.adapt_color_switch,
-            ]
-        ):
-            # Waits until `async_added_to_hass` is done, which in SimpleSwitch
-            # is when `_state` is set to `True` or `False`.
-            # Fixes first issue in https://github.com/basnijholt/adaptive-lighting/issues/682
-            _LOGGER.debug(
-                "%s: Waiting for simple switches to be initialized",
-                self._name,
-            )
-            await asyncio.sleep(0.1)
 
         assert not self.remove_listeners
 
