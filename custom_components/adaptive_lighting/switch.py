@@ -1746,6 +1746,7 @@ class AdaptiveLightingManager:
         ]
 
         self._proactively_adapting_contexts: dict[str, str] = {}
+        self._context_cnt: int = 0
 
         try:
             self.listener_removers.append(
@@ -1808,6 +1809,16 @@ class AdaptiveLightingManager:
         ]
         for key in keys:
             self._proactively_adapting_contexts.pop(key)
+
+    def create_context(
+        self,
+        which: str = "default",
+        parent: Context | None = None,
+    ) -> Context:
+        """Create a context that identifies this integration."""
+        context = create_context("manager", which, self._context_cnt, parent=parent)
+        self._context_cnt += 1
+        return context
 
     def _separate_entity_ids(
         self,
@@ -2047,7 +2058,7 @@ class AdaptiveLightingManager:
                 assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
-            context = switch.create_context("skipped")
+            context = self.create_context("skipped")
             _LOGGER.debug(
                 "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
@@ -2081,11 +2092,11 @@ class AdaptiveLightingManager:
         # `state_changed_event_listener`, however, this function is called
         # before that one.
         self.reset(*entity_ids, reset_manual_control=False)
-        for entity_id in entity_ids:
-            self.clear_proactively_adapting(entity_id)
+        for eid in entity_ids:
+            self.clear_proactively_adapting(eid)
 
         adaptation_data = await switch.prepare_adaptation_data(
-            entity_id,
+            entity_ids[0],
             transition,
         )
         if adaptation_data is None:
