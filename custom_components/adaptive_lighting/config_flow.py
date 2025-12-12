@@ -128,7 +128,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(step_id="init", data_schema=None)
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
             validate_options(user_input, errors)
             if not errors:
@@ -145,7 +145,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     configured_light,
                 )
 
-        to_replace = {
+        to_replace: dict[str, Any] = {
             CONF_LIGHTS: EntitySelector(
                 EntitySelectorConfig(
                     domain="light",

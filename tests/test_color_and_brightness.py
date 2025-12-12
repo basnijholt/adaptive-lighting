@@ -5,8 +5,7 @@ import pytest
 from astral import LocationInfo
 from astral.location import Location
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
-    SUN_EVENT_NOON,
-    SUN_EVENT_SUNRISE,
+    SunEvent,
     SunEvents,
 )
 
@@ -167,7 +166,7 @@ def test_sun_events(tzinfo_and_location):
     date = dt.datetime(2022, 1, 1)
     events = sun_events.sun_events(date)
     assert len(events) == 4
-    assert (SUN_EVENT_SUNRISE, location.sunrise(date).timestamp()) in events
+    assert (SunEvent.SUNRISE, location.sunrise(date).timestamp()) in events
 
 
 def test_prev_and_next_events(tzinfo_and_location):
@@ -186,8 +185,8 @@ def test_prev_and_next_events(tzinfo_and_location):
     datetime = dt.datetime(2022, 1, 1, 10, 0)
     after_sunrise = sun_events.sunrise(datetime.date()) + dt.timedelta(hours=1)
     prev_event, next_event = sun_events.prev_and_next_events(after_sunrise)
-    assert prev_event[0] == SUN_EVENT_SUNRISE
-    assert next_event[0] == SUN_EVENT_NOON
+    assert prev_event[0] == SunEvent.SUNRISE
+    assert next_event[0] == SunEvent.NOON
 
 
 def test_closest_event(tzinfo_and_location):
@@ -206,5 +205,5 @@ def test_closest_event(tzinfo_and_location):
     datetime = dt.datetime(2022, 1, 1, 6, 0)
     sunrise = sun_events.sunrise(datetime.date())
     event_name, ts = sun_events.closest_event(sunrise)
-    assert event_name == SUN_EVENT_SUNRISE
+    assert event_name == SunEvent.SUNRISE
     assert ts == location.sunrise(sunrise.date()).timestamp()
