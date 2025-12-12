@@ -2573,7 +2573,9 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
 
     # Find the skipped event (contains ":skpp:" in context)
     skipped_events = [e for e in events if ":skpp:" in e.context.id]
-    assert len(skipped_events) == 1, f"Expected 1 skipped event, got {len(skipped_events)}"
+    assert (
+        len(skipped_events) == 1
+    ), f"Expected 1 skipped event, got {len(skipped_events)}"
 
     skipped_event = skipped_events[0]
     skipped_context_id = skipped_event.context.id
@@ -2585,9 +2587,9 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
 
     # The context should still be recognized as ours
     assert is_our_context_id(skipped_context_id), "Skipped context should be recognized"
-    assert is_our_context_id(skipped_context_id, "skipped"), (
-        "Skipped context should have 'skipped' marker"
-    )
+    assert is_our_context_id(
+        skipped_context_id, "skipped"
+    ), "Skipped context should have 'skipped' marker"
 
     # Verify the skipped lights are the ones not in any switch
     assert skipped_event.data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
