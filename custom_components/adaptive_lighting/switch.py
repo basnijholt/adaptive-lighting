@@ -1793,12 +1793,8 @@ class AdaptiveLightingManager:
         data,
     ) -> tuple[list[str], list[str]]:
         # Create a mapping from switch to entity IDs
-        # AdaptiveSwitch.name → entity_ids mapping
-        switch_to_eids: dict[str, list[str]] = {}
-        # AdaptiveSwitch.name → AdaptiveSwitch mapping
-        switch_name_mapping: dict[str, AdaptiveSwitch] = {}
-        # Note: In HA≥2023.5, AdaptiveSwitch is hashable, so we can
-        # use dict[AdaptiveSwitch, list[str]]
+        # AdaptiveSwitch → entity_ids mapping
+        switch_to_eids: dict[AdaptiveSwitch, list[str]] = {}
         skipped: list[str] = []
         for entity_id in entity_ids:
             try:
@@ -1848,19 +1844,17 @@ class AdaptiveLightingManager:
                     )
                     skipped.append(entity_id)
                 else:
-                    switch_to_eids.setdefault(switch.name, []).append(entity_id)
-                    switch_name_mapping[switch.name] = switch
-        return switch_to_eids, switch_name_mapping, skipped
+                    switch_to_eids.setdefault(switch, []).append(entity_id)
+        return switch_to_eids, skipped
 
     def _correct_for_multi_light_intercept(
         self,
         entity_ids,
         switch_to_eids,
-        switch_name_mapping,
         skipped,
     ):
         # Check for `multi_light_intercept: true/false`
-        mli = [sw._multi_light_intercept for sw in switch_name_mapping.values()]
+        mli = [sw._multi_light_intercept for sw in switch_to_eids.keys()]
         more_than_one_switch = len(switch_to_eids) > 1
         single_switch_with_multiple_lights = (
             len(switch_to_eids) == 1 and len(next(iter(switch_to_eids.values()))) > 1
@@ -1886,7 +1880,7 @@ class AdaptiveLightingManager:
             )
             skipped = entity_ids
             switch_to_eids = {}
-        return switch_to_eids, switch_name_mapping, skipped
+        return switch_to_eids, skipped
 
     async def _service_interceptor_turn_on_handler(
         self,
@@ -1951,19 +1945,17 @@ class AdaptiveLightingManager:
         # we skip them and rely on the followup call that HA will make
         # with the expanded entity IDs.
 
-        switch_to_eids, switch_name_mapping, skipped = self._separate_entity_ids(
+        switch_to_eids, skipped = self._separate_entity_ids(
             entity_ids,
             service_data,
         )
 
         (
             switch_to_eids,
-            switch_name_mapping,
             skipped,
         ) = self._correct_for_multi_light_intercept(
             entity_ids,
             switch_to_eids,
-            switch_name_mapping,
             skipped,
         )
         _LOGGER.debug(
@@ -1981,8 +1973,7 @@ class AdaptiveLightingManager:
 
         # Intercept the call for first switch and call _adapt_light for the rest
         has_intercepted = False  # Can only intercept a turn_on call once
-        for adaptive_switch_name, _entity_ids in switch_to_eids.items():
-            switch = switch_name_mapping[adaptive_switch_name]
+        for switch, _entity_ids in switch_to_eids.items():
             transition = service_data[CONF_PARAMS].get(
                 ATTR_TRANSITION,
                 switch.initial_transition,
