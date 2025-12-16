@@ -1712,7 +1712,7 @@ class AdaptiveLightingManager:
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self.turn_off_locks: dict[str, asyncio.Lock] = {}
         # Tracks which lights are manually controlled
-        self.manual_control: dict[str, bool] = {}
+        self.manual_control: dict[str, LightControlParameter] = {}
         # Track 'state_changed' events of self.lights resulting from this integration
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -2208,7 +2208,9 @@ class AdaptiveLightingManager:
     def mark_as_manual_control(self, light: str) -> None:
         """Mark a light as manually controlled."""
         _LOGGER.debug("Marking '%s' as manually controlled.", light)
-        self.manual_control[light] = True
+        self.manual_control[light] = (
+            LightControlParameter.BRIGHTNESS | LightControlParameter.COLOR
+        )
         delay = self.auto_reset_manual_control_times.get(light)
 
         async def reset() -> None:
@@ -2229,7 +2231,7 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert not self.manual_control[light]
+            assert self.manual_control[light] == LightControlParameter.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
@@ -2260,7 +2262,7 @@ class AdaptiveLightingManager:
         """Reset the 'manual_control' status of the lights."""
         for light in lights:
             if reset_manual_control:
-                self.manual_control[light] = False
+                self.manual_control[light] = LightControlParameter.NONE
                 if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
@@ -2489,8 +2491,10 @@ class AdaptiveLightingManager:
         adapt_color: bool,
     ) -> bool:
         """Check if the light has been 'on' and is now manually controlled."""
-        manual_control = self.manual_control.setdefault(light, False)
-        if manual_control:
+        manual_control = self.manual_control.setdefault(
+            light, LightControlParameter.NONE
+        )
+        if manual_control != LightControlParameter.NONE:
             # Manually controlled until light is turned on and off
             return True
 
@@ -2510,7 +2514,9 @@ class AdaptiveLightingManager:
             ):
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = True
+                manual_control = (
+                    LightControlParameter.BRIGHTNESS | LightControlParameter.COLOR
+                )
                 _fire_manual_control_event(switch, light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
@@ -2520,7 +2526,7 @@ class AdaptiveLightingManager:
                     light,
                     turn_on_event.context.id,
                 )
-        return manual_control
+        return manual_control != LightControlParameter.NONE
 
     async def significant_change(
         self,
