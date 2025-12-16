@@ -8,7 +8,7 @@ import logging
 import zoneinfo
 from copy import deepcopy
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
@@ -79,6 +79,7 @@ from .adaptation_utils import (
     BRIGHTNESS_ATTRS,
     COLOR_ATTRS,
     AdaptationData,
+    LightControlParameter,
     ServiceData,
     prepare_adaptation_data,
 )
@@ -1375,7 +1376,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         to cancel an ongoing adaptation when a light is turned off.
         """
         # Prevent overlap of multiple adaptation sequences
-        self.manager.cancel_ongoing_adaptation_calls(data.entity_id, which=data.which)
+        self.manager.cancel_ongoing_adaptation_calls(data.entity_id)
         _LOGGER.debug(
             "%s: execute_cancellable_adaptation_calls with data: %s",
             self._name,
@@ -1384,9 +1385,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            if data.which in ("both", "brightness"):
+            if LightControlParameter.BRIGHTNESS in data.parameters:
                 self.manager.adaptation_tasks_brightness[data.entity_id] = task
-            if data.which in ("both", "color"):
+            if LightControlParameter.COLOR in data.parameters:
                 self.manager.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
@@ -2235,28 +2236,18 @@ class AdaptiveLightingManager:
     def cancel_ongoing_adaptation_calls(
         self,
         light_id: str,
-        which: Literal["color", "brightness", "both"] = "both",
     ) -> None:
         """Cancel ongoing adaptation service calls for a specific light entity."""
         brightness_task = self.adaptation_tasks_brightness.get(light_id)
         color_task = self.adaptation_tasks_color.get(light_id)
-        if (
-            which in ("both", "brightness")
-            and brightness_task is not None
-            and not brightness_task.done()
-        ):
+        if brightness_task is not None and not brightness_task.done():
             _LOGGER.debug(
                 "Cancelled ongoing brightness adaptation calls (%s) for '%s'",
                 brightness_task,
                 light_id,
             )
             brightness_task.cancel()
-        if (
-            which in ("both", "color")
-            and color_task is not None
-            and color_task is not brightness_task
-            and not color_task.done()
-        ):
+        if color_task is not None and not color_task.done():
             _LOGGER.debug(
                 "Cancelled ongoing color adaptation calls (%s) for '%s'",
                 color_task,

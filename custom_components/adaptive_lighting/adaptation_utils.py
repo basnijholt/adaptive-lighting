@@ -3,7 +3,8 @@
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any, Literal
+from enum import IntFlag, auto
+from typing import Any
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -43,6 +44,14 @@ BRIGHTNESS_ATTRS = {
 }
 
 ServiceData = dict[str, Any]
+
+
+class LightControlParameter(IntFlag):
+    """Indicates which light attributes are being adapted."""
+
+    NONE = 0
+    BRIGHTNESS = auto()
+    COLOR = auto()
 
 
 def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
@@ -145,7 +154,7 @@ class AdaptationData:
     service_call_datas: AsyncGenerator[ServiceData]
     force: bool
     max_length: int
-    which: Literal["brightness", "color", "both"]
+    parameters: LightControlParameter
     initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
@@ -161,7 +170,7 @@ class AdaptationData:
             f"sleep_time={self.sleep_time}, "
             f"force={self.force}, "
             f"max_length={self.max_length}, "
-            f"which={self.which}, "
+            f"parameters={self.parameters}, "
             f"initial_sleep={self.initial_sleep}"
             ")"
         )
@@ -171,20 +180,25 @@ class NoColorOrBrightnessInServiceDataError(Exception):
     """Exception raised when no color or brightness attributes are found in service data."""
 
 
-def _identify_lighting_type(
+def _identify_light_control_parameters(
     service_data: ServiceData,
-) -> Literal["brightness", "color", "both"]:
+) -> LightControlParameter:
     """Extract the 'which' attribute from the service data."""
     has_brightness = ATTR_BRIGHTNESS in service_data
     has_color = any(attr in service_data for attr in COLOR_ATTRS)
-    if has_brightness and has_color:
-        return "both"
+
+    parameters = LightControlParameter.NONE
+
     if has_brightness:
-        return "brightness"
+        parameters |= LightControlParameter.BRIGHTNESS
     if has_color:
-        return "color"
-    msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
-    raise NoColorOrBrightnessInServiceDataError(msg)
+        parameters |= LightControlParameter.COLOR
+
+    if parameters == LightControlParameter.NONE:
+        msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
+        raise NoColorOrBrightnessInServiceDataError(msg)
+
+    return parameters
 
 
 def prepare_adaptation_data(
@@ -220,7 +234,7 @@ def prepare_adaptation_data(
         filter_by_state,
     )
 
-    lighting_type = _identify_lighting_type(service_data)
+    parameters = _identify_light_control_parameters(service_data)
 
     return AdaptationData(
         entity_id=entity_id,
@@ -229,5 +243,5 @@ def prepare_adaptation_data(
         service_call_datas=service_data_iterator,
         force=force,
         max_length=service_datas_length,
-        which=lighting_type,
+        parameters=parameters,
     )

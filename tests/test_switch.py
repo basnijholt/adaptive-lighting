@@ -18,6 +18,7 @@ import voluptuous.error
 from flaky import flaky
 from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
+    LightControlParameter,
     _create_service_call_data_iterator,
 )
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
@@ -1538,7 +1539,7 @@ async def test_cancellable_service_calls_task(hass):
         _create_service_call_data_iterator(hass, [service_data], False),
         force=False,
         max_length=1,
-        which="both",
+        parameters=LightControlParameter.BRIGHTNESS | LightControlParameter.COLOR,
     )
     await switch.execute_cancellable_adaptation_calls(adaptation_data)
 
