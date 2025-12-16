@@ -116,6 +116,7 @@ from .const import (
     CONF_PREFER_RGB_COLOR,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
+    CONF_SKIP_BRIGHTNESS_INCREASES,
     CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_COLOR_TEMP,
@@ -941,6 +942,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
+        self._skip_brightness_increases = data[CONF_SKIP_BRIGHTNESS_INCREASES]
         self._intercept = data[CONF_INTERCEPT]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
         if not data[CONF_INTERCEPT] and data[CONF_MULTI_LIGHT_INTERCEPT]:
@@ -1287,6 +1289,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             split=self._separate_turn_on_commands,
             filter_by_state=self._skip_redundant_commands,
             force=force,
+            skip_brightness_increases=self._skip_brightness_increases,
         )
 
     async def _adapt_light(

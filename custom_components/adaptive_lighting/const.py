@@ -234,6 +234,17 @@ DOCS[CONF_SKIP_REDUNDANT_COMMANDS] = (
     "Disable if physical light states get out of sync with HA's recorded state."
 )
 
+CONF_SKIP_BRIGHTNESS_INCREASES, DEFAULT_SKIP_BRIGHTNESS_INCREASES = (
+    "skip_brightness_increases",
+    False,
+)
+DOCS[CONF_SKIP_BRIGHTNESS_INCREASES] = (
+    "Skip sending adaptation commands when the target brightness "
+    "is greater than the current entity brightness. Will "
+    "result in lights which have been manually dimmed "
+    "not increasing in brightness."
+)
+
 CONF_INTERCEPT, DEFAULT_INTERCEPT = "intercept", True
 DOCS[CONF_INTERCEPT] = (
     "Intercept and adapt `light.turn_on` calls to enabling instantaneous color "
@@ -367,6 +378,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
         DEFAULT_SKIP_REDUNDANT_COMMANDS,
         bool,
     ),
+    (CONF_SKIP_BRIGHTNESS_INCREASES, DEFAULT_SKIP_BRIGHTNESS_INCREASES, bool),
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
