@@ -754,7 +754,7 @@ async def test_manual_control(
     await turn_light(True)
     assert not manual_control[ENTITY_LIGHT_1]
     await switch.adapt_color_switch.async_turn_off()
-    await turn_light(True, color_temp=increased_color_temp())
+    await turn_light(True, color_temp_kelvin=increased_color_temp())
     assert not manual_control[ENTITY_LIGHT_1]
     await turn_light(True, brightness=increased_brightness())
     assert manual_control[ENTITY_LIGHT_1]
@@ -766,11 +766,11 @@ async def test_manual_control(
     await switch.adapt_color_switch.async_turn_off()
     await switch.adapt_brightness_switch.async_turn_off()
     assert not manual_control[ENTITY_LIGHT_1]
-    await turn_light(True, color_temp=increased_color_temp())
+    await turn_light(True, color_temp_kelvin=increased_color_temp())
     await turn_light(True, brightness=increased_brightness())
     await turn_light(
         True,
-        color_temp=increased_color_temp(),
+        color_temp_kelvin=increased_color_temp(),
         brightness=increased_brightness(),
     )
     assert not manual_control[ENTITY_LIGHT_1]
@@ -1346,7 +1346,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     # check whether the brightness and color_temp change.
     context = switch.create_context("test")  # needs to be passed to update method
     brightness = light.brightness
-    color_temp = light.color_temp
+    color_temp = light.color_temp_kelvin
     await switch.sleep_mode_switch.async_turn_on()
     await switch._update_attrs_and_maybe_adapt_lights(context=context)
     await hass.async_block_till_done()
@@ -1354,7 +1354,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     # TODO: figure out why `light.brightness` is not updating
     attrs = hass.states.get(light.entity_id).attributes
     sleep_brightness = attrs["brightness"]
-    sleep_color_temp = attrs["color_temp"]
+    sleep_color_temp = attrs["color_temp_kelvin"]
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
@@ -1365,7 +1365,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
     attrs = hass.states.get(light.entity_id).attributes
     brightness = attrs["brightness"]
-    color_temp = attrs["color_temp"]
+    color_temp = attrs["color_temp_kelvin"]
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
@@ -1949,7 +1949,7 @@ async def test_two_switches_for_single_light(hass):
 
     assert light1.is_on
     await turn_light(True, brightness=increased_brightness())
-    await turn_light(True, color_temp=increased_color_temp())
+    await turn_light(True, color_temp_kelvin=increased_color_temp())
 
     attrs = hass.states.get(light1.entity_id).attributes
     before_brightness = attrs[ATTR_BRIGHTNESS]
