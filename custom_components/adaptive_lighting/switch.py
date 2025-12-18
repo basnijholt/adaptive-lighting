@@ -17,8 +17,6 @@ import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
-    ATTR_EFFECT,
-    ATTR_FLASH,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
@@ -76,11 +74,12 @@ from homeassistant.util.color import (
 )
 
 from .adaptation_utils import (
-    BRIGHTNESS_ATTRS,
-    COLOR_ATTRS,
     AdaptationData,
-    LightControlParameter,
+    LightControlAttribute,
     ServiceData,
+    get_light_control_attributes,
+    has_effect_attribute,
+    manual_control_event_attribute_to_flags,
     prepare_adaptation_data,
 )
 from .color_and_brightness import SunLightSettings
@@ -128,6 +127,7 @@ from .const import (
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TAKE_OVER_CONTROL,
+    CONF_TAKE_OVER_CONTROL_MODE,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
@@ -144,6 +144,7 @@ from .const import (
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
+    TakeOverControlMode,
     apply_service_schema,
     replace_none_str,
 )
@@ -360,27 +361,6 @@ async def handle_change_switch_settings(
         )
 
 
-@callback
-def _fire_manual_control_event(
-    switch: AdaptiveSwitch,
-    light: str,
-    context: Context,
-) -> None:
-    """Fire an event that 'light' is marked as manual_control."""
-    hass = switch.hass
-    _LOGGER.debug(
-        "'adaptive_lighting.manual_control' event fired for %s for light %s",
-        switch.entity_id,
-        light,
-    )
-    switch.manager.mark_as_manual_control(light)
-    hass.bus.async_fire(
-        f"{DOMAIN}.manual_control",
-        {ATTR_ENTITY_ID: light, SWITCH_DOMAIN: switch.entity_id},
-        context=context,
-    )
-
-
 async def async_setup_entry(  # noqa: PLR0915
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -498,9 +478,21 @@ async def async_setup_entry(  # noqa: PLR0915
                 all_lights = switch.lights
             else:
                 all_lights = _expand_light_groups(hass, lights)
-            if service_call.data[CONF_MANUAL_CONTROL]:
+
+            manual_attributes = manual_control_event_attribute_to_flags(
+                service_call.data[CONF_MANUAL_CONTROL],
+            )
+
+            if manual_attributes:
                 for light in all_lights:
-                    _fire_manual_control_event(switch, light, service_call.context)
+                    switch.manager.set_manual_control_attributes(
+                        light,
+                        manual_attributes,
+                    )
+                    switch.fire_manual_control_event(
+                        light,
+                        service_call.context,
+                    )
             else:
                 switch.manager.reset(*all_lights)
                 if switch.is_on:
@@ -754,36 +746,32 @@ def _attributes_have_changed(
     light: str,
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
-    adapt_brightness: bool,
-    adapt_color: bool,
     context: Context,
-) -> bool:
+) -> LightControlAttribute:
     # 2023-11-19: HA core no longer removes light domain attributes when off
     # so we must protect for `None` here
     # see https://github.com/home-assistant/core/pull/101946
 
+    changed_attributes = LightControlAttribute.NONE
+
     # Check for color mode changes BEFORE attribute conversion
     # This detects external changes like Hue scenes switching from color_temp to RGB
     # See: https://github.com/basnijholt/adaptive-lighting/issues/1275
-    if adapt_color and _has_color_mode_changed(
+    if _has_color_mode_changed(
         light,
         old_attributes,
         new_attributes,
         context,
     ):
-        return True
+        changed_attributes |= LightControlAttribute.COLOR
 
-    if adapt_color:
+    if LightControlAttribute.COLOR not in changed_attributes:
         old_attributes, new_attributes = _add_missing_attributes(
             old_attributes,
             new_attributes,
         )
 
-    if (
-        adapt_brightness
-        and old_attributes.get(ATTR_BRIGHTNESS)
-        and new_attributes.get(ATTR_BRIGHTNESS)
-    ):
+    if old_attributes.get(ATTR_BRIGHTNESS) and new_attributes.get(ATTR_BRIGHTNESS):
         last_brightness = old_attributes[ATTR_BRIGHTNESS]
         current_brightness = new_attributes[ATTR_BRIGHTNESS]
         if abs(current_brightness - last_brightness) > BRIGHTNESS_CHANGE:
@@ -795,10 +783,10 @@ def _attributes_have_changed(
                 current_brightness,
                 context.id,
             )
-            return True
+            changed_attributes |= LightControlAttribute.BRIGHTNESS
 
     if (
-        adapt_color
+        LightControlAttribute.COLOR not in changed_attributes
         and old_attributes.get(ATTR_COLOR_TEMP_KELVIN)
         and new_attributes.get(ATTR_COLOR_TEMP_KELVIN)
     ):
@@ -813,10 +801,10 @@ def _attributes_have_changed(
                 current_color_temp,
                 context.id,
             )
-            return True
+            changed_attributes |= LightControlAttribute.COLOR
 
     if (
-        adapt_color
+        LightControlAttribute.COLOR not in changed_attributes
         and old_attributes.get(ATTR_RGB_COLOR)
         and new_attributes.get(ATTR_RGB_COLOR)
     ):
@@ -832,9 +820,9 @@ def _attributes_have_changed(
                 current_rgb_color,
                 context.id,
             )
-            return True
+            changed_attributes |= LightControlAttribute.COLOR
 
-    return False
+    return changed_attributes
 
 
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
@@ -938,6 +926,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._name,
             )
             self._take_over_control = True
+        self._take_over_control_mode = TakeOverControlMode(
+            data[CONF_TAKE_OVER_CONTROL_MODE],
+        )
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
@@ -1204,12 +1195,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         context: Context | None = None,
     ) -> AdaptationData | None:
         """Prepare `AdaptationData` for adapting a light."""
+        adaptation_attributes = self.manager.get_adaption_control_attributes(
+            self,
+            light,
+        )
+
         if transition is None:
             transition = self._transition
         if adapt_brightness is None:
-            adapt_brightness = self.adapt_brightness_switch.is_on
+            adapt_brightness = LightControlAttribute.BRIGHTNESS in adaptation_attributes
         if adapt_color is None:
-            adapt_color = self.adapt_color_switch.is_on
+            adapt_color = LightControlAttribute.COLOR in adaptation_attributes
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
 
@@ -1385,9 +1381,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            if LightControlParameter.BRIGHTNESS in data.parameters:
+            if LightControlAttribute.BRIGHTNESS in data.attributes:
                 self.manager.adaptation_tasks_brightness[data.entity_id] = task
-            if LightControlParameter.COLOR in data.parameters:
+            if LightControlAttribute.COLOR in data.attributes:
                 self.manager.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
@@ -1398,7 +1394,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
-    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
+    async def _update_attrs_and_maybe_adapt_lights(
         self,
         *,
         context: Context,
@@ -1469,47 +1465,24 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if not filtered_lights:
             return
 
-        adapt_brightness = self.adapt_brightness_switch.is_on
-        adapt_color = self.adapt_color_switch.is_on
-        assert isinstance(adapt_brightness, bool)
-        assert isinstance(adapt_color, bool)
         tasks: list[asyncio.Task[None]] = []
         for light in filtered_lights:
-            manually_controlled = (
-                self._take_over_control
-                and self.manager.is_manually_controlled(
-                    self,
-                    light,
-                    force,
-                    adapt_brightness,
-                    adapt_color,
-                )
+            await self.manager.update_manually_controlled(
+                self,
+                light,
+                force,
+                context,
             )
-            if manually_controlled:
+
+            # Performance optimization: Skip adaptation task if all attributes are
+            # manually controlled and the task wouldn't actually do anything.
+            if self.manager.get_adaption_control_attributes(self, light).has_none():
                 _LOGGER.debug(
-                    "%s: '%s' is being manually controlled, stop adapting, context.id=%s.",
+                    "%s: '%s' is being manually controlled, skip adaptation, context.id=%s.",
                     self._name,
                     light,
                     context.id,
                 )
-                continue
-
-            significant_change = (
-                self._take_over_control
-                and self._detect_non_ha_changes
-                and not force
-                # Note: This call updates the state of the light
-                # so it might suddenly be off.
-                and await self.manager.significant_change(
-                    self,
-                    light,
-                    adapt_brightness,
-                    adapt_color,
-                    context,
-                )
-            )
-            if significant_change:
-                _fire_manual_control_event(self, light, context)
                 continue
 
             _LOGGER.debug(
@@ -1554,7 +1527,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 entity_id,
                 event.context.id,
             )
-            self.manager.mark_as_manual_control(entity_id)
+            self.manager.set_manual_control_attributes(entity_id)
             return
 
         if (
@@ -1606,6 +1579,28 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             context=self.create_context("sleep", parent=event.context),
             transition=self._sleep_transition,
             force=True,
+        )
+
+    def fire_manual_control_event(
+        self,
+        light: str,
+        context: Context,
+    ) -> None:
+        """Fire an event that 'light' is marked as manual_control."""
+        _LOGGER.debug(
+            "'adaptive_lighting.manual_control' event fired for %s for light %s",
+            self.entity_id,
+            light,
+        )
+        manual_attributes = self.manager.get_manual_control_attributes(light)
+        self.hass.bus.async_fire(
+            f"{DOMAIN}.manual_control",
+            {
+                ATTR_ENTITY_ID: light,
+                SWITCH_DOMAIN: self.entity_id,
+                CONF_MANUAL_CONTROL: manual_attributes,
+            },
+            context=context,
         )
 
 
@@ -1712,7 +1707,7 @@ class AdaptiveLightingManager:
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self.turn_off_locks: dict[str, asyncio.Lock] = {}
         # Tracks which lights are manually controlled
-        self.manual_control: dict[str, LightControlParameter] = {}
+        self.manual_control: dict[str, LightControlAttribute] = {}
         # Track 'state_changed' events of self.lights resulting from this integration
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -1955,10 +1950,7 @@ class AdaptiveLightingManager:
             # were skipped by us
             return
 
-        if (
-            ATTR_EFFECT in service_data[CONF_PARAMS]
-            or ATTR_FLASH in service_data[CONF_PARAMS]
-        ):
+        if has_effect_attribute(service_data[CONF_PARAMS]):
             return
 
         _LOGGER.debug(
@@ -2205,12 +2197,26 @@ class AdaptiveLightingManager:
                 )
             self.auto_reset_manual_control_times[light] = time
 
-    def mark_as_manual_control(self, light: str) -> None:
-        """Mark a light as manually controlled."""
-        _LOGGER.debug("Marking '%s' as manually controlled.", light)
-        self.manual_control[light] = (
-            LightControlParameter.BRIGHTNESS | LightControlParameter.COLOR
+    def get_manual_control_attributes(
+        self,
+        light: str,
+    ) -> LightControlAttribute:
+        """Get the attributes for a light that are manually controlled."""
+        return self.manual_control.get(light, LightControlAttribute.NONE)
+
+    def set_manual_control_attributes(
+        self,
+        light: str,
+        attributes: LightControlAttribute = LightControlAttribute.ALL,
+    ) -> None:
+        """Mark attributes of a light as manually controlled."""
+        _LOGGER.debug(
+            "Light %s: Setting manual control attributes to %s (from %s).",
+            light,
+            attributes,
+            self.manual_control[light],
         )
+        self.manual_control[light] = attributes
         delay = self.auto_reset_manual_control_times.get(light)
 
         async def reset() -> None:
@@ -2231,9 +2237,71 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlParameter.NONE
+            assert self.manual_control[light] == LightControlAttribute.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
+
+    def add_manual_control_attributes(
+        self,
+        light: str,
+        attributes: LightControlAttribute,
+    ) -> None:
+        """Add attributes to the manual control status of a light."""
+        current = self.get_manual_control_attributes(light)
+        _LOGGER.debug(
+            "Light %s: Adding manual control attributes %s (current: %s).",
+            light,
+            attributes,
+            current,
+        )
+        new = current | attributes
+        self.set_manual_control_attributes(light, new)
+
+    def get_adaption_control_attributes(
+        self,
+        switch: AdaptiveSwitch,
+        light: str,
+    ) -> LightControlAttribute:
+        """Get the attributes that should be adapted for a light.
+
+        Determines the attributes that should actually be adapted from the attributes
+        marked as manually controlled, the state of adaptation switches, and the adaptation
+        configuration.
+
+        Example 1: When no attributes are marked as manually controlled and all adaptation
+        switches are on, all attributes are returned.
+
+        Example 2: When no attributes are marked as manually controlled and the brightness
+        adaptation switch is off, only the color attribute is returned.
+
+        Example 3: When only brightness is marked as manually controlled, but the configuration
+        specifies to pause all adaptations on manual change, no attributes are returned so that
+        color is also not adapted.
+        """
+        denied_adaptation_attributes = self.get_manual_control_attributes(light)
+
+        if (
+            denied_adaptation_attributes.has_any()
+            and switch._take_over_control_mode == TakeOverControlMode.PAUSE_ALL
+        ):
+            # Extend to pausing all only if there is at least one manually controlled attribute
+            denied_adaptation_attributes = LightControlAttribute.ALL
+
+        enabled_adaptation_attributes = (
+            LightControlAttribute.BRIGHTNESS
+            if switch.adapt_brightness_switch.is_on
+            else LightControlAttribute.NONE
+        ) | (
+            LightControlAttribute.COLOR
+            if switch.adapt_color_switch.is_on
+            else LightControlAttribute.NONE
+        )
+
+        return (
+            LightControlAttribute.ALL
+            & ~denied_adaptation_attributes
+            & enabled_adaptation_attributes
+        )
 
     def cancel_ongoing_adaptation_calls(
         self,
@@ -2262,7 +2330,11 @@ class AdaptiveLightingManager:
         """Reset the 'manual_control' status of the lights."""
         for light in lights:
             if reset_manual_control:
-                self.manual_control[light] = LightControlParameter.NONE
+                _LOGGER.debug(
+                    "Light %s: Clearing manual control attributes.",
+                    light,
+                )
+                self.manual_control[light] = LightControlAttribute.NONE
                 if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
@@ -2482,21 +2554,21 @@ class AdaptiveLightingManager:
                         event,
                     )
 
-    def is_manually_controlled(
+    async def update_manually_controlled(
         self,
         switch: AdaptiveSwitch,
         light: str,
         force: bool,
-        adapt_brightness: bool,
-        adapt_color: bool,
-    ) -> bool:
+        context: Context,
+    ) -> LightControlAttribute:
         """Check if the light has been 'on' and is now manually controlled."""
-        manual_control = self.manual_control.setdefault(
-            light, LightControlParameter.NONE
+        if not switch._take_over_control:
+            return LightControlAttribute.NONE
+
+        self.manual_control.setdefault(
+            light,
+            LightControlAttribute.NONE,
         )
-        if manual_control != LightControlParameter.NONE:
-            # Manually controlled until light is turned on and off
-            return True
 
         turn_on_event = self.turn_on_event.get(light)
         if (
@@ -2505,49 +2577,59 @@ class AdaptiveLightingManager:
             and not is_our_context(turn_on_event.context)
             and not force
         ):
-            keys = turn_on_event.data[ATTR_SERVICE_DATA].keys()
-            if (
-                (adapt_color and COLOR_ATTRS.intersection(keys))
-                or (adapt_brightness and BRIGHTNESS_ATTRS.intersection(keys))
-                or (ATTR_FLASH in keys)
-                or (ATTR_EFFECT in keys)
-            ):
+            turn_on_attributes = get_light_control_attributes(
+                turn_on_event.data[ATTR_SERVICE_DATA],
+            )
+
+            if turn_on_attributes:
                 # Light was already on and 'light.turn_on' was not called by
                 # the adaptive_lighting integration.
-                manual_control = (
-                    LightControlParameter.BRIGHTNESS | LightControlParameter.COLOR
-                )
-                _fire_manual_control_event(switch, light, turn_on_event.context)
+                self.add_manual_control_attributes(light, turn_on_attributes)
+                switch.fire_manual_control_event(light, turn_on_event.context)
                 _LOGGER.debug(
                     "'%s' was already on and 'light.turn_on' was not called by the"
                     " adaptive_lighting integration (context.id='%s'), the Adaptive"
-                    " Lighting will stop adapting the light until the switch or the"
+                    " Lighting will stop adapting %s of the light until the switch or the"
                     " light turns off and then on again.",
                     light,
                     turn_on_event.context.id,
+                    turn_on_attributes,
                 )
-        return manual_control != LightControlParameter.NONE
+
+        if switch._detect_non_ha_changes and not force:
+            # Note: This call updates the state of the light
+            # so it might suddenly be off.
+            significantly_changed_attributes = await self.significant_change(
+                switch,
+                light,
+                context,
+            )
+
+            if significantly_changed_attributes:
+                self.add_manual_control_attributes(
+                    light,
+                    significantly_changed_attributes,
+                )
+                switch.fire_manual_control_event(light, context)
+
+        return self.get_manual_control_attributes(light)
 
     async def significant_change(
         self,
         switch: AdaptiveSwitch,
         light: str,
-        adapt_brightness: bool,
-        adapt_color: bool,
         context: Context,  # just for logging
-    ) -> bool:
+    ) -> LightControlAttribute:
         """Has the light made a significant change since last update.
 
         This method will detect changes that were made to the light without
-        calling 'light.turn_on', so outside of Home Assistant. If a change is
-        detected, we mark the light as 'manually controlled' until the light
-        or switch is turned 'off' and 'on' again.
+        calling 'light.turn_on', so outside of Home Assistant.
         """
         assert switch._detect_non_ha_changes
 
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
-            return False
+            return LightControlAttribute.NONE
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This
@@ -2556,33 +2638,32 @@ class AdaptiveLightingManager:
         refreshed_state = self.hass.states.get(light)
         assert refreshed_state is not None
 
-        changed = _attributes_have_changed(
+        changed_attributes = _attributes_have_changed(
             old_attributes=last_service_data,
             new_attributes=refreshed_state.attributes,
             light=light,
-            adapt_brightness=adapt_brightness,
-            adapt_color=adapt_color,
             context=context,
         )
-        if changed:
+        if changed_attributes:
             _LOGGER.debug(
-                "%s: State attributes of '%s' changed (%s) wrt 'last_service_data' (%s) (context.id=%s)",
+                "%s: State attributes %s of '%s' changed (%s) wrt 'last_service_data' (%s) (context.id=%s)",
+                switch._name,
+                changed_attributes,
+                light,
+                refreshed_state.attributes,
+                last_service_data,
+                context.id,
+            )
+        else:
+            _LOGGER.debug(
+                "%s: State attributes of '%s' did not change (%s) wrt 'last_service_data' (%s) (context.id=%s)",
                 switch._name,
                 light,
                 refreshed_state.attributes,
                 last_service_data,
                 context.id,
             )
-            return True
-        _LOGGER.debug(
-            "%s: State attributes of '%s' did not change (%s) wrt 'last_service_data' (%s) (context.id=%s)",
-            switch._name,
-            light,
-            refreshed_state.attributes,
-            last_service_data,
-            context.id,
-        )
-        return False
+        return changed_attributes
 
     def _off_to_on_state_event_is_from_turn_on(
         self,
@@ -2742,12 +2823,12 @@ class AdaptiveLightingManager:
             entity_id,
             service_data,
         )
-        if any(
-            attr in service_data
-            for attr in COLOR_ATTRS | BRIGHTNESS_ATTRS | {ATTR_EFFECT}
-        ):
-            self.mark_as_manual_control(entity_id)
+        manual_control_attributes = get_light_control_attributes(service_data)
+
+        if manual_control_attributes:
+            self.set_manual_control_attributes(entity_id, manual_control_attributes)
             return True
+
         return False
 
 
