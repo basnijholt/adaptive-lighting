@@ -235,7 +235,7 @@ change_switch_settings:
           - pause_all
           - pause_changed
     detect_non_ha_changes:
-      description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`!Disable this feature if you encounter such issues.'
+      description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.'
       required: false
       example: false
       selector:

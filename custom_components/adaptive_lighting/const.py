@@ -43,7 +43,7 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Needs `take_over_control` enabled. 🕵️ "
     "Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result "
     "in lights turning on unexpectedly. "
-    "Note that this calls `homeassistant.update_entity` every `interval`!"
+    "Note that this calls `homeassistant.update_entity` every `interval`! "
     "Disable this feature if you encounter such issues."
 )
 
