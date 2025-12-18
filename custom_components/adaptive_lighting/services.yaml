@@ -62,10 +62,6 @@ set_manual_control:
       default: true
       selector:
         boolean: null
-        select:
-          options:
-          - color
-          - brightness
 change_switch_settings:
   description: Change any settings you'd like in the switch. All options here are the same as in the config flow.
   fields:
