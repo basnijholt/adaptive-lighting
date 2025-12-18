@@ -1467,7 +1467,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         tasks: list[asyncio.Task[None]] = []
         for light in filtered_lights:
-            await self.manager.update_manually_controlled(
+            await self.manager.update_manually_controlled_from_untracked_change(
                 self,
                 light,
                 force,
@@ -2384,11 +2384,29 @@ class AdaptiveLightingManager:
             self.turn_off_event[eid] = event
             self.reset(eid)
 
-        def on(eid: str, event: Event) -> None:
+        async def on(eid: str, event: Event) -> None:
             task = self.sleep_tasks.get(eid)
             if task is not None:
                 task.cancel()
             self.turn_on_event[eid] = event
+
+            try:
+                switch = _switch_with_lights(
+                    self.hass,
+                    [eid],
+                    expand_light_groups=False,
+                )
+                await self.update_manually_controlled_from_event(
+                    switch,
+                    eid,
+                    force=False,
+                )
+            except NoSwitchFoundError:
+                _LOGGER.debug(
+                    "No switch found for entity_id='%s' in 'on' event listener",
+                    eid,
+                )
+
             timer = self.auto_reset_manual_control_timers.get(eid)
             if (
                 timer is not None
@@ -2416,7 +2434,7 @@ class AdaptiveLightingManager:
                 event.context.id,
             )
             for eid in entity_ids:
-                on(eid, event)
+                await on(eid, event)
 
         elif service == SERVICE_TOGGLE:
             _LOGGER.debug(
@@ -2431,7 +2449,7 @@ class AdaptiveLightingManager:
                 if state.state == STATE_ON:  # is turning off
                     off(eid, event)
                 elif state.state == STATE_OFF:  # is turning on
-                    on(eid, event)
+                    await on(eid, event)
 
     async def state_changed_event_listener(
         self,
@@ -2554,65 +2572,78 @@ class AdaptiveLightingManager:
                         event,
                     )
 
-    async def update_manually_controlled(
+    async def update_manually_controlled_from_event(
+        self,
+        switch: AdaptiveSwitch,
+        light: str,
+        force: bool,
+    ) -> None:
+        """Check if the light has been manually controlled by the latest turn on event."""
+        if not switch._take_over_control:
+            return
+
+        turn_on_event = self.turn_on_event.get(light)
+
+        if (
+            turn_on_event is None
+            or self.is_proactively_adapting(turn_on_event.context.id)
+            or is_our_context(turn_on_event.context)
+            or force
+        ):
+            return
+
+        turn_on_attributes = get_light_control_attributes(
+            turn_on_event.data[ATTR_SERVICE_DATA],
+        )
+
+        if not turn_on_attributes:
+            return
+
+        # Light was already on and 'light.turn_on' was not called by
+        # the adaptive_lighting integration.
+        self.add_manual_control_attributes(light, turn_on_attributes)
+        switch.fire_manual_control_event(light, turn_on_event.context)
+        _LOGGER.debug(
+            "'%s' was already on and 'light.turn_on' was not called by the"
+            " adaptive_lighting integration (context.id='%s'), the Adaptive"
+            " Lighting will stop adapting %s of the light until the switch or the"
+            " light turns off and then on again.",
+            light,
+            turn_on_event.context.id,
+            turn_on_attributes,
+        )
+
+    async def update_manually_controlled_from_untracked_change(
         self,
         switch: AdaptiveSwitch,
         light: str,
         force: bool,
         context: Context,
-    ) -> LightControlAttribute:
-        """Check if the light has been 'on' and is now manually controlled."""
-        if not switch._take_over_control:
-            return LightControlAttribute.NONE
+    ) -> None:
+        """Check if the light has been manually controlled from an untracked change.
 
-        self.manual_control.setdefault(
+        An untracked change is a change that has been made outsideof HA and is
+        therefore not visible through events.
+        """
+        if not switch._take_over_control or not switch._detect_non_ha_changes or force:
+            return
+
+        # Note: This call updates the state of the light
+        # so it might suddenly be off.
+        significantly_changed_attributes = await self.significant_change(
+            switch,
             light,
-            LightControlAttribute.NONE,
+            context,
         )
 
-        turn_on_event = self.turn_on_event.get(light)
-        if (
-            turn_on_event is not None
-            and not self.is_proactively_adapting(turn_on_event.context.id)
-            and not is_our_context(turn_on_event.context)
-            and not force
-        ):
-            turn_on_attributes = get_light_control_attributes(
-                turn_on_event.data[ATTR_SERVICE_DATA],
-            )
+        if not significantly_changed_attributes:
+            return
 
-            if turn_on_attributes:
-                # Light was already on and 'light.turn_on' was not called by
-                # the adaptive_lighting integration.
-                self.add_manual_control_attributes(light, turn_on_attributes)
-                switch.fire_manual_control_event(light, turn_on_event.context)
-                _LOGGER.debug(
-                    "'%s' was already on and 'light.turn_on' was not called by the"
-                    " adaptive_lighting integration (context.id='%s'), the Adaptive"
-                    " Lighting will stop adapting %s of the light until the switch or the"
-                    " light turns off and then on again.",
-                    light,
-                    turn_on_event.context.id,
-                    turn_on_attributes,
-                )
-
-        if switch._detect_non_ha_changes and not force:
-            # Note: This call updates the state of the light
-            # so it might suddenly be off.
-            significantly_changed_attributes = await self.significant_change(
-                switch,
-                light,
-                context,
-            )
-
-            if significantly_changed_attributes:
-                self.add_manual_control_attributes(
-                    light,
-                    significantly_changed_attributes,
-                )
-                switch.fire_manual_control_event(light, context)
-
-        return self.get_manual_control_attributes(light)
+        self.add_manual_control_attributes(
+            light,
+            significantly_changed_attributes,
+        )
+        switch.fire_manual_control_event(light, context)
 
     async def significant_change(
         self,

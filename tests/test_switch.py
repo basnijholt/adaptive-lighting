@@ -705,13 +705,9 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    if adapt_only_on_bare_turn_on:
-        # Marks as manually controlled beacuse we turned it on with brightness
-        assert (
-            manual_control[ENTITY_LIGHT_1] == LightControlAttribute.BRIGHTNESS
-        ), manual_control
-    else:
-        assert not manual_control[ENTITY_LIGHT_1], manual_control
+    assert (
+        manual_control[ENTITY_LIGHT_1] == LightControlAttribute.BRIGHTNESS
+    ), manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
     for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
