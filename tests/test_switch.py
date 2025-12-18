@@ -61,6 +61,7 @@ from homeassistant.components.adaptive_lighting.const import (
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
+    TakeOverControlMode,
 )
 from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
@@ -803,6 +804,22 @@ async def test_manual_control(
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
     assert not manual_control[ENTITY_LIGHT_1]
 
+    # Check that manual control `True` sets all attributes
+    await change_manual_control(False)
+    assert not manual_control[ENTITY_LIGHT_1]
+    await change_manual_control(True)
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttribute.ALL
+
+    # Check that manual control `False` unsets all attributes
+    await change_manual_control(False)
+    assert not manual_control[ENTITY_LIGHT_1]
+
+    # Check that manual control attributes can be selectively set
+    await change_manual_control("brightness")
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttribute.BRIGHTNESS
+    await change_manual_control("color")
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttribute.COLOR
+
 
 @flaky(max_runs=3, min_passes=1)
 async def test_auto_reset_manual_control(hass):
@@ -857,6 +874,143 @@ async def test_auto_reset_manual_control(hass):
     await update()
     await asyncio.sleep(0.3)  # Wait the auto reset time
     assert not manual_control[light.entity_id]
+
+
+async def test_adaptation_attribute_selection(hass):
+    """Test the 'manual control' tracking."""
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+
+    # Assert default settings
+    assert switch._take_over_control
+    assert switch._take_over_control_mode == TakeOverControlMode.PAUSE_ALL
+
+    # Check that PAUSE_ALL leads to adaptation of all attributes when none are manually controlled
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.ALL
+    )
+
+    # Check that PAUSE_ALL leads to no adaptation when a single attribute is manually controlled
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.BRIGHTNESS,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttribute.BRIGHTNESS
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
+
+    # Check that PAUSE_ALL leads to no adaptation when all attributes are manually controlled
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.COLOR,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttribute.ALL
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
+
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_CHANGED
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.NONE,
+    )
+
+    # Check that PAUSE_CHANGED leads to adaptation of all attributes when none are manually controlled
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.ALL
+    )
+
+    # Check that PAUSE_CHANGED leads to adaptation of the remaining non-manual attributes
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.BRIGHTNESS,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttribute.BRIGHTNESS
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.COLOR
+    )
+
+    # Check that PAUSE_CHANGED leads to no adaptation when all attributes are manually controlled
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.COLOR,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttribute.ALL
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
+
+    await switch.adapt_brightness_switch.async_turn_off()
+
+    # Check that with adapt_brightness off and PAUSE_CHANGED, only color is adapted when none are manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_CHANGED
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.NONE,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.COLOR
+    )
+
+    # Check that with adapt_brightness off and PAUSE_CHANGED, nothing is adapted when color is manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_CHANGED
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.COLOR,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
+
+    # Check that with adapt_brightness off and PAUSE_ALL, only color is adapted when none are manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_ALL
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.NONE,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.COLOR
+    )
+
+    # Check that with adapt_brightness off and PAUSE_ALL, nothing is adapted when color is manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_ALL
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttribute.COLOR,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttribute.NONE
+    )
 
 
 async def test_apply_service(hass):
