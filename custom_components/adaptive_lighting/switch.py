@@ -75,7 +75,7 @@ from homeassistant.util.color import (
 
 from .adaptation_utils import (
     AdaptationData,
-    LightControlAttribute,
+    LightControlAttributes,
     ServiceData,
     get_light_control_attributes,
     has_effect_attribute,
@@ -747,12 +747,12 @@ def _attributes_have_changed(
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
     context: Context,
-) -> LightControlAttribute:
+) -> LightControlAttributes:
     # 2023-11-19: HA core no longer removes light domain attributes when off
     # so we must protect for `None` here
     # see https://github.com/home-assistant/core/pull/101946
 
-    changed_attributes = LightControlAttribute.NONE
+    changed_attributes = LightControlAttributes.NONE
 
     # Check for color mode changes BEFORE attribute conversion
     # This detects external changes like Hue scenes switching from color_temp to RGB
@@ -763,9 +763,9 @@ def _attributes_have_changed(
         new_attributes,
         context,
     ):
-        changed_attributes |= LightControlAttribute.COLOR
+        changed_attributes |= LightControlAttributes.COLOR
 
-    if LightControlAttribute.COLOR not in changed_attributes:
+    if LightControlAttributes.COLOR not in changed_attributes:
         old_attributes, new_attributes = _add_missing_attributes(
             old_attributes,
             new_attributes,
@@ -783,10 +783,10 @@ def _attributes_have_changed(
                 current_brightness,
                 context.id,
             )
-            changed_attributes |= LightControlAttribute.BRIGHTNESS
+            changed_attributes |= LightControlAttributes.BRIGHTNESS
 
     if (
-        LightControlAttribute.COLOR not in changed_attributes
+        LightControlAttributes.COLOR not in changed_attributes
         and old_attributes.get(ATTR_COLOR_TEMP_KELVIN)
         and new_attributes.get(ATTR_COLOR_TEMP_KELVIN)
     ):
@@ -801,10 +801,10 @@ def _attributes_have_changed(
                 current_color_temp,
                 context.id,
             )
-            changed_attributes |= LightControlAttribute.COLOR
+            changed_attributes |= LightControlAttributes.COLOR
 
     if (
-        LightControlAttribute.COLOR not in changed_attributes
+        LightControlAttributes.COLOR not in changed_attributes
         and old_attributes.get(ATTR_RGB_COLOR)
         and new_attributes.get(ATTR_RGB_COLOR)
     ):
@@ -820,7 +820,7 @@ def _attributes_have_changed(
                 current_rgb_color,
                 context.id,
             )
-            changed_attributes |= LightControlAttribute.COLOR
+            changed_attributes |= LightControlAttributes.COLOR
 
     return changed_attributes
 
@@ -1203,9 +1203,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if transition is None:
             transition = self._transition
         if adapt_brightness is None:
-            adapt_brightness = LightControlAttribute.BRIGHTNESS in adaptation_attributes
+            adapt_brightness = (
+                LightControlAttributes.BRIGHTNESS in adaptation_attributes
+            )
         if adapt_color is None:
-            adapt_color = LightControlAttribute.COLOR in adaptation_attributes
+            adapt_color = LightControlAttributes.COLOR in adaptation_attributes
         if prefer_rgb_color is None:
             prefer_rgb_color = self._prefer_rgb_color
 
@@ -1381,9 +1383,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Execute adaptation calls within a task
         try:
             task = asyncio.ensure_future(self._execute_adaptation_calls(data))
-            if LightControlAttribute.BRIGHTNESS in data.attributes:
+            if LightControlAttributes.BRIGHTNESS in data.attributes:
                 self.manager.adaptation_tasks_brightness[data.entity_id] = task
-            if LightControlAttribute.COLOR in data.attributes:
+            if LightControlAttributes.COLOR in data.attributes:
                 self.manager.adaptation_tasks_color[data.entity_id] = task
             await task
         except asyncio.CancelledError:
@@ -1707,7 +1709,7 @@ class AdaptiveLightingManager:
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self.turn_off_locks: dict[str, asyncio.Lock] = {}
         # Tracks which lights are manually controlled
-        self.manual_control: dict[str, LightControlAttribute] = {}
+        self.manual_control: dict[str, LightControlAttributes] = {}
         # Track 'state_changed' events of self.lights resulting from this integration
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -2200,14 +2202,14 @@ class AdaptiveLightingManager:
     def get_manual_control_attributes(
         self,
         light: str,
-    ) -> LightControlAttribute:
+    ) -> LightControlAttributes:
         """Get the attributes for a light that are manually controlled."""
-        return self.manual_control.get(light, LightControlAttribute.NONE)
+        return self.manual_control.get(light, LightControlAttributes.NONE)
 
     def set_manual_control_attributes(
         self,
         light: str,
-        attributes: LightControlAttribute = LightControlAttribute.ALL,
+        attributes: LightControlAttributes = LightControlAttributes.ALL,
     ) -> None:
         """Mark attributes of a light as manually controlled."""
         _LOGGER.debug(
@@ -2237,14 +2239,14 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlAttribute.NONE
+            assert self.manual_control[light] == LightControlAttributes.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
     def add_manual_control_attributes(
         self,
         light: str,
-        attributes: LightControlAttribute,
+        attributes: LightControlAttributes,
     ) -> None:
         """Add attributes to the manual control status of a light."""
         current = self.get_manual_control_attributes(light)
@@ -2261,7 +2263,7 @@ class AdaptiveLightingManager:
         self,
         switch: AdaptiveSwitch,
         light: str,
-    ) -> LightControlAttribute:
+    ) -> LightControlAttributes:
         """Get the attributes that should be adapted for a light.
 
         Determines the attributes that should actually be adapted from the attributes
@@ -2285,20 +2287,20 @@ class AdaptiveLightingManager:
             and switch._take_over_control_mode == TakeOverControlMode.PAUSE_ALL
         ):
             # Extend to pausing all only if there is at least one manually controlled attribute
-            denied_adaptation_attributes = LightControlAttribute.ALL
+            denied_adaptation_attributes = LightControlAttributes.ALL
 
         enabled_adaptation_attributes = (
-            LightControlAttribute.BRIGHTNESS
+            LightControlAttributes.BRIGHTNESS
             if switch.adapt_brightness_switch.is_on
-            else LightControlAttribute.NONE
+            else LightControlAttributes.NONE
         ) | (
-            LightControlAttribute.COLOR
+            LightControlAttributes.COLOR
             if switch.adapt_color_switch.is_on
-            else LightControlAttribute.NONE
+            else LightControlAttributes.NONE
         )
 
         return (
-            LightControlAttribute.ALL
+            LightControlAttributes.ALL
             & ~denied_adaptation_attributes
             & enabled_adaptation_attributes
         )
@@ -2334,7 +2336,7 @@ class AdaptiveLightingManager:
                     "Light %s: Clearing manual control attributes.",
                     light,
                 )
-                self.manual_control[light] = LightControlAttribute.NONE
+                self.manual_control[light] = LightControlAttributes.NONE
                 if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
@@ -2650,7 +2652,7 @@ class AdaptiveLightingManager:
         switch: AdaptiveSwitch,
         light: str,
         context: Context,  # just for logging
-    ) -> LightControlAttribute:
+    ) -> LightControlAttributes:
         """Has the light made a significant change since last update.
 
         This method will detect changes that were made to the light without
@@ -2660,7 +2662,7 @@ class AdaptiveLightingManager:
 
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
-            return LightControlAttribute.NONE
+            return LightControlAttributes.NONE
         # Update state and check for a manual change not done in HA.
         # Ensure HASS is correctly updating your light's state with
         # light.turn_on calls if any problems arise. This

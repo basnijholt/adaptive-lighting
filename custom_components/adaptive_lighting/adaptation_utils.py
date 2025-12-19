@@ -48,7 +48,7 @@ BRIGHTNESS_ATTRS = {
 ServiceData = dict[str, Any]
 
 
-class LightControlAttribute(IntFlag):
+class LightControlAttributes(IntFlag):
     """Attributes of lights that the adaptation engine can control."""
 
     NONE = 0
@@ -59,28 +59,28 @@ class LightControlAttribute(IntFlag):
 
     def __str__(self) -> str:
         """Return a string representation of the attributes."""
-        if self == LightControlAttribute.NONE:
+        if self == LightControlAttributes.NONE:
             return "NONE"
 
         return "|".join(
             member.name
             for member in type(self)
-            if member is not LightControlAttribute.NONE
+            if member is not LightControlAttributes.NONE
             and member in self
             and member.name is not None
         )
 
     def has_any(self) -> bool:
         """Determine whether any attribute is selected."""
-        return self != LightControlAttribute.NONE
+        return self != LightControlAttributes.NONE
 
     def has_none(self) -> bool:
         """Determine whether no attribute is selected."""
-        return self == LightControlAttribute.NONE
+        return self == LightControlAttributes.NONE
 
     def has_all(self) -> bool:
         """Determine whether all attributes are selected."""
-        return (self & LightControlAttribute.ALL) == LightControlAttribute.ALL
+        return (self & LightControlAttributes.ALL) == LightControlAttributes.ALL
 
 
 def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
@@ -183,7 +183,7 @@ class AdaptationData:
     service_call_datas: AsyncGenerator[ServiceData]
     force: bool
     max_length: int
-    attributes: LightControlAttribute
+    attributes: LightControlAttributes
     initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
@@ -211,19 +211,19 @@ class NoColorOrBrightnessInServiceDataError(Exception):
 
 def _identify_light_control_attributes(
     service_data: ServiceData,
-) -> LightControlAttribute:
+) -> LightControlAttributes:
     """Extract the 'which' attribute from the service data."""
     has_brightness = ATTR_BRIGHTNESS in service_data
     has_color = any(attr in service_data for attr in COLOR_ATTRS)
 
-    parameters = LightControlAttribute.NONE
+    parameters = LightControlAttributes.NONE
 
     if has_brightness:
-        parameters |= LightControlAttribute.BRIGHTNESS
+        parameters |= LightControlAttributes.BRIGHTNESS
     if has_color:
-        parameters |= LightControlAttribute.COLOR
+        parameters |= LightControlAttributes.COLOR
 
-    if parameters == LightControlAttribute.NONE:
+    if parameters == LightControlAttributes.NONE:
         msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
         raise NoColorOrBrightnessInServiceDataError(msg)
 
@@ -278,15 +278,15 @@ def prepare_adaptation_data(
 
 def manual_control_event_attribute_to_flags(
     manual_control_attribute: bool | str,
-) -> LightControlAttribute:
+) -> LightControlAttributes:
     """Convert manual control event data to light control attributes."""
     if isinstance(manual_control_attribute, bool) and manual_control_attribute:
-        return LightControlAttribute.ALL
+        return LightControlAttributes.ALL
     if manual_control_attribute == "brightness":
-        return LightControlAttribute.BRIGHTNESS
+        return LightControlAttributes.BRIGHTNESS
     if manual_control_attribute == "color":
-        return LightControlAttribute.COLOR
-    return LightControlAttribute.NONE
+        return LightControlAttributes.COLOR
+    return LightControlAttributes.NONE
 
 
 def has_brightness_attribute(
@@ -312,18 +312,18 @@ def has_effect_attribute(
 
 def get_light_control_attributes(
     service_data: ServiceData,
-) -> LightControlAttribute:
+) -> LightControlAttributes:
     """Get the light control attributes affected by the service call data."""
-    parameters = LightControlAttribute.NONE
+    parameters = LightControlAttributes.NONE
 
     if has_brightness_attribute(service_data):
-        parameters |= LightControlAttribute.BRIGHTNESS
+        parameters |= LightControlAttributes.BRIGHTNESS
 
     if has_color_attribute(service_data):
-        parameters |= LightControlAttribute.COLOR
+        parameters |= LightControlAttributes.COLOR
 
     if has_effect_attribute(service_data):
-        parameters |= LightControlAttribute.BRIGHTNESS
-        parameters |= LightControlAttribute.COLOR
+        parameters |= LightControlAttributes.BRIGHTNESS
+        parameters |= LightControlAttributes.COLOR
 
     return parameters

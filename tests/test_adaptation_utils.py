@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 from homeassistant.components.adaptive_lighting.adaptation_utils import (
-    LightControlAttribute,
+    LightControlAttributes,
     ServiceData,
     _create_service_call_data_iterator,
     _has_relevant_service_data_attributes,
@@ -353,18 +353,18 @@ def fixture_hass_states_mock():
 @pytest.mark.parametrize(
     ("attribute", "expected_str", "has_any", "has_none", "has_all"),
     [
-        (LightControlAttribute.NONE, "NONE", False, True, False),
-        (LightControlAttribute.BRIGHTNESS, "BRIGHTNESS", True, False, False),
-        (LightControlAttribute.COLOR, "COLOR", True, False, False),
+        (LightControlAttributes.NONE, "NONE", False, True, False),
+        (LightControlAttributes.BRIGHTNESS, "BRIGHTNESS", True, False, False),
+        (LightControlAttributes.COLOR, "COLOR", True, False, False),
         (
-            LightControlAttribute.BRIGHTNESS | LightControlAttribute.COLOR,
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
             "BRIGHTNESS|COLOR",
             True,
             False,
             True,
         ),
         (
-            LightControlAttribute.ALL,
+            LightControlAttributes.ALL,
             "BRIGHTNESS|COLOR",
             True,
             False,
@@ -373,7 +373,7 @@ def fixture_hass_states_mock():
     ],
 )
 def test_light_control_attribute_flags(
-    attribute: LightControlAttribute,
+    attribute: LightControlAttributes,
     expected_str: str,
     has_any: bool,
     has_none: bool,
@@ -389,16 +389,16 @@ def test_light_control_attribute_flags(
 @pytest.mark.parametrize(
     ("manual_control_attribute", "expected_flag"),
     [
-        (True, LightControlAttribute.ALL),
-        (False, LightControlAttribute.NONE),
-        ("brightness", LightControlAttribute.BRIGHTNESS),
-        ("color", LightControlAttribute.COLOR),
-        ("unsupported", LightControlAttribute.NONE),
+        (True, LightControlAttributes.ALL),
+        (False, LightControlAttributes.NONE),
+        ("brightness", LightControlAttributes.BRIGHTNESS),
+        ("color", LightControlAttributes.COLOR),
+        ("unsupported", LightControlAttributes.NONE),
     ],
 )
 def test_manual_control_event_attribute_to_flags(
     manual_control_attribute: bool | str,
-    expected_flag: LightControlAttribute,
+    expected_flag: LightControlAttributes,
 ):
     """Test mapping of manual control events to attribute flags."""
     assert (
@@ -457,26 +457,26 @@ def test_has_effect_attribute(service_data: ServiceData, expected: bool):
 @pytest.mark.parametrize(
     ("service_data", "expected_flags"),
     [
-        ({ATTR_BRIGHTNESS: 1}, LightControlAttribute.BRIGHTNESS),
-        ({ATTR_HS_COLOR: (1, 2)}, LightControlAttribute.COLOR),
+        ({ATTR_BRIGHTNESS: 1}, LightControlAttributes.BRIGHTNESS),
+        ({ATTR_HS_COLOR: (1, 2)}, LightControlAttributes.COLOR),
         (
             {ATTR_BRIGHTNESS: 1, ATTR_HS_COLOR: (1, 2)},
-            LightControlAttribute.BRIGHTNESS | LightControlAttribute.COLOR,
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
         ),
         (
             {ATTR_EFFECT: "colorloop"},
-            LightControlAttribute.BRIGHTNESS | LightControlAttribute.COLOR,
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
         ),
         (
             {ATTR_FLASH: "short"},
-            LightControlAttribute.BRIGHTNESS | LightControlAttribute.COLOR,
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
         ),
-        ({}, LightControlAttribute.NONE),
+        ({}, LightControlAttributes.NONE),
     ],
 )
 def test_get_light_control_attributes(
     service_data: ServiceData,
-    expected_flags: LightControlAttribute,
+    expected_flags: LightControlAttributes,
 ):
     """Test determination of light control attributes."""
     assert get_light_control_attributes(service_data) == expected_flags
