@@ -969,6 +969,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                             brightness_pct=float(item["brightness_pct"]),
                             color_temp_kelvin=int(item["color_temp_kelvin"])
                         ))
+                    _LOGGER.info("Loaded manual schedule with %s points", len(self.manual_schedule))
             except Exception as e:
                 _LOGGER.error("Failed to parse manual schedule: %s", e)
 
@@ -1514,6 +1515,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     light,
                     context.id,
                 )
+                _LOGGER.info("%s: Light '%s' is manually controlled. Schedule will NOT apply until reset.", self._name, light)
                 continue
 
             _LOGGER.debug(
