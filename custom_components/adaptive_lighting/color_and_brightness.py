@@ -356,6 +356,11 @@ class SunLightSettings:
     def _get_schedule_values(self, dt: datetime.datetime) -> tuple[float, int]:
         """Get the interpolated brightness and color temperature from the schedule."""
         assert self.manual_schedule is not None
+
+        # Convert dt to configured timezone for schedule comparison
+        # dt comes in as UTC from get_settings()
+        if self.timezone and dt.tzinfo is not None:
+            dt = dt.astimezone(self.timezone)
         
         # Sort schedule by time just in case
         schedule = sorted(self.manual_schedule, key=lambda x: x.time)

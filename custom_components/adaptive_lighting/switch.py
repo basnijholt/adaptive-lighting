@@ -957,9 +957,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         if not isinstance(item, dict):
                             continue
                         t_str = str(item.get("time"))
-                        # Handle simple HH:MM validation if needed, or let fromisoformat fail
-                        # Basic ISO format HH:MM:SS or HH:MM
-                        t = datetime.time.fromisoformat(t_str)
+                        try:
+                            # Try robust parsing with cv.time (handles 7:00)
+                            t = cv.time(t_str)
+                        except (ValueError, vol.Invalid):
+                            # Fallback to pure ISO if cv fails or for standard compliance
+                            t = datetime.time.fromisoformat(t_str)
+                        
                         self.manual_schedule.append(SchedulePoint(
                             time=t,
                             brightness_pct=float(item["brightness_pct"]),

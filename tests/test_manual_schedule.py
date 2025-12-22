@@ -70,3 +70,45 @@ def test_sleep_override(mock_settings):
     res = mock_settings.brightness_and_color(dt, is_sleep=True)
     assert res["brightness_pct"] == 1 # Sleep brightness
     assert res["color_temp_kelvin"] == 2000 # Sleep color temp
+
+def test_timezone_conversion():
+    # Setup settings with a timezone (e.g., UTC-5)
+    est = timezone(timedelta(hours=-5))
+    settings = SunLightSettings(
+        name="test",
+        astral_location=None,
+        adapt_until_sleep=False,
+        max_brightness=100,
+        max_color_temp=5500,
+        min_brightness=1,
+        min_color_temp=2000,
+        sleep_brightness=1,
+        sleep_rgb_or_color_temp="color_temp",
+        sleep_color_temp=2000,
+        sleep_rgb_color=(255, 0, 0),
+        sunrise_time=None,
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=None,
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=timedelta(seconds=0),
+        brightness_mode_time_light=timedelta(seconds=0),
+        timezone=est,
+        manual_schedule=[
+            SchedulePoint(time(8, 0), 100, 4000), # 08:00 EST
+            SchedulePoint(time(20, 0), 50, 3000), # 20:00 EST
+        ]
+    )
+
+    # Current time: 13:00 UTC = 08:00 EST. Should match first point perfectly.
+    dt_utc = datetime(2023, 1, 1, 13, 0, tzinfo=timezone.utc)
+    res = settings.brightness_and_color(dt_utc, is_sleep=False)
+    assert res["brightness_pct"] == 100
+    assert res["color_temp_kelvin"] == 4000
+    
+    # Current time: 01:00 UTC (Next day) = 20:00 EST (Previous day). Should match second point.
+    dt_utc = datetime(2023, 1, 2, 1, 0, tzinfo=timezone.utc)
+    res = settings.brightness_and_color(dt_utc, is_sleep=False)
+    assert res["brightness_pct"] == 50
+    assert res["color_temp_kelvin"] == 3000
