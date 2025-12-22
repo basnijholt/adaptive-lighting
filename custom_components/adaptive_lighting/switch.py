@@ -7,6 +7,7 @@ import datetime
 import logging
 import zoneinfo
 from copy import deepcopy
+import yaml
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -82,7 +83,7 @@ from .adaptation_utils import (
     manual_control_event_attribute_to_flags,
     prepare_adaptation_data,
 )
-from .color_and_brightness import SunLightSettings
+from .color_and_brightness import SchedulePoint, SunLightSettings
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
@@ -103,6 +104,7 @@ from .const import (
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
+    CONF_MANUAL_SCHEDULE,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
     CONF_MAX_SUNRISE_TIME,
@@ -944,6 +946,28 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
+
+        self.manual_schedule: list[SchedulePoint] | None = None
+        if schedule_yaml := data.get(CONF_MANUAL_SCHEDULE):
+            try:
+                schedule_data = yaml.safe_load(schedule_yaml)
+                if isinstance(schedule_data, list):
+                    self.manual_schedule = []
+                    for item in schedule_data:
+                        if not isinstance(item, dict):
+                            continue
+                        t_str = str(item.get("time"))
+                        # Handle simple HH:MM validation if needed, or let fromisoformat fail
+                        # Basic ISO format HH:MM:SS or HH:MM
+                        t = datetime.time.fromisoformat(t_str)
+                        self.manual_schedule.append(SchedulePoint(
+                            time=t,
+                            brightness_pct=float(item["brightness_pct"]),
+                            color_temp_kelvin=int(item["color_temp_kelvin"])
+                        ))
+            except Exception as e:
+                _LOGGER.error("Failed to parse manual schedule: %s", e)
+
         location, _ = get_astral_location(self.hass)
 
         self._sun_light_settings = SunLightSettings(
@@ -970,6 +994,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
+            manual_schedule=self.manual_schedule,
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",

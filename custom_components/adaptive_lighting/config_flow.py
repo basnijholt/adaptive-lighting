@@ -7,10 +7,16 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    TextSelector,
+    TextSelectorConfig,
+)
 
 from .const import (  # pylint: disable=unused-import
     CONF_LIGHTS,
+    CONF_MANUAL_SCHEDULE,
     DOMAIN,
     EXTRA_VALIDATION,
     NONE_STR,
@@ -151,6 +157,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     domain="light",
                     multiple=True,
                 ),
+            ),
+            CONF_MANUAL_SCHEDULE: TextSelector(
+                TextSelectorConfig(multiline=True)
             ),
         }
 
