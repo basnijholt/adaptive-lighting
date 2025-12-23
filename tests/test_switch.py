@@ -18,6 +18,7 @@ import voluptuous.error
 from flaky import flaky
 from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
+    LightControlAttributes,
     _create_service_call_data_iterator,
 )
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
@@ -60,6 +61,7 @@ from homeassistant.components.adaptive_lighting.const import (
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
     UNDO_UPDATE_LISTENER,
+    TakeOverControlMode,
 )
 from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
@@ -690,7 +692,7 @@ async def test_manual_control(
     # Call light.turn_on for ENTITY_LIGHT_1
     await turn_light(True, brightness=increased_brightness())
     # Check that ENTITY_LIGHT_1 is manually controlled
-    assert manual_control[ENTITY_LIGHT_1]
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     # Test adaptive_lighting.set_manual_control
     await change_manual_control(False)
     # Check that ENTITY_LIGHT_1 is not manually controlled
@@ -703,11 +705,9 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    if adapt_only_on_bare_turn_on:
-        # Marks as manually controlled beacuse we turned it on with brightness
-        assert manual_control[ENTITY_LIGHT_1], manual_control
-    else:
-        assert not manual_control[ENTITY_LIGHT_1], manual_control
+    assert (
+        manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    ), manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
     for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
@@ -722,7 +722,7 @@ async def test_manual_control(
     await turn_light(False)
     await change_manual_control(True)
     await turn_light(True)
-    assert manual_control[ENTITY_LIGHT_1]
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
 
     # Check that when 'adapt_brightness' is off, changing the brightness
     # doesn't mark it as manually controlled but changing color_temp
@@ -732,7 +732,7 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1]
     await switch.adapt_brightness_switch.async_turn_off()
     await turn_light(True, brightness=increased_brightness())
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     mired_range = (light.min_color_temp_kelvin, light.max_color_temp_kelvin)
     kelvin_range = (
         color_temperature_mired_to_kelvin(mired_range[1]),
@@ -743,7 +743,7 @@ async def test_manual_control(
         True,
         color_temp_kelvin=(light._attr_color_temp + 100) % ptp_kelvin,
     )
-    assert manual_control[ENTITY_LIGHT_1]
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
     # Check that when 'adapt_color' is off, changing the color
@@ -753,10 +753,10 @@ async def test_manual_control(
     await turn_light(True)
     assert not manual_control[ENTITY_LIGHT_1]
     await switch.adapt_color_switch.async_turn_off()
-    await turn_light(True, color_temp=increased_color_temp())
-    assert not manual_control[ENTITY_LIGHT_1]
+    await turn_light(True, color_temp_kelvin=increased_color_temp())
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.COLOR
     await turn_light(True, brightness=increased_brightness())
-    assert manual_control[ENTITY_LIGHT_1]
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
 
     # Check that when 'adapt_color' adapt_brightness are both off
     # nothing marks it as manually controlled
@@ -765,14 +765,14 @@ async def test_manual_control(
     await switch.adapt_color_switch.async_turn_off()
     await switch.adapt_brightness_switch.async_turn_off()
     assert not manual_control[ENTITY_LIGHT_1]
-    await turn_light(True, color_temp=increased_color_temp())
+    await turn_light(True, color_temp_kelvin=increased_color_temp())
     await turn_light(True, brightness=increased_brightness())
     await turn_light(
         True,
-        color_temp=increased_color_temp(),
+        color_temp_kelvin=increased_color_temp(),
         brightness=increased_brightness(),
     )
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
     # Turn switches on again
     await switch.adapt_color_switch.async_turn_on()
     await switch.adapt_brightness_switch.async_turn_on()
@@ -799,6 +799,22 @@ async def test_manual_control(
     await hass.async_block_till_done()
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
     assert not manual_control[ENTITY_LIGHT_1]
+
+    # Check that manual control `True` sets all attributes
+    await change_manual_control(False)
+    assert not manual_control[ENTITY_LIGHT_1]
+    await change_manual_control(True)
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+
+    # Check that manual control `False` unsets all attributes
+    await change_manual_control(False)
+    assert not manual_control[ENTITY_LIGHT_1]
+
+    # Check that manual control attributes can be selectively set
+    await change_manual_control("brightness")
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    await change_manual_control("color")
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.COLOR
 
 
 @flaky(max_runs=3, min_passes=1)
@@ -833,7 +849,7 @@ async def test_auto_reset_manual_control(hass):
     _LOGGER.debug("Start test auto reset manual control")
     await turn_light(True, brightness=1)
     await turn_light(True, brightness=10)
-    assert manual_control[light.entity_id]
+    assert manual_control[light.entity_id] == LightControlAttributes.BRIGHTNESS
     assert (
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id] > 0
     )
@@ -854,6 +870,143 @@ async def test_auto_reset_manual_control(hass):
     await update()
     await asyncio.sleep(0.3)  # Wait the auto reset time
     assert not manual_control[light.entity_id]
+
+
+async def test_adaptation_attribute_selection(hass):
+    """Test the 'manual control' tracking."""
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+
+    # Assert default settings
+    assert switch._take_over_control
+    assert switch._take_over_control_mode == TakeOverControlMode.PAUSE_ALL
+
+    # Check that PAUSE_ALL leads to adaptation of all attributes when none are manually controlled
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+
+    # Check that PAUSE_ALL leads to no adaptation when a single attribute is manually controlled
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.BRIGHTNESS,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+
+    # Check that PAUSE_ALL leads to no adaptation when all attributes are manually controlled
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.COLOR,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_CHANGED
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.NONE,
+    )
+
+    # Check that PAUSE_CHANGED leads to adaptation of all attributes when none are manually controlled
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+
+    # Check that PAUSE_CHANGED leads to adaptation of the remaining non-manual attributes
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.BRIGHTNESS,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.COLOR
+    )
+
+    # Check that PAUSE_CHANGED leads to no adaptation when all attributes are manually controlled
+    switch.manager.add_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.COLOR,
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+
+    await switch.adapt_brightness_switch.async_turn_off()
+
+    # Check that with adapt_brightness off and PAUSE_CHANGED, only color is adapted when none are manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_CHANGED
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.NONE,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.COLOR
+    )
+
+    # Check that with adapt_brightness off and PAUSE_CHANGED, nothing is adapted when color is manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_CHANGED
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.COLOR,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+
+    # Check that with adapt_brightness off and PAUSE_ALL, only color is adapted when none are manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_ALL
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.NONE,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.COLOR
+    )
+
+    # Check that with adapt_brightness off and PAUSE_ALL, nothing is adapted when color is manually controlled
+    switch._take_over_control_mode = TakeOverControlMode.PAUSE_ALL
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.COLOR,
+    )
+    assert (
+        switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
 
 
 async def test_apply_service(hass):
@@ -994,8 +1147,6 @@ def test_attributes_have_changed():
     }
     kwargs = {
         "light": "light.test",
-        "adapt_brightness": True,
-        "adapt_color": True,
         "context": Context(),
     }
     assert not _attributes_have_changed(
@@ -1229,9 +1380,15 @@ async def test_state_change_handlers(hass):
     await turn_light(True, brightness=40)
     await turn_light(True, brightness=20)
     await update(force=False)
-    assert switch.manager.manual_control[ENTITY_LIGHT_1]
+    assert (
+        switch.manager.manual_control[ENTITY_LIGHT_1]
+        == LightControlAttributes.BRIGHTNESS
+    )
     await update(force=True)
-    assert switch.manager.manual_control[ENTITY_LIGHT_1]
+    assert (
+        switch.manager.manual_control[ENTITY_LIGHT_1]
+        == LightControlAttributes.BRIGHTNESS
+    )
 
     # turn light off then on should reset manual control.
     await turn_light(False)
@@ -1245,7 +1402,10 @@ async def test_state_change_handlers(hass):
     await update(force=False)
     assert switch.manager.last_service_data.get(ENTITY_LIGHT_1) is not None
     assert switch.manager.our_last_state_on_change.get(ENTITY_LIGHT_1) is not None
-    assert switch.manager.manual_control[ENTITY_LIGHT_1]
+    assert (
+        switch.manager.manual_control[ENTITY_LIGHT_1]
+        == LightControlAttributes.BRIGHTNESS
+    )
 
 
 def test_is_our_context():
@@ -1345,7 +1505,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     # check whether the brightness and color_temp change.
     context = switch.create_context("test")  # needs to be passed to update method
     brightness = light.brightness
-    color_temp = light.color_temp
+    color_temp = light.color_temp_kelvin
     await switch.sleep_mode_switch.async_turn_on()
     await switch._update_attrs_and_maybe_adapt_lights(context=context)
     await hass.async_block_till_done()
@@ -1353,7 +1513,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     # TODO: figure out why `light.brightness` is not updating
     attrs = hass.states.get(light.entity_id).attributes
     sleep_brightness = attrs["brightness"]
-    sleep_color_temp = attrs["color_temp"]
+    sleep_color_temp = attrs["color_temp_kelvin"]
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
@@ -1364,7 +1524,7 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
 
     attrs = hass.states.get(light.entity_id).attributes
     brightness = attrs["brightness"]
-    color_temp = attrs["color_temp"]
+    color_temp = attrs["color_temp_kelvin"]
 
     assert sleep_brightness != brightness
     assert sleep_color_temp != color_temp
@@ -1538,7 +1698,7 @@ async def test_cancellable_service_calls_task(hass):
         _create_service_call_data_iterator(hass, [service_data], False),
         force=False,
         max_length=1,
-        which="both",
+        attributes=LightControlAttributes.ALL,
     )
     await switch.execute_cancellable_adaptation_calls(adaptation_data)
 
@@ -1948,7 +2108,7 @@ async def test_two_switches_for_single_light(hass):
 
     assert light1.is_on
     await turn_light(True, brightness=increased_brightness())
-    await turn_light(True, color_temp=increased_color_temp())
+    await turn_light(True, color_temp_kelvin=increased_color_temp())
 
     attrs = hass.states.get(light1.entity_id).attributes
     before_brightness = attrs[ATTR_BRIGHTNESS]
@@ -2381,12 +2541,9 @@ def test_attributes_have_changed_light_mode_switch():
     context = Context()
     base_kwargs = {
         "light": "light.test",
-        "adapt_brightness": True,
         "context": context,
     }
-
-    # Test 1: adapt_color=True - all mode changes should be detected
-    kwargs_adapt_color = {**base_kwargs, "adapt_color": True}
+    kwargs_adapt_color = base_kwargs
 
     # color_temp → RGB
     assert _attributes_have_changed(
@@ -2448,21 +2605,6 @@ def test_attributes_have_changed_light_mode_switch():
         new_attributes={ATTR_BRIGHTNESS: 128, ATTR_XY_COLOR: (0.64, 0.33)},
         **kwargs_adapt_color,
     ), "Same XY should not be detected as change"
-
-    # Test 2: adapt_color=False - mode changes should NOT be detected
-    kwargs_no_adapt = {**base_kwargs, "adapt_color": False}
-
-    assert not _attributes_have_changed(
-        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
-        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
-        **kwargs_no_adapt,
-    ), "Mode change should not be detected when adapt_color=False"
-
-    assert not _attributes_have_changed(
-        old_attributes={ATTR_BRIGHTNESS: 128, ATTR_RGB_COLOR: (255, 0, 0)},
-        new_attributes={ATTR_BRIGHTNESS: 128, ATTR_COLOR_TEMP_KELVIN: 4000},
-        **kwargs_no_adapt,
-    ), "RGB → color_temp should not be detected when adapt_color=False"
 
 
 # Regression tests for bugs found in PR #1348 by @protyposis

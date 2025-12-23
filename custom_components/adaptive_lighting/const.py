@@ -1,6 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
 
 from datetime import timedelta
+from enum import Enum
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
@@ -15,6 +16,14 @@ ICON_COLOR_TEMP = "mdi:sun-thermometer"
 ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
+
+
+class TakeOverControlMode(Enum):
+    """Modes for pausing adaptation when control of a light is taken over externally."""
+
+    PAUSE_ALL = "pause_all"
+    PAUSE_CHANGED = "pause_changed"
+
 
 DOCS = {CONF_ENTITY_ID: "Entity ID of the switch. 📝"}
 
@@ -34,6 +43,7 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Needs `take_over_control` enabled. 🕵️ "
     "Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result "
     "in lights turning on unexpectedly. "
+    "Note that this calls `homeassistant.update_entity` every `interval`! "
     "Disable this feature if you encounter such issues."
 )
 
@@ -188,9 +198,19 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
-    "Disable Adaptive Lighting if another source calls `light.turn_on` while lights "
-    "are on and being adapted. Note that this calls `homeassistant.update_entity` "
-    "every `interval`! 🔒"
+    "Pause adaptation of individual lights and hand over (manual) control to other sources that "
+    "issue `light.turn_on` calls for lights that are on. 🔒"
+)
+
+CONF_TAKE_OVER_CONTROL_MODE, DEFAULT_TAKE_OVER_CONTROL_MODE = (
+    "take_over_control_mode",
+    TakeOverControlMode.PAUSE_ALL.value,
+)
+DOCS[CONF_TAKE_OVER_CONTROL_MODE] = (
+    "The adaptation pausing mode when other sources change brightness and/or color of lights. "
+    "`pause_all` always pauses both brightness and color adaptation. "
+    "`pause_changed` pauses the adaptation of only the changed attributes and continues adapting "
+    "unchanged attributes, e.g., continues color adaptation when only brightness was changed."
 )
 
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 45
@@ -284,8 +304,9 @@ DOCS_MANUAL_CONTROL = {
     "light as being `manually controlled`. 📝",
     CONF_LIGHTS: "entity_id(s) of lights, if not specified, all lights in the "
     "switch are selected. 💡",
-    CONF_MANUAL_CONTROL: 'Whether to add ("true") or remove ("false") the '
-    'light from the "manual_control" list. 🔒',
+    CONF_MANUAL_CONTROL: 'Whether to add ("true") or remove ("false") all '
+    'adapted attributes of the light from the "manual_control" list, or the '
+    "name of an attribute for selective addition. 🔒",
 }
 
 DOCS_APPLY = {
@@ -351,6 +372,20 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
+    (
+        CONF_TAKE_OVER_CONTROL_MODE,
+        DEFAULT_TAKE_OVER_CONTROL_MODE,
+        selector.SelectSelector(  # type: ignore[arg-type]
+            selector.SelectSelectorConfig(
+                options=[
+                    TakeOverControlMode.PAUSE_ALL.value,
+                    TakeOverControlMode.PAUSE_CHANGED.value,
+                ],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        ),
+    ),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (
         CONF_AUTORESET_CONTROL,
@@ -446,6 +481,9 @@ SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
         vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
-        vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
+        vol.Optional(CONF_MANUAL_CONTROL, default=True): vol.Any(
+            cv.boolean,
+            vol.In(["brightness", "color"]),
+        ),
     },
 )
