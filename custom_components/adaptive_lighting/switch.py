@@ -7,7 +7,6 @@ import datetime
 import logging
 import zoneinfo
 from copy import deepcopy
-import yaml
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +14,7 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
+import yaml
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -963,13 +963,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                         except (ValueError, vol.Invalid):
                             # Fallback to pure ISO if cv fails or for standard compliance
                             t = datetime.time.fromisoformat(t_str)
-                        
-                        self.manual_schedule.append(SchedulePoint(
-                            time=t,
-                            brightness_pct=float(item["brightness_pct"]),
-                            color_temp_kelvin=int(item["color_temp_kelvin"])
-                        ))
-                    _LOGGER.info("Loaded manual schedule with %s points", len(self.manual_schedule))
+
+                        self.manual_schedule.append(
+                            SchedulePoint(
+                                time=t,
+                                brightness_pct=float(item["brightness_pct"]),
+                                color_temp_kelvin=int(item["color_temp_kelvin"]),
+                            )
+                        )
+                    _LOGGER.info(
+                        "Loaded manual schedule with %s points",
+                        len(self.manual_schedule),
+                    )
             except Exception as e:
                 _LOGGER.error("Failed to parse manual schedule: %s", e)
 
@@ -1515,7 +1520,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     light,
                     context.id,
                 )
-                _LOGGER.info("%s: Light '%s' is manually controlled. Schedule will NOT apply until reset.", self._name, light)
+                _LOGGER.info(
+                    "%s: Light '%s' is manually controlled. Schedule will NOT apply until reset.",
+                    self._name,
+                    light,
+                )
                 continue
 
             _LOGGER.debug(

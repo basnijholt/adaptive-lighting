@@ -159,7 +159,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             ),
             CONF_MANUAL_SCHEDULE: TextSelector(
-                TextSelectorConfig(multiline=True)
+                TextSelectorConfig(multiline=True),
             ),
         }
 
