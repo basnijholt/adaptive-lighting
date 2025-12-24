@@ -19,5 +19,6 @@
     ],
     "python.analysis.extraPaths": [
         "${workspaceFolder}/core"
-    ]
+    ],
+    "chatgpt.openOnStartup": true
 }

@@ -1,4 +1,4 @@
-"""Simple web app to visualize brightness over time."""
+﻿"""Simple web app to visualize brightness over time."""
 
 import datetime as dt
 from contextlib import suppress
@@ -37,7 +37,7 @@ def copy_color_and_brightness_module() -> None:
         module = (
             webapp_folder.parent
             / "custom_components"
-            / "adaptive_lighting"
+            / "adaptive_lighting_independent"
             / "color_and_brightness.py"
         )
         new_module = webapp_folder / module.name
@@ -217,10 +217,15 @@ Dive into the simulator, experiment with different settings, and fine-tune the b
 
 # Shiny UI
 app_ui = ui.page_fluid(
-    ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
+    ui.panel_title("ðŸŒž Adaptive Lighting Simulator WebApp ðŸŒ›"),
     ui.layout_sidebar(
         ui.sidebar(
             ui.input_switch("adapt_until_sleep", "adapt_until_sleep", value=False),
+            ui.input_switch(
+                "independent_color_schedule",
+                "independent_color_schedule",
+                value=False,
+            ),
             ui.input_switch("sleep_mode", "sleep_mode", value=False),
             ui.input_slider("min_brightness", "min_brightness", 1, 100, 30, post="%"),
             ui.input_slider("max_brightness", "max_brightness", 1, 100, 100, post="%"),
@@ -257,6 +262,75 @@ app_ui = ui.page_fluid(
                 0.5 * SEC_PER_HR,
                 post=" sec",
             ),
+            ui.input_switch(
+                "independent_color_schedule",
+                "independent_color_schedule",
+                value=False,
+            ),
+            ui.input_slider(
+                "color_sunrise_time",
+                "color_sunrise_time",
+                0,
+                24,
+                6,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_sunset_time",
+                "color_sunset_time",
+                0,
+                24,
+                18,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_min_sunrise_time",
+                "color_min_sunrise_time (0 = unset)",
+                0,
+                24,
+                0,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_max_sunrise_time",
+                "color_max_sunrise_time (0 = unset)",
+                0,
+                24,
+                0,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_min_sunset_time",
+                "color_min_sunset_time (0 = unset)",
+                0,
+                24,
+                0,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_max_sunset_time",
+                "color_max_sunset_time (0 = unset)",
+                0,
+                24,
+                0,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_numeric(
+                "color_sunrise_offset",
+                "color_sunrise_offset (sec)",
+                0,
+            ),
+            ui.input_numeric(
+                "color_sunset_offset",
+                "color_sunset_offset (sec)",
+                0,
+            ),
             ui.input_slider(
                 "sunrise_time",
                 "sunrise_time",
@@ -269,6 +343,24 @@ app_ui = ui.page_fluid(
             ui.input_slider(
                 "sunset_time",
                 "sunset_time",
+                0,
+                24,
+                18,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_sunrise_time",
+                "color_sunrise_time",
+                0,
+                24,
+                6,
+                step=0.5,
+                post=" hr",
+            ),
+            ui.input_slider(
+                "color_sunset_time",
+                "color_sunset_time",
                 0,
                 24,
                 18,
@@ -298,8 +390,9 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 
 def _kw(input):
+    independent_color_schedule = input.independent_color_schedule()
     location = Location(LocationInfo(timezone=dt.timezone.utc))
-    return {
+    brightness = {
         "name": "Adaptive Lighting Simulator",
         "adapt_until_sleep": input.adapt_until_sleep(),
         "max_brightness": input.max_brightness(),
@@ -327,6 +420,24 @@ def _kw(input):
         "astral_location": location,
         "timezone": location.timezone,
     }
+    color = dict(brightness)
+    if independent_color_schedule:
+        def to_time_or_none(val: float):
+            return None if val == 0 else float_to_time(val)
+
+        color.update(
+            {
+                "sunrise_time": float_to_time(input.color_sunrise_time()),
+                "sunset_time": float_to_time(input.color_sunset_time()),
+                "sunrise_offset": dt.timedelta(seconds=input.color_sunrise_offset()),
+                "sunset_offset": dt.timedelta(seconds=input.color_sunset_offset()),
+                "min_sunrise_time": to_time_or_none(input.color_min_sunrise_time()),
+                "max_sunrise_time": to_time_or_none(input.color_max_sunrise_time()),
+                "min_sunset_time": to_time_or_none(input.color_min_sunset_time()),
+                "max_sunset_time": to_time_or_none(input.color_max_sunset_time()),
+            },
+        )
+    return brightness, color
 
 
 def server(input, output, session):  # noqa: ARG001
@@ -335,12 +446,14 @@ def server(input, output, session):  # noqa: ARG001
     @output
     @render.plot
     def brightness_plot():
-        return plot_brightness(_kw(input), sleep_mode=input.sleep_mode())
+        brightness, _ = _kw(input)
+        return plot_brightness(brightness, sleep_mode=input.sleep_mode())
 
     @output
     @render.plot
     def color_temp_plot():
-        return plot_color_temp(_kw(input), sleep_mode=input.sleep_mode())
+        _, color = _kw(input)
+        return plot_color_temp(color, sleep_mode=input.sleep_mode())
 
 
 app = App(app_ui, server)
