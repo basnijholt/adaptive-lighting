@@ -2632,7 +2632,7 @@ class AdaptiveLightingManager:
                 # Note: the reset below already happened in `_service_interceptor_turn_on_handler`
                 return
 
-            self.reset(entity_id, reset_manual_control=False)
+            self.reset(entity_id, reset_manual_control=True)
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.just_turned_off(entity_id):
