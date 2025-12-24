@@ -1,4 +1,4 @@
-﻿"""Simple web app to visualize brightness over time."""
+"""Simple web app to visualize brightness over time."""
 
 import datetime as dt
 from contextlib import suppress
@@ -37,7 +37,7 @@ def copy_color_and_brightness_module() -> None:
         module = (
             webapp_folder.parent
             / "custom_components"
-            / "adaptive_lighting_independent"
+            / "adaptive_lighting"
             / "color_and_brightness.py"
         )
         new_module = webapp_folder / module.name
@@ -150,7 +150,8 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
         colors = [setting["rgb_color"] for setting in settings]
     color_temp_values = np.array([(*col, 255) for col in colors]) / 255
     color_temp_values = color_temp_values.reshape(-1, 1, 4)
-    sun_position = [setting["sun_position"] for setting in settings]
+    # Use sun_color for color temperature plot (uses color-specific times if configured)
+    sun_position = [sun.sun_color.sun_position(dt) for dt in dt_range]
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Display as a horizontal bar
@@ -163,14 +164,15 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
     # Plot a curve on top of the imshow
     ax.plot(time_range, sun_position, color="k", label="Sun Position")
 
-    sunrise_time = sun.sun.sunrise(dt.date.today())
-    sunset_time = sun.sun.sunset(dt.date.today())
+    # Use sun_color for sunrise/sunset lines (color-specific times)
+    sunrise_time = sun.sun_color.sunrise(dt.date.today())
+    sunset_time = sun.sun_color.sunset(dt.date.today())
     ax.vlines(
         time_to_float(sunrise_time),
         -1,
         1,
         color="C2",
-        label="Sunrise",
+        label="Color Sunrise",
         linestyles="dashed",
     )
     ax.vlines(
@@ -178,7 +180,7 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
         -1,
         1,
         color="C3",
-        label="Sunset",
+        label="Color Sunset",
         linestyles="dashed",
     )
 
@@ -217,15 +219,10 @@ Dive into the simulator, experiment with different settings, and fine-tune the b
 
 # Shiny UI
 app_ui = ui.page_fluid(
-    ui.panel_title("ðŸŒž Adaptive Lighting Simulator WebApp ðŸŒ›"),
+    ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
     ui.layout_sidebar(
         ui.sidebar(
             ui.input_switch("adapt_until_sleep", "adapt_until_sleep", value=False),
-            ui.input_switch(
-                "independent_color_schedule",
-                "independent_color_schedule",
-                value=False,
-            ),
             ui.input_switch("sleep_mode", "sleep_mode", value=False),
             ui.input_slider("min_brightness", "min_brightness", 1, 100, 30, post="%"),
             ui.input_slider("max_brightness", "max_brightness", 1, 100, 100, post="%"),
@@ -262,75 +259,6 @@ app_ui = ui.page_fluid(
                 0.5 * SEC_PER_HR,
                 post=" sec",
             ),
-            ui.input_switch(
-                "independent_color_schedule",
-                "independent_color_schedule",
-                value=False,
-            ),
-            ui.input_slider(
-                "color_sunrise_time",
-                "color_sunrise_time",
-                0,
-                24,
-                6,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "color_sunset_time",
-                "color_sunset_time",
-                0,
-                24,
-                18,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "color_min_sunrise_time",
-                "color_min_sunrise_time (0 = unset)",
-                0,
-                24,
-                0,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "color_max_sunrise_time",
-                "color_max_sunrise_time (0 = unset)",
-                0,
-                24,
-                0,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "color_min_sunset_time",
-                "color_min_sunset_time (0 = unset)",
-                0,
-                24,
-                0,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "color_max_sunset_time",
-                "color_max_sunset_time (0 = unset)",
-                0,
-                24,
-                0,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_numeric(
-                "color_sunrise_offset",
-                "color_sunrise_offset (sec)",
-                0,
-            ),
-            ui.input_numeric(
-                "color_sunset_offset",
-                "color_sunset_offset (sec)",
-                0,
-            ),
             ui.input_slider(
                 "sunrise_time",
                 "sunrise_time",
@@ -349,23 +277,28 @@ app_ui = ui.page_fluid(
                 step=0.5,
                 post=" hr",
             ),
-            ui.input_slider(
-                "color_sunrise_time",
-                "color_sunrise_time",
-                0,
-                24,
-                6,
-                step=0.5,
-                post=" hr",
-            ),
-            ui.input_slider(
-                "color_sunset_time",
-                "color_sunset_time",
-                0,
-                24,
-                18,
-                step=0.5,
-                post=" hr",
+            ui.hr(),
+            ui.input_switch("independent_color_adapting", "Independent Color Adapting", value=False),
+            ui.panel_conditional(
+                "input.independent_color_adapting",
+                ui.input_slider(
+                    "color_sunrise_time",
+                    "color_sunrise_time",
+                    0,
+                    24,
+                    6,
+                    step=0.5,
+                    post=" hr",
+                ),
+                ui.input_slider(
+                    "color_sunset_time",
+                    "color_sunset_time",
+                    0,
+                    24,
+                    18,
+                    step=0.5,
+                    post=" hr",
+                ),
             ),
         ),
         ui.markdown(desc_top),
@@ -390,9 +323,9 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 
 def _kw(input):
-    independent_color_schedule = input.independent_color_schedule()
     location = Location(LocationInfo(timezone=dt.timezone.utc))
-    brightness = {
+    independent_color_adapting = input.independent_color_adapting()
+    return {
         "name": "Adaptive Lighting Simulator",
         "adapt_until_sleep": input.adapt_until_sleep(),
         "max_brightness": input.max_brightness(),
@@ -419,25 +352,16 @@ def _kw(input):
         "max_sunset_time": None,
         "astral_location": location,
         "timezone": location.timezone,
+        # Separate color timing parameters
+        "color_sunrise_time": float_to_time(input.color_sunrise_time()) if independent_color_adapting else None,
+        "color_sunrise_offset": dt.timedelta(0),
+        "min_color_sunrise_time": None,
+        "max_color_sunrise_time": None,
+        "color_sunset_time": float_to_time(input.color_sunset_time()) if independent_color_adapting else None,
+        "color_sunset_offset": dt.timedelta(0),
+        "min_color_sunset_time": None,
+        "max_color_sunset_time": None,
     }
-    color = dict(brightness)
-    if independent_color_schedule:
-        def to_time_or_none(val: float):
-            return None if val == 0 else float_to_time(val)
-
-        color.update(
-            {
-                "sunrise_time": float_to_time(input.color_sunrise_time()),
-                "sunset_time": float_to_time(input.color_sunset_time()),
-                "sunrise_offset": dt.timedelta(seconds=input.color_sunrise_offset()),
-                "sunset_offset": dt.timedelta(seconds=input.color_sunset_offset()),
-                "min_sunrise_time": to_time_or_none(input.color_min_sunrise_time()),
-                "max_sunrise_time": to_time_or_none(input.color_max_sunrise_time()),
-                "min_sunset_time": to_time_or_none(input.color_min_sunset_time()),
-                "max_sunset_time": to_time_or_none(input.color_max_sunset_time()),
-            },
-        )
-    return brightness, color
 
 
 def server(input, output, session):  # noqa: ARG001
@@ -446,14 +370,12 @@ def server(input, output, session):  # noqa: ARG001
     @output
     @render.plot
     def brightness_plot():
-        brightness, _ = _kw(input)
-        return plot_brightness(brightness, sleep_mode=input.sleep_mode())
+        return plot_brightness(_kw(input), sleep_mode=input.sleep_mode())
 
     @output
     @render.plot
     def color_temp_plot():
-        _, color = _kw(input)
-        return plot_color_temp(color, sleep_mode=input.sleep_mode())
+        return plot_color_temp(_kw(input), sleep_mode=input.sleep_mode())
 
 
 app = App(app_ui, server)

@@ -18,7 +18,16 @@
           "multi_light_intercept": "multi_light_intercept: Prestreza in prilagaja klice \"light.turn_on\", ki ciljajo več luči. ➗⚠️ To lahko privede do razdelitve enega klica \"light.turn_on\" v več klicev, npr. ko so luči na različnih stikalih. Zahteva omogočeno \"intercept\".",
           "include_config_in_attributes": "include_config_in_attributes: Ko je nastavljeno na \"true\", prikaže vse možnosti kot atribute stikala v Home Assistantu. 📝",
           "only_once": "only_once: Prilagodi luči samo ob vklopu (true) ali pa jih še naprej prilagajaj (false). 🔄",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Ob začetnem vklopu luči. Če je nastavljeno na \"true\",  AL prilagodi samo, če je \"light.turn_on\" klic brez podanih parametrov barve ali jakosti. ❌🌈 S tem se npr. prepreči prilagajanje pri aktivaciji scene. Če je \"false\", AL prilagodi ne glede na prisotnost barve ali jakosti v začetnih \"service_data\". Zahteva omogočeno \"take_over_control\". 🕵️"
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Ob začetnem vklopu luči. Če je nastavljeno na \"true\",  AL prilagodi samo, če je \"light.turn_on\" klic brez podanih parametrov barve ali jakosti. ❌🌈 S tem se npr. prepreči prilagajanje pri aktivaciji scene. Če je \"false\", AL prilagodi ne glede na prisotnost barve ali jakosti v začetnih \"service_data\". Zahteva omogočeno \"take_over_control\". 🕵️",
+          "independent_color_schedule": "independent_color_schedule: Uporabi lo?en urnik za barvno temperaturo.",
+          "color_sunrise_time": "color_sunrise_time",
+          "color_min_sunrise_time": "color_min_sunrise_time",
+          "color_max_sunrise_time": "color_max_sunrise_time",
+          "color_sunrise_offset": "color_sunrise_offset",
+          "color_sunset_time": "color_sunset_time",
+          "color_min_sunset_time": "color_min_sunset_time",
+          "color_max_sunset_time": "color_max_sunset_time",
+          "color_sunset_offset": "color_sunset_offset"
         },
         "data_description": {
           "sunrise_offset": "Prilagodite čas sončnega vzhoda z pozitivnim ali negativnim zamikom v sekundah. ⏰",
@@ -41,7 +50,16 @@
           "max_sunset_time": "Nastavite najpoznejši navidezni čas sončnega zahoda (HH:MM:SS), dovoljuje zgodnejše sončne zahode. 🌇",
           "brightness_mode": "Način upravljanja svetlosti. Možne vrednosti so \"default\", \"linear\" in \"tanh\" (uporablja \"brightness_mode_time_dark\" in \"brightness_mode_time_light\"). 📈",
           "initial_transition": "Trajanje prvega prehoda, ko se luči prižgejo (iz \"off\" v \"on\"), v sekundah. ⏲️",
-          "sleep_rgb_color": "RGB barva v načinu spanja (uporabljena, ko je \"sleep_rgb_or_color_temp\" nastavljeno na \"rgb_color\"). 🌈"
+          "sleep_rgb_color": "RGB barva v načinu spanja (uporabljena, ko je \"sleep_rgb_or_color_temp\" nastavljeno na \"rgb_color\"). 🌈",
+          "independent_color_adapting": "Uporabi lo?en urnik za barvno temperaturo namesto urnika svetlosti.",
+          "color_sunrise_time": "Čas barvnega son?nega vzhoda (HH:MM:SS).",
+          "color_min_sunrise_time": "Najzgodnejši navidezni barvni vzhod (HH:MM:SS).",
+          "color_max_sunrise_time": "Najpoznejši navidezni barvni vzhod (HH:MM:SS).",
+          "color_sunrise_offset": "Prilagodi čas barvnega vzhoda s pozitivnim ali negativnim zamikom v sekundah.",
+          "color_sunset_time": "Čas barvnega sončnega zahoda (HH:MM:SS).",
+          "color_min_sunset_time": "Najzgodnejši navidezni barvni zahod (HH:MM:SS).",
+          "color_max_sunset_time": "Najpoznejši navidezni barvni zahod (HH:MM:SS).",
+          "color_sunset_offset": "Prilagodi čas barvnega zahoda s pozitivnim ali negativnim zamikom v sekundah."
         },
         "title": "Nastavitve prilagodljive osvetlitve",
         "description": "Konfigurirajte komponento Adaptive Lighting. Imena možnosti so usklajena z nastavitvami v YAML. Če ste ta vnos definirali v YAML, tukaj ne bodo prikazane nobene možnosti. Za interaktivne grafe, ki ponazarjajo učinke parametrov, obiščite to [spletno aplikacijo](https://basnijholt.github.io/adaptive-lighting). Za dodatne podrobnosti glejte [uradno dokumentacijo](https://github.com/basnijholt/adaptive-lighting#readme)."
