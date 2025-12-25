@@ -2633,6 +2633,7 @@ class AdaptiveLightingManager:
                 return
 
             self.reset(entity_id, reset_manual_control=True)
+            self.last_service_data.pop(entity_id, None)
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.just_turned_off(entity_id):

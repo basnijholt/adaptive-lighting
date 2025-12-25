@@ -1,7 +1,7 @@
 """Tests for Adaptive Lighting integration."""
 
-from homeassistant.components import adaptive_lighting
-from homeassistant.components.adaptive_lighting.const import (
+from custom_components import adaptive_lighting_independent as adaptive_lighting
+from custom_components.adaptive_lighting_independent.const import (
     DEFAULT_NAME,
     UNDO_UPDATE_LISTENER,
 )

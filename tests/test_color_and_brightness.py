@@ -4,7 +4,7 @@ import zoneinfo
 import pytest
 from astral import LocationInfo
 from astral.location import Location
-from homeassistant.components.adaptive_lighting.color_and_brightness import (
+from custom_components.adaptive_lighting_independent.color_and_brightness import (
     SunEvent,
     SunEvents,
 )

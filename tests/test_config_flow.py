@@ -1,6 +1,6 @@
 """Test Adaptive Lighting config flow."""
 
-from homeassistant.components.adaptive_lighting.const import (
+from custom_components.adaptive_lighting_independent.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     DEFAULT_NAME,
@@ -26,7 +26,7 @@ async def test_flow_manual_configuration(hass):
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "user"
-    assert result["handler"] == "adaptive_lighting"
+    assert result["handler"] == DOMAIN
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
