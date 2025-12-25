@@ -3,7 +3,7 @@
 from unittest.mock import Mock
 
 import pytest
-from custom_components.adaptive_lighting_independent.adaptation_utils import (
+from homeassistant.components.adaptive_lighting.adaptation_utils import (
     LightControlAttributes,
     ServiceData,
     _create_service_call_data_iterator,

@@ -2,8 +2,8 @@
 
 from unittest.mock import AsyncMock
 
-from custom_components.adaptive_lighting_independent.adaptation_utils import ServiceData
-from custom_components.adaptive_lighting_independent.hass_utils import (
+from homeassistant.components.adaptive_lighting.adaptation_utils import ServiceData
+from homeassistant.components.adaptive_lighting.hass_utils import (
     setup_service_call_interceptor,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN

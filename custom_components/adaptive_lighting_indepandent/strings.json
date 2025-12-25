@@ -1,5 +1,4 @@
 {
-  "title": "Adaptive Lighting",
   "config": {
     "step": {
       "user": {
@@ -18,7 +17,7 @@
       }
     },
     "abort": {
-      "already_configured": "This device is already configured"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
   "options": {
@@ -65,16 +64,7 @@
           "skip_redundant_commands": "skip_redundant_commands: Skip sending adaptation commands whose target state already equals the light's known state. Minimizes network traffic and improves the adaptation responsivity in some situations. 📉Disable if physical light states get out of sync with HA's recorded state.",
           "intercept": "intercept: Intercept and adapt `light.turn_on` calls to enabling instantaneous color and brightness adaptation. 🏎️ Disable for lights that do not support `light.turn_on` with color and brightness.",
           "multi_light_intercept": "multi_light_intercept: Intercept and adapt `light.turn_on` calls that target multiple lights. ➗⚠️ This might result in splitting up a single `light.turn_on` call into multiple calls, e.g., when lights are in different switches. Requires `intercept` to be enabled.",
-          "include_config_in_attributes": "include_config_in_attributes: Show all options as attributes on the switch in Home Assistant when set to `true`. 📝",
-          "independent_color_adapting": "independent_color_adapting: Use a separate schedule for color temperature.",
-          "color_sunrise_time": "color_sunrise_time",
-          "color_min_sunrise_time": "color_min_sunrise_time",
-          "color_max_sunrise_time": "color_max_sunrise_time",
-          "color_sunrise_offset": "color_sunrise_offset",
-          "color_sunset_time": "color_sunset_time",
-          "color_min_sunset_time": "color_min_sunset_time",
-          "color_max_sunset_time": "color_max_sunset_time",
-          "color_sunset_offset": "color_sunset_offset"
+          "include_config_in_attributes": "include_config_in_attributes: Show all options as attributes on the switch in Home Assistant when set to `true`. 📝"
         },
         "data_description": {
           "interval": "Frequency to adapt the lights, in seconds. 🔄",
@@ -99,16 +89,7 @@
           "take_over_control_mode": "The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.",
           "autoreset_control_seconds": "Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️",
           "send_split_delay": "Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
-          "adapt_delay": "Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️",
-          "independent_color_adapting": "Use a separate schedule for color temperature instead of the brightness schedule.",
-          "color_sunrise_time": "Color sunrise time (HH:MM:SS). 🌅",
-          "color_min_sunrise_time": "Set the earliest virtual color sunrise time (HH:MM:SS). 🌅",
-          "color_max_sunrise_time": "Set the latest virtual color sunrise time (HH:MM:SS). 🌅",
-          "color_sunrise_offset": "Adjust color sunrise time with a positive or negative offset in seconds. ⏰",
-          "color_sunset_time": "Color sunset time (HH:MM:SS). 🌇",
-          "color_min_sunset_time": "Set the earliest virtual color sunset time (HH:MM:SS). 🌇",
-          "color_max_sunset_time": "Set the latest virtual color sunset time (HH:MM:SS). 🌇",
-          "color_sunset_offset": "Adjust color sunset time with a positive or negative offset in seconds. ⏰"
+          "adapt_delay": "Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️"
         }
       }
     },

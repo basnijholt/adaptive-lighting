@@ -1,4 +1,5 @@
 {
+  "title": "Adaptive Lighting",
   "config": {
     "step": {
       "user": {
@@ -17,7 +18,7 @@
       }
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "This device is already configured"
     }
   },
   "options": {
@@ -49,15 +50,6 @@
           "min_sunset_time": "min_sunset_time",
           "max_sunset_time": "max_sunset_time",
           "sunset_offset": "sunset_offset",
-          "independent_color_schedule": "independent_color_schedule: Use a separate schedule for color temperature.",
-          "color_sunrise_time": "color_sunrise_time",
-          "color_min_sunrise_time": "color_min_sunrise_time",
-          "color_max_sunrise_time": "color_max_sunrise_time",
-          "color_sunrise_offset": "color_sunrise_offset",
-          "color_sunset_time": "color_sunset_time",
-          "color_min_sunset_time": "color_min_sunset_time",
-          "color_max_sunset_time": "color_max_sunset_time",
-          "color_sunset_offset": "color_sunset_offset",
           "brightness_mode": "brightness_mode",
           "brightness_mode_time_dark": "brightness_mode_time_dark",
           "brightness_mode_time_light": "brightness_mode_time_light",
@@ -98,16 +90,7 @@
           "take_over_control_mode": "The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.",
           "autoreset_control_seconds": "Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️",
           "send_split_delay": "Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
-          "adapt_delay": "Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️",
-          "independent_color_schedule": "Use a separate schedule for color temperature instead of the brightness schedule.",
-          "color_sunrise_time": "Color schedule sunrise time (HH:MM:SS).",
-          "color_min_sunrise_time": "Set the earliest virtual sunrise time (HH:MM:SS) for the color schedule.",
-          "color_max_sunrise_time": "Set the latest virtual sunrise time (HH:MM:SS) for the color schedule.",
-          "color_sunrise_offset": "Adjust color schedule sunrise time with a positive or negative offset in seconds.",
-          "color_sunset_time": "Color schedule sunset time (HH:MM:SS).",
-          "color_min_sunset_time": "Set the earliest virtual sunset time (HH:MM:SS) for the color schedule.",
-          "color_max_sunset_time": "Set the latest virtual sunset time (HH:MM:SS) for the color schedule.",
-          "color_sunset_offset": "Adjust color schedule sunset time with a positive or negative offset in seconds."
+          "adapt_delay": "Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️"
         }
       }
     },

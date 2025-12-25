@@ -1,6 +1,6 @@
 {
-  "domain": "adaptive_lighting_independent",
-  "name": "Adaptive Lighting Independent",
+  "domain": "adaptive_lighting",
+  "name": "Adaptive Lighting",
   "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1", "@protyposis"],
   "config_flow": true,
   "dependencies": ["light"],
