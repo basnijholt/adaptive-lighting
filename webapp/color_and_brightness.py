@@ -260,24 +260,47 @@ class SunLightSettings:
     @cached_property
     def sun_color(self) -> SunEvents:
         """Return the SunEvents object for color temperature.
-        
+
         If color-specific timing is configured, use those values,
         otherwise fall back to the brightness timing values.
         """
         return SunEvents(
             name=self.name,
             astral_location=self.astral_location,
-            sunrise_time=self.color_sunrise_time if self.color_sunrise_time is not None else self.sunrise_time,
+            sunrise_time=(
+                self.color_sunrise_time
+                if self.color_sunrise_time is not None
+                else self.sunrise_time
+            ),
             sunrise_offset=self.color_sunrise_offset,
-            min_sunrise_time=self.min_color_sunrise_time if self.min_color_sunrise_time is not None else self.min_sunrise_time,
-            max_sunrise_time=self.max_color_sunrise_time if self.max_color_sunrise_time is not None else self.max_sunrise_time,
-            sunset_time=self.color_sunset_time if self.color_sunset_time is not None else self.sunset_time,
+            min_sunrise_time=(
+                self.min_color_sunrise_time
+                if self.min_color_sunrise_time is not None
+                else self.min_sunrise_time
+            ),
+            max_sunrise_time=(
+                self.max_color_sunrise_time
+                if self.max_color_sunrise_time is not None
+                else self.max_sunrise_time
+            ),
+            sunset_time=(
+                self.color_sunset_time
+                if self.color_sunset_time is not None
+                else self.sunset_time
+            ),
             sunset_offset=self.color_sunset_offset,
-            min_sunset_time=self.min_color_sunset_time if self.min_color_sunset_time is not None else self.min_sunset_time,
-            max_sunset_time=self.max_color_sunset_time if self.max_color_sunset_time is not None else self.max_sunset_time,
+            min_sunset_time=(
+                self.min_color_sunset_time
+                if self.min_color_sunset_time is not None
+                else self.min_sunset_time
+            ),
+            max_sunset_time=(
+                self.max_color_sunset_time
+                if self.max_color_sunset_time is not None
+                else self.max_sunset_time
+            ),
             timezone=self.timezone,
         )
-
 
     def _brightness_pct_default(self, dt: datetime.datetime) -> float:
         """Calculate the brightness percentage using the default method."""

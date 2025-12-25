@@ -278,7 +278,9 @@ app_ui = ui.page_fluid(
                 post=" hr",
             ),
             ui.hr(),
-            ui.input_switch("independent_color_adapting", "Independent Color Adapting", value=False),
+            ui.input_switch(
+                "independent_color_adapting", "Independent Color Adapting", value=False
+            ),
             ui.panel_conditional(
                 "input.independent_color_adapting",
                 ui.input_slider(
@@ -353,11 +355,19 @@ def _kw(input):
         "astral_location": location,
         "timezone": location.timezone,
         # Separate color timing parameters
-        "color_sunrise_time": float_to_time(input.color_sunrise_time()) if independent_color_adapting else None,
+        "color_sunrise_time": (
+            float_to_time(input.color_sunrise_time())
+            if independent_color_adapting
+            else None
+        ),
         "color_sunrise_offset": dt.timedelta(0),
         "min_color_sunrise_time": None,
         "max_color_sunrise_time": None,
-        "color_sunset_time": float_to_time(input.color_sunset_time()) if independent_color_adapting else None,
+        "color_sunset_time": (
+            float_to_time(input.color_sunset_time())
+            if independent_color_adapting
+            else None
+        ),
         "color_sunset_offset": dt.timedelta(0),
         "min_color_sunset_time": None,
         "max_color_sunset_time": None,
