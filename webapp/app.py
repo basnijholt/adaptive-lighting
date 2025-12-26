@@ -150,7 +150,8 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
         colors = [setting["rgb_color"] for setting in settings]
     color_temp_values = np.array([(*col, 255) for col in colors]) / 255
     color_temp_values = color_temp_values.reshape(-1, 1, 4)
-    sun_position = [setting["sun_position"] for setting in settings]
+    # Use sun_color for color temperature plot (uses color-specific times if configured)
+    sun_position = [sun.sun_color.sun_position(dt) for dt in dt_range]
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Display as a horizontal bar
@@ -163,14 +164,15 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
     # Plot a curve on top of the imshow
     ax.plot(time_range, sun_position, color="k", label="Sun Position")
 
-    sunrise_time = sun.sun.sunrise(dt.date.today())
-    sunset_time = sun.sun.sunset(dt.date.today())
+    # Use sun_color for sunrise/sunset lines (color-specific times)
+    sunrise_time = sun.sun_color.sunrise(dt.date.today())
+    sunset_time = sun.sun_color.sunset(dt.date.today())
     ax.vlines(
         time_to_float(sunrise_time),
         -1,
         1,
         color="C2",
-        label="Sunrise",
+        label="Color Sunrise",
         linestyles="dashed",
     )
     ax.vlines(
@@ -178,7 +180,7 @@ def plot_color_temp(inputs: dict[str, Any], sleep_mode: bool) -> plt.Figure:
         -1,
         1,
         color="C3",
-        label="Sunset",
+        label="Color Sunset",
         linestyles="dashed",
     )
 
@@ -275,6 +277,33 @@ app_ui = ui.page_fluid(
                 step=0.5,
                 post=" hr",
             ),
+            ui.hr(),
+            ui.input_switch(
+                "independent_color_adapting",
+                "Independent Color Adapting",
+                value=False,
+            ),
+            ui.panel_conditional(
+                "input.independent_color_adapting",
+                ui.input_slider(
+                    "color_sunrise_time",
+                    "color_sunrise_time",
+                    0,
+                    24,
+                    6,
+                    step=0.5,
+                    post=" hr",
+                ),
+                ui.input_slider(
+                    "color_sunset_time",
+                    "color_sunset_time",
+                    0,
+                    24,
+                    18,
+                    step=0.5,
+                    post=" hr",
+                ),
+            ),
         ),
         ui.markdown(desc_top),
         ui.output_plot(id="brightness_plot"),
@@ -299,6 +328,7 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 def _kw(input):
     location = Location(LocationInfo(timezone=dt.timezone.utc))
+    independent_color_adapting = input.independent_color_adapting()
     return {
         "name": "Adaptive Lighting Simulator",
         "adapt_until_sleep": input.adapt_until_sleep(),
@@ -326,6 +356,23 @@ def _kw(input):
         "max_sunset_time": None,
         "astral_location": location,
         "timezone": location.timezone,
+        # Separate color timing parameters
+        "color_sunrise_time": (
+            float_to_time(input.color_sunrise_time())
+            if independent_color_adapting
+            else None
+        ),
+        "color_sunrise_offset": dt.timedelta(0),
+        "min_color_sunrise_time": None,
+        "max_color_sunrise_time": None,
+        "color_sunset_time": (
+            float_to_time(input.color_sunset_time())
+            if independent_color_adapting
+            else None
+        ),
+        "color_sunset_offset": dt.timedelta(0),
+        "min_color_sunset_time": None,
+        "max_color_sunset_time": None,
     }
 
 
