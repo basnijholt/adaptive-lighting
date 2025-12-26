@@ -1,15 +1,14 @@
-import datetime
-import os
+import logging
 import sys
+from pathlib import Path
+import datetime
 from datetime import timedelta, timezone
 from unittest.mock import MagicMock
 
 # Add the parent directory to sys.path to import the component
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from custom_components.adaptive_lighting_indepandent.color_and_brightness import (
-    SunLightSettings,
-)
+from custom_components.adaptive_lighting.color_and_brightness import SunLightSettings
 
 # Mock astral location
 mock_location = MagicMock()
@@ -28,7 +27,7 @@ mock_location.midnight.return_value = datetime.datetime.now(timezone.utc).replac
 
 
 def test_independent_color():
-    print("Testing Independent Color Control Logic...")
+    logging.info("Testing Independent Color Control Logic...")
 
     base_settings = {
         "name": "test",
@@ -67,7 +66,7 @@ def test_independent_color():
     }
 
     # Test Case 1: Independent Control Disabled
-    print("\n[Case 1] Independent Control Disabled")
+    logging.info("\n[Case 1] Independent Control Disabled")
     settings = SunLightSettings(**base_settings)
 
     # At 7:00 (after main sunrise 6:00, before color sunrise 8:00)
@@ -77,19 +76,19 @@ def test_independent_color():
     )
 
     res = settings.brightness_and_color(dt, is_sleep=False)
-    print("Time: 07:00 (Sunrise: 06:00, Color Sunrise: 08:00)")
-    print(f"Brightness: {res['brightness_pct']} (Expected > min)")
-    print(f"Color Temp: {res['color_temp_kelvin']} (Expected > min)")
+    logging.info("Time: 07:00 (Sunrise: 06:00, Color Sunrise: 08:00)")
+    logging.info(f"Brightness: {res['brightness_pct']} (Expected > min)")
+    logging.info(f"Color Temp: {res['color_temp_kelvin']} (Expected > min)")
 
     if res["color_temp_kelvin"] <= 3000:
-        print(
+        logging.info(
             "FAIL: Color temp should be rising as sun is up (following 06:00 sunrise)"
         )
     else:
-        print("PASS: Color temp is following main schedule")
+        logging.info("PASS: Color temp is following main schedule")
 
     # Test Case 2: Independent Control Enabled
-    print("\n[Case 2] Independent Control Enabled")
+    logging.info("\n[Case 2] Independent Control Enabled")
     base_settings["independent_color_adapting"] = True
     settings = SunLightSettings(**base_settings)
 
@@ -98,24 +97,24 @@ def test_independent_color():
     # Color should be LOW (color sun is NOT up yet, sunrise is 8:00)
 
     res = settings.brightness_and_color(dt, is_sleep=False)
-    print("Time: 07:00 (Sunrise: 06:00, Color Sunrise: 08:00)")
-    print(f"Brightness: {res['brightness_pct']} (Expected > min)")
-    print(f"Color Temp: {res['color_temp_kelvin']} (Expected approx min)")
+    logging.info("Time: 07:00 (Sunrise: 06:00, Color Sunrise: 08:00)")
+    logging.info(f"Brightness: {res['brightness_pct']} (Expected > min)")
+    logging.info(f"Color Temp: {res['color_temp_kelvin']} (Expected approx min)")
 
     if res["brightness_pct"] <= 50:
-        print("FAIL: Brightness should be > min (sun is up)")
+        logging.info("FAIL: Brightness should be > min (sun is up)")
     else:
-        print("PASS: Brightness is up")
+        logging.info("PASS: Brightness is up")
 
     # Note: sun_position for color might be -1 if it's before sunrise,
     # but the calculation logic might give something close to min_color_temp
 
     if res["color_temp_kelvin"] > 3100:  # Allowing small margin
-        print(
+        logging.info(
             f"FAIL: Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00"
         )
     else:
-        print(
+        logging.info(
             f"PASS: Color temp {res['color_temp_kelvin']} is low, following color schedule"
         )
 
@@ -124,13 +123,14 @@ def test_independent_color():
         hour=9, minute=0, second=0, microsecond=0
     )
     res_9am = settings.brightness_and_color(dt_9am, is_sleep=False)
-    print("\nTime: 09:00")
-    print(f"Color Temp: {res_9am['color_temp_kelvin']}")
+    logging.info("\nTime: 09:00")
+    logging.info(f"Color Temp: {res_9am['color_temp_kelvin']}")
     if res_9am["color_temp_kelvin"] <= 3100:
-        print("FAIL: Color temp should be high now")
+        logging.info("FAIL: Color temp should be high now")
     else:
-        print("PASS: Color temp is rising")
+        logging.info("PASS: Color temp is rising")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
     test_independent_color()
