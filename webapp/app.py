@@ -279,7 +279,9 @@ app_ui = ui.page_fluid(
             ),
             ui.hr(),
             ui.input_switch(
-                "independent_color_adapting", "Independent Color Adapting", value=False
+                "independent_color_adapting",
+                "Independent Color Adapting",
+                value=False,
             ),
             ui.panel_conditional(
                 "input.independent_color_adapting",
