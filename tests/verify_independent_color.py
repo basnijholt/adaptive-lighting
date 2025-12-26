@@ -98,8 +98,8 @@ def test_independent_color():
     _LOGGER.info(f"Color Temp: {res['color_temp_kelvin']} (Expected > min)")
 
     if res["color_temp_kelvin"] <= 3000:
-         _LOGGER.info(
-            "FAIL: Color temp should be rising as sun is up (following 06:00 sunrise)"
+        _LOGGER.info(
+            "FAIL: Color temp should be rising as sun is up (following 06:00 sunrise)",
         )
     else:
         _LOGGER.info("PASS: Color temp is following main schedule")
@@ -128,11 +128,11 @@ def test_independent_color():
 
     if res["color_temp_kelvin"] > 3100:  # Allowing small margin
         _LOGGER.info(
-            f"FAIL: Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00"
+            f"FAIL: Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00",
         )
     else:
         _LOGGER.info(
-            f"PASS: Color temp {res['color_temp_kelvin']} is low, following color schedule"
+            f"PASS: Color temp {res['color_temp_kelvin']} is low, following color schedule",
         )
 
     # At 9:00 (after both sunrises)
