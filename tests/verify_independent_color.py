@@ -1,8 +1,8 @@
+import datetime
 import logging
 import sys
-from pathlib import Path
-import datetime
 from datetime import timedelta, timezone
+from pathlib import Path
 from unittest.mock import MagicMock
 
 # Add the parent directory to sys.path to import the component
@@ -13,16 +13,28 @@ from custom_components.adaptive_lighting.color_and_brightness import SunLightSet
 # Mock astral location
 mock_location = MagicMock()
 mock_location.sunrise.return_value = datetime.datetime.now(timezone.utc).replace(
-    hour=6, minute=0, second=0, microsecond=0
+    hour=6,
+    minute=0,
+    second=0,
+    microsecond=0,
 )
 mock_location.sunset.return_value = datetime.datetime.now(timezone.utc).replace(
-    hour=18, minute=0, second=0, microsecond=0
+    hour=18,
+    minute=0,
+    second=0,
+    microsecond=0,
 )
 mock_location.noon.return_value = datetime.datetime.now(timezone.utc).replace(
-    hour=12, minute=0, second=0, microsecond=0
+    hour=12,
+    minute=0,
+    second=0,
+    microsecond=0,
 )
 mock_location.midnight.return_value = datetime.datetime.now(timezone.utc).replace(
-    hour=0, minute=0, second=0, microsecond=0
+    hour=0,
+    minute=0,
+    second=0,
+    microsecond=0,
 )
 
 
@@ -72,7 +84,10 @@ def test_independent_color():
     # At 7:00 (after main sunrise 6:00, before color sunrise 8:00)
     # Brightness should be high (sun is up), Color should be high (sun is up) because it follows main schedule
     dt = datetime.datetime.now(timezone.utc).replace(
-        hour=7, minute=0, second=0, microsecond=0
+        hour=7,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
 
     res = settings.brightness_and_color(dt, is_sleep=False)
@@ -82,7 +97,7 @@ def test_independent_color():
 
     if res["color_temp_kelvin"] <= 3000:
         logging.info(
-            "FAIL: Color temp should be rising as sun is up (following 06:00 sunrise)"
+            "FAIL: Color temp should be rising as sun is up (following 06:00 sunrise)",
         )
     else:
         logging.info("PASS: Color temp is following main schedule")
@@ -111,16 +126,19 @@ def test_independent_color():
 
     if res["color_temp_kelvin"] > 3100:  # Allowing small margin
         logging.info(
-            f"FAIL: Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00"
+            f"FAIL: Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00",
         )
     else:
         logging.info(
-            f"PASS: Color temp {res['color_temp_kelvin']} is low, following color schedule"
+            f"PASS: Color temp {res['color_temp_kelvin']} is low, following color schedule",
         )
 
     # At 9:00 (after both sunrises)
     dt_9am = datetime.datetime.now(timezone.utc).replace(
-        hour=9, minute=0, second=0, microsecond=0
+        hour=9,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
     res_9am = settings.brightness_and_color(dt_9am, is_sleep=False)
     logging.info("\nTime: 09:00")
@@ -132,5 +150,5 @@ def test_independent_color():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     test_independent_color()
