@@ -3,10 +3,17 @@
   "config": {
     "step": {
       "user": {
-        "title": "Choisissez un nom pour cette instance d'éclairage adaptatif",
-        "description": "Chaque instance peut contenir plusieurs lumières",
+        "title": "Choisissez un nom pour l'instance Adaptive Lighting",
+        "description": "Chaque instance peut contenir plusieurs lumières !",
         "data": {
           "name": "Nom"
+        }
+      },
+      "menu": {
+        "title": "Créer ou dupliquer",
+        "description": "Voulez-vous créer une nouvelle instance, ou dupliquer une existante?",
+        "data": {
+          "action": "Action"
         }
       }
     },
@@ -17,19 +24,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Options d'éclairage adaptatif",
+        "title": "Options d ' éclairage adaptatifs",
         "description": "Configurer un composant d'éclairage adaptatif. Les noms correspondent aux paramètres YAML. Si vous avez défini cette entrée en YAML, aucune option n'apparaît ici. Pour les graphiques interactifs qui montrent les effets des paramètres, visiter [cette application web](https://basnijholt.github.io/adaptive-lighting). Pour plus de détail, voir la [documentation](https://github.com/basnijholt/adaptive-lighting#readme)",
         "data": {
           "lights": "lights : Liste d'\"entity_ids\" de lumières à controller (peu être vide). 🌟",
           "initial_transition": "initial_transition : Transition (en secondes) lorsque l'état d'une lampe passe d'« éteinte » à « allumée ».",
           "sleep_transition": "sleep_transition : Transition (en secondes) lorsque « sleep_state » est commuté.",
           "interval": "interval : Temps (en secondes) entre deux mises à jour du commutateur.",
-          "max_brightness": "max_brightness : Luminosité maximum (en pourcentage). 💡",
-          "max_color_temp": "max_color_temp : Couleur la plus froide (en Kelvins). ❄️",
-          "min_brightness": "min_brightness : Luminosité minimale en pourcentage. 💡",
-          "min_color_temp": "min_color_temp : Couleur de température la plus chaude en kelvins. 🔥",
+          "max_brightness": "max_brightness: pourcentage de luminosité maximum. personnalisation",
+          "max_color_temp": "max_color_temp: Température de couleur la plus froide en Kelvin. assemblage",
+          "min_brightness": "min_brightness: Pourcentage de luminosité minimum. personnalisation",
+          "min_color_temp": "min_color_temp: Température de couleur la plus chaude de Kelvin. 🔥",
           "only_once": "only_once : Adapter les lampes uniquement au moment où elles sont allumées. 🔄",
-          "prefer_rgb_color": "prefer_rgb_color : Indique s'il est préférable d'utiliser le réglage de couleur RBG plutôt que la température de couleur lorsque cela est possible. 🌈",
+          "prefer_rgb_color": "prefer_rgb_color: Que ce soit pour préférer le réglage de couleur RGB sur la température de couleur claire si possible.",
           "separate_turn_on_commands": "separate_turn_on_commands : Utiliser des appels \"light.turn_on\" séparés pour la couleur et la luminosité, nécessaires pour certains types de lumière. 🔀",
           "sleep_brightness": "sleep_brightness : Luminosité (en pourcentage) du mode nuit.",
           "sleep_color_temp": "sleep_color_temp : Température de couleur (en kelvins) du mode nuit.",
@@ -51,31 +58,31 @@
           "interval": "Fréquence d'adaptation des lumières, en secondes. 🔄",
           "sleep_brightness": "Pourcentage de luminosité des lumières en mode nuit. 😴",
           "autoreset_control_seconds": "Réinitialiser automatiquement la commande manuelle après un certain nombre de secondes. Définir à 0 pour désactiver. ⏲️",
-          "sunset_offset": "Réglez le l'heure de coucher du soleil avec un décalage positif ou négatif en quelques secondes. ⏰",
-          "brightness_mode": "Mode de luminosité à utiliser. Les valeurs possibles sont \"défaut\" , \"linear\" (linéaire) et \"tanh\" (tangente) utilise \"brightness_mode_time_dark\" et \"brightness_mode_time_light\". 📈",
+          "sunset_offset": "Ajustez le temps de coucher de soleil avec un décalage positif ou négatif en quelques secondes. ⏰",
+          "brightness_mode": "Mode de luminosité à utiliser. Les valeurs possibles sont < < par défaut > > , < < linéaire > > et < < tanh > > (utilise \"brightness_mode_time_dark\" et \"brithness_mode_time_light\"). 📈",
           "send_split_delay": "Délai (ms) entre \"separate_turn_on_commands\" pour les lumières qui ne supportent pas la commande de luminosité et le réglage de couleur en même temps. ⏲️",
-          "sleep_color_temp": "Température de couleur en mode nuit en Kelvin (utilisée lorsque \"sleep_rgb_or_color_temp\" est égaler à \"color_temp\") . 😴",
-          "sunrise_offset": "Ajuster l'heure du lever de soleil avec un décalage positif ou négatif en secondes. ⏰",
+          "sleep_color_temp": "Température de couleur en mode nuit (utilisé lorsque \"sleep_rgb_or_color_temp\" est défini sur \"color_temp\") en Kelvin. 😴",
+          "sunrise_offset": "Réglez le lever de soleil avec un décalage positif ou négatif en quelques secondes. ⏰",
           "transition": "Durée de la transition des changements lumineux, en secondes. 🕑",
-          "initial_transition": "Durée de la première transition des lampes passent de \"off\" à \"on\" (en secondes). ⏲️",
-          "sleep_transition": "Durée de la transition quand le \"mode nuit\" est déclenché. (en secondes) 😴",
+          "initial_transition": "Durée de la première transition lorsque les feux tournent de `off` à `on` en quelques secondes. ⏲∫",
+          "sleep_transition": "Durée de la transition lorsque \"mode de repos\" est activé en quelques secondes. 😴",
           "min_sunset_time": "Définir l'heure virtuelle de coucher du soleil la plus précoce (HH:MM:SS), permettant des couchers de soleil tardifs. 🌇",
-          "sleep_rgb_color": "Couleur RGB en mode nuit (utilisée lorsque \"sleep_rgb_or_color_temp\" est \"rgb_color\"). 🌈",
-          "brightness_mode_time_light": "(Ignoré si \"brightness_mode='default'\") La durée en secondes pour augmenter/diminuer progressivement la luminosité après/avant le lever/coucher du soleil. 📈📉.",
+          "sleep_rgb_color": "Couleur RGB en mode sommeil(utilisée lorsque \"sleep_rgb_or_color_temp\" est \"rgb_color\"). 🌈",
+          "brightness_mode_time_light": "(Ignoré si `brightness_mode='default'`) La durée en quelques secondes pour augmenter/verser la luminosité après/avant le lever du soleil/sunset. 📈📉.",
           "sunset_time": "Définir une heure fixe (HH:MM:SS) pour le coucher du soleil. 🌇",
-          "sunrise_time": "Définir une heure fixe (HH:MM:SS) pour le lever du soleil. 🌅",
-          "brightness_mode_time_dark": "(Ignoré si \"brightness_mode='default'\") La durée en secondes pour augmenter/diminuer progressivement la luminosité après/avant le lever/coucher du soleil. 📈📉.",
-          "sleep_rgb_or_color_temp": "Utilisez soit \"rgb_color\" soit \"color_temp\" en mode nuit. 🌙",
+          "sunrise_time": "Réglez un temps fixe (HH:MM:SS) pour le lever du soleil. 🌅",
+          "brightness_mode_time_dark": "(Ignoré si `brightness_mode='default'`) La durée en quelques secondes pour remonter/verser la luminosité avant/après le lever du soleil/sunset. 📈📉",
+          "sleep_rgb_or_color_temp": "Utilisez soit `\"rgb_color\"` ou `\"color_temp\"` en mode sommeil. 🌙",
           "min_sunrise_time": "Définir l'heure virtuelle de lever du soleil la plus précoce (HH:MM:SS), permettant des levers de soleil tardifs. 🌅",
-          "adapt_delay": "Temps d'attente (en secondes) entre l'allumage de la lumière et l'application des changements par l'Éclairage Adaptatif. Peut aider à éviter les scintillements. ⏲️",
+          "adapt_delay": "Temps d'attente (secondes) entre allumage de la lumière et éclairage adaptatif en appliquant des changements. Ça pourrait aider à éviter de filmer. ⏲∫",
           "max_sunset_time": "Définir l'heure virtuelle de coucher du soleil la plus tardive (HH:MM:SS), permettant des couchers de soleil plus précoces. 🌇",
-          "max_sunrise_time": "Définir l'heure virtuelle de lever du soleil la plus tardive (HH:MM:SS), permettant des levers de soleil plus tôt. 🌅"
+          "max_sunrise_time": "Définir le dernier temps de lever de soleil virtuel (HHH:MM:SS), permettant des levures de soleil antérieures. 🌅"
         }
       }
     },
     "error": {
       "option_error": "Option invalide",
-      "entity_missing": "Une ou plusieurs entités lumières sélectionnées sont manquantes de Home Assistant"
+      "entity_missing": "Une ou plusieurs entités lumineuses sélectionnées sont absentes de Home Assistant"
     }
   },
   "services": {
@@ -85,7 +92,7 @@
           "description": "Pourcentage de luminosité des lumières en mode nuit. 😴"
         },
         "only_once": {
-          "description": "Adapter les lumières seulement quand elles sont allumées (\"vrai\") ou quel que soit leur état (\"faux\")."
+          "description": "Adaptez les lumières seulement à l'allumage (\"vrai\") ou les adapter continuellement (\"faux\")."
         },
         "sunrise_offset": {
           "description": "Ajustez l'heure de lever de soleil avec un décalage positif ou négatif en secondes. ⏰"
@@ -112,7 +119,7 @@
           "description": "ID de l'Entité de l'interrupteur. 📝"
         },
         "initial_transition": {
-          "description": "Durée de la première transition des lampes passant de \"off\" à \"on\" (en secondes). ⏲️"
+          "description": "Durée de la première transition lorsque les feux passent de `off` à `on` en quelques secondes. ⏲️"
         },
         "transition": {
           "description": "Durée de la transition des changements lumineux, en secondes. 🕑"
@@ -127,13 +134,13 @@
           "description": "Définir une heure fixe (HH:MM:SS) pour le lever du soleil. 🌅"
         },
         "max_brightness": {
-          "description": "Pourcentage de luminosité maximale. 💡"
+          "description": "Pourcentage de luminosité maximal. 💡"
         },
         "take_over_control": {
-          "description": "Désactiver l'Éclairage Adaptatif si une autre source appelle \"light.turn_on\" lorsque les lumières sont allumées et en cours d'adaptation. Notez que cela appelle \"homeassistant.update_entity\" à chaque \"intervalles\" ! 🔒"
+          "description": "Désactiver l'Éclairage Adaptatif si une autre source appelle ` light.turn_on` lorsque les lumières sont allumées et en cours d'adaptation. Notez que cela appelle `homeassistant.update_entity` à chaque `interval` ! 🔒"
         },
         "use_defaults": {
-          "description": "Définit les valeurs par défaut non spécifiées dans cet appel de service. Options : \"current\" (par défaut, conserve les valeurs actuelles), \"factory\" (réinitialise aux valeurs par défaut documentées) ou \"configuration\" (revient aux valeurs par défaut de la configuration de l'interrupteur). ⚙️"
+          "description": "Définit les valeurs par défaut non spécifiées dans cet appel de service. Options : \"current\" (par défaut, conserve les valeurs courantes), \"factory\" (réinitialisation des paramètres  par défaut), ou \"configuration\" (ré-application des paramètres par défauts de l'interrupteur). ⚙️"
         },
         "sunset_time": {
           "description": "Définir une heure fixe (HH:MM:SS) pour le coucher du soleil. 🌇"
@@ -148,40 +155,40 @@
           "description": "Température de couleur la plus chaude en Kelvin. 🔥"
         },
         "sleep_rgb_or_color_temp": {
-          "description": "Utilisez soit \"rgb_color\" soit \"color_temp\" en mode nuit. 🌙"
+          "description": "Utilisez soit `\"rgb_color\"` ou `\"color_temp\"` en mode sommeil. 🌙"
         },
         "turn_on_lights": {
           "description": "Indique s'il faut allumer les lumières qui sont actuellement éteintes. 🔆"
         },
         "include_config_in_attributes": {
-          "description": "Afficher toutes les options en tant qu'attributs sur l'interrupteur dans Home Assistant lorsqu'il est défini sur \"true\". 📝"
+          "description": "Afficher toutes les options en tant qu'attributs sur l'interrupteur dans l'assistant d'accueil lorsqu'il est réglé sur \" vrai\" . 📝"
         },
         "sleep_rgb_color": {
-          "description": "Couleur RGB en mode nuit (utilisée lorsque `sleep_rgb_or_color_temp` est `rgb_color`). 🌈"
+          "description": "Couleur RGB en mode sommeil (utilisé lorsque `sleep_rgb_or_color_temp` est \"rgb_color\"). 🌈"
         },
         "adapt_delay": {
           "description": "Temps d'attente (en secondes) entre l'allumage de la lumière et l'application des changements par l'Éclairage Adaptatif. Peut aider à éviter les scintillements. ⏲️"
         },
         "separate_turn_on_commands": {
-          "description": "Utilisez des appels distincts à \"light.turn_on\" pour la couleur et la luminosité, nécessaire pour certains types de lumières. 🔀"
+          "description": "Utilisez des appels séparés `light.turn_on` pour la couleur et la luminosité, nécessaires pour certains types de lumière. 🔀"
         },
         "prefer_rgb_color": {
-          "description": "Indique s'il faut privilégier l'ajustement de la couleur RGB plutôt que la température de couleur de la lumière lorsque c'est possible. 🌈"
+          "description": "Que ce soit pour préférer le réglage de couleur RGB sur la température de couleur claire si possible. 🌈"
         }
       },
-      "description": "Changez les réglages que vous souhaitez dans le commutateur. Toutes les options ici sont les mêmes que dans le flow de configuration."
+      "description": "Changez les réglages que vous souhaitez dans l'interrupteur. Toutes les options ici sont les mêmes que dans le flux de configuration."
     },
     "apply": {
       "description": "Applique les réglages d'éclairage adaptatif actuels aux lumières.",
       "fields": {
         "lights": {
-          "description": "Une lumière (ou une liste de lumières) à laquelle appliquer les réglages."
+          "description": "Une lumière (ou une liste de lumières) auxquelles appliquer les réglages.💡"
         },
         "transition": {
-          "description": "Durée de la transition des changements lumineux, en secondes. 🕑"
+          "description": "Durée de la transition lorsque les lumières changent, en quelques secondes. 🕑"
         },
         "entity_id": {
-          "description": "L'`entity_id` de l'interrupteur avec les paramètres à appliquer. 📝"
+          "description": "Le `entity_id` du commutateur avec les réglages à appliquer. 📝"
         },
         "adapt_brightness": {
           "description": "Indique s'il faut adapter la luminosité de la lumière. 🌞"
@@ -190,26 +197,26 @@
           "description": "Indique s'il faut allumer les lumières qui sont actuellement éteintes. 🔆"
         },
         "adapt_color": {
-          "description": "Indique s'il faut adapter la couleur sur les lumières compatibles. 🌈"
+          "description": "Indique s'il faut adapter la couleur sur les feux compatibles. 🌈"
         },
         "prefer_rgb_color": {
-          "description": "Indique s'il faut privilégier l'ajustement de la couleur RGB plutôt que la température de couleur de la lumière lorsque c'est possible. 🌈"
+          "description": "Indique s'il faut privilégier l'ajustement de la couleur RGB plutôt que la température de la lumière lorsque c'est possible. 🌈"
         }
       }
     },
     "set_manual_control": {
       "fields": {
         "lights": {
-          "description": "entity_id(s) des lumières, si non spécifié, toutes les lumières de l'interrupteur sont sélectionnées. 💡"
+          "description": "entity_id(s) of lights, si non explicité, toutes les lumières de l’interrupteur sont sélectionnées. 💡"
         },
         "manual_control": {
           "description": "Indique s'il faut ajouter (\"true\") ou retirer (\"false\") la lumière de la liste \"manual_control\". 🔒"
         },
         "entity_id": {
-          "description": "L'\"entity_id\" de l'interrupteur dans lequel (dé)marquer la lumière comme étant \"manuellement contrôlée\". 📝"
+          "description": "Le `entity_id` du commutateur dans lequel (un) marquer la lumière comme étant `manuellement contrôlé`. 📝"
         }
       },
-      "description": "Indiquer si une lumière est \"contrôlée manuellement\"."
+      "description": "Marquer si une lumière est «manuellement contrôlée»."
     }
   }
 }
