@@ -977,7 +977,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
-            independent_color_adapting=data[CONF_INDEPENDENT_COLOR_ADAPTING],
+            independent_color=data[CONF_INDEPENDENT_COLOR],
             color_sunrise_time=data[CONF_COLOR_SUNRISE_TIME],
             color_min_sunrise_time=data[CONF_COLOR_MIN_SUNRISE_TIME],
             color_max_sunrise_time=data[CONF_COLOR_MAX_SUNRISE_TIME],

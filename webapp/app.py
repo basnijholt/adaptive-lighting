@@ -53,7 +53,7 @@ module = importlib.util.module_from_spec(spec)
 sys.modules["color_and_brightness"] = module
 spec.loader.exec_module(module)
 
-from color_and_brightness import SunLightSettings
+from color_and_brightness import SunLightSettings  # noqa: E402
 
 
 def plot_brightness(inputs: dict[str, Any], sleep_mode: bool):
