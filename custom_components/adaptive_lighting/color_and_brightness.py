@@ -231,7 +231,7 @@ class SunLightSettings:
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
 
-    independent_color_adapting: bool = False
+    independent_color: bool = False
     color_sunrise_time: datetime.time | None = None
     color_min_sunrise_time: datetime.time | None = None
     color_max_sunrise_time: datetime.time | None = None
@@ -261,7 +261,7 @@ class SunLightSettings:
     @cached_property
     def sun_color(self) -> SunEvents:
         """Return the SunEvents object for color temperature."""
-        if not self.independent_color_adapting:
+        if not self.independent_color:
             return self.sun
 
         return SunEvents(

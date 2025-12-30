@@ -1,5 +1,6 @@
 """Simple web app to visualize brightness over time."""
 
+import sys
 import datetime as dt
 from contextlib import suppress
 from pathlib import Path
@@ -11,7 +12,19 @@ import shinyswatch
 from astral import LocationInfo
 from astral.location import Location
 from homeassistant_util_color import color_temperature_to_rgb
+import types
+import homeassistant_util_color
+import importlib.util
 from shiny import App, render, ui
+
+# Mock homeassistant.util.color
+ha = types.ModuleType("homeassistant")
+ha_util = types.ModuleType("homeassistant.util")
+ha_util.color = homeassistant_util_color
+sys.modules["homeassistant"] = ha
+sys.modules["homeassistant.util"] = ha_util
+sys.modules["homeassistant.util.color"] = homeassistant_util_color
+
 
 
 def date_range(tzinfo: dt.tzinfo) -> list[dt.datetime]:
@@ -30,32 +43,15 @@ def date_range(tzinfo: dt.tzinfo) -> list[dt.datetime]:
     return hours_range[:-1]
 
 
-def copy_color_and_brightness_module() -> None:
-    """Copy the color_and_brightness module to the webapp folder."""
-    with suppress(Exception):
-        webapp_folder = Path(__file__).parent.absolute()
-        module = (
-            webapp_folder.parent
-            / "custom_components"
-            / "adaptive_lighting"
-            / "color_and_brightness.py"
-        )
-        new_module = webapp_folder / module.name
-        with module.open() as f:
-            lines = [
-                line.replace("homeassistant.util.color", "homeassistant_util_color")
-                for line in f.readlines()
-            ]
-        with new_module.open("r") as f:
-            existing_lines = f.readlines()
-        if existing_lines != lines:
-            with new_module.open("w") as f:
-                f.writelines(lines)
+# Load color_and_brightness directly from file, bypassing package __init__
+component_path = Path(__file__).parent.parent / "custom_components" / "adaptive_lighting" / "color_and_brightness.py"
+spec = importlib.util.spec_from_file_location("color_and_brightness", component_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules["color_and_brightness"] = module
+spec.loader.exec_module(module)
 
+from color_and_brightness import SunLightSettings
 
-copy_color_and_brightness_module()
-
-from color_and_brightness import SunLightSettings  # noqa: E402
 
 
 def plot_brightness(inputs: dict[str, Any], sleep_mode: bool):
@@ -279,12 +275,12 @@ app_ui = ui.page_fluid(
             ),
             ui.hr(),
             ui.input_switch(
-                "independent_color_adapting",
-                "Independent Color Adapting",
+                "independent_color",
+                "Independent Color",
                 value=False,
             ),
             ui.panel_conditional(
-                "input.independent_color_adapting",
+                "input.independent_color",
                 ui.input_slider(
                     "color_sunrise_time",
                     "color_sunrise_time",
@@ -328,9 +324,10 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 def _kw(input):
     location = Location(LocationInfo(timezone=dt.timezone.utc))
-    independent_color_adapting = input.independent_color_adapting()
+    independent_color = input.independent_color()
     return {
         "name": "Adaptive Lighting Simulator",
+        "independent_color": independent_color,
         "adapt_until_sleep": input.adapt_until_sleep(),
         "max_brightness": input.max_brightness(),
         "min_brightness": input.min_brightness(),
@@ -359,20 +356,20 @@ def _kw(input):
         # Separate color timing parameters
         "color_sunrise_time": (
             float_to_time(input.color_sunrise_time())
-            if independent_color_adapting
+            if independent_color
             else None
         ),
         "color_sunrise_offset": dt.timedelta(0),
-        "min_color_sunrise_time": None,
-        "max_color_sunrise_time": None,
+        "color_min_sunrise_time": None,
+        "color_max_sunrise_time": None,
         "color_sunset_time": (
             float_to_time(input.color_sunset_time())
-            if independent_color_adapting
+            if independent_color
             else None
         ),
         "color_sunset_offset": dt.timedelta(0),
-        "min_color_sunset_time": None,
-        "max_color_sunset_time": None,
+        "color_min_sunset_time": None,
+        "color_max_sunset_time": None,
     }
 
 

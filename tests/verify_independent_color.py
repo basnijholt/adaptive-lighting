@@ -68,7 +68,7 @@ def test_independent_color():
         "brightness_mode": "default",
         "timezone": timezone.utc,
         # New independent color params
-        "independent_color_adapting": False,
+        "independent_color": False,
         "color_sunrise_time": datetime.time(8, 0),  # Different from main
         "color_min_sunrise_time": None,
         "color_max_sunrise_time": None,
@@ -106,7 +106,7 @@ def test_independent_color():
 
     # Test Case 2: Independent Control Enabled
     _LOGGER.info("\n[Case 2] Independent Control Enabled")
-    base_settings["independent_color_adapting"] = True
+    base_settings["independent_color"] = True
     settings = SunLightSettings(**base_settings)
 
     # At 7:00 (after main sunrise 6:00, before color sunrise 8:00)
