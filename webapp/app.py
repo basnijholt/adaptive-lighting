@@ -42,12 +42,16 @@ def date_range(tzinfo: dt.tzinfo) -> list[dt.datetime]:
 
 
 # Load color_and_brightness directly from file, bypassing package __init__
-component_path = (
-    Path(__file__).parent.parent
-    / "custom_components"
-    / "adaptive_lighting"
-    / "color_and_brightness.py"
-)
+# First check if the file exists in the current directory (for deployment/WASM)
+component_path = Path("color_and_brightness.py")
+if not component_path.exists():
+    # Fallback to the custom_components directory (for local dev)
+    component_path = (
+        Path(__file__).parent.parent
+        / "custom_components"
+        / "adaptive_lighting"
+        / "color_and_brightness.py"
+    )
 spec = importlib.util.spec_from_file_location("color_and_brightness", component_path)
 module = importlib.util.module_from_spec(spec)
 sys.modules["color_and_brightness"] = module
