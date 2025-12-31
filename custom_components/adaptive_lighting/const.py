@@ -174,6 +174,51 @@ DOCS[CONF_MAX_SUNSET_TIME] = (
     "Set the latest virtual sunset time (HH:MM:SS), allowing for earlier sunsets. 🌇"
 )
 
+CONF_INDEPENDENT_COLOR, DEFAULT_INDEPENDENT_COLOR = (
+    "independent_color",
+    False,
+)
+DOCS[CONF_INDEPENDENT_COLOR] = (
+    "Whether to use separate sunrise/sunset timing for color temperature. 🌈"
+)
+
+CONF_COLOR_SUNRISE_OFFSET, DEFAULT_COLOR_SUNRISE_OFFSET = "color_sunrise_offset", 0
+DOCS[CONF_COLOR_SUNRISE_OFFSET] = (
+    "Adjust color sunrise time with a positive or negative offset in seconds. ⏰"
+)
+
+CONF_COLOR_SUNRISE_TIME = "color_sunrise_time"
+DOCS[CONF_COLOR_SUNRISE_TIME] = "Set a fixed time (HH:MM:SS) for color sunrise. 🌅"
+
+CONF_COLOR_MIN_SUNRISE_TIME = "color_min_sunrise_time"
+DOCS[CONF_COLOR_MIN_SUNRISE_TIME] = (
+    "Set the earliest virtual color sunrise time (HH:MM:SS), allowing for later sunrises. 🌅"
+)
+
+CONF_COLOR_MAX_SUNRISE_TIME = "color_max_sunrise_time"
+DOCS[CONF_COLOR_MAX_SUNRISE_TIME] = (
+    "Set the latest virtual color sunrise time (HH:MM:SS), allowing"
+    " for earlier sunrises. 🌅"
+)
+
+CONF_COLOR_SUNSET_OFFSET, DEFAULT_COLOR_SUNSET_OFFSET = "color_sunset_offset", 0
+DOCS[CONF_COLOR_SUNSET_OFFSET] = (
+    "Adjust color sunset time with a positive or negative offset in seconds. ⏰"
+)
+
+CONF_COLOR_SUNSET_TIME = "color_sunset_time"
+DOCS[CONF_COLOR_SUNSET_TIME] = "Set a fixed time (HH:MM:SS) for color sunset. 🌇"
+
+CONF_COLOR_MIN_SUNSET_TIME = "color_min_sunset_time"
+DOCS[CONF_COLOR_MIN_SUNSET_TIME] = (
+    "Set the earliest virtual color sunset time (HH:MM:SS), allowing for later sunsets. 🌇"
+)
+
+CONF_COLOR_MAX_SUNSET_TIME = "color_max_sunset_time"
+DOCS[CONF_COLOR_MAX_SUNSET_TIME] = (
+    "Set the latest virtual color sunset time (HH:MM:SS), allowing for earlier sunsets. 🌇"
+)
+
 CONF_BRIGHTNESS_MODE, DEFAULT_BRIGHTNESS_MODE = "brightness_mode", "default"
 DOCS[CONF_BRIGHTNESS_MODE] = (
     "Brightness mode to use. Possible values are `default`, `linear`, and `tanh` "
@@ -405,6 +450,15 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
+    (CONF_INDEPENDENT_COLOR, DEFAULT_INDEPENDENT_COLOR, bool),
+    (CONF_COLOR_SUNRISE_TIME, NONE_STR, str),
+    (CONF_COLOR_MIN_SUNRISE_TIME, NONE_STR, str),
+    (CONF_COLOR_MAX_SUNRISE_TIME, NONE_STR, str),
+    (CONF_COLOR_SUNRISE_OFFSET, DEFAULT_COLOR_SUNRISE_OFFSET, int),
+    (CONF_COLOR_SUNSET_TIME, NONE_STR, str),
+    (CONF_COLOR_MIN_SUNSET_TIME, NONE_STR, str),
+    (CONF_COLOR_MAX_SUNSET_TIME, NONE_STR, str),
+    (CONF_COLOR_SUNSET_OFFSET, DEFAULT_COLOR_SUNSET_OFFSET, int),
 ]
 
 
@@ -430,6 +484,14 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_SUNRISE_TIME: (cv.time, str),
+    CONF_COLOR_MIN_SUNRISE_TIME: (cv.time, str),
+    CONF_COLOR_MAX_SUNRISE_TIME: (cv.time, str),
+    CONF_COLOR_SUNSET_OFFSET: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_SUNSET_TIME: (cv.time, str),
+    CONF_COLOR_MIN_SUNSET_TIME: (cv.time, str),
+    CONF_COLOR_MAX_SUNSET_TIME: (cv.time, str),
 }
 
 

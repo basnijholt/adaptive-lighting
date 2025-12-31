@@ -231,6 +231,16 @@ class SunLightSettings:
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
 
+    independent_color: bool = False
+    color_sunrise_time: datetime.time | None = None
+    color_min_sunrise_time: datetime.time | None = None
+    color_max_sunrise_time: datetime.time | None = None
+    color_sunset_time: datetime.time | None = None
+    color_min_sunset_time: datetime.time | None = None
+    color_max_sunset_time: datetime.time | None = None
+    color_sunrise_offset: datetime.timedelta = datetime.timedelta()
+    color_sunset_offset: datetime.timedelta = datetime.timedelta()
+
     @cached_property
     def sun(self) -> SunEvents:
         """Return the SunEvents object."""
@@ -245,6 +255,26 @@ class SunLightSettings:
             sunset_offset=self.sunset_offset,
             min_sunset_time=self.min_sunset_time,
             max_sunset_time=self.max_sunset_time,
+            timezone=self.timezone,
+        )
+
+    @cached_property
+    def sun_color(self) -> SunEvents:
+        """Return the SunEvents object for color temperature."""
+        if not self.independent_color:
+            return self.sun
+
+        return SunEvents(
+            name=self.name,
+            astral_location=self.astral_location,
+            sunrise_time=self.color_sunrise_time,
+            sunrise_offset=self.color_sunrise_offset,
+            min_sunrise_time=self.color_min_sunrise_time,
+            max_sunrise_time=self.color_max_sunrise_time,
+            sunset_time=self.color_sunset_time,
+            sunset_offset=self.color_sunset_offset,
+            min_sunset_time=self.color_min_sunset_time,
+            max_sunset_time=self.color_max_sunset_time,
             timezone=self.timezone,
         )
 
@@ -347,6 +377,7 @@ class SunLightSettings:
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
+        sun_position_color = self.sun_color.sun_position(dt)
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
@@ -357,7 +388,7 @@ class SunLightSettings:
         elif (
             self.sleep_rgb_or_color_temp == "rgb_color"
             and self.adapt_until_sleep
-            and sun_position < 0
+            and sun_position_color < 0
         ):
             # Feature requested in
             # https://github.com/basnijholt/adaptive-lighting/issues/624
@@ -367,12 +398,12 @@ class SunLightSettings:
             rgb_color = lerp_color_hsv(
                 min_color_rgb,
                 self.sleep_rgb_color,
-                sun_position,
+                sun_position_color,
             )
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(sun_position_color)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(sun_position_color)
             r, g, b = color_temperature_to_rgb(color_temp_kelvin)
             rgb_color = (round(r), round(g), round(b))
         # backwards compatibility for versions < 1.3.1 - see #403
@@ -387,6 +418,7 @@ class SunLightSettings:
             "xy_color": xy_color,
             "hs_color": hs_color,
             "sun_position": sun_position,
+            "sun_position_color": sun_position_color,
             "force_rgb_color": force_rgb_color,
         }
 
