@@ -1,7 +1,7 @@
 import datetime
+import sys
 from datetime import timedelta, timezone
 from pathlib import Path
-import sys
 from unittest.mock import MagicMock
 
 # Add the parent directory to sys.path to import the component
@@ -16,7 +16,9 @@ TEST_DATE = datetime.datetime(2025, 1, 1, tzinfo=timezone.utc).date()
 SUNRISE = datetime.datetime.combine(TEST_DATE, datetime.time(6, 0), tzinfo=timezone.utc)
 SUNSET = datetime.datetime.combine(TEST_DATE, datetime.time(18, 0), tzinfo=timezone.utc)
 NOON = datetime.datetime.combine(TEST_DATE, datetime.time(12, 0), tzinfo=timezone.utc)
-MIDNIGHT = datetime.datetime.combine(TEST_DATE + timedelta(days=1), datetime.time(0, 0), tzinfo=timezone.utc)
+MIDNIGHT = datetime.datetime.combine(
+    TEST_DATE + timedelta(days=1), datetime.time(0, 0), tzinfo=timezone.utc
+)
 
 mock_location.sunrise.return_value = SUNRISE
 mock_location.sunset.return_value = SUNSET
@@ -67,12 +69,16 @@ def test_independent_color():
 
     # At 7:00 (after main sunrise 6:00, before color sunrise 8:00)
     # Brightness should be high (sun is up), Color should be high (sun is up) because it follows main schedule
-    dt_7am = datetime.datetime.combine(TEST_DATE, datetime.time(7, 0), tzinfo=timezone.utc)
+    dt_7am = datetime.datetime.combine(
+        TEST_DATE, datetime.time(7, 0), tzinfo=timezone.utc
+    )
 
     res = settings.brightness_and_color(dt_7am, is_sleep=False)
-    
+
     # Assertions for Case 1
-    assert res["color_temp_kelvin"] > 3000, "Color temp should be rising as sun is up (following 06:00 sunrise)"
+    assert (
+        res["color_temp_kelvin"] > 3000
+    ), "Color temp should be rising as sun is up (following 06:00 sunrise)"
 
     # Test Case 2: Independent Control Enabled
     base_settings["independent_color"] = True
@@ -86,10 +92,14 @@ def test_independent_color():
 
     # Assertions for Case 2
     assert res["brightness_pct"] > 50, "Brightness should be > min (sun is up)"
-    assert res["color_temp_kelvin"] <= 3100, f"Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00"
+    assert (
+        res["color_temp_kelvin"] <= 3100
+    ), f"Color temp {res['color_temp_kelvin']} is too high! It should be near min {base_settings['min_color_temp']} because color sunrise is 08:00"
 
     # At 9:00 (after both sunrises)
-    dt_9am = datetime.datetime.combine(TEST_DATE, datetime.time(9, 0), tzinfo=timezone.utc)
+    dt_9am = datetime.datetime.combine(
+        TEST_DATE, datetime.time(9, 0), tzinfo=timezone.utc
+    )
     res_9am = settings.brightness_and_color(dt_9am, is_sleep=False)
-    
+
     assert res_9am["color_temp_kelvin"] > 3100, "Color temp should be high now"
