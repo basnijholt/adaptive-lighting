@@ -25,19 +25,20 @@
           "min_sunrise_time": "Defineix la sortida de sol virtual més primerenca (HH:MM:SS), tot permetent sortides de sol posteriors. 🌅",
           "max_sunrise_time": "Defineix la sortida de sol virtual més tardana (HH:MM:SS), tot permetent sortides de sol abans. 🌅",
           "max_sunset_time": "Defineix la sortida virtual de sol virtual més tardana (HH:MM:SS), tot permetent sortides de sol abans. 🌇",
-          "min_sunset_time": "Defineix la posta de sol virtual més primerenca (HH:MM:SS), tot permetent postes de sol més tard. 🌇"
+          "min_sunset_time": "Defineix la posta de sol virtual més primerenca (HH:MM:SS), tot permetent postes de sol més tard. 🌇",
+          "take_over_control_mode": "El mode de pausa de l'adaptació quan altres fonts canvien la brillantor i/o el color dels llums. `pause_all`pausa sempre l'adaptació tant de la brillantor com del color. `pause_changed` pausa l'adaptació de només els atributs canviats, i continua adaptant els atributs pendents, per exemple, continua l'adaptació del color quan només havia canviat la brillantor."
         },
         "title": "Opcions Il·luminació Adaptativa",
         "data": {
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Quan s'encenen les llums inicialment. Si el valor és `true`, AL adapta només si s'ha cridat `light.turn_on` sense especificar color o brillantor. ❌🌈 Això impedeix l'adaptació quan s'activa una escena. Si el valor és `false`, AL adapta independentment de la presencia de color o brillantor en les dades inicials `service_data`. Necessita `take_over_control` habilitat. 🕵️",
-          "detect_non_ha_changes": "detect_non_ha_changes: Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita que `take_over_control` estigui habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguin inesperadament. Desactiva aquesta funció si trobes aquests problemes.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita que `take_over_control` estigui habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguin inesperadament. Tingues en compte que això cridarà `homeassistant.update_entity` cada `interval`! Desactiva aquesta funció si trobes aquests problemes.",
           "lights": "lights: Llista d'entity_ids dels llums a controlar (pot estar buida). 🌟",
           "min_brightness": "min_brightness: Percentatge mínim de brillantor. 💡",
           "max_brightness": "max_brightness: Percentatge màxim de brillantor. 💡",
           "min_color_temp": "min_color_temp: Temperatura de color més càlida en graus Kelvin. 🔥",
           "max_color_temp": "max_color_temp: Temperatura de color més freda en graus Kelvin. ❄️",
           "prefer_rgb_color": "prefer_rgb_color: Si prefereixes l'ajustament del color RGB en lloc de la temperatura de color, quan sigui possible. 🌈",
-          "take_over_control": "take_over_control: Inhabilita Adaptive Lighting si una altra font crida `light.turn_on` quan les llums estan enceses i en procés d'adaptació. Tingues present que això cridarà `homeassistant.update_entity` cada `interval`! 🔒",
+          "take_over_control": "take_over_control: Pausa l'adaptació de llums individuals i cedeix el control (manual) a altres fonts que criden `light.turn_on` per a llums que estan enceses. 🔒",
           "only_once": "only_once: Adapta els llums només quan s'encenen (`true`) o segueix adaptant-les (`false`). 🔄",
           "separate_turn_on_commands": "separate_turn_on_commands: Separa les crides de `light.turn_on` per a color i brillantor; necessari per alguns tipus de llums. 🔀",
           "include_config_in_attributes": "include_config_in_attributes: Mostra totes les opcions com atributs a l'interruptor de Home Assistant quan s'estableix com a `true`. 📝",
@@ -85,7 +86,7 @@
           "description": "Detecta i atura les adaptacions per als canvis d'estat diferents a `light.turn_on`. Necessita que `take_over_control` estigui habilitat. 🕵️ Precaució: ⚠️ Alguns llums poden indicar falsament un estat \"encès\", cosa que podria provocar que els llums s'encenguin inesperadament. Desactiva aquesta funció si trobes aquests problemes."
         },
         "take_over_control": {
-          "description": "Desactiva Adaptive Lighting si una altra font crida `light.turn_on` mentre els llums estan encesos i adaptats. Tingues en compte que això crida `homeassistant.update_entity` cada `interval`! 🔒"
+          "description": "Pausa l'adaptació de llums individuals i cedeix el control (manual) a altres fonts que criden `light.turn_on` per a llums que estan enceses. 🔒"
         },
         "entity_id": {
           "description": "ID de la entitat de l'interruptor. 📝"
@@ -143,6 +144,9 @@
         },
         "min_sunset_time": {
           "description": "Defineix la posta de sol virtual més primerenca (HH:MM:SS), tot permetent postes de sol més tard. 🌇"
+        },
+        "take_over_control_mode": {
+          "description": "El mode de pausa de l'adaptació quan altres fonts canvien la brillantor i/o el color dels llums. `pause_all`pausa sempre l'adaptació tant de la brillantor com del color. `pause_changed` només pausa l'adaptació dels atributs canviats, i continua adaptant els atributs pendents, per exemple, continua l'adaptació del color quan només havia canviat la brillantor."
         }
       },
       "description": "Canvia les opcions de configuració que vulguis al commutador. Totes les opcions d'aquí són les mateixes que en el flux de configuració."
@@ -183,7 +187,7 @@
           "description": "L'`entity_id` de l'interruptor al qual (des)marcar el llum com a `manually controlled`. 📝"
         },
         "manual_control": {
-          "description": "Si cal afegir (\"true\") o treure (\"false\") el llum de la llista de \"manual_control\". 🔒"
+          "description": "Si cal afegir (\"true\") o treure (\"false\") als atributs adaptats el llum de la llista de \"manual_control\", o el nom d'un atribut per a l'addició selectiva. 🔒"
         }
       }
     }
