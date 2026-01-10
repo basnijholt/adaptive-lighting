@@ -47,6 +47,7 @@ ignore = [
 "webapp/homeassistant_util_color.py" = ["ALL"]
 "webapp/app.py" = ["INP001", "DTZ011", "A002"]
 "custom_components/adaptive_lighting/homeassistant_util_color.py" = ["ALL"]
+"scripts/*.py" = ["INP001"]
 
 [lint.flake8-pytest-style]
 fixture-parentheses = false

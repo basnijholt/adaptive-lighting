@@ -19,3 +19,6 @@ uv pip install --upgrade mypy-dev
 # Workaround for aiodns/pycares compatibility issue
 # See: https://github.com/aio-libs/aiodns/issues/214
 uv pip install --upgrade aiodns
+
+# README code dependencies
+uv pip install markdown-code-runner==2.1.0 pandas tabulate
