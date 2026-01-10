@@ -22,18 +22,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install markdown-code-runner and README code dependencies
-        run: |
-          uv pip install markdown-code-runner==2.1.0 pandas tabulate
-
-      - name: Run markdown-code-runner
-        run: uv run markdown-code-runner --verbose README.md
-
-      - name: Run update services.yaml
-        run: uv run python .github/update-services.py
-
-      - name: Run update strings.json
-        run: uv run python .github/update-strings.py
+      - name: Run sync script
+        run: ./scripts/sync-strings
 
       - name: Commit updated README.md, strings.json, and services.yaml
         id: commit
