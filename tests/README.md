@@ -3,7 +3,23 @@
 To run the tests, check out the [CI configuration](../.github/workflows/pytest.yml) to see how they are executed in the CI pipeline.
 Alternatively, you can use the provided Docker image to run the tests locally or run them with VS Code directly in the dev container.
 
-To run the tests using the Docker image, navigate to the `adaptive-lighting` repo folder and execute the following command:
+## Prerequisites
+
+Before running tests with Docker, you need a local Home Assistant core checkout with symlinks:
+
+```bash
+# Clone HA core (one-time setup)
+git clone --depth 1 https://github.com/home-assistant/core.git core
+
+# Setup symlinks (one-time setup)
+./scripts/setup-symlinks
+```
+
+## Running tests with Docker
+
+Navigate to the `adaptive-lighting` repo folder and execute the following command.
+
+**Important:** Mount the entire repo (`-v $(pwd):/app`), not individual directories, or the symlinks will break.
 
 Linux / MacOS / Windows PowerShell:
 ```bash
