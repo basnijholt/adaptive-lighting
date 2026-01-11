@@ -35,29 +35,8 @@ WORKDIR /app/core
 # Make 'custom_components/adaptive_lighting' imports available to tests
 ENV PYTHONPATH="${PYTHONPATH}:/app"
 
-ENTRYPOINT ["python3", \
-    # Enable Python development mode
-    "-X", "dev", \
-    # Run pytest
-    "-m", "pytest", \
-    # Verbose output
-    "-vvv", \
-    # Set a timeout of 9 seconds per test
-    "--timeout=9", \
-    # Print the 10 slowest tests
-    "--durations=10", \
-    # Measure code coverage for the 'homeassistant' package
-    "--cov='homeassistant'", \
-    # Generate an XML report of the code coverage
-    "--cov-report=xml", \
-    # Generate an HTML report of the code coverage
-    "--cov-report=html", \
-    # Print a summary of the code coverage in the console
-    "--cov-report=term", \
-    # Print logs in color
-    "--color=yes", \
-    # Print a count of test results in the console
-    "-o", "console_output_style=count"]
+# Entrypoint sets up symlinks at runtime (needed because volume mount overwrites build-time symlinks)
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 
 # Run tests in the 'tests/components/adaptive_lighting' directory
 CMD ["tests/components/adaptive_lighting"]
