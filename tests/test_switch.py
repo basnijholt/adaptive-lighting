@@ -707,9 +707,9 @@ async def test_manual_control(
     # (Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378)
     await turn_light(True)
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    assert not manual_control[ENTITY_LIGHT_1], (
-        "Turning on from OFF should not be manual control"
-    )
+    assert not manual_control[
+        ENTITY_LIGHT_1
+    ], "Turning on from OFF should not be manual control"
     # Now change brightness while ON - this SHOULD be manual control
     await turn_light(True, brightness=increased_brightness())
     assert (
@@ -2788,7 +2788,7 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
 
     # Verify light is not manually controlled
     assert not switch.manager.manual_control.get(
-        ENTITY_LIGHT_1
+        ENTITY_LIGHT_1,
     ), "Light should not be manually controlled before test"
 
     # Simulate an automation turning on the light with brightness
