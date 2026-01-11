@@ -1,8 +1,10 @@
 # See tests/README.md for instructions on how to run the tests.
 
 # tl;dr:
-# Run the following command in the adaptive-lighting repo folder to run the tests:
-# docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
+# 1. Clone HA core into ./core: git clone --depth 1 https://github.com/home-assistant/core.git core
+# 2. Setup symlinks: ./scripts/setup-symlinks
+# 3. Run tests (mount entire repo, not individual dirs, or symlinks break):
+#    docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
 
 # Optionally build the image yourself with:
 # docker build -t basnijholt/adaptive-lighting:latest .
