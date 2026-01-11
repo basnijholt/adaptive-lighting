@@ -2408,7 +2408,6 @@ class AdaptiveLightingManager:
                         switch,
                         eid,
                         force=False,
-                        turn_on_event=event,
                     )
                 except NoSwitchFoundError:
                     _LOGGER.debug(
@@ -2586,18 +2585,12 @@ class AdaptiveLightingManager:
         switch: AdaptiveSwitch,
         light: str,
         force: bool,
-        turn_on_event: Event | None = None,
     ) -> None:
         """Check if the light has been manually controlled by the latest turn on event."""
         if not switch._take_over_control:
             return
 
-        # Use passed event if provided, otherwise fall back to stored event
-        # Passing the event directly avoids race conditions where the stored
-        # event could be overwritten by concurrent light adaptations
-        if turn_on_event is None:
-            turn_on_event = self.turn_on_event.get(light)
-
+        turn_on_event = self.turn_on_event.get(light)
         if (
             turn_on_event is None
             or self.is_proactively_adapting(turn_on_event.context.id)
