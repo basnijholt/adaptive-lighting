@@ -703,8 +703,10 @@ async def test_manual_control(
     assert manual_control[ENTITY_LIGHT_1]
     await turn_light(False)
     assert not manual_control[ENTITY_LIGHT_1], manual_control
-    await turn_light(True, brightness=increased_brightness())
+    await turn_light(True)  # Turn on from OFF - should NOT trigger manual control
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    assert not manual_control[ENTITY_LIGHT_1], "Turn on from OFF should not be manual"
+    await turn_light(True, brightness=increased_brightness())  # Change while ON
     assert (
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
