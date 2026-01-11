@@ -2591,6 +2591,7 @@ class AdaptiveLightingManager:
             return
 
         turn_on_event = self.turn_on_event.get(light)
+
         if (
             turn_on_event is None
             or self.is_proactively_adapting(turn_on_event.context.id)
