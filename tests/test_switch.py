@@ -2746,3 +2746,147 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
         f"but got {name_hash_in_context}. This indicates the context is still "
         f"being created from an arbitrary switch instead of the manager."
     )
+
+
+async def test_separate_turn_on_commands_respects_light_off_state(hass):
+    """Test that split commands are not sent when light is turned off between commands.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1373
+
+    When `separate_turn_on_commands: true` is enabled and a light is turned off between
+    the split brightness and color commands, the second command should be skipped.
+
+    The bug occurs because:
+    1. When proactive adaptation context exists, the off-check is bypassed in
+       `_execute_adaptation_calls` (switch.py:1337-1349)
+    2. The proactive context is never cleared when `light.turn_off` is called
+    3. This causes the second split command (color) to be sent to an off light
+
+    This results in lights showing "on at 0% brightness" in the UI after being
+    turned off, which is confusing for users.
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+        },
+        all_lights=True,
+    )
+
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+
+    # Track all light.turn_on service calls with timestamps
+    turn_on_calls = []
+    turn_off_time = None
+
+    async def track_turn_on_calls(event: Event) -> None:
+        if (
+            event.data.get("domain") == LIGHT_DOMAIN
+            and event.data.get("service") == SERVICE_TURN_ON
+        ):
+            turn_on_calls.append(
+                {"event": event, "after_turn_off": turn_off_time is not None},
+            )
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, track_turn_on_calls)
+
+    # Turn off the light first to start from a known state
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+
+    # Clear the tracked calls
+    turn_on_calls.clear()
+
+    # Turn on the light - this triggers proactive adaptation with split commands
+    turn_on_context = Context(id="test_turn_on_context")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+        context=turn_on_context,
+    )
+    await hass.async_block_till_done()
+
+    # The first split command (brightness) should have been sent
+    assert len(turn_on_calls) >= 1, "Expected at least one turn_on call"
+
+    # Verify proactive adaptation context is set
+    # BUG: This context will remain set even after turn_off
+    assert switch.manager.is_proactively_adapting(
+        "test_turn_on_context",
+    ), "Proactive adaptation context should be set after turn_on"
+
+    # Mark that we're about to turn off
+    turn_off_time = True
+
+    # Now immediately turn off the light before the second split command
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # BUG VERIFICATION: The proactive context should be cleared on turn_off,
+    # but currently it's not, causing the second split command to bypass the off-check
+    # After the fix, this should return False
+    proactive_still_set = switch.manager.is_proactively_adapting("test_turn_on_context")
+
+    # Wait for all adaptation tasks to complete
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    # Check for calls made after turn_off
+    calls_after_turn_off = [c for c in turn_on_calls if c["after_turn_off"]]
+
+    # The light should be OFF
+    final_state = hass.states.get(ENTITY_LIGHT_3)
+
+    # The bug manifests in two ways:
+    # 1. Proactive context is still set after turn_off (should be cleared)
+    # 2. Additional turn_on calls are made after turn_off (second split command)
+    # 3. Light ends up in ON state after turn_off
+
+    if proactive_still_set:
+        # This is the root cause of the bug
+        pytest.fail(
+            "Bug confirmed: Proactive adaptation context is still set after light.turn_off. "
+            "This causes the off-check to be bypassed for the second split command. "
+            "The fix should clear proactive context when light.turn_off is detected.",
+        )
+
+    if final_state.state == STATE_ON:
+        pytest.fail(
+            f"Bug confirmed: Light is ON after turn_off was called. "
+            f"The second split command (color) was sent to the off light. "
+            f"Calls after turn_off: {len(calls_after_turn_off)}",
+        )
+
+    # Verify no turn_on calls were made after turn_off
+    for call_info in calls_after_turn_off:
+        call_entity = (
+            call_info["event"].data.get("service_data", {}).get(ATTR_ENTITY_ID)
+        )
+        if call_entity == ENTITY_LIGHT_3 or ENTITY_LIGHT_3 in (call_entity or []):
+            pytest.fail(
+                f"Bug confirmed: A light.turn_on call was made after light.turn_off. "
+                f"This is the race condition where the second split command bypasses "
+                f"the off-check due to proactive adaptation context not being cleared. "
+                f"Call data: {call_info['event'].data}",
+            )
