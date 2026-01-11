@@ -2216,7 +2216,7 @@ class AdaptiveLightingManager:
             "Light %s: Setting manual control attributes to %s (from %s).",
             light,
             attributes,
-            self.manual_control[light],
+            self.manual_control.get(light, LightControlAttributes.NONE),
         )
         self.manual_control[light] = attributes
         delay = self.auto_reset_manual_control_times.get(light)
@@ -2392,22 +2392,28 @@ class AdaptiveLightingManager:
                 task.cancel()
             self.turn_on_event[eid] = event
 
-            try:
-                switch = _switch_with_lights(
-                    self.hass,
-                    [eid],
-                    expand_light_groups=False,
-                )
-                await self.update_manually_controlled_from_event(
-                    switch,
-                    eid,
-                    force=False,
-                )
-            except NoSwitchFoundError:
-                _LOGGER.debug(
-                    "No switch found for entity_id='%s' in 'on' event listener",
-                    eid,
-                )
+            # Only check for manual control if the light was already ON before this
+            # turn_on event. If the light is being turned on from OFF, this is not
+            # a manual override - it's a normal turn on that should be adapted.
+            # Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378
+            state = self.hass.states.get(eid)
+            if state is not None and state.state == STATE_ON:
+                try:
+                    switch = _switch_with_lights(
+                        self.hass,
+                        [eid],
+                        expand_light_groups=False,
+                    )
+                    await self.update_manually_controlled_from_event(
+                        switch,
+                        eid,
+                        force=False,
+                    )
+                except NoSwitchFoundError:
+                    _LOGGER.debug(
+                        "No switch found for entity_id='%s' in 'on' event listener",
+                        eid,
+                    )
 
             timer = self.auto_reset_manual_control_timers.get(eid)
             if (
