@@ -93,9 +93,10 @@ CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON = (
     False,
 )
 DOCS[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = (
-    "When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is "
-    "invoked without specifying color or brightness. ❌🌈 "
+    "When turning lights on initially. When `true`, AL adapts only if `light.turn_on` is "
+    "called without color and brightness attributes. ❌🌈 "
     "This e.g., prevents adaptation when activating a scene. "
+    "If `take_over_control_mode` is `pause_changed`, AL will still adapt attributes that were not specified. "
     "If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. "
     "Needs `take_over_control` enabled. 🕵️"
 )
