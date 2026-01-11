@@ -2405,8 +2405,7 @@ class AdaptiveLightingManager:
                     expand_light_groups=False,
                 )
                 should_check = (
-                    state is not None
-                    and state.state == STATE_ON
+                    state is not None and state.state == STATE_ON
                 ) or switch._adapt_only_on_bare_turn_on
                 if should_check:
                     await self.update_manually_controlled_from_event(

@@ -707,7 +707,9 @@ async def test_manual_control(
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
     if adapt_only_on_bare_turn_on:
         # Marks as manually controlled because we turned it on with brightness
-        assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS, manual_control
+        assert (
+            manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+        ), manual_control
     else:
         assert not manual_control[ENTITY_LIGHT_1], manual_control
     # Now change brightness while ON - this should always be manual control
