@@ -2392,32 +2392,27 @@ class AdaptiveLightingManager:
                 task.cancel()
             self.turn_on_event[eid] = event
 
-            # Check for manual control based on light state and adapt_only_on_bare_turn_on:
-            # - Light already ON: always check (user changed brightness/color while on)
-            # - Light OFF + adapt_only_on_bare_turn_on=True: check (user wants scenes respected)
-            # - Light OFF + adapt_only_on_bare_turn_on=False: skip (adapt regardless)
+            # Only check for manual control if light was already ON.
+            # Turning on from OFF should never mark as manually controlled.
             # Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378
             state = self.hass.states.get(eid)
-            try:
-                switch = _switch_with_lights(
-                    self.hass,
-                    [eid],
-                    expand_light_groups=False,
-                )
-                should_check = (
-                    state is not None and state.state == STATE_ON
-                ) or switch._adapt_only_on_bare_turn_on
-                if should_check:
+            if state is not None and state.state == STATE_ON:
+                try:
+                    switch = _switch_with_lights(
+                        self.hass,
+                        [eid],
+                        expand_light_groups=False,
+                    )
                     await self.update_manually_controlled_from_event(
                         switch,
                         eid,
                         force=False,
                     )
-            except NoSwitchFoundError:
-                _LOGGER.debug(
-                    "No switch found for entity_id='%s' in 'on' event listener",
-                    eid,
-                )
+                except NoSwitchFoundError:
+                    _LOGGER.debug(
+                        "No switch found for entity_id='%s' in 'on' event listener",
+                        eid,
+                    )
 
             timer = self.auto_reset_manual_control_timers.get(eid)
             if (
