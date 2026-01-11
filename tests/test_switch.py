@@ -2780,9 +2780,9 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
 
     # Verify light is not manually controlled
-    assert not switch.manager.manual_control.get(ENTITY_LIGHT_1), (
-        "Light should not be manually controlled before test"
-    )
+    assert not switch.manager.manual_control.get(
+        ENTITY_LIGHT_1
+    ), "Light should not be manually controlled before test"
 
     # Simulate an automation turning on the light with brightness
     # This is an external call (not from AL) with brightness attribute
