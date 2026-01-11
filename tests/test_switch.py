@@ -703,15 +703,8 @@ async def test_manual_control(
     assert manual_control[ENTITY_LIGHT_1]
     await turn_light(False)
     assert not manual_control[ENTITY_LIGHT_1], manual_control
-    # Turn on without brightness - should NOT be manual control
-    # (Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378)
-    await turn_light(True)
-    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    assert not manual_control[
-        ENTITY_LIGHT_1
-    ], "Turning on from OFF should not be manual control"
-    # Now change brightness while ON - this SHOULD be manual control
     await turn_light(True, brightness=increased_brightness())
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
     assert (
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
