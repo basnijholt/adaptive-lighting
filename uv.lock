@@ -72,7 +72,7 @@ wheels = [
 [[package]]
 name = "adaptive-lighting"
 version = "1.30.1"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "homeassistant", version = "2024.12.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
     { name = "homeassistant", version = "2025.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' and python_full_version < '3.13.2'" },
