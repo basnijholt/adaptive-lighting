@@ -5,24 +5,14 @@ import pandas as pd
 import voluptuous as vol
 from homeassistant.helpers import selector
 
-try:
-    from .const import (
-        DOCS,
-        DOCS_APPLY,
-        DOCS_MANUAL_CONTROL,
-        SET_MANUAL_CONTROL_SCHEMA,
-        VALIDATION_TUPLES,
-        apply_service_schema,
-    )
-except ImportError:
-    from const import (
-        DOCS,
-        DOCS_APPLY,
-        DOCS_MANUAL_CONTROL,
-        SET_MANUAL_CONTROL_SCHEMA,
-        VALIDATION_TUPLES,
-        apply_service_schema,
-    )
+from .const import (
+    DOCS,
+    DOCS_APPLY,
+    DOCS_MANUAL_CONTROL,
+    SET_MANUAL_CONTROL_SCHEMA,
+    VALIDATION_TUPLES,
+    apply_service_schema,
+)
 
 
 def _format_voluptuous_instance(instance: vol.All) -> str:
