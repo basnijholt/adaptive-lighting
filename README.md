@@ -250,7 +250,7 @@ The following keys are disallowed:
 <!-- SECTION:automation-examples:START -->
 ## :robot: Automation examples
 
-<details>
+<details markdown="1">
 <summary>Reset the <code>manual_control</code> status of a light after an hour.</summary>
 
 ```yaml
@@ -275,7 +275,7 @@ The following keys are disallowed:
 
 </details>
 
-<details>
+<details markdown="1">
 <summary>Toggle multiple Adaptive Lighting switches to "sleep mode" using an <code>input_boolean.sleep_mode</code>.</summary>
 
 ```yaml
@@ -451,7 +451,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 <!-- SECTION:brightness-modes:START -->
 ### Custom brightness ramps using `brightness_mode` with `"linear"` and `"tanh"`
 
-<details>
+<details markdown="1">
 <summary>Enhance your control over brightness transitions during sunrise and sunset with <code>brightness_mode</code> (click here to learn more 🧠).</summary>
 
 With Adaptive Lighting, you can set a `brightness_mode` to specify how the brightness changes during sunrise and sunset. The `brightness_mode` can be set to `"default"` ([as illustrated in other graphs above](#high_brightness-brightness)), `"linear"`, or `"tanh"`. If you choose to deviate from the `"default"` mode, you can adjust `brightness_mode_time_dark` and `brightness_mode_time_light` to further customize the lighting transitions.
