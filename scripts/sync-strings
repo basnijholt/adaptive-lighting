@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -ex
+cd "$(dirname "$0")/.."
+
+uv run markdown-code-runner --verbose README.md
+uv run python ./scripts/update-services.py
+uv run python ./scripts/update-strings.py

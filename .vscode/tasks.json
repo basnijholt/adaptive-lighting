@@ -12,6 +12,12 @@
             "type": "shell",
             "command": "scripts/lint",
             "problemMatcher": []
+        },
+        {
+            "label": "Sync strings (README, services.yaml, strings.json, etc.)",
+            "type": "shell",
+            "command": "scripts/sync-strings",
+            "problemMatcher": []
         }
     ]
 }
