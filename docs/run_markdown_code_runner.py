@@ -57,9 +57,11 @@ def main() -> int:
     """Main entry point."""
     repo_root = Path(__file__).parent.parent
 
-    # Only process docs/ files - README.md requires homeassistant imports
-    # that are only available when running inside Home Assistant core
+    # Process docs/ files and README.md
     files = find_markdown_files_with_code_blocks(repo_root / "docs")
+    readme = repo_root / "README.md"
+    if readme.exists() and "<!-- CODE:START -->" in readme.read_text():
+        files.append(readme)
 
     success = run_markdown_code_runner(files, repo_root)
     return 0 if success else 1

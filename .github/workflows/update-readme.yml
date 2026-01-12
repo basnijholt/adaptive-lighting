@@ -1,4 +1,4 @@
-name: Update README.md, strings.json, and services.yaml
+name: Update auto-generated content
 
 on:
   push:
@@ -6,28 +6,34 @@ on:
       - main
     paths:
       - "README.md"
+      - "docs/**/*.md"
       - "custom_components/adaptive_lighting/const.py"
+      - "custom_components/adaptive_lighting/docs_gen.py"
+      - "custom_components/adaptive_lighting/_docs_helpers.py"
+      - "docs/run_markdown_code_runner.py"
       - ".github/workflows/update-readme.yml"
   pull_request:
 
 jobs:
-  update_readme:
+  update_auto_generated:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Install Home Assistant
-        uses: ./.github/workflows/install_dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Install markdown-code-runner and README code dependencies
-        run: |
-          uv pip install markdown-code-runner==2.1.0 pandas tabulate
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
 
       - name: Run markdown-code-runner
-        run: uv run markdown-code-runner --verbose README.md
+        run: |
+          uv sync --group docs
+          uv pip install -e .
+          uv run python docs/run_markdown_code_runner.py
 
       - name: Run update services.yaml
         run: uv run python .github/update-services.py
@@ -35,17 +41,17 @@ jobs:
       - name: Run update strings.json
         run: uv run python .github/update-strings.py
 
-      - name: Commit updated README.md, strings.json, and services.yaml
+      - name: Commit updated files
         id: commit
         run: |
           git add -u .
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           if git diff --quiet && git diff --staged --quiet; then
-            echo "No changes in README.md, strings.json, and services.yaml, skipping commit."
+            echo "No changes, skipping commit."
             echo "commit_status=skipped" >> $GITHUB_ENV
           else
-            git commit -m "Update README.md, strings.json, and services.yaml"
+            git commit -m "Update auto-generated content"
             echo "commit_status=committed" >> $GITHUB_ENV
           fi
 
