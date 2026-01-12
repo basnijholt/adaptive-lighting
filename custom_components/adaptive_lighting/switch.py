@@ -1545,13 +1545,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
             ):
                 _LOGGER.debug(
-                    "Skipping responding to 'off' → 'on' event for '%s' with context.id='%s' because"
-                    " we only adapt on bare `light.turn_on` events and not on service_data: '%s'",
+                    "Marked attributes from service_data as manually controlled for '%s' "
+                    "with context.id='%s'. Continuing to adapt remaining attributes. "
+                    "service_data: '%s'",
                     entity_id,
                     event.context.id,
                     service_data,
                 )
-                return
+                # Don't return early - continue to adapt remaining attributes
+                # that weren't specified in the turn_on call. This respects
+                # take_over_control_mode (PAUSE_CHANGED vs PAUSE_ALL).
 
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
