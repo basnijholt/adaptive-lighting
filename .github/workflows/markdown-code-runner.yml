@@ -1,4 +1,4 @@
-name: Update auto-generated content
+name: markdown-code-runner
 
 on:
   push:
@@ -11,11 +11,11 @@ on:
       - "custom_components/adaptive_lighting/docs_gen.py"
       - "custom_components/adaptive_lighting/_docs_helpers.py"
       - "docs/run_markdown_code_runner.py"
-      - ".github/workflows/update-readme.yml"
+      - ".github/workflows/markdown-code-runner.yml"
   pull_request:
 
 jobs:
-  update_auto_generated:
+  markdown-code-runner:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code from GitHub
