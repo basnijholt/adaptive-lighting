@@ -98,6 +98,9 @@ link = "https://discord.gg/home-assistant"
 # Enable markdown inside HTML blocks (e.g., <details>)
 [project.markdown_extensions.md_in_html]
 
+# Enable attribute lists for adding CSS classes (e.g., {.md-button})
+[project.markdown_extensions.attr_list]
+
 # Enable syntax highlighting for fenced code blocks
 [project.markdown_extensions.pymdownx.highlight]
 anchor_linenums = true
