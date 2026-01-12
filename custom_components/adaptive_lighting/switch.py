@@ -1552,9 +1552,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     event.context.id,
                     service_data,
                 )
-                # Don't return early - continue to adapt remaining attributes
-                # that weren't specified in the turn_on call. This respects
-                # take_over_control_mode (PAUSE_CHANGED vs PAUSE_ALL).
 
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
