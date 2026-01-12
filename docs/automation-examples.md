@@ -8,8 +8,8 @@ Real-world automation examples showing how to integrate Adaptive Lighting with y
 
 <!-- CODE:START -->
 <!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import get_automation_examples -->
-<!-- print(get_automation_examples()) -->
+<!-- from docs_gen import readme_section -->
+<!-- print(readme_section("automation-examples")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
 <!-- OUTPUT:END -->

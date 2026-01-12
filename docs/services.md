@@ -97,8 +97,8 @@ data:
 
 <!-- CODE:START -->
 <!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import get_change_switch_settings_docs -->
-<!-- print(get_change_switch_settings_docs()) -->
+<!-- from docs_gen import readme_section -->
+<!-- print(readme_section("change-switch-settings")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
 <!-- OUTPUT:END -->

@@ -15,7 +15,7 @@ _MODULE_DIR = Path(__file__).parent
 README_PATH = _MODULE_DIR.parent.parent / "README.md"
 
 
-def readme_section(section_name: str, *, strip_heading: bool = False) -> str:
+def readme_section(section_name: str, *, strip_heading: bool = True) -> str:
     """Extract a marked section from README.md.
 
     Sections are marked with HTML comments:
@@ -55,14 +55,11 @@ def readme_section(section_name: str, *, strip_heading: bool = False) -> str:
         # Remove first heading (# or ## or ###)
         section = re.sub(r"^#{1,3}\s+[^\n]+\n+", "", section, count=1)
 
-    return transform_readme_links(section)
+    return _transform_readme_links(section)
 
 
-def transform_readme_links(content: str) -> str:
-    """Transform README internal links to docs site links.
-
-    Converts anchors like #configuration to proper doc page links.
-    """
+def _transform_readme_links(content: str) -> str:
+    """Transform README internal links to docs site links."""
     # Map README anchors to doc pages
     link_map = {
         "#gear-configuration": "configuration.md",
@@ -83,55 +80,5 @@ def transform_readme_links(content: str) -> str:
     for old_link, new_link in link_map.items():
         content = content.replace(f"]({old_link})", f"]({new_link})")
 
-    # Also handle the ToC link pattern [[ToC](#...)]
+    # Remove ToC link pattern [[ToC](#...)]
     return re.sub(r"\[\[ToC\]\([^)]+\)\]", "", content)
-
-
-def get_feature_list() -> str:
-    """Get the features section formatted for docs."""
-    return readme_section("features", strip_heading=True)
-
-
-def get_manual_control_intro() -> str:
-    """Get the manual control introduction section."""
-    return readme_section("manual-control", strip_heading=True)
-
-
-def get_automation_examples() -> str:
-    """Get all automation examples from README."""
-    return readme_section("automation-examples", strip_heading=True)
-
-
-def get_troubleshooting_intro() -> str:
-    """Get just the troubleshooting intro (debug logging)."""
-    return readme_section("troubleshooting-intro", strip_heading=True)
-
-
-def get_common_problems() -> str:
-    """Get the common problems section."""
-    return readme_section("common-problems", strip_heading=True)
-
-
-def get_brightness_modes() -> str:
-    """Get the brightness modes explanation with graphs."""
-    return readme_section("brightness-modes", strip_heading=True)
-
-
-def get_graphs() -> str:
-    """Get the graphs section."""
-    return readme_section("graphs", strip_heading=True)
-
-
-def get_see_also() -> str:
-    """Get the see also section."""
-    return readme_section("see-also", strip_heading=True)
-
-
-def get_config_example_full() -> str:
-    """Get the full configuration example."""
-    return readme_section("config-example-full", strip_heading=False)
-
-
-def get_change_switch_settings_docs() -> str:
-    """Get the change_switch_settings service documentation."""
-    return readme_section("change-switch-settings", strip_heading=True)

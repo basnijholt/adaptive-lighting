@@ -44,8 +44,8 @@ All configuration options are listed below with their default values. These opti
 
 <!-- CODE:START -->
 <!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import get_config_example_full -->
-<!-- print(get_config_example_full()) -->
+<!-- from docs_gen import readme_section -->
+<!-- print(readme_section("config-example-full", strip_heading=False)) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
 <!-- OUTPUT:END -->

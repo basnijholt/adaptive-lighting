@@ -10,8 +10,8 @@ This guide covers common issues and their solutions when using Adaptive Lighting
 
 <!-- CODE:START -->
 <!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import get_troubleshooting_intro -->
-<!-- print(get_troubleshooting_intro()) -->
+<!-- from docs_gen import readme_section -->
+<!-- print(readme_section("troubleshooting-intro")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
 <!-- OUTPUT:END -->
@@ -20,8 +20,8 @@ This guide covers common issues and their solutions when using Adaptive Lighting
 
 <!-- CODE:START -->
 <!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import get_common_problems -->
-<!-- print(get_common_problems()) -->
+<!-- from docs_gen import readme_section -->
+<!-- print(readme_section("common-problems")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
 <!-- OUTPUT:END -->
