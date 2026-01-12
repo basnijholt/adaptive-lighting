@@ -104,11 +104,6 @@ def get_automation_examples() -> str:
     return readme_section("automation-examples", strip_heading=True)
 
 
-def get_troubleshooting() -> str:
-    """Get the troubleshooting section."""
-    return readme_section("troubleshooting", strip_heading=True)
-
-
 def get_troubleshooting_intro() -> str:
     """Get just the troubleshooting intro (debug logging)."""
     return readme_section("troubleshooting-intro", strip_heading=True)
@@ -127,11 +122,6 @@ def get_brightness_modes() -> str:
 def get_graphs() -> str:
     """Get the graphs section."""
     return readme_section("graphs", strip_heading=True)
-
-
-def get_sleep_mode_intro() -> str:
-    """Get the sleep mode introduction."""
-    return readme_section("sleep-mode", strip_heading=True)
 
 
 def get_see_also() -> str:
