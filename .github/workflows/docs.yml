@@ -61,10 +61,11 @@ jobs:
 
       - name: Run markdown-code-runner on docs
         run: |
+          set -e
           for f in docs/*.md docs/**/*.md; do
             if [ -f "$f" ]; then
               echo "Processing $f..."
-              markdown-code-runner "$f" || echo "Warning: Failed to process $f"
+              markdown-code-runner "$f"
             fi
           done
 
