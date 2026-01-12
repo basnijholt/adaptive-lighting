@@ -2,8 +2,7 @@ name: Documentation
 
 on:
   push:
-    # TODO: Remove feat/documentation-site before merging
-    branches: [main, feat/documentation-site]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -53,8 +52,7 @@ jobs:
           path: ./site
 
   deploy:
-    # TODO: Change back to main only before merging
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/documentation-site') && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
