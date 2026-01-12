@@ -81,6 +81,6 @@ Visualize how Adaptive Lighting will work with your settings using the interacti
 
 <div style="text-align: center; margin: 2rem 0;">
   <a href="simulator/" class="simulator-link">
-    🌞 Adaptive Lighting Simulator 🌛
+    Try the Interactive Simulator
   </a>
 </div>

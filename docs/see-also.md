@@ -29,7 +29,7 @@ Visualize how different settings affect your lighting throughout the day:
 
 <div style="text-align: center; margin: 2rem 0;">
   <a href="../simulator/" class="simulator-link">
-    🌞 Open the Simulator 🌛
+    Open the Simulator
   </a>
 </div>
 

@@ -119,7 +119,7 @@ The best way to understand brightness modes is to experiment with the interactiv
 
 <div style="text-align: center; margin: 2rem 0;">
   <a href="../simulator/" class="simulator-link">
-    🌞 Try the Simulator 🌛
+    Try the Simulator
   </a>
 </div>
 
