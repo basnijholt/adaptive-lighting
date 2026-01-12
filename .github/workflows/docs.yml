@@ -49,7 +49,7 @@ jobs:
       - name: Install documentation dependencies
         run: |
           uv pip install --system zensical markdown-code-runner
-          uv pip install --system pandas voluptuous homeassistant
+          uv pip install --system pandas tabulate voluptuous homeassistant
 
       - name: Install webapp dependencies
         run: |
