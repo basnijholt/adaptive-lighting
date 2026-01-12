@@ -19,8 +19,7 @@ Adaptive Lighting supports three brightness modes:
 ## Detailed Explanation
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("brightness-modes")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
@@ -91,8 +90,7 @@ adaptive_lighting:
 These graphs show how brightness changes throughout the day based on calculated values:
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("graphs")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

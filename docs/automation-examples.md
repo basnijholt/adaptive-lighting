@@ -7,8 +7,7 @@ icon: lucide/bot
 Real-world automation examples showing how to integrate Adaptive Lighting with your Home Assistant setup.
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("automation-examples")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

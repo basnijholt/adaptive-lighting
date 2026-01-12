@@ -9,8 +9,7 @@ Resources, tutorials, and related projects for Adaptive Lighting.
 ## Tutorials & Articles
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("see-also")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

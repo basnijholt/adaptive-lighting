@@ -9,8 +9,7 @@ This guide covers common issues and their solutions when using Adaptive Lighting
 ## Enable Debug Logging
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("troubleshooting-intro")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
@@ -31,8 +30,7 @@ After the issue occurs, create a new issue report with the log (`/config/home-as
 ## Common Problems & Solutions
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("common-problems")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

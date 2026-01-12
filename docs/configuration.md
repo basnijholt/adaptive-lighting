@@ -33,8 +33,7 @@ adaptive_lighting:
 All configuration options are listed below with their default values. These options work identically in both YAML and the UI.
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from _docs_helpers import generate_config_markdown_table -->
+<!-- from adaptive_lighting._docs_helpers import generate_config_markdown_table -->
 <!-- print(generate_config_markdown_table()) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
@@ -86,8 +85,7 @@ All configuration options are listed below with their default values. These opti
 ## Full Configuration Example
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("config-example-full", strip_heading=False)) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

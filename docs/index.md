@@ -26,8 +26,7 @@ By automatically adapting the settings of your lights throughout the day, Adapti
 ## Features
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("features")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

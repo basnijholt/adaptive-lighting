@@ -13,8 +13,7 @@ Applies the current Adaptive Lighting settings to lights on demand. Useful for f
 ### Parameters
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from _docs_helpers import generate_apply_markdown_table -->
+<!-- from adaptive_lighting._docs_helpers import generate_apply_markdown_table -->
 <!-- print(generate_apply_markdown_table()) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
@@ -63,8 +62,7 @@ Marks or unmarks a light as "manually controlled". When a light is marked as man
 ### Parameters
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from _docs_helpers import generate_set_manual_control_markdown_table -->
+<!-- from adaptive_lighting._docs_helpers import generate_set_manual_control_markdown_table -->
 <!-- print(generate_set_manual_control_markdown_table()) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
@@ -114,8 +112,7 @@ data:
 ## adaptive_lighting.change_switch_settings
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("change-switch-settings")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->

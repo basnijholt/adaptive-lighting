@@ -9,8 +9,7 @@ Adaptive Lighting is designed to work seamlessly with manual adjustments, detect
 ## How It Works
 
 <!-- CODE:START -->
-<!-- import sys; sys.path.insert(0, 'custom_components/adaptive_lighting') -->
-<!-- from docs_gen import readme_section -->
+<!-- from adaptive_lighting.docs_gen import readme_section -->
 <!-- print(readme_section("manual-control")) -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
