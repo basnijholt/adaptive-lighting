@@ -1,0 +1,82 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'zensical.toml'
+      - 'custom_components/adaptive_lighting/_docs_helpers.py'
+      - 'custom_components/adaptive_lighting/docs_gen.py'
+      - 'custom_components/adaptive_lighting/const.py'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'zensical.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system zensical markdown-code-runner
+          uv pip install --system pandas voluptuous homeassistant
+
+      - name: Set up PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/custom_components:$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Run markdown-code-runner on docs
+        run: |
+          # Process all markdown files with CODE blocks
+          for f in docs/*.md docs/**/*.md; do
+            if [ -f "$f" ]; then
+              echo "Processing $f..."
+              markdown-code-runner "$f" || echo "Warning: Failed to process $f"
+            fi
+          done
+
+      - name: Build documentation
+        run: zensical build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

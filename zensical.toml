@@ -1,0 +1,126 @@
+# Adaptive Lighting Documentation Site Configuration
+# Built with Zensical - https://zensical.org
+
+[project]
+name = "Adaptive Lighting"
+site_url = "https://adaptive-lighting.nijho.lt"
+repo_url = "https://github.com/basnijholt/adaptive-lighting"
+repo_name = "basnijholt/adaptive-lighting"
+edit_uri = "edit/main/docs/"
+copyright = "Copyright &copy; 2020-2026 Bas Nijholt"
+
+[theme]
+name = "material"
+custom_dir = "docs/overrides"
+logo = "assets/logo.png"
+favicon = "assets/logo.png"
+icon = { repo = "fontawesome/brands/github" }
+
+[[theme.palette]]
+scheme = "default"
+primary = "amber"
+accent = "orange"
+toggle = { icon = "lucide/sun", name = "Switch to dark mode" }
+
+[[theme.palette]]
+scheme = "slate"
+primary = "amber"
+accent = "orange"
+toggle = { icon = "lucide/moon", name = "Switch to light mode" }
+
+[theme.features]
+content = [
+    "content.action.edit",
+    "content.action.view",
+    "content.code.copy",
+    "content.code.annotate",
+    "content.tabs.link",
+    "content.tooltips",
+]
+navigation = [
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "navigation.tracking",
+    "navigation.tabs",
+    "navigation.sections",
+    "navigation.top",
+    "navigation.footer",
+]
+search = [
+    "search.highlight",
+    "search.suggest",
+]
+
+[[nav]]
+Home = "index.md"
+
+[[nav]]
+"Getting Started" = "getting-started.md"
+
+[[nav]]
+Configuration = "configuration.md"
+
+[[nav]]
+Services = "services.md"
+
+[[nav]]
+"Automation Examples" = "automation-examples.md"
+
+[[nav]]
+Troubleshooting = "troubleshooting.md"
+
+[[nav]]
+Advanced = [
+    { "Brightness Modes" = "advanced/brightness-modes.md" },
+    { "Manual Control" = "advanced/manual-control.md" },
+    { "Sleep Mode" = "advanced/sleep-mode.md" },
+]
+
+[[nav]]
+"See Also" = "see-also.md"
+
+[markdown_extensions.toc]
+permalink = true
+toc_depth = 3
+
+[markdown_extensions.admonition]
+
+[markdown_extensions.pymdownx_details]
+
+[markdown_extensions.pymdownx_superfences]
+
+[markdown_extensions.pymdownx_highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+
+[markdown_extensions.pymdownx_inlinehilite]
+
+[markdown_extensions.pymdownx_tabbed]
+alternate_style = true
+slugify = { "!!python/object/apply:pymdownx.slugs.slugify" = { kwds = { case = "lower" } } }
+
+[markdown_extensions.pymdownx_emoji]
+emoji_index = "!!python/name:material.extensions.emoji.twemoji"
+emoji_generator = "!!python/name:material.extensions.emoji.to_svg"
+
+[markdown_extensions.attr_list]
+
+[markdown_extensions.md_in_html]
+
+[markdown_extensions.tables]
+
+[markdown_extensions.def_list]
+
+[extra]
+[[extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/basnijholt/adaptive-lighting"
+
+[[extra.social]]
+icon = "fontawesome/brands/discord"
+link = "https://discord.gg/home-assistant"
+
+[plugins.search]
+
+[plugins.tags]

@@ -1,0 +1,203 @@
+/* Adaptive Lighting Documentation Custom Styles */
+
+/* Sun-themed color adjustments */
+:root {
+  --md-primary-fg-color: #FF9800;
+  --md-primary-fg-color--light: #FFB74D;
+  --md-primary-fg-color--dark: #F57C00;
+  --md-accent-fg-color: #FFC107;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #FFB74D;
+  --md-accent-fg-color: #FFD54F;
+}
+
+/* Hero section on index page */
+.md-content__inner > h1:first-child {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Logo in header - make it slightly larger */
+.md-header__button.md-logo img {
+  height: 1.8rem;
+}
+
+/* Feature grid for homepage */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.feature-card {
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  background: var(--md-code-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Configuration table improvements */
+.md-typeset table:not([class]) {
+  font-size: 0.85rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-primary-fg-color);
+  color: white;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background-color: var(--md-primary-fg-color--dark);
+}
+
+/* Code block in table cells */
+.md-typeset table:not([class]) code {
+  font-size: 0.8rem;
+  padding: 0.1rem 0.3rem;
+}
+
+/* Admonition styling - sun theme */
+.md-typeset .admonition.tip,
+.md-typeset details.tip {
+  border-color: #FFC107;
+}
+
+.md-typeset .admonition.tip > .admonition-title,
+.md-typeset details.tip > summary {
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+.md-typeset .admonition.tip > .admonition-title::before,
+.md-typeset details.tip > summary::before {
+  background-color: #FFC107;
+}
+
+/* Service section styling */
+.service-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: var(--md-code-bg-color);
+  border-radius: 0.5rem;
+  border-left: 4px solid var(--md-primary-fg-color);
+}
+
+.service-section h2 {
+  margin-top: 0;
+}
+
+/* Badge styling for status indicators */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-required {
+  background-color: #f44336;
+  color: white;
+}
+
+.badge-optional {
+  background-color: #4caf50;
+  color: white;
+}
+
+/* Responsive video container */
+.video-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  margin: 1rem 0;
+}
+
+.video-container iframe,
+.video-container video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.5rem;
+}
+
+/* Simulator link button styling */
+.simulator-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #FF9800, #FFC107);
+  color: white !important;
+  border-radius: 2rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.simulator-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+/* Hide doctoc generated content in docs (we use mkdocs nav) */
+.md-typeset [id^="doctoc"] {
+  display: none;
+}
+
+/* Details/collapsible sections - match README style */
+.md-typeset details {
+  margin: 1rem 0;
+}
+
+.md-typeset details summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Emoji in headings - ensure proper sizing */
+.md-typeset h1 .twemoji,
+.md-typeset h2 .twemoji,
+.md-typeset h3 .twemoji {
+  height: 1em;
+  vertical-align: -0.1em;
+}
+
+/* Graph images */
+.md-typeset img[alt*="graph"],
+.md-typeset img[alt*="brightness"],
+.md-typeset img[alt*="color_temp"] {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Contributors section - hide in docs, link to README instead */
+.contributors-section {
+  text-align: center;
+  padding: 2rem;
+  background: var(--md-code-bg-color);
+  border-radius: 0.5rem;
+  margin: 2rem 0;
+}
