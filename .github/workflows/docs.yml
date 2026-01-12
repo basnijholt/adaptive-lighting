@@ -54,20 +54,6 @@ jobs:
           uv add -r webapp/requirements.txt
           uv add shinylive
 
-      - name: Set up PYTHONPATH
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE/custom_components:$GITHUB_WORKSPACE" >> $GITHUB_ENV
-
-      - name: Run markdown-code-runner on docs
-        run: |
-          set -e
-          for f in docs/*.md docs/**/*.md; do
-            if [ -f "$f" ]; then
-              echo "Processing $f..."
-              uv run markdown-code-runner "$f"
-            fi
-          done
-
       - name: Build documentation
         run: uv run zensical build
 
