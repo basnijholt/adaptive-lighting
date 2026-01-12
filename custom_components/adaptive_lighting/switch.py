@@ -1540,7 +1540,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and not is_our_context(event.context)
         ):
             service_data = self.manager.turn_on_event[entity_id].data[ATTR_SERVICE_DATA]
-            if self.manager._is_non_bare_turn_on(
+            if self.manager._mark_manual_control_if_non_bare_turn_on(
                 entity_id,
                 service_data,
             ):
@@ -1854,7 +1854,7 @@ class AdaptiveLightingManager:
                     or (
                         switch._take_over_control
                         and switch._adapt_only_on_bare_turn_on
-                        and self._is_non_bare_turn_on(
+                        and self._mark_manual_control_if_non_bare_turn_on(
                             entity_id,
                             data[CONF_PARAMS],
                         )
@@ -2851,23 +2851,29 @@ class AdaptiveLightingManager:
         )
         return False
 
-    def _is_non_bare_turn_on(
+    def _mark_manual_control_if_non_bare_turn_on(
         self,
         entity_id: str,
         service_data: ServiceData,
     ) -> bool:
-        """Check if the turn_on call has brightness/color attributes (non-bare).
+        """Mark light as manually controlled if turn_on call has brightness/color attributes.
 
-        This is used by adapt_only_on_bare_turn_on to decide whether to skip
-        adaptation. It does NOT mark the light as manually controlled - that
-        setting only affects initial adaptation, not future adaptations.
+        This is used by adapt_only_on_bare_turn_on to mark lights as manually controlled
+        when they are turned on with specific attributes (e.g., from a scene).
+        This ensures scenes persist and AL doesn't override them.
         """
         _LOGGER.debug(
-            "_is_non_bare_turn_on: entity_id='%s', service_data='%s'",
+            "_mark_manual_control_if_non_bare_turn_on: entity_id='%s', service_data='%s'",
             entity_id,
             service_data,
         )
-        return bool(get_light_control_attributes(service_data))
+        manual_control_attributes = get_light_control_attributes(service_data)
+
+        if manual_control_attributes:
+            self.set_manual_control_attributes(entity_id, manual_control_attributes)
+            return True
+
+        return False
 
 
 class _AsyncSingleShotTimer:

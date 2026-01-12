@@ -705,7 +705,18 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    # Turning on from OFF with brightness should NOT mark as manually controlled
+    # Turning on from OFF with brightness:
+    # - With adapt_only_on_bare_turn_on=True: SHOULD mark as manually controlled (to preserve scenes)
+    # - With adapt_only_on_bare_turn_on=False: should NOT mark (fix for issue #1378)
+    if adapt_only_on_bare_turn_on:
+        assert (
+            manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+        ), manual_control
+    else:
+        assert not manual_control[ENTITY_LIGHT_1], manual_control
+    # Reset for next test
+    await turn_light(False)
+    await turn_light(True)
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     # Now change brightness while ON - this should always be manual control
     await turn_light(True, brightness=increased_brightness())
