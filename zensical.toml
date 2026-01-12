@@ -2,126 +2,110 @@
 # Built with Zensical - https://zensical.org
 
 [project]
-name = "Adaptive Lighting"
 site_name = "Adaptive Lighting"
-site_url = "https://adaptive-lighting.nijho.lt"
-repo_url = "https://github.com/basnijholt/adaptive-lighting"
-repo_name = "basnijholt/adaptive-lighting"
-edit_uri = "edit/main/docs/"
+site_description = "Automatically adjust brightness and color of lights based on the sun position"
+site_author = "Bas Nijholt"
+site_url = "https://adaptive-lighting.nijho.lt/"
 copyright = "Copyright &copy; 2020-2026 Bas Nijholt"
 
-[theme]
-name = "material"
-custom_dir = "docs/overrides"
-logo = "assets/logo.png"
-favicon = "assets/logo.png"
-icon = { repo = "fontawesome/brands/github" }
+repo_url = "https://github.com/basnijholt/adaptive-lighting"
+repo_name = "GitHub"
+edit_uri = "edit/main/docs"
 
-[[theme.palette]]
-scheme = "default"
-primary = "amber"
-accent = "orange"
-toggle = { icon = "lucide/sun", name = "Switch to dark mode" }
-
-[[theme.palette]]
-scheme = "slate"
-primary = "amber"
-accent = "orange"
-toggle = { icon = "lucide/moon", name = "Switch to light mode" }
-
-[theme.features]
-content = [
-    "content.action.edit",
-    "content.action.view",
-    "content.code.copy",
-    "content.code.annotate",
-    "content.tabs.link",
-    "content.tooltips",
-]
-navigation = [
-    "navigation.instant",
-    "navigation.instant.prefetch",
-    "navigation.tracking",
-    "navigation.tabs",
-    "navigation.sections",
-    "navigation.top",
-    "navigation.footer",
-]
-search = [
-    "search.highlight",
-    "search.suggest",
-]
-
-[[nav]]
-Home = "index.md"
-
-[[nav]]
-"Getting Started" = "getting-started.md"
-
-[[nav]]
-Configuration = "configuration.md"
-
-[[nav]]
-Services = "services.md"
-
-[[nav]]
-"Automation Examples" = "automation-examples.md"
-
-[[nav]]
-Troubleshooting = "troubleshooting.md"
-
-[[nav]]
-Advanced = [
+nav = [
+  { "Home" = "index.md" },
+  { "Getting Started" = "getting-started.md" },
+  { "Configuration" = "configuration.md" },
+  { "Services" = "services.md" },
+  { "Automation Examples" = "automation-examples.md" },
+  { "Troubleshooting" = "troubleshooting.md" },
+  { "Advanced" = [
     { "Brightness Modes" = "advanced/brightness-modes.md" },
     { "Manual Control" = "advanced/manual-control.md" },
     { "Sleep Mode" = "advanced/sleep-mode.md" },
+  ] },
+  { "See Also" = "see-also.md" },
 ]
 
-[[nav]]
-"See Also" = "see-also.md"
+[project.theme]
+custom_dir = "docs/overrides"
+language = "en"
+logo = "assets/logo.png"
 
-[markdown_extensions.toc]
-permalink = true
-toc_depth = 3
+features = [
+    "announce.dismiss",
+    "content.action.edit",
+    "content.action.view",
+    "content.code.annotate",
+    "content.code.copy",
+    "content.code.select",
+    "content.footnote.tooltips",
+    "content.tabs.link",
+    "content.tooltips",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "navigation.path",
+    "navigation.top",
+    "navigation.tracking",
+    "search.highlight",
+]
 
-[markdown_extensions.admonition]
+# Three-way toggle: system preference -> light -> dark -> system preference
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
 
-[markdown_extensions.pymdownx_details]
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "amber"
+accent = "orange"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
 
-[markdown_extensions.pymdownx_superfences]
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "amber"
+accent = "orange"
+toggle.icon = "lucide/moon-star"
+toggle.name = "Switch to system preference"
 
-[markdown_extensions.pymdownx_highlight]
-anchor_linenums = true
-line_spans = "__span"
-pygments_lang_class = true
+[project.theme.font]
+text = "Inter"
+code = "JetBrains Mono"
 
-[markdown_extensions.pymdownx_inlinehilite]
+[project.theme.icon]
+repo = "lucide/github"
 
-[markdown_extensions.pymdownx_tabbed]
-alternate_style = true
-slugify = { "!!python/object/apply:pymdownx.slugs.slugify" = { kwds = { case = "lower" } } }
+[project.extra]
+generator = false
 
-[markdown_extensions.pymdownx_emoji]
-emoji_index = "!!python/name:material.extensions.emoji.twemoji"
-emoji_generator = "!!python/name:material.extensions.emoji.to_svg"
-
-[markdown_extensions.attr_list]
-
-[markdown_extensions.md_in_html]
-
-[markdown_extensions.tables]
-
-[markdown_extensions.def_list]
-
-[extra]
-[[extra.social]]
+[[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/basnijholt/adaptive-lighting"
 
-[[extra.social]]
+[[project.extra.social]]
 icon = "fontawesome/brands/discord"
 link = "https://discord.gg/home-assistant"
 
-[plugins.search]
+# Enable GitHub-style admonitions (> [!NOTE], > [!TIP], etc.)
+[project.markdown_extensions.gfm_admonition]
 
-[plugins.tags]
+# Enable syntax highlighting for fenced code blocks
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+
+[project.markdown_extensions.pymdownx.superfences]
+
+# Enable tabs (=== "Tab Name" syntax)
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+# Enable emoji/icon support
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
