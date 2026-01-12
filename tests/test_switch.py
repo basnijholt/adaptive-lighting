@@ -705,6 +705,21 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    # Turning on from OFF with brightness:
+    # - With adapt_only_on_bare_turn_on=True: SHOULD mark as manually controlled (to preserve scenes)
+    # - With adapt_only_on_bare_turn_on=False: should NOT mark (fix for issue #1378)
+    if adapt_only_on_bare_turn_on:
+        assert (
+            manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+        ), manual_control
+    else:
+        assert not manual_control[ENTITY_LIGHT_1], manual_control
+    # Reset for next test
+    await turn_light(False)
+    await turn_light(True)
+    assert not manual_control[ENTITY_LIGHT_1], manual_control
+    # Now change brightness while ON - this should always be manual control
+    await turn_light(True, brightness=increased_brightness())
     assert (
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
@@ -2745,4 +2760,71 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
         f"Skipped context should use 'manager' hash ({expected_manager_hash}), "
         f"but got {name_hash_in_context}. This indicates the context is still "
         f"being created from an arbitrary switch instead of the manager."
+    )
+
+
+async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
+    """Test that turning on a light from OFF via automation is not marked as manual control.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1378
+
+    When an automation turns on a light from OFF state with brightness/color attributes,
+    the light should NOT be marked as manually controlled. Adaptive Lighting should
+    adapt the light normally.
+
+    The bug in v1.30.0 was that `update_manually_controlled_from_event` was called for
+    ALL `light.turn_on` events, not just when the light was already ON. This caused
+    lights turned on by automations to be incorrectly marked as "manually controlled".
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: True,
+            CONF_DETECT_NON_HA_CHANGES: False,
+        },
+    )
+
+    # Ensure light is OFF
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+
+    # Verify light is not manually controlled
+    assert not switch.manager.manual_control.get(
+        ENTITY_LIGHT_1,
+    ), "Light should not be manually controlled before test"
+
+    # Simulate an automation turning on the light with brightness
+    # This is an external call (not from AL) with brightness attribute
+    external_context = Context(id="automation_context_12345")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+            ATTR_BRIGHTNESS: 255,
+        },
+        blocking=True,
+        context=external_context,
+    )
+    await hass.async_block_till_done()
+
+    # The light should be ON
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+
+    # CRITICAL: The light should NOT be marked as manually controlled!
+    # The bug in v1.30.0 would incorrectly mark this as manual control because
+    # the turn_on had a brightness attribute.
+    manual_control_attrs = switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    assert not manual_control_attrs, (
+        f"Bug confirmed: Light was incorrectly marked as manually controlled "
+        f"(attributes: {manual_control_attrs}) when turned on from OFF state. "
+        f"Lights turned on from OFF by automations should NOT be marked as "
+        f"manually controlled - only lights that were already ON and then had "
+        f"their brightness/color changed externally should be marked as such."
     )
