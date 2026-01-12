@@ -51,8 +51,8 @@ jobs:
 
       - name: Install webapp dependencies
         run: |
-          uv add -r webapp/requirements.txt
-          uv add shinylive
+          uv pip install -r webapp/requirements.txt
+          uv pip install shinylive
 
       - name: Build documentation
         run: uv run zensical build
