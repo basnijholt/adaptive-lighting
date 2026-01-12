@@ -1,7 +1,5 @@
 ---
 icon: lucide/sun
-hide:
-  - navigation
 ---
 
 # Adaptive Lighting
