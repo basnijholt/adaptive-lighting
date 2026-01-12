@@ -2831,7 +2831,8 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
     )
 
 
-async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass):
+@pytest.mark.parametrize("intercept", [True, False])
+async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, intercept):
     """Test that adapt_only_on_bare_turn_on respects take_over_control_mode=PAUSE_CHANGED.
 
     When adapt_only_on_bare_turn_on=True and take_over_control_mode=PAUSE_CHANGED,
@@ -2843,6 +2844,9 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass):
     with adapt_only_on_bare_turn_on. Prior to the fix, the code would return early
     after marking attributes as manually controlled, skipping all adaptation
     including unspecified attributes like color.
+
+    The test is parameterized with intercept=True/False to verify consistency
+    between the intercept path and the reactive (event-based) path.
     """
     switch, _ = await setup_lights_and_switch(
         hass,
@@ -2851,7 +2855,7 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass):
             CONF_TAKE_OVER_CONTROL_MODE: TakeOverControlMode.PAUSE_CHANGED.value,
             CONF_ADAPT_ONLY_ON_BARE_TURN_ON: True,
             CONF_DETECT_NON_HA_CHANGES: False,
-            CONF_INTERCEPT: False,  # Disable interception to test reactive path
+            CONF_INTERCEPT: intercept,
         },
     )
 
