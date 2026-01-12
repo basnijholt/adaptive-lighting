@@ -46,13 +46,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Install documentation dependencies
+      - name: Install dependencies
         run: uv sync --group docs
-
-      - name: Install webapp dependencies
-        run: |
-          uv pip install -r webapp/requirements.txt
-          uv pip install shinylive
 
       - name: Build documentation
         run: uv run zensical build
