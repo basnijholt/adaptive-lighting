@@ -354,7 +354,6 @@ For more details on adding the integration and setting options, refer to the [do
 
 Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
-<!-- SECTION:troubleshooting:START -->
 ## :sos: Troubleshooting
 
 <!-- SECTION:troubleshooting-intro:START -->
@@ -429,7 +428,6 @@ These lights are known to exhibit disadvantageous behaviour due to firmware bugs
   - Unsupported simultaneous transition of brightness and color: When receiving such a command, they switch the brightness instantly and only transition the color. To get smooth transitions of both brightness and color, enable `separate_turn_on_commands`.
   - Unresponsiveness during color transitions: No other commands are processed during an ongoing color transition, e.g., turn-off commands are ignored and lights stay on despite being reported as off to Home Assistant. The default config with long transitions thus results in long periods of unresponsiveness. To work around this, disable transitions by setting `transition` to `0`, and increase the adaptation frequency by setting `interval` to a short time, e.g., `15` seconds, to retain the impression of smooth continuous adaptations. Keeping the `initial_transition` is recommended for a smooth fade-in (lights are usually not turned off momentarily after being turned on, in which case a short period of unresponsiveness is tolerable).
 <!-- SECTION:common-problems:END -->
-<!-- SECTION:troubleshooting:END -->
 
 <!-- SECTION:graphs:START -->
 ## :bar_chart: Graphs!
