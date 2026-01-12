@@ -2216,7 +2216,7 @@ class AdaptiveLightingManager:
             "Light %s: Setting manual control attributes to %s (from %s).",
             light,
             attributes,
-            self.manual_control.get(light, LightControlAttributes.NONE),
+            self.get_manual_control_attributes(light),
         )
         self.manual_control[light] = attributes
         delay = self.auto_reset_manual_control_times.get(light)
