@@ -53,7 +53,7 @@ def run_markdown_code_runner(file_path: Path) -> bool:
         return False
     except FileNotFoundError:
         print(
-            "  Error: markdown-code-runner not found. Install with: pip install markdown-code-runner"
+            "  Error: markdown-code-runner not found. Install with: pip install markdown-code-runner",
         )
         return False
 
