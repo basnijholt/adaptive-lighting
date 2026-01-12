@@ -1,0 +1,39 @@
+version = 1
+revision = 3
+requires-python = ">=3.14"
+
+[[package]]
+name = "adaptive-lighting"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "markdown-gfm-admonition" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "markdown-gfm-admonition", specifier = ">=0.3.0" }]
+
+[[package]]
+name = "markdown"
+version = "3.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/ab/7dd27d9d863b3376fcf23a5a13cb5d024aed1db46f963f1b5735ae43b3be/markdown-3.10.tar.gz", hash = "sha256:37062d4f2aa4b2b6b32aefb80faa300f82cc790cb949a35b8caede34f2b68c0e", size = 364931, upload-time = "2025-11-03T19:51:15.007Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/70/81/54e3ce63502cd085a0c556652a4e1b919c45a446bd1e5300e10c44c8c521/markdown-3.10-py3-none-any.whl", hash = "sha256:b5b99d6951e2e4948d939255596523444c0e677c669700b1d17aa4a8a464cb7c", size = 107678, upload-time = "2025-11-03T19:51:13.887Z" },
+]
+
+[[package]]
+name = "markdown-gfm-admonition"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/59/5b/1e7114e8fac6aadf2a25dab2e24a1eba54acd504d6a5747928a3eb09d7fd/markdown_gfm_admonition-0.3.0.tar.gz", hash = "sha256:20a37febc79222badb6dfbfcbf0a74b94c0a6259b0f27e9f783601fea59094b6", size = 5817, upload-time = "2025-11-28T09:01:38.849Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/86/ce4288122111c11bb2483a962357baa9793817d48ac1e99ce5ff47384efe/markdown_gfm_admonition-0.3.0-py3-none-any.whl", hash = "sha256:8e49bfea892f4c220b7f7b9479462360b69c68ae7cae7739e288b5382d0ae9b5", size = 6416, upload-time = "2025-11-28T09:01:37.543Z" },
+]
