@@ -62,8 +62,8 @@ adaptive_lighting:
 
 When enabled, Adaptive Lighting detects state changes made outside of Home Assistant by comparing the light's current state to its previously applied settings.
 
-!!! warning "Use with caution"
-    Some lights may falsely report an "on" state, which could result in lights turning on unexpectedly. Disable this option if you encounter such issues.
+> [!WARNING]
+> **Use with caution.** Some lights may falsely report an "on" state, which could result in lights turning on unexpectedly. Disable this option if you encounter such issues.
 
 ```yaml
 adaptive_lighting:

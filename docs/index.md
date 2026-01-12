@@ -58,8 +58,8 @@ adaptive_lighting:
     - light.living_room
 ```
 
-!!! tip "Using the UI exclusively?"
-    Even if you plan to configure everything through the UI, the `adaptive_lighting:` entry must still be present in your `configuration.yaml`.
+> [!TIP]
+> **Using the UI exclusively?** Even if you plan to configure everything through the UI, the `adaptive_lighting:` entry must still be present in your `configuration.yaml`.
 
 [Get Started →](getting-started.md){ .md-button .md-button--primary }
 [View All Options →](configuration.md){ .md-button }

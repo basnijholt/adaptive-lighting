@@ -14,5 +14,5 @@ Real-world automation examples showing how to integrate Adaptive Lighting with y
 <!-- OUTPUT:START -->
 <!-- OUTPUT:END -->
 
-!!! tip "Have a useful automation?"
-    Share your automation examples by [opening an issue](https://github.com/basnijholt/adaptive-lighting/issues) or submitting a pull request to the README.
+> [!TIP]
+> **Have a useful automation?** Share your automation examples by [opening an issue](https://github.com/basnijholt/adaptive-lighting/issues) or submitting a pull request to the README.

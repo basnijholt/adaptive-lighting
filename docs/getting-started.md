@@ -42,8 +42,8 @@ Add the following to your `configuration.yaml`:
 adaptive_lighting:
 ```
 
-!!! note
-    This entry is required even if you plan to configure everything through the UI.
+> [!NOTE]
+> This entry is required even if you plan to configure everything through the UI.
 
 ### Step 2: Restart Home Assistant
 
