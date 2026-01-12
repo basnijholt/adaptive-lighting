@@ -29,7 +29,9 @@ def find_markdown_files() -> list[Path]:
 def has_code_blocks(file_path: Path) -> bool:
     """Check if a Markdown file has CODE blocks."""
     content = file_path.read_text()
-    return "<!-- CODE:START -->" in content or "```python markdown-code-runner" in content
+    return (
+        "<!-- CODE:START -->" in content or "```python markdown-code-runner" in content
+    )
 
 
 def run_markdown_code_runner(file_path: Path) -> bool:
@@ -50,7 +52,9 @@ def run_markdown_code_runner(file_path: Path) -> bool:
         print(f"  Error: {e.stderr}")
         return False
     except FileNotFoundError:
-        print("  Error: markdown-code-runner not found. Install with: pip install markdown-code-runner")
+        print(
+            "  Error: markdown-code-runner not found. Install with: pip install markdown-code-runner"
+        )
         return False
 
 
@@ -75,10 +79,10 @@ def main() -> int:
         print(f"\nProcessing {relative_path}...")
 
         if run_markdown_code_runner(file_path):
-            print(f"  ✓ Success")
+            print("  ✓ Success")
             success_count += 1
         else:
-            print(f"  ✗ Failed")
+            print("  ✗ Failed")
             failure_count += 1
 
     print(f"\n{'='*50}")

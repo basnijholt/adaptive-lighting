@@ -9,10 +9,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 # Path to README relative to this module
 _MODULE_DIR = Path(__file__).parent
@@ -36,6 +32,7 @@ def readme_section(section_name: str, *, strip_heading: bool = False) -> str:
 
     Raises:
         ValueError: If the section is not found in README.md
+
     """
     content = README_PATH.read_text()
 
