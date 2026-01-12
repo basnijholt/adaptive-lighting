@@ -2392,8 +2392,9 @@ class AdaptiveLightingManager:
                 task.cancel()
             self.turn_on_event[eid] = event
 
-            # Only check for manual control if light was already ON.
-            # Turning on from OFF should never mark as manually controlled.
+            # Only check for manual control via this path if the light was already ON.
+            # Turning on from OFF is handled separately in _respond_to_off_to_on_event,
+            # where adapt_only_on_bare_turn_on can mark lights as manually controlled.
             # Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378
             state = self.hass.states.get(eid)
             if state is not None and state.state == STATE_ON:
