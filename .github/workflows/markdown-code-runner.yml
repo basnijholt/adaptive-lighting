@@ -4,14 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "README.md"
-      - "docs/**/*.md"
-      - "custom_components/adaptive_lighting/const.py"
-      - "custom_components/adaptive_lighting/docs_gen.py"
-      - "custom_components/adaptive_lighting/_docs_helpers.py"
-      - "docs/run_markdown_code_runner.py"
-      - ".github/workflows/markdown-code-runner.yml"
   pull_request:
 
 jobs:
