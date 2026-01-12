@@ -28,7 +28,7 @@ Resources, tutorials, and related projects for Adaptive Lighting.
 Visualize how different settings affect your lighting throughout the day:
 
 <div style="text-align: center; margin: 2rem 0;">
-  <a href="https://basnijholt.github.io/adaptive-lighting" class="simulator-link">
+  <a href="../simulator/" class="simulator-link">
     🌞 Open the Simulator 🌛
   </a>
 </div>

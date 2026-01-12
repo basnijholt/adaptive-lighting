@@ -118,7 +118,7 @@ These graphs were generated using the values calculated by the Adaptive Lighting
 The best way to understand brightness modes is to experiment with the interactive simulator:
 
 <div style="text-align: center; margin: 2rem 0;">
-  <a href="https://basnijholt.github.io/adaptive-lighting" class="simulator-link">
+  <a href="../simulator/" class="simulator-link">
     🌞 Try the Simulator 🌛
   </a>
 </div>

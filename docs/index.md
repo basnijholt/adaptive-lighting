@@ -18,7 +18,7 @@ hide:
   <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=basnijholt&repository=adaptive-lighting&category=integration" class="md-button md-button--primary">
     Install via HACS
   </a>
-  <a href="https://basnijholt.github.io/adaptive-lighting" class="md-button">
+  <a href="simulator/" class="md-button">
     Try the Simulator
   </a>
 </div>
@@ -82,7 +82,7 @@ Adaptive Lighting provides four switches for each configuration (using "living_r
 Visualize how Adaptive Lighting will work with your settings using the interactive simulator:
 
 <div style="text-align: center; margin: 2rem 0;">
-  <a href="https://basnijholt.github.io/adaptive-lighting" class="simulator-link">
+  <a href="simulator/" class="simulator-link">
     🌞 Adaptive Lighting Simulator 🌛
   </a>
 </div>

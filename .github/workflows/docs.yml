@@ -10,12 +10,15 @@ on:
       - 'custom_components/adaptive_lighting/_docs_helpers.py'
       - 'custom_components/adaptive_lighting/docs_gen.py'
       - 'custom_components/adaptive_lighting/const.py'
+      - 'custom_components/adaptive_lighting/color_and_brightness.py'
+      - 'webapp/**'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
       - 'docs/**'
       - 'README.md'
       - 'zensical.toml'
+      - 'webapp/**'
   workflow_dispatch:
 
 permissions:
@@ -42,10 +45,15 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Install dependencies
+      - name: Install documentation dependencies
         run: |
           uv pip install --system zensical markdown-code-runner
           uv pip install --system pandas voluptuous homeassistant
+
+      - name: Install webapp dependencies
+        run: |
+          uv pip install --system -r webapp/requirements.txt
+          uv pip install --system shinylive
 
       - name: Set up PYTHONPATH
         run: |
@@ -53,7 +61,6 @@ jobs:
 
       - name: Run markdown-code-runner on docs
         run: |
-          # Process all markdown files with CODE blocks
           for f in docs/*.md docs/**/*.md; do
             if [ -f "$f" ]; then
               echo "Processing $f..."
@@ -63,6 +70,20 @@ jobs:
 
       - name: Build documentation
         run: zensical build
+
+      - name: Build webapp (simulator)
+        run: |
+          set -ex
+          cp custom_components/adaptive_lighting/color_and_brightness.py webapp/color_and_brightness.py
+          sed -i 's/homeassistant.util.color/homeassistant_util_color/g' "webapp/color_and_brightness.py"
+          shinylive export webapp webapp-site
+
+      - name: Integrate webapp into docs
+        run: |
+          # Copy webapp into docs site at /simulator/
+          mkdir -p site/simulator
+          cp -r webapp-site/* site/simulator/
+          echo "Webapp integrated at site/simulator/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
