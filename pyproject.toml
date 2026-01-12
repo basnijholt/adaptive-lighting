@@ -9,40 +9,6 @@ description = "Automatically adjust brightness and color of lights based on the 
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
-authors = [
-    { name = "Bas Nijholt", email = "bas@nijho.lt" },
-]
-maintainers = [
-    { name = "Bas Nijholt", email = "bas@nijho.lt" },
-    { name = "RubenKelevra" },
-    { name = "th3w1zard1" },
-    { name = "protyposis" },
-]
-keywords = [
-    "home-assistant",
-    "hass",
-    "adaptive-lighting",
-    "circadian",
-    "lighting",
-    "smart-home",
-    "automation",
-]
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: End Users/Desktop",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Home Automation",
-]
-
-[project.urls]
-Homepage = "https://github.com/basnijholt/adaptive-lighting"
-Documentation = "https://adaptive-lighting.nijho.lt"
-Repository = "https://github.com/basnijholt/adaptive-lighting"
-Issues = "https://github.com/basnijholt/adaptive-lighting/issues"
-Changelog = "https://github.com/basnijholt/adaptive-lighting/releases"
 
 [dependency-groups]
 docs = [
