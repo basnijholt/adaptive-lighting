@@ -48,13 +48,13 @@ jobs:
 
       - name: Install documentation dependencies
         run: |
-          uv pip install --system zensical markdown-code-runner markdown-gfm-admonition
-          uv pip install --system pandas tabulate voluptuous homeassistant
+          uv sync --group dev
+          uv add homeassistant
 
       - name: Install webapp dependencies
         run: |
-          uv pip install --system -r webapp/requirements.txt
-          uv pip install --system shinylive
+          uv add -r webapp/requirements.txt
+          uv add shinylive
 
       - name: Set up PYTHONPATH
         run: |
@@ -66,19 +66,19 @@ jobs:
           for f in docs/*.md docs/**/*.md; do
             if [ -f "$f" ]; then
               echo "Processing $f..."
-              markdown-code-runner "$f"
+              uv run markdown-code-runner "$f"
             fi
           done
 
       - name: Build documentation
-        run: zensical build
+        run: uv run zensical build
 
       - name: Build webapp (simulator)
         run: |
           set -ex
           cp custom_components/adaptive_lighting/color_and_brightness.py webapp/color_and_brightness.py
           sed -i 's/homeassistant.util.color/homeassistant_util_color/g' "webapp/color_and_brightness.py"
-          shinylive export webapp webapp-site
+          uv run shinylive export webapp webapp-site
 
       - name: Integrate webapp into docs
         run: |
