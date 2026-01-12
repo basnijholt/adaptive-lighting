@@ -4,22 +4,7 @@ on:
   push:
     # TODO: Remove feat/documentation-site before merging
     branches: [main, feat/documentation-site]
-    paths:
-      - 'docs/**'
-      - 'README.md'
-      - 'zensical.toml'
-      - 'custom_components/adaptive_lighting/_docs_helpers.py'
-      - 'custom_components/adaptive_lighting/docs_gen.py'
-      - 'custom_components/adaptive_lighting/const.py'
-      - 'custom_components/adaptive_lighting/color_and_brightness.py'
-      - 'webapp/**'
-      - '.github/workflows/docs.yml'
   pull_request:
-    paths:
-      - 'docs/**'
-      - 'README.md'
-      - 'zensical.toml'
-      - 'webapp/**'
   workflow_dispatch:
 
 permissions:
