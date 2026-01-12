@@ -36,10 +36,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
 ]
-dependencies = [
-    "homeassistant>=2024.12.0",
-    "ulid-transform>=1.0.0",
-]
 
 [project.urls]
 Homepage = "https://github.com/basnijholt/adaptive-lighting"
@@ -51,11 +47,13 @@ Changelog = "https://github.com/basnijholt/adaptive-lighting/releases"
 [dependency-groups]
 docs = [
     "astral>=2.2",
+    "homeassistant>=2024.12.0",
     "markdown-code-runner>=2.4.0",
     "markdown-gfm-admonition>=0.3.0",
     "pandas>=2.0.0",
     "shinylive>=0.2.0",
     "tabulate>=0.9.0",
+    "ulid-transform>=1.0.0",
     "voluptuous>=0.13.0",
     "zensical>=0.0.15",
 ]
