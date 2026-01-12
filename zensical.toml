@@ -84,6 +84,9 @@ repo = "lucide/github"
 [project.extra]
 generator = false
 
+[project.extra.analytics]
+provider = "custom"
+
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/basnijholt/adaptive-lighting"
