@@ -38,11 +38,7 @@ jobs:
         run: uv run zensical build
 
       - name: Build webapp (simulator)
-        run: |
-          set -ex
-          cp custom_components/adaptive_lighting/color_and_brightness.py webapp/color_and_brightness.py
-          sed -i 's/homeassistant.util.color/homeassistant_util_color/g' "webapp/color_and_brightness.py"
-          uv run shinylive export webapp webapp-site
+        run: uv run shinylive export webapp webapp-site
 
       - name: Integrate webapp into docs
         run: |
