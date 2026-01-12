@@ -3,6 +3,7 @@
 
 [project]
 name = "Adaptive Lighting"
+site_name = "Adaptive Lighting"
 site_url = "https://adaptive-lighting.nijho.lt"
 repo_url = "https://github.com/basnijholt/adaptive-lighting"
 repo_name = "basnijholt/adaptive-lighting"

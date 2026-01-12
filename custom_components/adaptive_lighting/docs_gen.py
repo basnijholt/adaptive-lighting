@@ -84,9 +84,7 @@ def transform_readme_links(content: str) -> str:
         content = content.replace(f"]({old_link})", f"]({new_link})")
 
     # Also handle the ToC link pattern [[ToC](#...)]
-    content = re.sub(r"\[\[ToC\]\([^)]+\)\]", "", content)
-
-    return content
+    return re.sub(r"\[\[ToC\]\([^)]+\)\]", "", content)
 
 
 def get_feature_list() -> str:
