@@ -1,0 +1,117 @@
+# Adaptive Lighting Documentation Site Configuration
+# Built with Zensical - https://zensical.org
+
+[project]
+site_name = "Adaptive Lighting"
+site_description = "Automatically adjust brightness and color of lights based on the sun position"
+site_author = "Bas Nijholt"
+site_url = "https://adaptive-lighting.nijho.lt/"
+copyright = "Copyright &copy; 2020-2026 Bas Nijholt"
+
+repo_url = "https://github.com/basnijholt/adaptive-lighting"
+repo_name = "GitHub"
+edit_uri = "edit/main/docs"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting Started" = "getting-started.md" },
+  { "Configuration" = "configuration.md" },
+  { "Services" = "services.md" },
+  { "Automation Examples" = "automation-examples.md" },
+  { "Troubleshooting" = "troubleshooting.md" },
+  { "Advanced" = [
+    { "Brightness Modes" = "advanced/brightness-modes.md" },
+    { "Manual Control" = "advanced/manual-control.md" },
+    { "Sleep Mode" = "advanced/sleep-mode.md" },
+  ] },
+  { "See Also" = "see-also.md" },
+]
+
+[project.theme]
+custom_dir = "docs/overrides"
+language = "en"
+logo = "assets/logo.png"
+
+features = [
+    "announce.dismiss",
+    "content.action.edit",
+    "content.action.view",
+    "content.code.annotate",
+    "content.code.copy",
+    "content.code.select",
+    "content.footnote.tooltips",
+    "content.tabs.link",
+    "content.tooltips",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "navigation.path",
+    "navigation.top",
+    "navigation.tracking",
+    "search.highlight",
+]
+
+# Three-way toggle: system preference -> light -> dark -> system preference
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "amber"
+accent = "orange"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "amber"
+accent = "orange"
+toggle.icon = "lucide/moon-star"
+toggle.name = "Switch to system preference"
+
+[project.theme.font]
+text = "Inter"
+code = "JetBrains Mono"
+
+[project.theme.icon]
+repo = "lucide/github"
+
+[project.extra]
+generator = false
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/basnijholt/adaptive-lighting"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/discord"
+link = "https://discord.gg/home-assistant"
+
+# Enable GitHub-style admonitions (> [!NOTE], > [!TIP], etc.)
+[project.markdown_extensions.gfm_admonition]
+
+# Enable markdown inside HTML blocks (e.g., <details>)
+[project.markdown_extensions.md_in_html]
+
+# Enable attribute lists for adding CSS classes (e.g., {.md-button})
+[project.markdown_extensions.attr_list]
+
+# Enable syntax highlighting for fenced code blocks
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+
+[project.markdown_extensions.pymdownx.superfences]
+
+# Enable tabs (=== "Tab Name" syntax)
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+# Enable emoji/icon support
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"

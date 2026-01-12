@@ -1,0 +1,104 @@
+name: Documentation
+
+on:
+  push:
+    # TODO: Remove feat/documentation-site before merging
+    branches: [main, feat/documentation-site]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'zensical.toml'
+      - 'custom_components/adaptive_lighting/_docs_helpers.py'
+      - 'custom_components/adaptive_lighting/docs_gen.py'
+      - 'custom_components/adaptive_lighting/const.py'
+      - 'custom_components/adaptive_lighting/color_and_brightness.py'
+      - 'webapp/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'zensical.toml'
+      - 'webapp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install documentation dependencies
+        run: uv sync --group docs
+
+      - name: Install webapp dependencies
+        run: |
+          uv add -r webapp/requirements.txt
+          uv add shinylive
+
+      - name: Set up PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE/custom_components:$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Run markdown-code-runner on docs
+        run: |
+          set -e
+          for f in docs/*.md docs/**/*.md; do
+            if [ -f "$f" ]; then
+              echo "Processing $f..."
+              uv run markdown-code-runner "$f"
+            fi
+          done
+
+      - name: Build documentation
+        run: uv run zensical build
+
+      - name: Build webapp (simulator)
+        run: |
+          set -ex
+          cp custom_components/adaptive_lighting/color_and_brightness.py webapp/color_and_brightness.py
+          sed -i 's/homeassistant.util.color/homeassistant_util_color/g' "webapp/color_and_brightness.py"
+          uv run shinylive export webapp webapp-site
+
+      - name: Integrate webapp into docs
+        run: |
+          # Copy webapp into docs site at /simulator/
+          mkdir -p site/simulator
+          cp -r webapp-site/* site/simulator/
+          echo "Webapp integrated at site/simulator/"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    # TODO: Change back to main only before merging
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/documentation-site') && github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
