@@ -2916,8 +2916,8 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
     )
 
 
-async def test_just_turned_off_context_reuse_with_light_groups(hass):
-    """Test that just_turned_off handles light group context reuse correctly.
+async def test_off_to_on_state_event_is_from_turn_on_detects_group_members(hass):
+    """Test that _off_to_on_state_event_is_from_turn_on detects member turn_on events.
 
     Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1378
 
@@ -2927,6 +2927,9 @@ async def test_just_turned_off_context_reuse_with_light_groups(hass):
 
     The fix uses causality-based detection: if any member light has a turn_on_event
     that happened after the group's on→off event, the group's turn-on is valid.
+
+    This test directly tests _off_to_on_state_event_is_from_turn_on() with mocked
+    events to verify the causality detection works for light groups.
     """
     from homeassistant.core import Event
 
@@ -2954,30 +2957,7 @@ async def test_just_turned_off_context_reuse_with_light_groups(hass):
     # Verify the group is expanded and members are tracked
     assert member_light in switch.lights, "Group members should be in switch.lights"
 
-    # 1. Turn on the group first (so it can be turned off)
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: light_group},
-        blocking=True,
-    )
-    await hass.async_block_till_done()
-    assert hass.states.get(light_group).state == STATE_ON
-
-    # 2. Turn off the group (stores on_to_off_event with context A)
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        SERVICE_TURN_OFF,
-        {ATTR_ENTITY_ID: light_group},
-        blocking=True,
-    )
-    await hass.async_block_till_done()
-    assert hass.states.get(light_group).state == STATE_OFF
-
-    on_to_off_event = manager.on_to_off_event.get(light_group)
-    assert on_to_off_event is not None, "on_to_off_event should be stored for group"
-
-    # 3. Simulate a member light being turned on by a motion sensor
+    # 1. Simulate a member light being turned on by a motion sensor
     # This stores turn_on_event for the member
     member_turn_on_context = Context(id="motion_sensor_turn_on")
     await hass.services.async_call(
@@ -2994,8 +2974,9 @@ async def test_just_turned_off_context_reuse_with_light_groups(hass):
         manager.turn_on_event.get(member_light) is not None
     ), "turn_on_event should be stored for member light"
 
-    # 4. Create an off→on event for the GROUP with the SAME context as turn_off
-    # This simulates what HA does when children turning on causes parent to turn on
+    # 2. Create an off→on event for the GROUP
+    # This simulates the group turning on because a member was turned on
+    group_off_to_on_context = Context(id="group_state_change")
     off_to_on_event = Event(
         event_type=EVENT_STATE_CHANGED,
         data={
@@ -3003,20 +2984,102 @@ async def test_just_turned_off_context_reuse_with_light_groups(hass):
             "old_state": State(light_group, STATE_OFF),
             "new_state": State(light_group, STATE_ON),
         },
-        context=on_to_off_event.context,  # SAME context as turn_off (HA reuses it)
+        context=group_off_to_on_context,
     )
-    manager.off_to_on_event[light_group] = off_to_on_event
 
-    # 5. Call just_turned_off - it should return False (allow adaptation)
-    # because a member light has a turn_on_event that explains the group turning on
-    result = await manager.just_turned_off(light_group)
+    # 3. Call _off_to_on_state_event_is_from_turn_on for the GROUP
+    # It should return True because member light was turned on
+    result = manager._off_to_on_state_event_is_from_turn_on(
+        light_group,
+        off_to_on_event,
+    )
 
-    # Before the fix: this would return True (cancel adaptation) due to matching context IDs
-    # After the fix: should return False because member light was turned on
-    assert result is False, (
-        "just_turned_off should return False when a group member was turned on, "
-        "even if the group's off→on context matches the on→off context. "
+    # Before the fix: this would return False (no turn_on for group itself)
+    # After the fix: should return True because member light was turned on
+    assert result is True, (
+        "_off_to_on_state_event_is_from_turn_on should return True when a group member "
+        "was turned on, even if no turn_on event exists for the group itself. "
         "The member's turn_on explains why the group turned on."
+    )
+
+
+async def test_off_to_on_state_event_is_from_turn_on_respects_timing(hass):
+    """Test that member turn_on must happen after group's on→off to count.
+
+    This ensures we don't incorrectly attribute a group's turn-on to an old
+    member turn_on event that happened before the group was turned off.
+    """
+    from homeassistant.core import Event
+
+    # Setup lights with a group
+    lights = await setup_lights(hass, with_group=True)
+    entity_ids = [light.entity_id for light in lights[:3]]
+    entity_ids.append("light.light_group")
+
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: entity_ids,
+            CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+            CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+        },
+    )
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    light_group = "light.light_group"
+    member_light = "light.light_4"
+
+    # 1. Turn on member first (stores turn_on_event with early timestamp)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: member_light},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    member_turn_on_event = manager.turn_on_event.get(member_light)
+    assert member_turn_on_event is not None
+
+    # 2. Simulate the group being turned off AFTER the member turn_on
+    # Create a fake on_to_off_event with a timestamp after the member turn_on
+    await asyncio.sleep(0.01)  # Small delay to ensure different timestamps
+    group_turn_off_context = Context(id="group_turn_off")
+    group_on_to_off_event = Event(
+        event_type=EVENT_STATE_CHANGED,
+        data={
+            ATTR_ENTITY_ID: light_group,
+            "old_state": State(light_group, STATE_ON),
+            "new_state": State(light_group, STATE_OFF),
+        },
+        context=group_turn_off_context,
+    )
+    manager.on_to_off_event[light_group] = group_on_to_off_event
+
+    # 3. Create an off→on event for the group
+    off_to_on_event = Event(
+        event_type=EVENT_STATE_CHANGED,
+        data={
+            ATTR_ENTITY_ID: light_group,
+            "old_state": State(light_group, STATE_OFF),
+            "new_state": State(light_group, STATE_ON),
+        },
+        context=Context(id="group_turn_on"),
+    )
+
+    # 4. The member's turn_on happened BEFORE the group's on→off,
+    # so it should NOT explain the group's turn-on
+    result = manager._off_to_on_state_event_is_from_turn_on(
+        light_group,
+        off_to_on_event,
+    )
+
+    assert result is False, (
+        "_off_to_on_state_event_is_from_turn_on should return False when the member's "
+        "turn_on happened BEFORE the group's on→off event. The old turn_on event "
+        "cannot explain a new turn-on after the group was turned off."
     )
 
 
