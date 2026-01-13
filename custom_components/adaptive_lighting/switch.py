@@ -1854,7 +1854,7 @@ class AdaptiveLightingManager:
                 is_already_on = self.hass.states.is_state(entity_id, STATE_ON)
                 is_manually_controlled = self.get_manual_control_attributes(
                     entity_id,
-                ).has_any()
+                ).has_all()
 
                 if (
                     not switch.is_on
@@ -1871,6 +1871,9 @@ class AdaptiveLightingManager:
                             entity_id,
                             data[CONF_PARAMS],
                         )
+                        # Skip adaptation only if all attributes are manually controlled, otherwise
+                        # we have to assume that some attribute(s) need adaptation.
+                        and self.get_manual_control_attributes(entity_id).has_all()
                     )
                 ):
                     _LOGGER.debug(
@@ -2082,7 +2085,8 @@ class AdaptiveLightingManager:
         data: ServiceData,
     ):
         _LOGGER.debug(
-            "Intercepted TURN_ON call with data %s (%s)",
+            "%s: Intercepted TURN_ON call with data %s (%s)",
+            entity_ids,
             data,
             call.context.id,
         )
@@ -2117,6 +2121,7 @@ class AdaptiveLightingManager:
         # lack of a bijective mapping.)
         preprocess_turn_on_alternatives(self.hass, first_service_data)
         data[CONF_PARAMS].update(first_service_data)
+        switch.manager.last_service_data[entity_ids[0]] = first_service_data
 
         # Schedule additional service calls for the remaining adaptation data.
         # We cannot know here whether there is another call to follow (since the

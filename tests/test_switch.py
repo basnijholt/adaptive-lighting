@@ -20,6 +20,7 @@ from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
     LightControlAttributes,
     _create_service_call_data_iterator,
+    has_color_attribute,
 )
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
     lerp_color_hsv,
@@ -2947,7 +2948,7 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
         "With PAUSE_CHANGED mode, color should still be adapted since only brightness "
         "was marked as manually controlled."
     )
-    assert ATTR_COLOR_TEMP_KELVIN in last_service_data, (
+    assert has_color_attribute(last_service_data), (
         f"Bug: Color was not adapted. last_service_data={last_service_data}. "
         f"With take_over_control_mode=PAUSE_CHANGED and only brightness marked "
         f"as manually controlled, color_temp should still be adapted."
