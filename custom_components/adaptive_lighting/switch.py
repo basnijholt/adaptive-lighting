@@ -2704,11 +2704,50 @@ class AdaptiveLightingManager:
             )
         return changed_attributes
 
+    def _member_turn_on_explains_group_turn_on(self, entity_id: str) -> bool:
+        """Check if a light group turned on because a member light was turned on.
+
+        When a parent light group is turned off and then a child light is turned on
+        (e.g., by a motion sensor), the group turns back on as a side effect.
+        This method detects that scenario by checking if any member has a turn_on_event
+        that happened after the group's on→off event.
+
+        See: https://github.com/basnijholt/adaptive-lighting/issues/1378
+        """
+        state = self.hass.states.get(entity_id)
+        if state is None or not _is_light_group(state):
+            return False
+
+        on_to_off_event = self.on_to_off_event.get(entity_id)
+        member_lights: list[str] = state.attributes.get("entity_id", [])
+
+        for member in member_lights:
+            member_turn_on = self.turn_on_event.get(member)
+            if member_turn_on is None:
+                continue
+            # Only count if member was turned on AFTER the group was turned off
+            if on_to_off_event is None or (
+                member_turn_on.time_fired > on_to_off_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "Light group '%s' turned on because member '%s' was turned on",
+                    entity_id,
+                    member,
+                )
+                return True
+
+        return False
+
     def _off_to_on_state_event_is_from_turn_on(
         self,
         entity_id: str,
         off_to_on_event: Event[EventStateChangedData],
     ) -> bool:
+        """Check if an off→on state change was triggered by a light.turn_on call.
+
+        For light groups, also checks if any member's turn_on explains the group's
+        turn-on (see _member_turn_on_explains_group_turn_on).
+        """
         # Adaptive Lighting should never turn on lights itself
         if is_our_context(off_to_on_event.context) and not is_our_context(
             off_to_on_event.context,
@@ -2723,36 +2762,17 @@ class AdaptiveLightingManager:
                 off_to_on_event.context.id,
                 off_to_on_event,
             )
-        turn_on_event: Event | None = self.turn_on_event.get(entity_id)
-        id_off_to_on = off_to_on_event.context.id
-        if turn_on_event is not None and id_off_to_on == turn_on_event.context.id:
+
+        # Check if this entity was directly turned on via service call
+        turn_on_event = self.turn_on_event.get(entity_id)
+        if (
+            turn_on_event is not None
+            and off_to_on_event.context.id == turn_on_event.context.id
+        ):
             return True
 
-        # For light groups: check if any member light has a turn_on_event that could
-        # explain why the group turned on. This handles the case where child lights
-        # are turned on by an automation, causing the parent group to turn on as a
-        # side effect. See: https://github.com/basnijholt/adaptive-lighting/issues/1378
-        state = self.hass.states.get(entity_id)
-        if state is not None and _is_light_group(state):
-            on_to_off_event = self.on_to_off_event.get(entity_id)
-            member_lights: list[str] = state.attributes.get("entity_id", [])
-            for member in member_lights:
-                member_turn_on = self.turn_on_event.get(member)
-                if member_turn_on is None:
-                    continue
-                # Check if the member's turn_on happened after the group's on→off event.
-                # If so, the member's turn_on likely caused the group to turn on.
-                if on_to_off_event is None or (
-                    member_turn_on.time_fired > on_to_off_event.time_fired
-                ):
-                    _LOGGER.debug(
-                        "Light group '%s' turned on because member '%s' was turned on",
-                        entity_id,
-                        member,
-                    )
-                    return True
-
-        return False
+        # For light groups: check if a member's turn_on explains the group's turn-on
+        return self._member_turn_on_explains_group_turn_on(entity_id)
 
     async def just_turned_off(  # noqa: PLR0911
         self,
