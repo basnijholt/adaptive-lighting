@@ -2725,7 +2725,34 @@ class AdaptiveLightingManager:
             )
         turn_on_event: Event | None = self.turn_on_event.get(entity_id)
         id_off_to_on = off_to_on_event.context.id
-        return turn_on_event is not None and id_off_to_on == turn_on_event.context.id
+        if turn_on_event is not None and id_off_to_on == turn_on_event.context.id:
+            return True
+
+        # For light groups: check if any member light has a turn_on_event that could
+        # explain why the group turned on. This handles the case where child lights
+        # are turned on by an automation, causing the parent group to turn on as a
+        # side effect. See: https://github.com/basnijholt/adaptive-lighting/issues/1378
+        state = self.hass.states.get(entity_id)
+        if state is not None and _is_light_group(state):
+            on_to_off_event = self.on_to_off_event.get(entity_id)
+            member_lights: list[str] = state.attributes.get("entity_id", [])
+            for member in member_lights:
+                member_turn_on = self.turn_on_event.get(member)
+                if member_turn_on is None:
+                    continue
+                # Check if the member's turn_on happened after the group's on→off event.
+                # If so, the member's turn_on likely caused the group to turn on.
+                if on_to_off_event is None or (
+                    member_turn_on.time_fired > on_to_off_event.time_fired
+                ):
+                    _LOGGER.debug(
+                        "Light group '%s' turned on because member '%s' was turned on",
+                        entity_id,
+                        member,
+                    )
+                    return True
+
+        return False
 
     async def just_turned_off(  # noqa: PLR0911
         self,
@@ -2754,6 +2781,21 @@ class AdaptiveLightingManager:
             )
             return False
 
+        # Check if the off→on state change was triggered by a light.turn_on call.
+        # This check now also handles light groups: if a member light was turned on
+        # after the group turned off, the group's turn-on is considered valid.
+        # See: https://github.com/basnijholt/adaptive-lighting/issues/1378
+        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
+            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
+            from_service = "light.toggle" if is_toggle else "light.turn_on"
+            _LOGGER.debug(
+                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
+                from_service,
+            )
+            return False
+
+        # If context IDs match but no turn_on event was found, this is likely a polling
+        # artifact (HA briefly seeing the light as ON during a turn_off transition).
         if off_to_on_event.context.id == on_to_off_event.context.id:
             _LOGGER.debug(
                 "just_turned_off: 'on' → 'off' state change has the same context.id as the"
@@ -2769,15 +2811,6 @@ class AdaptiveLightingManager:
             transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
         else:
             transition = None
-
-        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
-            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
-            from_service = "light.toggle" if is_toggle else "light.turn_on"
-            _LOGGER.debug(
-                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
-                from_service,
-            )
-            return False
 
         if (
             turn_off_event is not None
