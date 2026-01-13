@@ -1127,7 +1127,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 extra_state_attributes[key] = None
             return extra_state_attributes
         extra_state_attributes["manual_control"] = [
-            light for light in self.lights if self.manager.manual_control.get(light)
+            light
+            for light in self.lights
+            if self.manager.get_manual_control_attributes(light).has_any()
         ]
         extra_state_attributes.update(self._settings)
         timers = self.manager.auto_reset_manual_control_timers
@@ -1713,7 +1715,7 @@ class AdaptiveLightingManager:
         # Locks that prevent light adjusting when waiting for a light to 'turn_off'
         self.turn_off_locks: dict[str, asyncio.Lock] = {}
         # Tracks which lights are manually controlled
-        self.manual_control: dict[str, LightControlAttributes] = {}
+        self._manual_control: dict[str, LightControlAttributes] = {}
         # Track 'state_changed' events of self.lights resulting from this integration
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -1878,7 +1880,7 @@ class AdaptiveLightingManager:
                         skipped,
                         switch.is_on,
                         self.hass.states.is_state(entity_id, STATE_ON),
-                        self.manual_control.get(entity_id, False),
+                        self.get_manual_control_attributes(entity_id),
                         switch._intercept,
                     )
                     skipped.append(entity_id)
@@ -2215,7 +2217,7 @@ class AdaptiveLightingManager:
         light: str,
     ) -> LightControlAttributes:
         """Get the attributes for a light that are manually controlled."""
-        return self.manual_control.get(light, LightControlAttributes.NONE)
+        return self._manual_control.get(light, LightControlAttributes.NONE)
 
     def set_manual_control_attributes(
         self,
@@ -2229,7 +2231,7 @@ class AdaptiveLightingManager:
             attributes,
             self.get_manual_control_attributes(light),
         )
-        self.manual_control[light] = attributes
+        self._manual_control[light] = attributes
         delay = self.auto_reset_manual_control_times.get(light)
 
         async def reset() -> None:
@@ -2250,7 +2252,7 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlAttributes.NONE
+            assert self.get_manual_control_attributes(light).has_none()
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
@@ -2347,7 +2349,7 @@ class AdaptiveLightingManager:
                     "Light %s: Clearing manual control attributes.",
                     light,
                 )
-                self.manual_control[light] = LightControlAttributes.NONE
+                self.set_manual_control_attributes(light, LightControlAttributes.NONE)
                 if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)

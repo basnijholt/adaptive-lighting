@@ -632,7 +632,6 @@ async def test_manual_control(
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
 
     context = switch.create_context("test")  # needs to be passed to update method
-    manual_control = switch.manager.manual_control
 
     async def update():
         await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
@@ -661,7 +660,7 @@ async def test_manual_control(
     async def change_manual_control(set_to, extra_service_data=None):
         if extra_service_data is None:
             extra_service_data = {CONF_LIGHTS: [ENTITY_LIGHT_1]}
-        _LOGGER.debug(f"{switch.manager.manual_control=}")
+        _LOGGER.debug(f"{switch.manager._manual_control=}")
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_MANUAL_CONTROL,
@@ -672,7 +671,7 @@ async def test_manual_control(
             },
             blocking=True,
         )
-        _LOGGER.debug(f"{switch.manager.manual_control=}")
+        _LOGGER.debug(f"{switch.manager._manual_control=}")
         _LOGGER.debug("Called set_manual_control with %s", set_to)
         await hass.async_block_till_done()
         await update()
@@ -689,21 +688,24 @@ async def test_manual_control(
 
     # Nothing is manually controlled
     await update()
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     # Call light.turn_on for ENTITY_LIGHT_1
     await turn_light(True, brightness=increased_brightness())
     # Check that ENTITY_LIGHT_1 is manually controlled
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
     # Test adaptive_lighting.set_manual_control
     await change_manual_control(False)
     # Check that ENTITY_LIGHT_1 is not manually controlled
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
 
     # Check that toggling light off to on resets manual control
     await change_manual_control(True)
-    assert manual_control[ENTITY_LIGHT_1]
+    assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await turn_light(False)
-    assert not manual_control[ENTITY_LIGHT_1], manual_control
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
     # Turning on from OFF with brightness:
@@ -711,44 +713,52 @@ async def test_manual_control(
     # - With adapt_only_on_bare_turn_on=False: should NOT mark (fix for issue #1378)
     if adapt_only_on_bare_turn_on:
         assert (
-            manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
-        ), manual_control
+            switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+            == LightControlAttributes.BRIGHTNESS
+        )
     else:
-        assert not manual_control[ENTITY_LIGHT_1], manual_control
+        assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     # Reset for next test
     await turn_light(False)
     await turn_light(True)
-    assert not manual_control[ENTITY_LIGHT_1], manual_control
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     # Now change brightness while ON - this should always be manual control
     await turn_light(True, brightness=increased_brightness())
     assert (
-        manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
-    ), manual_control
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
 
     # Check that toggling (sleep mode) switch resets manual control
     for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
         await change_manual_control(True)
-        assert manual_control[ENTITY_LIGHT_1]
+        assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
         await turn_switch(False, entity_id)
         await turn_switch(True, entity_id)
-        assert not manual_control[ENTITY_LIGHT_1]
+        assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
 
     # Check that manual control is still enabled if set while bulb is off.
     # Test issue #37
     await turn_light(False)
     await change_manual_control(True)
     await turn_light(True)
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
 
     # Check that when 'adapt_brightness' is off, changing the brightness
     # doesn't mark it as manually controlled but changing color_temp
     # does
     await turn_light(False)
     await turn_light(True)  # reset manually controlled status
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await switch.adapt_brightness_switch.async_turn_off()
     await turn_light(True, brightness=increased_brightness())
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
     mired_range = (light.min_color_temp_kelvin, light.max_color_temp_kelvin)
     kelvin_range = (
         color_temperature_mired_to_kelvin(mired_range[1]),
@@ -759,7 +769,10 @@ async def test_manual_control(
         True,
         color_temp_kelvin=(light._attr_color_temp + 100) % ptp_kelvin,
     )
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
     await switch.adapt_brightness_switch.async_turn_on()  # turn on again
 
     # Check that when 'adapt_color' is off, changing the color
@@ -767,12 +780,18 @@ async def test_manual_control(
     # does
     await turn_light(False)  # reset manually controlled status
     await turn_light(True)
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await switch.adapt_color_switch.async_turn_off()
     await turn_light(True, color_temp_kelvin=increased_color_temp())
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.COLOR
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.COLOR
+    )
     await turn_light(True, brightness=increased_brightness())
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
 
     # Check that when 'adapt_color' adapt_brightness are both off
     # nothing marks it as manually controlled
@@ -780,7 +799,7 @@ async def test_manual_control(
     await turn_light(True)
     await switch.adapt_color_switch.async_turn_off()
     await switch.adapt_brightness_switch.async_turn_off()
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await turn_light(True, color_temp_kelvin=increased_color_temp())
     await turn_light(True, brightness=increased_brightness())
     await turn_light(
@@ -788,17 +807,26 @@ async def test_manual_control(
         color_temp_kelvin=increased_color_temp(),
         brightness=increased_brightness(),
     )
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
     # Turn switches on again
     await switch.adapt_color_switch.async_turn_on()
     await switch.adapt_brightness_switch.async_turn_on()
 
     # Check that when no lights are specified, all are reset
     await change_manual_control(True, {CONF_LIGHTS: switch.lights})
-    assert all(manual_control[eid] for eid in switch.lights)
+    assert all(
+        switch.manager.get_manual_control_attributes(eid).has_all()
+        for eid in switch.lights
+    )
     # do not pass "lights" so reset all
     await change_manual_control(False, {})
-    assert all(not manual_control[eid] for eid in switch.lights)
+    assert all(
+        switch.manager.get_manual_control_attributes(eid).has_none()
+        for eid in switch.lights
+    )
 
     # Turn off light and turn on using adaptive_lighting.apply
     await turn_light(False)
@@ -814,23 +842,32 @@ async def test_manual_control(
     )
     await hass.async_block_till_done()
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
 
     # Check that manual control `True` sets all attributes
     await change_manual_control(False)
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await change_manual_control(True)
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
 
     # Check that manual control `False` unsets all attributes
     await change_manual_control(False)
-    assert not manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
 
     # Check that manual control attributes can be selectively set
     await change_manual_control("brightness")
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
     await change_manual_control("color")
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.COLOR
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.COLOR
+    )
 
 
 @flaky(max_runs=3, min_passes=1)
@@ -840,7 +877,6 @@ async def test_auto_reset_manual_control(hass):
         {CONF_AUTORESET_CONTROL: 0.1},
     )
     context = switch.create_context("test")  # needs to be passed to update method
-    manual_control = switch.manager.manual_control
 
     async def update():
         await switch._update_attrs_and_maybe_adapt_lights(context=context, transition=0)
@@ -865,13 +901,16 @@ async def test_auto_reset_manual_control(hass):
     _LOGGER.debug("Start test auto reset manual control")
     await turn_light(True, brightness=1)
     await turn_light(True, brightness=10)
-    assert manual_control[light.entity_id] == LightControlAttributes.BRIGHTNESS
+    assert (
+        switch.manager.get_manual_control_attributes(light.entity_id)
+        == LightControlAttributes.BRIGHTNESS
+    )
     assert (
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id] > 0
     )
     await update()
     await asyncio.sleep(0.3)  # Should be enough time for auto reset
-    assert not manual_control[light.entity_id], (light, manual_control)
+    assert not switch.manager.get_manual_control_attributes(light.entity_id)
     assert (
         light.entity_id not in switch.extra_state_attributes["autoreset_time_remaining"]
     )
@@ -881,11 +920,11 @@ async def test_auto_reset_manual_control(hass):
         _LOGGER.debug("Quick change %s", i)
         await turn_light(True, brightness=(i + 1) * 20)
         await asyncio.sleep(0.05)  # Less than 0.1
-        assert manual_control[light.entity_id]
+        assert switch.manager.get_manual_control_attributes(light.entity_id)
 
     await update()
     await asyncio.sleep(0.3)  # Wait the auto reset time
-    assert not manual_control[light.entity_id]
+    assert not switch.manager.get_manual_control_attributes(light.entity_id)
 
 
 async def test_adaptation_attribute_selection(hass):
@@ -1116,7 +1155,7 @@ async def test_switch_off_on_off(hass):
         # Turn light off with transition
         await turn_light(False, transition=1)
 
-        assert not switch.manager.manual_control[ENTITY_LIGHT_1]
+        assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
         # Set state to on after a second (like happens IRL)
         await asyncio.sleep(1e-3)
         hass.states.async_set(ENTITY_LIGHT_1, STATE_ON)
@@ -1371,9 +1410,9 @@ async def test_state_change_handlers(hass):
     assert timer.is_running()
     last_service_data = deepcopy(current_service_data)
     await update()
-    assert not switch.manager.manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     await update()
-    assert not switch.manager.manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     timer = listener.transition_timers.get(ENTITY_LIGHT_1)
     assert timer
     assert timer.is_running()
@@ -1397,19 +1436,19 @@ async def test_state_change_handlers(hass):
     await turn_light(True, brightness=20)
     await update(force=False)
     assert (
-        switch.manager.manual_control[ENTITY_LIGHT_1]
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
         == LightControlAttributes.BRIGHTNESS
     )
     await update(force=True)
     assert (
-        switch.manager.manual_control[ENTITY_LIGHT_1]
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
         == LightControlAttributes.BRIGHTNESS
     )
 
     # turn light off then on should reset manual control.
     await turn_light(False)
     await turn_light(True)
-    assert not switch.manager.manual_control[ENTITY_LIGHT_1]
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
 
     await turn_light(True, brightness=50)
     _LOGGER.debug("Test: Brightness set to %s", 50)
@@ -1419,7 +1458,7 @@ async def test_state_change_handlers(hass):
     assert switch.manager.last_service_data.get(ENTITY_LIGHT_1) is not None
     assert switch.manager.our_last_state_on_change.get(ENTITY_LIGHT_1) is not None
     assert (
-        switch.manager.manual_control[ENTITY_LIGHT_1]
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
         == LightControlAttributes.BRIGHTNESS
     )
 
@@ -2288,12 +2327,11 @@ async def test_light_group(
     await hass.async_block_till_done()
 
     if take_over_control:
-        assert switch.manager.manual_control["light.light_4"]
-        assert switch.manager.manual_control["light.light_5"]
+        assert switch.manager.get_manual_control_attributes("light.light_4")
+        assert switch.manager.get_manual_control_attributes("light.light_5")
     else:
-        assert not switch.manager.manual_control["light.light_4"]
-        assert not switch.manager.manual_control["light.light_5"]
-
+        assert not switch.manager.get_manual_control_attributes("light.light_4")
+        assert not switch.manager.get_manual_control_attributes("light.light_5")
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_OFF,
@@ -2302,8 +2340,8 @@ async def test_light_group(
     )
     await hass.async_block_till_done()
 
-    assert not switch.manager.manual_control["light.light_4"]
-    assert not switch.manager.manual_control["light.light_5"]
+    assert not switch.manager.get_manual_control_attributes("light.light_4")
+    assert not switch.manager.get_manual_control_attributes("light.light_5")
     events = await _turn_on_and_track_event_contexts(
         hass,
         "testing",
@@ -2796,7 +2834,7 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
 
     # Verify light is not manually controlled
-    assert not switch.manager.manual_control.get(
+    assert not switch.manager.get_manual_control_attributes(
         ENTITY_LIGHT_1,
     ), "Light should not be manually controlled before test"
 
@@ -2821,7 +2859,7 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
     # CRITICAL: The light should NOT be marked as manually controlled!
     # The bug in v1.30.0 would incorrectly mark this as manual control because
     # the turn_on had a brightness attribute.
-    manual_control_attrs = switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    manual_control_attrs = switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     assert not manual_control_attrs, (
         f"Bug confirmed: Light was incorrectly marked as manually controlled "
         f"(attributes: {manual_control_attrs}) when turned on from OFF state. "
@@ -2895,7 +2933,7 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
 
     # 1. Verify that ONLY brightness is marked as manually controlled
-    manual_control_attrs = switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    manual_control_attrs = switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
     assert manual_control_attrs == LightControlAttributes.BRIGHTNESS, (
         f"Expected only BRIGHTNESS to be marked as manually controlled, "
         f"but got: {manual_control_attrs}. With adapt_only_on_bare_turn_on=True, "
