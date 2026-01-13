@@ -2830,9 +2830,8 @@ class AdaptiveLightingManager:
             transition = None
 
         # Check if the off→on state change was triggered by a light.turn_on call.
-        # This check now also handles light groups: if a member light was turned on
-        # after the group turned off, the group's turn-on is considered valid.
-        # See: https://github.com/basnijholt/adaptive-lighting/issues/1378
+        # For light groups, this also checks if a member's turn_on explains the
+        # group's turn-on (handles cases where context IDs don't match).
         if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
             is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
             from_service = "light.toggle" if is_toggle else "light.turn_on"
