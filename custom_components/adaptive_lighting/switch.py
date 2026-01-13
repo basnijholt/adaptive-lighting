@@ -2781,21 +2781,6 @@ class AdaptiveLightingManager:
             )
             return False
 
-        # Check if the off→on state change was triggered by a light.turn_on call.
-        # This check now also handles light groups: if a member light was turned on
-        # after the group turned off, the group's turn-on is considered valid.
-        # See: https://github.com/basnijholt/adaptive-lighting/issues/1378
-        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
-            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
-            from_service = "light.toggle" if is_toggle else "light.turn_on"
-            _LOGGER.debug(
-                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
-                from_service,
-            )
-            return False
-
-        # If context IDs match but no turn_on event was found, this is likely a polling
-        # artifact (HA briefly seeing the light as ON during a turn_off transition).
         if off_to_on_event.context.id == on_to_off_event.context.id:
             _LOGGER.debug(
                 "just_turned_off: 'on' → 'off' state change has the same context.id as the"
@@ -2811,6 +2796,19 @@ class AdaptiveLightingManager:
             transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
         else:
             transition = None
+
+        # Check if the off→on state change was triggered by a light.turn_on call.
+        # This check now also handles light groups: if a member light was turned on
+        # after the group turned off, the group's turn-on is considered valid.
+        # See: https://github.com/basnijholt/adaptive-lighting/issues/1378
+        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
+            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
+            from_service = "light.toggle" if is_toggle else "light.turn_on"
+            _LOGGER.debug(
+                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
+                from_service,
+            )
+            return False
 
         if (
             turn_off_event is not None
