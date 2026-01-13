@@ -4,4 +4,4 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-pre-commit run --all-files
+uv run pre-commit run --all-files
