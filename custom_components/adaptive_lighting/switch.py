@@ -1004,6 +1004,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             entry_type=DeviceEntryType.SERVICE,
         )
 
+    @property
+    def is_adapt_only_on_bare_turn_on_enabled(self) -> bool:
+        """Return whether adapt_only_on_bare_turn_on is enabled."""
+        return self._take_over_control and self._adapt_only_on_bare_turn_on
+
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
         if self.hass.is_running:
@@ -1533,8 +1538,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         if (
-            self._take_over_control
-            and self._adapt_only_on_bare_turn_on
+            self.is_adapt_only_on_bare_turn_on_enabled
             and from_turn_on
             # adaptive_lighting.apply can turn on light, so check this is not our context
             and not is_our_context(event.context)
@@ -1842,18 +1846,25 @@ class AdaptiveLightingManager:
                     skipped,
                 )
             else:
+                is_light_group = (
+                    e := self.hass.states.get(entity_id)
+                ) and _is_light_group(e)
+                is_already_on = self.hass.states.is_state(entity_id, STATE_ON)
+                is_manually_controlled = self.get_manual_control_attributes(
+                    entity_id,
+                ).has_any()
+
                 if (
                     not switch.is_on
                     or not switch._intercept
                     # Never adapt on light groups, because HA will make a separate light.turn_on
-                    or ((e := self.hass.states.get(entity_id)) and _is_light_group(e))
+                    or is_light_group
                     # Prevent adaptation of TURN_ON calls when light is already on,
                     # and of TOGGLE calls when toggling off.
-                    or self.hass.states.is_state(entity_id, STATE_ON)
-                    or self.manual_control.get(entity_id, False)
+                    or is_already_on
+                    or is_manually_controlled
                     or (
-                        switch._take_over_control
-                        and switch._adapt_only_on_bare_turn_on
+                        switch.is_adapt_only_on_bare_turn_on_enabled
                         and self._mark_manual_control_if_non_bare_turn_on(
                             entity_id,
                             data[CONF_PARAMS],
