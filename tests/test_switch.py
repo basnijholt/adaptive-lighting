@@ -3142,3 +3142,117 @@ async def test_just_turned_off_polling_artifact_still_detected(hass):
         "just_turned_off should return True (block adaptation) when context IDs match "
         "and no turn_on event explains the off→on. This is a polling artifact."
     )
+
+
+async def test_just_turned_off_context_reuse_with_light_groups(hass):
+    """Test that light groups adapt even when HA reuses the turn_off context ID.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1378
+
+    This is the CRITICAL test case that was missing. It tests the actual scenario:
+    1. A light group is turned off (stores on_to_off_event with context A)
+    2. A member light is turned on by automation (stores turn_on_event with context B)
+    3. The group turns back on as a side effect
+    4. Home Assistant reuses the turn_off context (off_to_on_event has context A!)
+    5. just_turned_off() is called - it should return False (allow adaptation)
+
+    The bug: The context ID match check at line 2804 returns True early,
+    blocking adaptation before the member turn_on check at line 2824 is reached.
+    """
+    from homeassistant.core import Context, Event
+
+    # Setup lights with a group (light_group contains light_4 and light_5)
+    lights = await setup_lights(hass, with_group=True)
+    entity_ids = [light.entity_id for light in lights[:3]]
+    entity_ids.append("light.light_group")
+
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: entity_ids,
+            CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+            CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+        },
+    )
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    light_group = "light.light_group"
+    member_light = "light.light_4"
+
+    # Verify the group is expanded and members are tracked
+    assert member_light in switch.lights, "Group members should be in switch.lights"
+
+    # 1. Simulate the group being turned off first
+    # This creates the on_to_off_event with a specific context
+    group_turn_off_context = Context(id="group_turn_off_context")
+    group_on_to_off_event = Event(
+        event_type=EVENT_STATE_CHANGED,
+        data={
+            ATTR_ENTITY_ID: light_group,
+            "old_state": State(light_group, STATE_ON),
+            "new_state": State(light_group, STATE_OFF),
+        },
+        context=group_turn_off_context,
+    )
+    manager.on_to_off_event[light_group] = group_on_to_off_event
+
+    # 2. Small delay to ensure member turn_on happens AFTER group turn_off
+    await asyncio.sleep(0.01)
+
+    # 3. Simulate a member light being turned on by a motion sensor
+    # This stores turn_on_event for the member with a DIFFERENT context
+    member_turn_on_context = Context(id="motion_sensor_turn_on")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: member_light},
+        blocking=True,
+        context=member_turn_on_context,
+    )
+    await hass.async_block_till_done()
+
+    # Verify turn_on_event was stored for the member
+    assert (
+        manager.turn_on_event.get(member_light) is not None
+    ), "turn_on_event should be stored for member light"
+
+    # Verify the member's turn_on happened after the group's on_to_off
+    assert (
+        manager.turn_on_event[member_light].time_fired
+        > group_on_to_off_event.time_fired
+    ), "Member turn_on should happen after group on_to_off"
+
+    # 4. Create an off→on event for the GROUP with the SAME context as turn_off
+    # This simulates HA reusing the turn_off context ID (the bug scenario!)
+    off_to_on_event = Event(
+        event_type=EVENT_STATE_CHANGED,
+        data={
+            ATTR_ENTITY_ID: light_group,
+            "old_state": State(light_group, STATE_OFF),
+            "new_state": State(light_group, STATE_ON),
+        },
+        context=group_turn_off_context,  # SAME context as turn_off - this is the key!
+    )
+    manager.off_to_on_event[light_group] = off_to_on_event
+
+    # Verify context IDs match (this is what triggers the bug)
+    assert (
+        off_to_on_event.context.id == group_on_to_off_event.context.id
+    ), "Context IDs should match to simulate the HA context reuse scenario"
+
+    # 5. Call just_turned_off - it should return False (allow adaptation)
+    # because a member light was turned on after the group was turned off.
+    #
+    # BUG: Currently returns True because the context ID match check
+    # at line 2804 returns early, before the member check at line 2824.
+    result = await manager.just_turned_off(light_group)
+
+    assert result is False, (
+        "just_turned_off should return False (allow adaptation) for light groups "
+        "when a member was turned on after the group was turned off, EVEN IF "
+        "the context IDs match due to HA's context reuse behavior. "
+        "The member's turn_on_event explains why the group turned on."
+    )
