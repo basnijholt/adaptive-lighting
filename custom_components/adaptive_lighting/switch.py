@@ -2774,7 +2774,7 @@ class AdaptiveLightingManager:
         # For light groups: check if a member's turn_on explains the group's turn-on
         return self._member_turn_on_explains_group_turn_on(entity_id)
 
-    async def just_turned_off(  # noqa: PLR0911
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2802,6 +2802,18 @@ class AdaptiveLightingManager:
             return False
 
         if off_to_on_event.context.id == on_to_off_event.context.id:
+            # For light groups: check if a member's turn_on explains the group's turn_on.
+            # If so, this is NOT a polling artifact - it's a legitimate turn-on.
+            # HA may reuse the turn_off context for the group's state change when a
+            # member is turned on, which would incorrectly trigger this check.
+            # See: https://github.com/basnijholt/adaptive-lighting/issues/1378
+            if self._member_turn_on_explains_group_turn_on(entity_id):
+                _LOGGER.debug(
+                    "just_turned_off: Context IDs match for '%s' but a member light was "
+                    "turned on, so this is a legitimate turn-on, not a polling artifact.",
+                    entity_id,
+                )
+                return False
             _LOGGER.debug(
                 "just_turned_off: 'on' → 'off' state change has the same context.id as the"
                 " 'off' → 'on' state change for '%s'. This is probably a false positive.",
