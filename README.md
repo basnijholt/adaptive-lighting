@@ -394,7 +394,7 @@ Ensure your light bulbs have a strong WiFi connection. If the signal strength is
 #### :spider_web: Zigbee, Z-Wave, and Other Mesh Networks
 
 Mesh networks typically require powered devices to act as routers, relaying messages back to the central coordinator (the radio connected to Home Assistant).
-Philips lights usually function as routers, while Ikea, Sengled, and generic Tuya bulbs often do not.
+Most modern lights function as routers, very early models may not.
 If devices become unresponsive or fail to respond to commands, Adaptive Lighting can exacerbate the issue.
 Use network maps (available in ZHA, zigbee2mqtt, deCONZ, and ZWaveJS UI) to evaluate your network health.
 Smart plugs can be an affordable way to add more routers to your network.
