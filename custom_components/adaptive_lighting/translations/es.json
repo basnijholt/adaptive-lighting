@@ -26,11 +26,12 @@
           "brightness_mode_time_dark": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
           "sunset_time": "Fijar una hora (HH:MM:SS) para el atardecer. 🌇",
           "min_sunset_time": "Define el atardecer virtual más temprano (HH:MM:SS), permitiendo atardeceres más tardíos. 🌇",
-          "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️"
+          "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️",
+          "take_over_control_mode": "El modo de pausa de adaptación cuando otras fuentes cambian el brillo y/o el color de las luces. `pause_all` siempre pausa tanto la adaptación de brillo como la de color. `pause_changed` pausa la adaptación solo de los atributos cambiados y continúa adaptando los atributos sin cambios, por ejemplo, continúa la adaptación de color cuando solo se cambió el brillo."
         },
         "data": {
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Al encender las luces. Si el valor es `true`, AL adapta sólo si se llama `light.turn_on` sin especificar el color o brillo. ❌🌈 Esto, por ejemplo, previene la adaptación al activar una escena. Si el valor es `false`, AL adapta independientemente de la presencia de color o brillo en `service_data` inicial. Necesita `take_over_control` habilitado. 🕵️",
-          "detect_non_ha_changes": "detect_non_ha_changes: Detecta e interrumpe adaptaciones para cambios de estado no `light.turn_on`. Necesita `take_over_control` habilitado. 🕵️ Precaución: ⚠️ Algunas luces pueden indicar de forma errónea un estado 'on', que puede resultar en luces que se enciendan de forma no esperada. Deshabilita esta función si encuentras dichos problemas.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Detecta y detiene las adaptaciones para cambios de estado distintos a `light.turn_on`. Requiere que `take_over_control` esté activado. 🕵️ Precaución: ⚠️ Algunas luces podrían indicar erróneamente que están encendidas, lo que podría provocar que se enciendan inesperadamente. Ten en cuenta que esto llama a `homeassistant.update_entity` cada `intervalo`. Desactiva esta función si experimentas estos problemas.",
           "intercept": "intercept: Intercepta y adapta llamadas a `light.turn_on` para habilitar adaptaciones instantáneas de color y brillo. 🏎️ Deshabilitar para luces que no soporten `light.turn_on` con color y brillo.",
           "min_color_temp": "min_color_temp: Temperatura de color más cálida en grados Kelvin. 🔥",
           "lights": "lights: Lista de entity_ids de luces a controlar (puede estar vacía). 🌟",
@@ -44,7 +45,7 @@
           "only_once": "only_once: Adapta las luces sólo cuando se encienden (`true`) o mantener adaptadas (`false`). 🔄",
           "separate_turn_on_commands": "separate_turn_on_commands: Usar llamadas independientes a `light.turn_on` para color y brillo, necesario para ciertos tipos de luces. 🔀",
           "skip_redundant_commands": "skip_redundant_commands: Evitar mandar comandos de adaptación a luces cuyo estado ya sea el esperado. Reduce tráfico en la red y mejora la respuesta de la adaptación en ciertas situaciones. 📉Deshabilitar si el estado real de las luces se desincroniza con el estado registrado en Home Assistant.",
-          "take_over_control": "take_over_control: Deshabilita Adaptive Lighting si otra fuente llama`light.turn_on` mientras las luces están encendidas y adaptándose. Cuidado, esto llama`homeassistant.update_entity` cada `interval`! 🔒"
+          "take_over_control": "take_over_control: Pausa la adaptación de luces individuales y transfiere el control (manual) a otras fuentes que emiten llamadas `light.turn_on` para luces que están encendidas. 🔒"
         },
         "description": "Configura un componente Adaptive Lighting. Los nombres de las opciones se asemejan a las disponibles en la configuración YAML. Si has definido esta entrada en YAML, no aparecerá ninguna opción aquí. Para gráficos interactivos que demuestran los efectos de los parámetros, visita [esta web app](https://basnijholt.github.io/adaptive-lighting). Para más detalles, ver la [documentación oficial](https://github.com/basnijholt/adaptive-lighting#readme)."
       }
@@ -193,6 +194,13 @@
       "user": {
         "title": "Elige un nombre para la instancia de Adaptive Lighting",
         "description": "Cada instancia puede contener múltiples luces!"
+      },
+      "menu": {
+        "title": "Crear o duplicar",
+        "description": "¿Quieres crear una nueva instancia o duplicar una existente?",
+        "data": {
+          "action": "Acción"
+        }
       }
     },
     "abort": {
