@@ -368,9 +368,7 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
     switches = _switches_from_service_call(hass, service_call)
     lights = data[CONF_LIGHTS]
     for switch in switches:
-        all_lights = (
-            switch.lights if not lights else _expand_light_groups(hass, lights)
-        )
+        all_lights = switch.lights if not lights else _expand_light_groups(hass, lights)
         switch.manager.lights.update(all_lights)
         for light in all_lights:
             if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
@@ -408,9 +406,7 @@ async def handle_set_manual_control_service(
     switches = _switches_from_service_call(hass, service_call)
     lights = data[CONF_LIGHTS]
     for switch in switches:
-        all_lights = (
-            switch.lights if not lights else _expand_light_groups(hass, lights)
-        )
+        all_lights = switch.lights if not lights else _expand_light_groups(hass, lights)
 
         manual_attributes = manual_control_event_attribute_to_flags(
             service_call.data[CONF_MANUAL_CONTROL],
