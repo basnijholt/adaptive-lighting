@@ -137,15 +137,11 @@ from .const import (
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
-    SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
-    SERVICE_SET_MANUAL_CONTROL,
-    SET_MANUAL_CONTROL_SCHEMA,
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     TakeOverControlMode,
-    apply_service_schema,
     replace_none_str,
 )
 from .hass_utils import area_entities, setup_service_call_interceptor
@@ -361,7 +357,92 @@ async def handle_change_switch_settings(
         )
 
 
-async def async_setup_entry(  # noqa: PLR0915
+@callback
+async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
+    """Handle the entity service apply."""
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.apply' service with '%s'",
+        data,
+    )
+    switches = _switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        all_lights = (
+            switch.lights if not lights else _expand_light_groups(hass, lights)
+        )
+        switch.manager.lights.update(all_lights)
+        for light in all_lights:
+            if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
+                context = switch.create_context(
+                    "service",
+                    parent=service_call.context,
+                )
+                # Handle optional transition
+                transition = data.get(CONF_TRANSITION)
+                if transition is None:
+                    transition = switch.initial_transition
+
+                await switch._adapt_light(  # pylint: disable=protected-access
+                    light,
+                    context=context,
+                    transition=transition,
+                    adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
+                    adapt_color=data[ATTR_ADAPT_COLOR],
+                    prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
+                    force=True,
+                )
+
+
+@callback
+async def handle_set_manual_control_service(
+    hass: HomeAssistant,
+    service_call: ServiceCall,
+) -> None:
+    """Set or unset lights as 'manually controlled'."""
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.set_manual_control' service with '%s'",
+        data,
+    )
+    switches = _switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        all_lights = (
+            switch.lights if not lights else _expand_light_groups(hass, lights)
+        )
+
+        manual_attributes = manual_control_event_attribute_to_flags(
+            service_call.data[CONF_MANUAL_CONTROL],
+        )
+
+        if manual_attributes:
+            for light in all_lights:
+                switch.manager.set_manual_control_attributes(
+                    light,
+                    manual_attributes,
+                )
+                switch.fire_manual_control_event(
+                    light,
+                    service_call.context,
+                )
+        else:
+            switch.manager.reset(*all_lights)
+            if switch.is_on:
+                context = switch.create_context(
+                    "service",
+                    parent=service_call.context,
+                )
+                # pylint: disable=protected-access
+                await switch._update_attrs_and_maybe_adapt_lights(
+                    context=context,
+                    lights=all_lights,
+                    transition=switch.initial_transition,
+                    force=True,
+                )
+
+
+async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
@@ -429,99 +510,6 @@ async def async_setup_entry(  # noqa: PLR0915
     async_add_entities(
         [sleep_mode_switch, adapt_color_switch, adapt_brightness_switch, switch],
         update_before_add=True,
-    )
-
-    @callback
-    async def handle_apply(service_call: ServiceCall) -> None:
-        """Handle the entity service apply."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.apply' service with '%s'",
-            data,
-        )
-        switches = _switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch.lights
-            else:
-                all_lights = _expand_light_groups(hass, lights)
-            switch.manager.lights.update(all_lights)
-            for light in all_lights:
-                if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    context = switch.create_context(
-                        "service",
-                        parent=service_call.context,
-                    )
-                    await switch._adapt_light(  # pylint: disable=protected-access
-                        light,
-                        context=context,
-                        transition=data[CONF_TRANSITION],
-                        adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
-                        adapt_color=data[ATTR_ADAPT_COLOR],
-                        prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
-                        force=True,
-                    )
-
-    @callback
-    async def handle_set_manual_control(service_call: ServiceCall) -> None:
-        """Set or unset lights as 'manually controlled'."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.set_manual_control' service with '%s'",
-            data,
-        )
-        switches = _switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch.lights
-            else:
-                all_lights = _expand_light_groups(hass, lights)
-
-            manual_attributes = manual_control_event_attribute_to_flags(
-                service_call.data[CONF_MANUAL_CONTROL],
-            )
-
-            if manual_attributes:
-                for light in all_lights:
-                    switch.manager.set_manual_control_attributes(
-                        light,
-                        manual_attributes,
-                    )
-                    switch.fire_manual_control_event(
-                        light,
-                        service_call.context,
-                    )
-            else:
-                switch.manager.reset(*all_lights)
-                if switch.is_on:
-                    context = switch.create_context(
-                        "service",
-                        parent=service_call.context,
-                    )
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        context=context,
-                        lights=all_lights,
-                        transition=switch.initial_transition,
-                        force=True,
-                    )
-
-    # Register `apply` service
-    hass.services.async_register(
-        domain=DOMAIN,
-        service=SERVICE_APPLY,
-        service_func=handle_apply,
-        schema=apply_service_schema(switch.initial_transition),
-    )
-
-    # Register `set_manual_control` service
-    hass.services.async_register(
-        domain=DOMAIN,
-        service=SERVICE_SET_MANUAL_CONTROL,
-        service_func=handle_set_manual_control,
-        schema=SET_MANUAL_CONTROL_SCHEMA,
     )
 
     args: VolDictType = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
@@ -1681,8 +1669,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
-type AdaptiveSwitches = list[AdaptiveSwitch]
-type AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
+AdaptiveSwitches = list[AdaptiveSwitch]
+AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
 
 
 class AdaptiveLightingManager:
