@@ -1,6 +1,7 @@
 """Adaptive Lighting integration in Home-Assistant."""
 
 import logging
+from functools import partial
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
@@ -14,8 +15,13 @@ from .const import (
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_NAME,
     DOMAIN,
+    SERVICE_APPLY,
+    SERVICE_SET_MANUAL_CONTROL,
+    SET_MANUAL_CONTROL_SCHEMA,
     UNDO_UPDATE_LISTENER,
+    apply_service_schema,
 )
+from .switch import handle_apply_service, handle_set_manual_control_service
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +53,20 @@ async def reload_configuration_yaml(event: Event) -> None:
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Import integration from config."""
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY,
+        partial(handle_apply_service, hass),
+        schema=apply_service_schema(),
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        partial(handle_set_manual_control_service, hass),
+        schema=SET_MANUAL_CONTROL_SCHEMA,
+    )
+
     if DOMAIN in config:
         for entry in config[DOMAIN]:
             hass.async_create_task(
