@@ -35,7 +35,7 @@ RUN /app/scripts/setup-dependencies
 WORKDIR /app/core
 
 # Make 'custom_components/adaptive_lighting' imports available to tests
-ENV PYTHONPATH="${PYTHONPATH}:/app"
+ENV PYTHONPATH="/app"
 
 ENTRYPOINT ["python3", \
     # Enable Python development mode
