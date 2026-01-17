@@ -459,16 +459,13 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
-def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
+def apply_service_schema() -> vol.Schema:
     """Return the schema for the apply service."""
     return vol.Schema(
         {
             vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
-            vol.Optional(
-                CONF_TRANSITION,
-                default=initial_transition,
-            ): VALID_TRANSITION,
+            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
             vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
