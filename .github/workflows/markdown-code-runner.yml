@@ -13,7 +13,8 @@ jobs:
       - name: Check out code from GitHub
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.head_ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -24,34 +25,24 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Run markdown-code-runner
+      - name: Update generated content
+        run: ./scripts/update-generated-content
+
+      - name: Check for changes
         run: |
-          uv sync --group docs
-          uv pip install -e .
-          uv run python docs/run_markdown_code_runner.py
-
-      - name: Run update services.yaml
-        run: uv run python .github/update-services.py
-
-      - name: Run update strings.json
-        run: uv run python .github/update-strings.py
-
-      - name: Commit updated files
-        id: commit
-        run: |
-          git add -u .
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          if git diff --quiet && git diff --staged --quiet; then
-            echo "No changes, skipping commit."
-            echo "commit_status=skipped" >> $GITHUB_ENV
+          if [ -n "$(git status --porcelain)" ]; then
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "::error::Auto-generated files are not up to date. Please run './scripts/update-generated-content' locally and push the changes."
+              exit 1
+            else
+              echo "Changes detected, committing and pushing..."
+              git add -u .
+              git config --local user.email "github-actions[bot]@users.noreply.github.com"
+              git config --local user.name "github-actions[bot]"
+              git commit -m "Update auto-generated content"
+              git pull --rebase
+              git push
+            fi
           else
-            git commit -m "Update auto-generated content"
-            echo "commit_status=committed" >> $GITHUB_ENV
+            echo "No changes detected."
           fi
-
-      - name: Push changes
-        if: env.commit_status == 'committed'
-        run: |
-          git pull --rebase
-          git push

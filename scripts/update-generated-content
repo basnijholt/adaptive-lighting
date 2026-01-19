@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -ex
+
+cd "$(dirname "$0")/.."
+
+uv sync --group docs
+uv pip install -e .
+uv run python docs/run_markdown_code_runner.py
+uv run python .github/update-services.py
+uv run python .github/update-strings.py
