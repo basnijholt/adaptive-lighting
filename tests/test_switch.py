@@ -112,7 +112,7 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.const import __version__ as ha_version
-from homeassistant.core import Context, Event, HomeAssistant, State, callback
+from homeassistant.core import Context, Event, HomeAssistant, State
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
@@ -2916,10 +2916,11 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
         f"as manually controlled, color_temp should still be adapted."
     )
 
+
 async def test_service_validation_error_invalid_entity(hass):
     """Test that ServiceValidationError is raised for invalid entities."""
     await setup_lights_and_switch(hass)
-    
+
     # Test change_switch_settings with non-existent entity
     with pytest.raises(ServiceValidationError, match="not found in registry"):
         await hass.services.async_call(
@@ -2929,12 +2930,15 @@ async def test_service_validation_error_invalid_entity(hass):
             blocking=True,
         )
 
+
 async def test_service_validation_error_missing_input(hass):
     """Test that ServiceValidationError is raised for missing input."""
     await setup_lights_and_switch(hass)
-    
+
     # Test change_switch_settings with no entity and no lights
-    with pytest.raises(ServiceValidationError, match="Neither a switch nor a light was provided"):
+    with pytest.raises(
+        ServiceValidationError, match="Neither a switch nor a light was provided"
+    ):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_CHANGE_SWITCH_SETTINGS,
@@ -2942,35 +2946,44 @@ async def test_service_validation_error_missing_input(hass):
             blocking=True,
         )
 
+
 async def test_change_switch_settings_multiple_entities(hass):
     """Test change_switch_settings with multiple entities."""
     # Setup two switches
     await setup_lights(hass)
-    _, switch1 = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_NAME: "switch1"})
-    _, switch2 = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_2], CONF_NAME: "switch2"})
-    
+    _, switch1 = await setup_switch(
+        hass, {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_NAME: "switch1"}
+    )
+    _, switch2 = await setup_switch(
+        hass, {CONF_LIGHTS: [ENTITY_LIGHT_2], CONF_NAME: "switch2"}
+    )
+
     assert switch1._sun_light_settings.min_color_temp != 3000
     assert switch2._sun_light_settings.min_color_temp != 3000
-    
+
     # Call service for both switches
     await hass.services.async_call(
         DOMAIN,
         SERVICE_CHANGE_SWITCH_SETTINGS,
         {
-            ATTR_ENTITY_ID: ["switch.adaptive_lighting_switch1", "switch.adaptive_lighting_switch2"],
+            ATTR_ENTITY_ID: [
+                "switch.adaptive_lighting_switch1",
+                "switch.adaptive_lighting_switch2",
+            ],
             "min_color_temp": 3000,
-            "use_defaults": "configuration" # Required to set new value
+            "use_defaults": "configuration",  # Required to set new value
         },
         blocking=True,
     )
-    
+
     assert switch1._sun_light_settings.min_color_temp == 3000
     assert switch2._sun_light_settings.min_color_temp == 3000
+
 
 async def test_apply_service_validation(hass):
     """Test validation for apply service."""
     await setup_lights_and_switch(hass)
-    
+
     with pytest.raises(ServiceValidationError, match="not found in registry"):
         await hass.services.async_call(
             DOMAIN,
@@ -2979,10 +2992,11 @@ async def test_apply_service_validation(hass):
             blocking=True,
         )
 
+
 async def test_set_manual_control_validation(hass):
     """Test validation for set_manual_control service."""
     await setup_lights_and_switch(hass)
-    
+
     with pytest.raises(ServiceValidationError, match="not found in registry"):
         await hass.services.async_call(
             DOMAIN,

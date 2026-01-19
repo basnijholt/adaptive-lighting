@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
-import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -55,10 +54,9 @@ from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
     State,
-    callback,
 )
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import entity_platform, entity_registry
+from homeassistant.helpers import entity_registry
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
 from homeassistant.helpers.event import (
@@ -138,7 +136,6 @@ from .const import (
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
-    SERVICE_CHANGE_SWITCH_SETTINGS,
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
@@ -160,7 +157,6 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import NoEventData
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -306,15 +302,11 @@ def _switches_from_service_call(
         for entity_id in switch_entity_ids:
             ent_entry = ent_reg.async_get(entity_id)
             if ent_entry is None:
-                msg = (
-                    f"adaptive-lighting: Entity '{entity_id}' not found in registry."
-                )
+                msg = f"adaptive-lighting: Entity '{entity_id}' not found in registry."
                 raise ServiceValidationError(msg)
             config_id = ent_entry.config_entry_id
             if config_id not in hass.data[DOMAIN]:
-                msg = (
-                    f"adaptive-lighting: Entity '{entity_id}' does not belong to this integration or is not loaded."
-                )
+                msg = f"adaptive-lighting: Entity '{entity_id}' does not belong to this integration or is not loaded."
                 raise ServiceValidationError(msg)
             switches.append(hass.data[DOMAIN][config_id][SWITCH_DOMAIN])
         return switches
