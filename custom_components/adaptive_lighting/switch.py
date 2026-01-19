@@ -57,6 +57,7 @@ from homeassistant.core import (
     State,
     callback,
 )
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_platform, entity_registry
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
@@ -158,7 +159,7 @@ if TYPE_CHECKING:
 
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
-    from homeassistant.helpers.typing import NoEventData, VolDictType
+from homeassistant.helpers.typing import NoEventData
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -280,7 +281,7 @@ def _switches_from_service_call(
     service_call: ServiceCall,
 ) -> AdaptiveSwitches:
     data = service_call.data
-    lights = data[CONF_LIGHTS]
+    lights = data.get(CONF_LIGHTS)
     switch_entity_ids: list[str] | None = data.get("entity_id")
 
     if not lights and not switch_entity_ids:
@@ -291,7 +292,7 @@ def _switches_from_service_call(
             " use case. Currently, you must pass either an adaptive-lighting switch or"
             " the lights to an `adaptive_lighting` service call."
         )
-        raise ValueError(msg)
+        raise ServiceValidationError(msg)
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
@@ -299,13 +300,22 @@ def _switches_from_service_call(
                 "adaptive-lighting: Cannot pass multiple switches with lights argument."
                 f" Invalid service data received: {service_call.data}"
             )
-            raise ValueError(msg)
+            raise ServiceValidationError(msg)
         switches: AdaptiveSwitches = []
         ent_reg = entity_registry.async_get(hass)
         for entity_id in switch_entity_ids:
             ent_entry = ent_reg.async_get(entity_id)
-            assert ent_entry is not None
+            if ent_entry is None:
+                msg = (
+                    f"adaptive-lighting: Entity '{entity_id}' not found in registry."
+                )
+                raise ServiceValidationError(msg)
             config_id = ent_entry.config_entry_id
+            if config_id not in hass.data[DOMAIN]:
+                msg = (
+                    f"adaptive-lighting: Entity '{entity_id}' does not belong to this integration or is not loaded."
+                )
+                raise ServiceValidationError(msg)
             switches.append(hass.data[DOMAIN][config_id][SWITCH_DOMAIN])
         return switches
 
@@ -317,47 +327,48 @@ def _switches_from_service_call(
         "adaptive-lighting: Incorrect data provided in service call."
         f" Entities not found in the integration. Service data: {service_call.data}"
     )
-    raise ValueError(msg)
+    raise ServiceValidationError(msg)
 
 
 async def handle_change_switch_settings(
-    switch: AdaptiveSwitch,
+    hass: HomeAssistant,
     service_call: ServiceCall,
 ) -> None:
     """Allows HASS to change config values via a service call."""
     data = service_call.data
-    which = data.get(CONF_USE_DEFAULTS, "current")
-    if which == "current":  # use whatever we're already using.
-        defaults = switch._current_settings  # pylint: disable=protected-access
-    elif which == "factory":  # use actual defaults listed in the documentation
-        defaults = None
-    elif which == "configuration":
-        # use whatever's in the config flow or configuration.yaml
-        defaults = switch._config_backup
-    else:
-        defaults = None
+    switches = _switches_from_service_call(hass, service_call)
+    for switch in switches:
+        which = data.get(CONF_USE_DEFAULTS, "current")
+        if which == "current":  # use whatever we're already using.
+            defaults = switch._current_settings  # pylint: disable=protected-access
+        elif which == "factory":  # use actual defaults listed in the documentation
+            defaults = None
+        elif which == "configuration":
+            # use whatever's in the config flow or configuration.yaml
+            defaults = switch._config_backup
+        else:
+            defaults = None
 
-    # deep copy the defaults so we don't modify the original dicts
-    switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
-    if switch.is_on:
-        switch._update_time_interval_listener()
+        # deep copy the defaults so we don't modify the original dicts
+        switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
+        if switch.is_on:
+            switch._update_time_interval_listener()
 
-    _LOGGER.debug(
-        "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
-        data,
-    )
-
-    switch.manager.reset(*switch.lights, reset_manual_control=False)
-    if switch.is_on:
-        await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
-            context=switch.create_context("service", parent=service_call.context),
-            lights=switch.lights,
-            transition=switch.initial_transition,
-            force=True,
+        _LOGGER.debug(
+            "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
+            data,
         )
 
+        switch.manager.reset(*switch.lights, reset_manual_control=False)
+        if switch.is_on:
+            await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
+                context=switch.create_context("service", parent=service_call.context),
+                lights=switch.lights,
+                transition=switch.initial_transition,
+                force=True,
+            )
 
-@callback
+
 async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
     """Handle the entity service apply."""
     data = service_call.data
@@ -392,7 +403,6 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                 )
 
 
-@callback
 async def handle_set_manual_control_service(
     hass: HomeAssistant,
     service_call: ServiceCall,
@@ -506,20 +516,6 @@ async def async_setup_entry(
     async_add_entities(
         [sleep_mode_switch, adapt_color_switch, adapt_brightness_switch, switch],
         update_before_add=True,
-    )
-
-    args: VolDictType = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
-    # Modifying these after init isn't possible
-    skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
-    for k, _, valid in VALIDATION_TUPLES:
-        if k not in skip:
-            args[vol.Optional(k)] = valid
-    platform = entity_platform.current_platform.get()
-    assert platform is not None
-    platform.async_register_entity_service(
-        SERVICE_CHANGE_SWITCH_SETTINGS,
-        args,
-        handle_change_switch_settings,
     )
 
 

@@ -16,12 +16,18 @@ from .const import (
     CONF_NAME,
     DOMAIN,
     SERVICE_APPLY,
+    SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
     SET_MANUAL_CONTROL_SCHEMA,
     UNDO_UPDATE_LISTENER,
     apply_service_schema,
+    change_switch_settings_schema,
 )
-from .switch import handle_apply_service, handle_set_manual_control_service
+from .switch import (
+    handle_apply_service,
+    handle_change_switch_settings,
+    handle_set_manual_control_service,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,17 +60,24 @@ async def reload_configuration_yaml(event: Event) -> None:
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Import integration from config."""
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_APPLY,
-        partial(handle_apply_service, hass),
+        domain=DOMAIN,
+        service=SERVICE_APPLY,
+        service_func=partial(handle_apply_service, hass),
         schema=apply_service_schema(),
     )
 
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_SET_MANUAL_CONTROL,
-        partial(handle_set_manual_control_service, hass),
+        domain=DOMAIN,
+        service=SERVICE_SET_MANUAL_CONTROL,
+        service_func=partial(handle_set_manual_control_service, hass),
         schema=SET_MANUAL_CONTROL_SCHEMA,
+    )
+
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=SERVICE_CHANGE_SWITCH_SETTINGS,
+        service_func=partial(handle_change_switch_settings, hass),
+        schema=change_switch_settings_schema(),
     )
 
     if DOMAIN in config:

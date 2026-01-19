@@ -474,6 +474,20 @@ def apply_service_schema() -> vol.Schema:
     )
 
 
+def change_switch_settings_schema() -> vol.Schema:
+    """Return the schema for the change_switch_settings service."""
+    args: dict[vol.Marker, Any] = {
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
+        vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string,
+    }
+    # Modifying these after init isn't possible
+    skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
+    for k, _, valid in VALIDATION_TUPLES:
+        if k not in skip:
+            args[vol.Optional(k)] = valid
+    return vol.Schema(args)
+
+
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
