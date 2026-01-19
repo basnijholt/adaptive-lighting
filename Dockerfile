@@ -48,8 +48,8 @@ ENTRYPOINT ["python3", \
     "--timeout=9", \
     # Print the 10 slowest tests
     "--durations=10", \
-    # Measure code coverage for the 'homeassistant' package
-    "--cov='homeassistant'", \
+    # Measure code coverage for the 'homeassistant.components.adaptive_lighting' component
+    "--cov=homeassistant.components.adaptive_lighting", \
     # Generate an XML report of the code coverage
     "--cov-report=xml", \
     # Generate an HTML report of the code coverage
