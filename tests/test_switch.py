@@ -2994,3 +2994,54 @@ async def test_set_manual_control_validation(hass):
             {ATTR_ENTITY_ID: "switch.non_existent"},
             blocking=True,
         )
+
+
+@pytest.mark.parametrize(
+    "use_target",
+    [False, True],
+    ids=["entity_id_in_data", "entity_id_in_target"],
+)
+async def test_change_switch_settings_backward_compatibility(hass, use_target):
+    """Test change_switch_settings works with both calling conventions.
+
+    This is a regression test to ensure backward compatibility when
+    change_switch_settings was converted from an entity service to a domain service.
+
+    Previously (entity service): entity_id was passed via `target` parameter
+    Now (domain service): entity_id is passed via `data` parameter
+
+    Both conventions should work to avoid breaking existing automations.
+    """
+    switch, _ = await setup_lights_and_switch(hass)
+
+    # Verify initial state
+    original_min_color_temp = switch._sun_light_settings.min_color_temp
+    new_min_color_temp = 3000
+    assert original_min_color_temp != new_min_color_temp
+
+    if use_target:
+        # Old convention: entity_id in target (entity service style)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {"min_color_temp": new_min_color_temp},
+            target={"entity_id": ENTITY_SWITCH},
+            blocking=True,
+        )
+    else:
+        # New convention: entity_id in data (domain service style)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                "min_color_temp": new_min_color_temp,
+            },
+            blocking=True,
+        )
+
+    # Both conventions should result in the setting being changed
+    assert switch._sun_light_settings.min_color_temp == new_min_color_temp, (
+        f"change_switch_settings failed with {'target' if use_target else 'data'} convention. "
+        f"Expected min_color_temp={new_min_color_temp}, got {switch._sun_light_settings.min_color_temp}"
+    )
