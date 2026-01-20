@@ -1197,6 +1197,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "NatanDosAnjos",
+      "name": "Natanael",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45629905?v=4",
+      "profile": "https://github.com/NatanDosAnjos",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
