@@ -87,6 +87,9 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.helpers.normalized_name_base_registry import (
+    NormalizedNameBaseRegistryItems,
+)
 
 try:
     # HA >= 2025.8
@@ -113,6 +116,7 @@ from homeassistant.const import (
 )
 from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.core_config import async_process_ha_core_config
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
@@ -374,19 +378,6 @@ async def test_adaptive_lighting_switches(hass):
     assert UNDO_UPDATE_LISTENER in data
 
     assert len(data.keys()) == 5
-
-
-def async_process_ha_core_config(hass, config):
-    """Set up the Home Assistant configuration."""
-    try:
-        # ha >= "2023.11.0"
-        from homeassistant.core_config import async_process_ha_core_config
-
-        return async_process_ha_core_config(hass, config)
-    except ModuleNotFoundError:
-        import homeassistant.config as config_util
-
-        return config_util.async_process_ha_core_config(hass, config)
 
 
 @pytest.mark.parametrize(("lat", "long", "timezone"), LAT_LONG_TZS)
@@ -891,7 +882,7 @@ async def test_auto_reset_manual_control(hass):
 
 async def test_adaptation_attribute_selection(hass):
     """Test the 'manual control' tracking."""
-    switch, (light, *_) = await setup_lights_and_switch(hass)
+    switch, (_, *_) = await setup_lights_and_switch(hass)
 
     # Assert default settings
     assert switch._take_over_control
@@ -1481,7 +1472,7 @@ async def test_offset_too_large(hass):
     which makes the adaptive lighting algorithm fail with a ValueError.
     """
     _, switch = await setup_switch(hass, {CONF_SUNRISE_OFFSET: 3600 * 12})
-    with pytest.raises(ValueError, match="sun events.*not in the expected order"):
+    with pytest.raises(ValueError, match=r"sun events.*not in the expected order"):
         await switch._update_attrs_and_maybe_adapt_lights(
             context=switch.create_context("test"),
         )
@@ -1585,10 +1576,6 @@ def mock_area_registry(
         # https://github.com/home-assistant/core/pull/114777
         registry.areas = ar.AreaRegistryItems()
     elif dt == datetime.date(2024, 4, 1):
-        from homeassistant.helpers.normalized_name_base_registry import (
-            NormalizedNameBaseRegistryItems,
-        )
-
         registry.areas = NormalizedNameBaseRegistryItems()
     else:
         registry.areas = OrderedDict()
@@ -2006,7 +1993,7 @@ async def test_proactive_multiple_lights_all_at_once(hass):
 
 async def test_proactive_multiple_lights_turn_on_non_managed_light(hass):
     """Create switch and demo lights."""
-    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    lights, _, _ = await setup_proactive_multiple_lights_two_switches(hass)
     turn_ons = await _turn_on_and_track_event_contexts(hass, "test1", lights)
     assert len(turn_ons) == 3, turn_ons
     await hass.async_block_till_done()
@@ -2028,7 +2015,7 @@ async def test_proactive_multiple_lights_turn_on_non_managed_light(hass):
 
 async def test_proactive_multiple_lights_turn_on_managed_lights_only(hass):
     """Create switch and demo lights."""
-    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    lights, _, _ = await setup_proactive_multiple_lights_two_switches(hass)
     _LOGGER.debug("Start test_proactive_multiple_lights_all_at_once")
     # Setup demo lights and turn on
     events = await _turn_on_and_track_event_contexts(
@@ -2155,7 +2142,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
         hass,
         {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
     )
-    switch, lights = await setup_lights_and_switch(
+    switch, _ = await setup_lights_and_switch(
         hass,
         {
             CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
@@ -2717,7 +2704,7 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
     See: https://github.com/basnijholt/adaptive-lighting/pull/1348
     """
     # Setup two switches with different lights
-    lights, switch1, switch2 = await setup_proactive_multiple_lights_two_switches(hass)
+    lights, _, _ = await setup_proactive_multiple_lights_two_switches(hass)
 
     # Turn on all three lights at once:
     # - ENTITY_LIGHT_1 is in switch1
@@ -2937,7 +2924,8 @@ async def test_service_validation_error_missing_input(hass):
 
     # Test change_switch_settings with no entity and no lights
     with pytest.raises(
-        ServiceValidationError, match="Neither a switch nor a light was provided"
+        ServiceValidationError,
+        match="Neither a switch nor a light was provided",
     ):
         await hass.services.async_call(
             DOMAIN,
@@ -2952,10 +2940,12 @@ async def test_change_switch_settings_multiple_entities(hass):
     # Setup two switches
     await setup_lights(hass)
     _, switch1 = await setup_switch(
-        hass, {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_NAME: "switch1"}
+        hass,
+        {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_NAME: "switch1"},
     )
     _, switch2 = await setup_switch(
-        hass, {CONF_LIGHTS: [ENTITY_LIGHT_2], CONF_NAME: "switch2"}
+        hass,
+        {CONF_LIGHTS: [ENTITY_LIGHT_2], CONF_NAME: "switch2"},
     )
 
     assert switch1._sun_light_settings.min_color_temp != 3000
