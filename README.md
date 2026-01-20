@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-132-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-133-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -659,6 +659,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/andrei-lazarov"><img src="https://avatars.githubusercontent.com/u/51081857?v=4?s=100" width="100px;" alt="Andrei LAZAROV"/><br /><sub><b>Andrei LAZAROV</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=andrei-lazarov" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/ademuri"><img src="https://avatars.githubusercontent.com/u/3051618?v=4?s=100" width="100px;" alt="Adam DeMuri"/><br /><sub><b>Adam DeMuri</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=ademuri" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/NatanDosAnjos"><img src="https://avatars.githubusercontent.com/u/45629905?v=4?s=100" width="100px;" alt="Natanael"/><br /><sub><b>Natanael</b></sub></a><br /><a href="#translation-NatanDosAnjos" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Yllelder"><img src="https://avatars.githubusercontent.com/u/6941502?v=4?s=100" width="100px;" alt="Yllelder Bamir"/><br /><sub><b>Yllelder Bamir</b></sub></a><br /><a href="#translation-Yllelder" title="Translation">🌍</a></td>
     </tr>
   </tbody>
   <tfoot>
