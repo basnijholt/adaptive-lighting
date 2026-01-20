@@ -1215,6 +1215,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "Esspel",
+      "name": "Esspel",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47383506?v=4",
+      "profile": "https://github.com/Esspel",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
