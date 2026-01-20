@@ -156,8 +156,7 @@ if TYPE_CHECKING:
 
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import NoEventData
-
+    from homeassistant.helpers.typing import NoEventData
 _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=10)
