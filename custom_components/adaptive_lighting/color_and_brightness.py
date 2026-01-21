@@ -8,7 +8,9 @@ import datetime
 import logging
 import math
 from dataclasses import dataclass
-from datetime import UTC, timedelta
+from datetime import timedelta, timezone
+
+UTC = timezone.utc
 from enum import Enum
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -204,6 +206,15 @@ class SunEvents:
 
 
 @dataclass(frozen=True)
+class SchedulePoint:
+    """A single point in the manual schedule."""
+
+    time: datetime.time
+    brightness_pct: float
+    color_temp_kelvin: int
+
+
+@dataclass(frozen=True)
 class SunLightSettings:
     """Track the state of the sun and associated light settings."""
 
@@ -230,6 +241,7 @@ class SunLightSettings:
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
+    manual_schedule: list[SchedulePoint] | None = None
 
     @cached_property
     def sun(self) -> SunEvents:
@@ -340,12 +352,143 @@ class SunLightSettings:
         msg = "Should not happen"
         raise ValueError(msg)
 
+    def _get_schedule_values(self, dt: datetime.datetime) -> tuple[float, int]:
+        """Get the interpolated brightness and color temperature from the schedule."""
+        assert self.manual_schedule is not None
+
+        # Convert dt to configured timezone for schedule comparison
+        # dt comes in as UTC from get_settings()
+        if self.timezone and dt.tzinfo is not None:
+            dt = dt.astimezone(self.timezone)
+
+        # Sort schedule by time just in case
+        schedule = sorted(self.manual_schedule, key=lambda x: x.time)
+
+        target_time = dt.time()
+
+        # specific to how we want to handle wrapping over midnight:
+        # we need to find the "previous" point and the "next" point.
+        # since the list is sorted, we can iterate to find where the current time fits.
+
+        prev_point = schedule[-1]  # Default to last point (wrapping)
+        next_point = schedule[0]  # Default to first point (wrapping)
+
+        for i, point in enumerate(schedule):
+            if point.time > target_time:
+                next_point = point
+                prev_point = schedule[i - 1]
+                break
+            # If we reach the end, meaning target_time is after all points,
+            # then prev_point is effectively the last element (already set in loop or init)
+            # and next_point is the first element (wrapping)
+            prev_point = point
+
+        # Calculate interpolation factor
+        # We need to handle datetime wrapping carefully.
+
+        # Create concrete datetimes for comparison
+        dt_current = dt
+
+        # Construct datetimes for prev and next points relative to the current date
+        # If prev_point.time > next_point.time, it means we wrapped over midnight.
+
+        dt_prev = dt.replace(
+            hour=prev_point.time.hour,
+            minute=prev_point.time.minute,
+            second=prev_point.time.second,
+            microsecond=0,
+        )
+        dt_next = dt.replace(
+            hour=next_point.time.hour,
+            minute=next_point.time.minute,
+            second=next_point.time.second,
+            microsecond=0,
+        )
+
+        # Adjust for wrapping
+        if dt_prev > dt_current:
+            dt_prev -= timedelta(days=1)
+        if dt_next < dt_prev:
+            dt_next += timedelta(days=1)
+        # If next is still before current (e.g. current is late night, next is early morning tomorrow)
+        if dt_next < dt_current:
+            dt_next += timedelta(days=1)
+
+        # Double check validity
+        # We expect dt_prev <= dt_current <= dt_next
+        # but due to my simple logic above let's ensure:
+
+        if dt_prev > dt_current:
+            # this shouldn't happen with the logic above unless I messed up logic
+            dt_prev -= timedelta(days=1)
+
+        # Recalculate duration
+        total_duration = (dt_next - dt_prev).total_seconds()
+        elapsed = (dt_current - dt_prev).total_seconds()
+
+        if total_duration == 0:
+            return prev_point.brightness_pct, prev_point.color_temp_kelvin
+
+        fraction = elapsed / total_duration
+
+        brightness = (
+            prev_point.brightness_pct
+            + (next_point.brightness_pct - prev_point.brightness_pct) * fraction
+        )
+        color_temp = (
+            prev_point.color_temp_kelvin
+            + (next_point.color_temp_kelvin - prev_point.color_temp_kelvin) * fraction
+        )
+
+        return brightness, int(color_temp)
+
     def brightness_and_color(
         self,
         dt: datetime.datetime,
         is_sleep: bool,
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
+        if self.manual_schedule:
+            # Manual schedule overrides everything except sleep?
+            # User requirement: "I want all the other features and functionality (sleep mode, the intercepts, etc) to stay the same."
+            # So sleep overrides schedule.
+
+            if is_sleep:
+                brightness_pct = self.sleep_brightness
+                color_temp_kelvin = self.sleep_color_temp
+                if self.sleep_rgb_or_color_temp == "rgb_color":
+                    rgb_color = self.sleep_rgb_color
+                    # We force RGB if sleep is RGB
+                    force_rgb_color = True
+                else:
+                    r, g, b = color_temperature_to_rgb(color_temp_kelvin)
+                    rgb_color = (round(r), round(g), round(b))
+                    force_rgb_color = False
+
+                # Dummy values for unused vars
+                sun_position = 0.0
+            else:
+                brightness_pct, color_temp_kelvin = self._get_schedule_values(dt)
+                r, g, b = color_temperature_to_rgb(color_temp_kelvin)
+                rgb_color = (round(r), round(g), round(b))
+                force_rgb_color = False
+                sun_position = 0.0  # Schedule doesn't use sun position
+
+            # backwards compatibility for versions < 1.3.1 - see #403
+            color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
+            xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
+            hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
+            return {
+                "brightness_pct": brightness_pct,
+                "color_temp_kelvin": color_temp_kelvin,
+                "color_temp_mired": color_temp_mired,
+                "rgb_color": rgb_color,
+                "xy_color": xy_color,
+                "hs_color": hs_color,
+                "sun_position": sun_position,
+                "force_rgb_color": force_rgb_color,
+            }
+
         sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
