@@ -1652,8 +1652,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
-AdaptiveSwitches = list[AdaptiveSwitch]
-AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
+type AdaptiveSwitches = list[AdaptiveSwitch]
+type AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
 
 
 class AdaptiveLightingManager:
