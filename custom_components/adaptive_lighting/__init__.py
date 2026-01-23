@@ -16,10 +16,11 @@ from .const import (
     DOMAIN,
     UNDO_UPDATE_LISTENER,
 )
+from .switch import AdaptiveLightingManager
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["switch"]
+PLATFORMS = ["switch", "sensor"]
 
 
 def _all_unique_names(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -62,6 +63,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up the component."""
     data = hass.data.setdefault(DOMAIN, {})
+    if ATTR_ADAPTIVE_LIGHTING_MANAGER not in data:
+        data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = AdaptiveLightingManager(hass)
 
     # This will reload any changes the user made to any YAML configurations.
     # Called during 'quick reload' or hass.reload_config_entry
@@ -84,6 +87,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     unload_ok = await hass.config_entries.async_forward_entry_unload(
         config_entry,
         "switch",
+    )
+    unload_ok = unload_ok and await hass.config_entries.async_forward_entry_unload(
+        config_entry,
+        "sensor",
     )
     data = hass.data[DOMAIN]
     data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()
