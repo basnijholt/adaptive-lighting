@@ -7,10 +7,23 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (  # pylint: disable=unused-import
     CONF_LIGHTS,
+    CONF_LUX_SENSOR,
+    CONF_LUX_SMOOTHING_SAMPLES,
+    CONF_LUX_SMOOTHING_WINDOW,
     DOMAIN,
     EXTRA_VALIDATION,
     NONE_STR,
@@ -145,12 +158,37 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     configured_light,
                 )
 
+        # Build list of illuminance sensors for dropdown
+        lux_sensor_options: list[SelectOptionDict] = [
+            SelectOptionDict(value="", label="None (use sun position)"),
+        ]
+        lux_sensor_options.extend(
+            SelectOptionDict(
+                value=state.entity_id,
+                label=f"{state.attributes.get('friendly_name', state.entity_id)} ({state.entity_id})",
+            )
+            for state in self.hass.states.async_all("sensor")
+            if state.attributes.get("device_class") == "illuminance"
+        )
+
         to_replace: dict[str, Any] = {
             CONF_LIGHTS: EntitySelector(
                 EntitySelectorConfig(
                     domain="light",
                     multiple=True,
                 ),
+            ),
+            CONF_LUX_SENSOR: SelectSelector(
+                SelectSelectorConfig(
+                    options=lux_sensor_options,
+                    mode=SelectSelectorMode.DROPDOWN,
+                ),
+            ),
+            CONF_LUX_SMOOTHING_SAMPLES: NumberSelector(
+                NumberSelectorConfig(min=1, max=100, mode=NumberSelectorMode.BOX),
+            ),
+            CONF_LUX_SMOOTHING_WINDOW: NumberSelector(
+                NumberSelectorConfig(min=1, max=3600, mode=NumberSelectorMode.BOX),
             ),
         }
 

@@ -226,10 +226,12 @@ class SunLightSettings:
     max_sunset_time: datetime.time | None
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
-    brightness_mode: Literal["default", "linear", "tanh"] = "default"
+    brightness_mode: Literal["default", "linear", "tanh", "lux"] = "default"
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
+    lux_min: int = 0
+    lux_max: int = 10000
 
     @cached_property
     def sun(self) -> SunEvents:
@@ -312,12 +314,45 @@ class SunLightSettings:
             raise ValueError(msg)
         return clamp(brightness, self.min_brightness, self.max_brightness)
 
-    def brightness_pct(self, dt: datetime.datetime, is_sleep: bool) -> float | None:
-        """Calculate the brightness in %."""
+    def _brightness_pct_lux(self, lux_value: float) -> float:
+        """Calculate brightness based on lux value.
+
+        Linear mapping matching circadian behavior: low lux = min brightness,
+        high lux = max brightness. This follows the same philosophy as sun-based
+        modes where darkness means dimmer lights.
+        """
+        if lux_value <= self.lux_min:
+            return float(self.min_brightness)
+        if lux_value >= self.lux_max:
+            return float(self.max_brightness)
+        lux_range = self.lux_max - self.lux_min
+        if lux_range <= 0:
+            return float(self.min_brightness)
+        normalized = (lux_value - self.lux_min) / lux_range
+        brightness = self.min_brightness + (
+            normalized * (self.max_brightness - self.min_brightness)
+        )
+        return clamp(brightness, self.min_brightness, self.max_brightness)
+
+    def brightness_pct(
+        self,
+        dt: datetime.datetime,
+        is_sleep: bool,
+        lux_value: float | None = None,
+    ) -> float | None:
+        """Calculate the brightness in %.
+
+        When brightness_mode is "lux" and lux_value is provided, uses lux-based
+        brightness. Falls back to "default" sun-based calculation when lux_value
+        is unavailable.
+        """
         if is_sleep:
             return self.sleep_brightness
-        assert self.brightness_mode in ("default", "linear", "tanh")
-        if self.brightness_mode == "default":
+        assert self.brightness_mode in ("default", "linear", "tanh", "lux")
+        if self.brightness_mode == "lux" and lux_value is not None:
+            return self._brightness_pct_lux(lux_value)
+        # Lux mode without value falls back to default
+        if self.brightness_mode in ("default", "lux"):
             return self._brightness_pct_default(dt)
         if self.brightness_mode == "linear":
             return self._brightness_pct_linear(dt)
@@ -344,13 +379,14 @@ class SunLightSettings:
         self,
         dt: datetime.datetime,
         is_sleep: bool,
+        lux_value: float | None = None,
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
-        brightness_pct = self.brightness_pct(dt, is_sleep)
+        brightness_pct = self.brightness_pct(dt, is_sleep, lux_value)
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
@@ -394,13 +430,14 @@ class SunLightSettings:
         self,
         is_sleep: bool,
         transition: float | None,
+        lux_value: float | None = None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
         """
         dt = utcnow() + timedelta(seconds=transition or 0)
-        return self.brightness_and_color(dt, is_sleep)
+        return self.brightness_and_color(dt, is_sleep, lux_value)
 
 
 def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:
