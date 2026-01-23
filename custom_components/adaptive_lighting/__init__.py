@@ -14,9 +14,12 @@ from .const import (
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_NAME,
     DOMAIN,
+    CONF_ENABLE_DIAGNOSTIC_SENSORS,
+    DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
     UNDO_UPDATE_LISTENER,
 )
 from .switch import AdaptiveLightingManager
+from .sensor import ensure_status_sensors_enabled
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +68,26 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     data = hass.data.setdefault(DOMAIN, {})
     if ATTR_ADAPTIVE_LIGHTING_MANAGER not in data:
         data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = AdaptiveLightingManager(hass)
+
+    if (
+        config_entry.options.get(CONF_ENABLE_DIAGNOSTIC_SENSORS)
+        == DEFAULT_ENABLE_DIAGNOSTIC_SENSORS
+        and CONF_ENABLE_DIAGNOSTIC_SENSORS in config_entry.data
+    ):
+        enable_diagnostic_sensors = config_entry.data[CONF_ENABLE_DIAGNOSTIC_SENSORS]
+    else:
+        enable_diagnostic_sensors = config_entry.options.get(
+            CONF_ENABLE_DIAGNOSTIC_SENSORS,
+            DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
+        )
+
+    if enable_diagnostic_sensors and config_entry.pref_disable_new_entities:
+        hass.config_entries.async_update_entry(
+            config_entry,
+            pref_disable_new_entities=False,
+        )
+    if enable_diagnostic_sensors:
+        ensure_status_sensors_enabled(hass, config_entry.entry_id)
 
     # This will reload any changes the user made to any YAML configurations.
     # Called during 'quick reload' or hass.reload_config_entry
