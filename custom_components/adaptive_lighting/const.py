@@ -17,6 +17,25 @@ ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
 
+SIGNAL_STATUS_UPDATED = f"{DOMAIN}_status_updated"
+
+STATUS_INACTIVE = "inactive"
+STATUS_ADOPTING = "adopting"
+STATUS_ACTIVE = "active"
+STATUS_MANUAL_OVERRIDE = "manual_override"
+STATUS_BLOCKED = "blocked"
+STATUS_ERROR = "error"
+
+ATTR_STATUS = "status"
+ATTR_STATUS_SINCE = "status_since"
+ATTR_STATUS_REASON = "status_reason"
+ATTR_STATUS_SOURCE = "status_source"
+ATTR_STATUS_PROFILES = "status_profiles"
+ATTR_STATUS_TARGET = "status_target"
+ATTR_STATUS_MANUAL_CONTROL = "status_manual_control"
+ATTR_STATUS_OVERRIDE_UNTIL = "status_override_until"
+ATTR_STATUS_LAST_ERROR = "status_last_error"
+
 
 class TakeOverControlMode(Enum):
     """Modes for pausing adaptation when control of a light is taken over externally."""
