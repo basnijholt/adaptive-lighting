@@ -176,8 +176,35 @@ DOCS[CONF_MAX_SUNSET_TIME] = (
 
 CONF_BRIGHTNESS_MODE, DEFAULT_BRIGHTNESS_MODE = "brightness_mode", "default"
 DOCS[CONF_BRIGHTNESS_MODE] = (
-    "Brightness mode to use. Possible values are `default`, `linear`, and `tanh` "
-    "(uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈"
+    "Brightness mode to use. Possible values are `default`, `linear`, `tanh` "
+    "(uses `brightness_mode_time_dark` and `brightness_mode_time_light`), and `lux` "
+    "(uses an outdoor lux sensor for brightness control). 📈"
+)
+
+CONF_LUX_SENSOR = "lux_sensor"
+DOCS[CONF_LUX_SENSOR] = (
+    "Entity ID of an outdoor illuminance (lux) sensor to use for brightness control "
+    "when `brightness_mode` is set to `lux`. ☀️"
+)
+
+CONF_LUX_MIN, DEFAULT_LUX_MIN = "lux_min", 0
+DOCS[CONF_LUX_MIN] = (
+    "Lux value below which brightness will be at minimum (dark = dim lights). ☀️"
+)
+
+CONF_LUX_MAX, DEFAULT_LUX_MAX = "lux_max", 10000
+DOCS[CONF_LUX_MAX] = (
+    "Lux value above which brightness will be at maximum (bright = bright lights). ☀️"
+)
+
+CONF_LUX_SMOOTHING_SAMPLES, DEFAULT_LUX_SMOOTHING_SAMPLES = "lux_smoothing_samples", 5
+DOCS[CONF_LUX_SMOOTHING_SAMPLES] = (
+    "Number of lux samples to average for smoothing rapid fluctuations. ☀️"
+)
+
+CONF_LUX_SMOOTHING_WINDOW, DEFAULT_LUX_SMOOTHING_WINDOW = "lux_smoothing_window", 300
+DOCS[CONF_LUX_SMOOTHING_WINDOW] = (
+    "Time window in seconds within which lux samples are considered for averaging. ☀️"
 )
 CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK = (
     "brightness_mode_time_dark",
@@ -363,12 +390,17 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
         DEFAULT_BRIGHTNESS_MODE,
         selector.SelectSelector(  # type: ignore[arg-type]
             selector.SelectSelectorConfig(
-                options=["default", "linear", "tanh"],
+                options=["default", "linear", "tanh", "lux"],
                 multiple=False,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             ),
         ),
     ),
+    (CONF_LUX_SENSOR, "", str),
+    (CONF_LUX_MIN, DEFAULT_LUX_MIN, cv.positive_int),
+    (CONF_LUX_MAX, DEFAULT_LUX_MAX, cv.positive_int),
+    (CONF_LUX_SMOOTHING_SAMPLES, DEFAULT_LUX_SMOOTHING_SAMPLES, int_between(1, 100)),
+    (CONF_LUX_SMOOTHING_WINDOW, DEFAULT_LUX_SMOOTHING_WINDOW, int_between(1, 3600)),
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
