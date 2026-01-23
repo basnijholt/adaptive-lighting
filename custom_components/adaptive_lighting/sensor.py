@@ -31,11 +31,14 @@ from .const import (
     ATTR_STATUS_SINCE,
     ATTR_STATUS_SOURCE,
     ATTR_STATUS_TARGET,
+    CONF_ENABLE_DIAGNOSTIC_SENSORS,
     CONF_LIGHTS,
+    DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
     DOMAIN,
     SIGNAL_STATUS_UPDATED,
     STATUS_INACTIVE,
 )
+from .switch import validate
 
 
 def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
@@ -54,14 +57,33 @@ def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
     return sorted(expanded)
 
 
+def ensure_status_sensors_enabled(hass: HomeAssistant, entry_id: str) -> None:
+    """Enable any disabled status sensors for a config entry."""
+    ent_reg = entity_registry.async_get(hass)
+    for entry in entity_registry.async_entries_for_config_entry(
+        ent_reg,
+        entry_id,
+    ):
+        if (
+            entry.domain == "sensor"
+            and entry.platform == DOMAIN
+            and entry.entity_id.startswith("sensor.adaptive_lighting_status_")
+            and entry.disabled_by is not None
+        ):
+            ent_reg.async_update_entity(entry.entity_id, disabled_by=None)
+
+
 async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:
     """Set up Adaptive Lighting status sensors."""
+    data = validate(config_entry)
+    if not data.get(CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS):
+        return
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
     store = hass.data[DOMAIN].setdefault("status_sensors", {})
 
-    data = dict(config_entry.data)
-    data.update(config_entry.options)
     lights = _expand_light_groups(hass, data.get(CONF_LIGHTS, []))
+
+    ensure_status_sensors_enabled(hass, config_entry.entry_id)
 
     new_entities: list[AdaptiveLightingStatusSensor] = []
     for light in lights:

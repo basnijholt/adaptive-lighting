@@ -75,6 +75,14 @@ DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
     "Home Assistant when set to `true`. 📝"
 )
 
+CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS = (
+    "enable_diagnostic_sensors",
+    False,
+)
+DOCS[CONF_ENABLE_DIAGNOSTIC_SENSORS] = (
+    "Expose per-light Adaptive Lighting status sensors when set to `true`. 🧭"
+)
+
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 DOCS[CONF_INITIAL_TRANSITION] = (
     "Duration of the first transition when lights turn "
@@ -424,6 +432,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
+    (CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS, bool),
 ]
 
 
