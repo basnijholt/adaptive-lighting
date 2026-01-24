@@ -74,7 +74,9 @@ def ensure_status_sensors_enabled(hass: HomeAssistant, entry_id: str) -> None:
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, config_entry, async_add_entities
+    hass: HomeAssistant,
+    config_entry,
+    async_add_entities,
 ) -> None:
     """Set up Adaptive Lighting status sensors."""
     data = validate(config_entry)
