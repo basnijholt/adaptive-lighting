@@ -59,8 +59,8 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import entity_platform, entity_registry
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity_component import async_update_entity
 from homeassistant.helpers.event import (
     EventStateChangedData,

@@ -73,7 +73,9 @@ def ensure_status_sensors_enabled(hass: HomeAssistant, entry_id: str) -> None:
             ent_reg.async_update_entity(entry.entity_id, disabled_by=None)
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry, async_add_entities
+) -> None:
     """Set up Adaptive Lighting status sensors."""
     data = validate(config_entry)
     if not data.get(CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS):
@@ -165,9 +167,9 @@ class AdaptiveLightingStatusSensor(SensorEntity):
             ATTR_STATUS_MANUAL_CONTROL: self._manager.get_manual_control_attributes(
                 self._light_entity_id,
             ).has_any(),
-            ATTR_STATUS_OVERRIDE_UNTIL: override_until.isoformat()
-            if override_until
-            else None,
+            ATTR_STATUS_OVERRIDE_UNTIL: (
+                override_until.isoformat() if override_until else None
+            ),
             ATTR_STATUS_LAST_ERROR: combined.last_error,
         }
 

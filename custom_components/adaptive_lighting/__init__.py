@@ -12,14 +12,14 @@ from homeassistant.core import Event, HomeAssistant
 from .const import (
     _DOMAIN_SCHEMA,  # pyright: ignore[reportPrivateUsage]
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
-    CONF_NAME,
-    DOMAIN,
     CONF_ENABLE_DIAGNOSTIC_SENSORS,
+    CONF_NAME,
     DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
+    DOMAIN,
     UNDO_UPDATE_LISTENER,
 )
-from .switch import AdaptiveLightingManager
 from .sensor import ensure_status_sensors_enabled
+from .switch import AdaptiveLightingManager
 
 _LOGGER = logging.getLogger(__name__)
 
