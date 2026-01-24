@@ -106,6 +106,7 @@ class AdaptiveLightingStatusSensor(SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, hass: HomeAssistant, manager, light_entity_id: str) -> None:
+        """Initialize the per-light status sensor."""
         self.hass = hass
         self._manager = manager
         self._light_entity_id = light_entity_id
@@ -113,17 +114,20 @@ class AdaptiveLightingStatusSensor(SensorEntity):
 
     @property
     def name(self) -> str:
+        """Return the sensor name."""
         state = self.hass.states.get(self._light_entity_id)
         light_name = state.name if state is not None else self._light_entity_id
         return f"Adaptive Lighting Status: {light_name}"
 
     @property
     def native_value(self) -> str:
+        """Return the current combined status."""
         combined = self._manager.get_combined_status(self._light_entity_id)
         return combined.status if combined.status else STATUS_INACTIVE
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return detailed status attributes."""
         combined = self._manager.get_combined_status(self._light_entity_id)
         statuses = self._manager.get_light_statuses(self._light_entity_id)
 
@@ -175,6 +179,7 @@ class AdaptiveLightingStatusSensor(SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo | None:
+        """Return the linked light device info when available."""
         ent_reg = entity_registry.async_get(self.hass)
         entity_entry = ent_reg.async_get(self._light_entity_id)
         if entity_entry and entity_entry.device_id:
@@ -185,6 +190,7 @@ class AdaptiveLightingStatusSensor(SensorEntity):
         return None
 
     async def async_added_to_hass(self) -> None:
+        """Register status update listeners."""
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
