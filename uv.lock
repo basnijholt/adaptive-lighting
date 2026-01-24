@@ -109,7 +109,7 @@ dev = [
 docs = [
     { name = "astral" },
     { name = "homeassistant" },
-    { name = "markdown-code-runner", git = "https://github.com/basnijholt/markdown-code-runner" },
+    { name = "markdown-code-runner", specifier = ">=2.7.0" },
     { name = "markdown-gfm-admonition" },
     { name = "pandas" },
     { name = "shinylive" },
@@ -2790,8 +2790,12 @@ wheels = [
 
 [[package]]
 name = "markdown-code-runner"
-version = "2.6.1.dev2+gfd3e19caf"
-source = { git = "https://github.com/basnijholt/markdown-code-runner#fd3e19cafa960ce6c15a198b42723bf9d5420788" }
+version = "2.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/d1/2a7753e05dcc711552721048a34341b63a6a2b09e70ac738c7a4c81ca414/markdown_code_runner-2.7.0.tar.gz", hash = "sha256:b36f9314839c0db3ee5e5d644e1b4471454af8f624eb15bd5a5d68dbc6430afe", size = 99832, upload-time = "2026-01-24T21:20:04.772Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cf/92/9d7fa0567cf3d38b551bb1a30c177285e0e42ae2b10c16946af7e8a38e73/markdown_code_runner-2.7.0-py3-none-any.whl", hash = "sha256:fad5d5fbad9c49687141ab9c39ed7e054f857b97aa79d11f031de157afd21c20", size = 14692, upload-time = "2026-01-24T21:20:03.382Z" },
+]
 
 [[package]]
 name = "markdown-gfm-admonition"

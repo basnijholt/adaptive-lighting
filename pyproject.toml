@@ -14,7 +14,7 @@ requires-python = ">=3.12"
 docs = [
     "astral",
     "homeassistant",
-    "markdown-code-runner @ git+https://github.com/basnijholt/markdown-code-runner",
+    "markdown-code-runner>=2.7.0",
     "markdown-gfm-admonition",
     "pandas",
     "shinylive",
