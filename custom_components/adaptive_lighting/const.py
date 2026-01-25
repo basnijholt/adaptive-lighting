@@ -20,7 +20,6 @@ DOMAIN = "adaptive_lighting"
 SIGNAL_STATUS_UPDATED = f"{DOMAIN}_status_updated"
 
 STATUS_INACTIVE = "inactive"
-STATUS_ADOPTING = "adopting"
 STATUS_ACTIVE = "active"
 STATUS_MANUAL_OVERRIDE = "manual_override"
 STATUS_BLOCKED = "blocked"
