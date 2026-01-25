@@ -146,7 +146,6 @@ from .const import (
     SIGNAL_STATUS_UPDATED,
     SLEEP_MODE_SWITCH,
     STATUS_ACTIVE,
-    STATUS_ADOPTING,
     STATUS_BLOCKED,
     STATUS_ERROR,
     STATUS_INACTIVE,
@@ -1354,19 +1353,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     STATUS_ACTIVE,
                     reason="no_change",
                 )
-            else:
-                self.manager.set_light_status(
-                    light,
-                    self.entity_id,
-                    STATUS_INACTIVE,
-                    reason="light_off",
-                )
             return  # nothing to adapt
 
         self.manager.set_light_status(
             light,
             self.entity_id,
-            STATUS_ADOPTING,
+            STATUS_ACTIVE,
             reason="apply",
         )
         try:
@@ -1457,7 +1449,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.manager.set_light_status(
             data.entity_id,
             self.entity_id,
-            STATUS_ADOPTING,
+            STATUS_ACTIVE,
             reason="apply",
         )
         _LOGGER.debug(
@@ -1982,11 +1974,6 @@ class AdaptiveLightingManager:
 
     def get_combined_status(self, light: str) -> LightStatusInfo:
         """Return the combined status for a light across all sources."""
-        if self.hass.states.is_state(light, STATE_OFF):
-            return LightStatusInfo(
-                status=STATUS_INACTIVE,
-                reason="light_off",
-            )
         statuses = list(self.get_light_statuses(light).values())
         if not statuses:
             return LightStatusInfo(status=STATUS_INACTIVE)
@@ -2004,7 +1991,6 @@ class AdaptiveLightingManager:
         return {
             STATUS_ERROR: 5,
             STATUS_MANUAL_OVERRIDE: 4,
-            STATUS_ADOPTING: 3,
             STATUS_ACTIVE: 2,
             STATUS_BLOCKED: 1,
             STATUS_INACTIVE: 0,
@@ -2549,19 +2535,12 @@ class AdaptiveLightingManager:
                             STATUS_INACTIVE,
                             reason="switch_off",
                         )
-                    elif self.hass.states.is_state(light, STATE_ON):
+                    else:
                         self.set_light_status(
                             light,
                             switch.entity_id,
                             STATUS_ACTIVE,
                             reason="manual_control_reset",
-                        )
-                    else:
-                        self.set_light_status(
-                            light,
-                            switch.entity_id,
-                            STATUS_INACTIVE,
-                            reason="light_off",
                         )
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
@@ -2761,11 +2740,6 @@ class AdaptiveLightingManager:
             # Tracks 'on' → 'off' state changes
             self.on_to_off_event[entity_id] = event
             self.reset(entity_id)
-            self.set_light_status_for_switches(
-                entity_id,
-                STATUS_INACTIVE,
-                reason="light_off",
-            )
             _LOGGER.debug(
                 "Detected an 'on' → 'off' event for '%s' with context.id='%s'",
                 entity_id,
