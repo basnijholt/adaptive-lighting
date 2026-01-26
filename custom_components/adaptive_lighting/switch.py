@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import time
 import zoneinfo
+from collections import deque
 from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
@@ -102,6 +104,11 @@ from .const import (
     CONF_INTERCEPT,
     CONF_INTERVAL,
     CONF_LIGHTS,
+    CONF_LUX_MAX,
+    CONF_LUX_MIN,
+    CONF_LUX_SENSOR,
+    CONF_LUX_SMOOTHING_SAMPLES,
+    CONF_LUX_SMOOTHING_WINDOW,
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
@@ -869,6 +876,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners: list[CALLBACK_TYPE] = []
         self.remove_interval: CALLBACK_TYPE = lambda: None
+
+        # Lux sensor smoothing buffer: stores (timestamp, value) tuples
+        self._lux_samples: deque[tuple[float, float]] = deque()
+
         _LOGGER.debug(
             "%s: Setting up with '%s',"
             " config_entry.data: '%s',"
@@ -944,6 +955,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
+
+        # Lux sensor configuration
+        lux_sensor = data.get(CONF_LUX_SENSOR)
+        self._lux_sensor: str | None = (
+            lux_sensor if lux_sensor and lux_sensor != "None" else None
+        )
+        self._lux_smoothing_samples: int = data[CONF_LUX_SMOOTHING_SAMPLES]
+        self._lux_smoothing_window: int = data[CONF_LUX_SMOOTHING_WINDOW]
+
         location, _ = get_astral_location(self.hass)
 
         self._sun_light_settings = SunLightSettings(
@@ -970,6 +990,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
+            lux_min=data[CONF_LUX_MIN],
+            lux_max=data[CONF_LUX_MAX],
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",
@@ -1035,6 +1057,105 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         self.lights = list(all_lights)
 
+    def _add_lux_sample(self, lux_value: float) -> None:
+        """Add a lux sample to the smoothing buffer."""
+        now = time.time()
+        self._lux_samples.append((now, lux_value))
+        while len(self._lux_samples) > self._lux_smoothing_samples:
+            self._lux_samples.popleft()
+
+    def _read_initial_lux_value(self) -> None:
+        """Read the current lux sensor state to initialize the sample buffer."""
+        state = self.hass.states.get(self._lux_sensor)
+        if state is None or state.state in ("unavailable", "unknown"):
+            return
+        try:
+            lux_value = float(state.state)
+            if lux_value >= 0:
+                self._add_lux_sample(lux_value)
+                _LOGGER.debug(
+                    "%s: Initialized lux from current sensor state: %s",
+                    self._name,
+                    lux_value,
+                )
+        except (ValueError, TypeError):
+            pass
+
+    def _get_smoothed_lux(self) -> float | None:
+        """Get the smoothed lux value from recent samples within the time window.
+
+        Returns None if no samples exist. Falls back to most recent sample
+        if all samples are outside the time window.
+        """
+        if not self._lux_samples:
+            return None
+
+        now = time.time()
+        cutoff = now - self._lux_smoothing_window
+
+        # Snapshot to avoid race condition during iteration
+        samples_snapshot = list(self._lux_samples)
+        valid_samples = [
+            value for timestamp, value in samples_snapshot if timestamp >= cutoff
+        ]
+
+        if not valid_samples:
+            # All samples expired, use most recent as fallback
+            _, most_recent_value = samples_snapshot[-1]
+            return most_recent_value
+
+        return sum(valid_samples) / len(valid_samples)
+
+    async def _lux_sensor_state_event_action(
+        self,
+        event: Event[EventStateChangedData],
+    ) -> None:
+        """Handle lux sensor state change events."""
+        new_state = event.data.get("new_state")
+        if new_state is None:
+            return
+
+        if new_state.state in ("unavailable", "unknown"):
+            _LOGGER.debug(
+                "%s: Lux sensor is %s, skipping",
+                self._name,
+                new_state.state,
+            )
+            return
+
+        try:
+            lux_value = float(new_state.state)
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "%s: Could not parse lux sensor value '%s'",
+                self._name,
+                new_state.state,
+            )
+            return
+
+        # Negative lux is physically impossible
+        if lux_value < 0:
+            _LOGGER.warning(
+                "%s: Ignoring invalid negative lux value: %s",
+                self._name,
+                lux_value,
+            )
+            return
+
+        self._add_lux_sample(lux_value)
+
+        if self._sun_light_settings.brightness_mode != "lux":
+            return
+
+        if not self.is_on:
+            return
+
+        await self._update_attrs_and_maybe_adapt_lights(
+            context=self.create_context("lux_change"),
+            transition=self._transition,
+            force=False,
+        )
+
     async def _setup_listeners(self, _: Event[NoEventData] | None = None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
         if not self.is_on or not self.hass.is_running:
@@ -1052,6 +1173,27 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
         self.remove_listeners.append(remove_sleep)
+
+        # Set up lux sensor listener if configured
+        if self._lux_sensor:
+            lux_state = self.hass.states.get(self._lux_sensor)
+            if lux_state is None:
+                _LOGGER.warning(
+                    "%s: Configured lux sensor '%s' not found, "
+                    "falling back to sun-based brightness",
+                    self._name,
+                    self._lux_sensor,
+                )
+            else:
+                remove_lux = async_track_state_change_event(
+                    self.hass,
+                    entity_ids=self._lux_sensor,
+                    action=self._lux_sensor_state_event_action,
+                )
+                self.remove_listeners.append(remove_lux)
+                # Read initial lux value since sensor only reports on change
+                self._read_initial_lux_value()
+
         self._expand_light_groups()
 
     def _update_time_interval_listener(self) -> None:
@@ -1131,6 +1273,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             for light in self.lights
             if (timer := timers.get(light)) and (time := timer.remaining_time()) > 0
         }
+        # Lux sensor attributes
+        if self._lux_sensor:
+            extra_state_attributes["lux_sensor"] = self._lux_sensor
+            extra_state_attributes["current_lux"] = self._get_smoothed_lux()
+            extra_state_attributes["lux_samples_count"] = len(self._lux_samples)
         return extra_state_attributes
 
     def create_context(
@@ -1224,6 +1371,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on,
             transition,
+            self._get_smoothed_lux(),
         )
 
         # Build service data.
@@ -1419,6 +1567,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._sun_light_settings.get_settings(
                 self.sleep_mode_switch.is_on,
                 transition,
+                self._get_smoothed_lux(),
             ),
         )
         self.async_write_ha_state()
