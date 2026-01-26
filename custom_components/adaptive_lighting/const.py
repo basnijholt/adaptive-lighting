@@ -459,7 +459,7 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
-def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
+def apply_service_schema() -> vol.Schema:
     """Return the schema for the apply service."""
     return vol.Schema(
         {
@@ -467,14 +467,28 @@ def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(
                 CONF_TRANSITION,
-                default=initial_transition,
-            ): VALID_TRANSITION,
+                default=None,
+            ): vol.Any(VALID_TRANSITION, None),
             vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
         },
     )
+
+
+def change_switch_settings_schema() -> vol.Schema:
+    """Return the schema for the change_switch_settings service."""
+    args: dict[vol.Marker, Any] = {
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
+        vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string,
+    }
+    # Modifying these after init isn't possible
+    skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
+    for k, _, valid in VALIDATION_TUPLES:
+        if k not in skip:
+            args[vol.Optional(k)] = valid
+    return vol.Schema(args)
 
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
