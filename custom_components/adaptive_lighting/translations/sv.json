@@ -182,7 +182,7 @@
           "description": "Strömbrytarens ”entity_id\" i vilken lampan ska (av)markeras som \"manuellt styrd\". 📝"
         }
       },
-      "description": "Swedish: Markera om en lampa är \"styrd manuellt\"."
+      "description": "Markera om en lampa är \"styrd manuellt\"."
     },
     "apply": {
       "description": "Tillämpar nuvarande Adaptiv Ljussätting inställningar till lampor.",
