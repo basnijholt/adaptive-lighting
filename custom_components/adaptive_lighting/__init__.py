@@ -19,7 +19,7 @@ from .const import (
     UNDO_UPDATE_LISTENER,
 )
 from .sensor import ensure_status_sensors_enabled
-from .switch import AdaptiveLightingManager
+from .switch import AdaptiveLightingManager, validate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,21 +65,14 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up the component."""
-    data = hass.data.setdefault(DOMAIN, {})
-    if ATTR_ADAPTIVE_LIGHTING_MANAGER not in data:
-        data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = AdaptiveLightingManager(hass)
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if ATTR_ADAPTIVE_LIGHTING_MANAGER not in domain_data:
+        domain_data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = AdaptiveLightingManager(hass)
 
-    if (
-        config_entry.options.get(CONF_ENABLE_DIAGNOSTIC_SENSORS)
-        == DEFAULT_ENABLE_DIAGNOSTIC_SENSORS
-        and CONF_ENABLE_DIAGNOSTIC_SENSORS in config_entry.data
-    ):
-        enable_diagnostic_sensors = config_entry.data[CONF_ENABLE_DIAGNOSTIC_SENSORS]
-    else:
-        enable_diagnostic_sensors = config_entry.options.get(
-            CONF_ENABLE_DIAGNOSTIC_SENSORS,
-            DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
-        )
+    data = validate(config_entry)
+    enable_diagnostic_sensors = data.get(
+        CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS
+    )
 
     if enable_diagnostic_sensors and config_entry.pref_disable_new_entities:
         hass.config_entries.async_update_entry(
@@ -89,12 +82,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if enable_diagnostic_sensors:
         ensure_status_sensors_enabled(hass, config_entry.entry_id)
 
+    undo_listener = config_entry.add_update_listener(async_update_options)
+    domain_data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
+
     # This will reload any changes the user made to any YAML configurations.
     # Called during 'quick reload' or hass.reload_config_entry
     hass.bus.async_listen("hass.config.entry_updated", reload_configuration_yaml)
 
-    undo_listener = config_entry.add_update_listener(async_update_options)
-    data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True

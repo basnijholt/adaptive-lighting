@@ -574,8 +574,8 @@ def validate(
     if config_entry is not None:
         assert service_data is None
         assert defaults is None
-        data.update(config_entry.options)  # come from options flow
         data.update(config_entry.data)  # all yaml settings come from data
+        data.update(config_entry.options)  # come from options flow
     else:
         assert service_data is not None
         changed_settings = {
