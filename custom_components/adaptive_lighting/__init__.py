@@ -12,14 +12,18 @@ from homeassistant.core import Event, HomeAssistant
 from .const import (
     _DOMAIN_SCHEMA,  # pyright: ignore[reportPrivateUsage]
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
+    CONF_ENABLE_DIAGNOSTIC_SENSORS,
     CONF_NAME,
+    DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
     DOMAIN,
     UNDO_UPDATE_LISTENER,
 )
+from .sensor import ensure_status_sensors_enabled
+from .switch import AdaptiveLightingManager, validate
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["switch"]
+PLATFORMS = ["switch", "sensor"]
 
 
 def _all_unique_names(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -61,14 +65,31 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up the component."""
-    data = hass.data.setdefault(DOMAIN, {})
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if ATTR_ADAPTIVE_LIGHTING_MANAGER not in domain_data:
+        domain_data[ATTR_ADAPTIVE_LIGHTING_MANAGER] = AdaptiveLightingManager(hass)
+
+    data = validate(config_entry)
+    enable_diagnostic_sensors = data.get(
+        CONF_ENABLE_DIAGNOSTIC_SENSORS,
+        DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
+    )
+
+    if enable_diagnostic_sensors and config_entry.pref_disable_new_entities:
+        hass.config_entries.async_update_entry(
+            config_entry,
+            pref_disable_new_entities=False,
+        )
+    if enable_diagnostic_sensors:
+        ensure_status_sensors_enabled(hass, config_entry.entry_id)
+
+    undo_listener = config_entry.add_update_listener(async_update_options)
+    domain_data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
 
     # This will reload any changes the user made to any YAML configurations.
     # Called during 'quick reload' or hass.reload_config_entry
     hass.bus.async_listen("hass.config.entry_updated", reload_configuration_yaml)
 
-    undo_listener = config_entry.add_update_listener(async_update_options)
-    data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True
@@ -84,6 +105,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     unload_ok = await hass.config_entries.async_forward_entry_unload(
         config_entry,
         "switch",
+    )
+    unload_ok = unload_ok and await hass.config_entries.async_forward_entry_unload(
+        config_entry,
+        "sensor",
     )
     data = hass.data[DOMAIN]
     data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()

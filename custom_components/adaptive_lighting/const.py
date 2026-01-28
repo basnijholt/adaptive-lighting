@@ -17,6 +17,24 @@ ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
 
+SIGNAL_STATUS_UPDATED = f"{DOMAIN}_status_updated"
+
+STATUS_INACTIVE = "inactive"
+STATUS_ACTIVE = "active"
+STATUS_MANUAL_OVERRIDE = "manual_override"
+STATUS_BLOCKED = "blocked"
+STATUS_ERROR = "error"
+
+ATTR_STATUS = "status"
+ATTR_STATUS_SINCE = "status_since"
+ATTR_STATUS_REASON = "status_reason"
+ATTR_STATUS_SOURCE = "status_source"
+ATTR_STATUS_PROFILES = "status_profiles"
+ATTR_STATUS_TARGET = "status_target"
+ATTR_STATUS_MANUAL_CONTROL = "status_manual_control"
+ATTR_STATUS_OVERRIDE_UNTIL = "status_override_until"
+ATTR_STATUS_LAST_ERROR = "status_last_error"
+
 
 class TakeOverControlMode(Enum):
     """Modes for pausing adaptation when control of a light is taken over externally."""
@@ -54,6 +72,14 @@ CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
 DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
     "Show all options as attributes on the switch in "
     "Home Assistant when set to `true`. 📝"
+)
+
+CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS = (
+    "enable_diagnostic_sensors",
+    False,
+)
+DOCS[CONF_ENABLE_DIAGNOSTIC_SENSORS] = (
+    "Expose per-light Adaptive Lighting status sensors when set to `true`. 🧭"
 )
 
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
@@ -405,6 +431,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
+    (CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS, bool),
 ]
 
 
