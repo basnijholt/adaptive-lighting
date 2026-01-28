@@ -71,7 +71,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     data = validate(config_entry)
     enable_diagnostic_sensors = data.get(
-        CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS
+        CONF_ENABLE_DIAGNOSTIC_SENSORS,
+        DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
     )
 
     if enable_diagnostic_sensors and config_entry.pref_disable_new_entities:
