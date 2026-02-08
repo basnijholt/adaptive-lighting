@@ -1,5 +1,7 @@
 """Constants for the Adaptive Lighting integration."""
 
+from __future__ import annotations
+
 from datetime import timedelta
 from enum import Enum
 from typing import Any
@@ -287,6 +289,8 @@ SERVICE_SET_MANUAL_CONTROL = "set_manual_control"
 CONF_MANUAL_CONTROL = "manual_control"
 DOCS[CONF_MANUAL_CONTROL] = "Whether to manually control the lights. 🔒"
 SERVICE_APPLY = "apply"
+CONF_MANUAL_SCHEDULE, DEFAULT_MANUAL_SCHEDULE = "manual_schedule", ""
+DOCS[CONF_MANUAL_SCHEDULE] = "YAML configuration for manual schedule. 📝"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. 🔆"
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
@@ -404,6 +408,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
+    (CONF_MANUAL_SCHEDULE, DEFAULT_MANUAL_SCHEDULE, cv.string),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
 ]
 

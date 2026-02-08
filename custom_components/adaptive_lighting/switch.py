@@ -14,6 +14,7 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
+import yaml
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -82,7 +83,7 @@ from .adaptation_utils import (
     manual_control_event_attribute_to_flags,
     prepare_adaptation_data,
 )
-from .color_and_brightness import SunLightSettings
+from .color_and_brightness import SchedulePoint, SunLightSettings
 from .const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
@@ -103,6 +104,7 @@ from .const import (
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MANUAL_CONTROL,
+    CONF_MANUAL_SCHEDULE,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
     CONF_MAX_SUNRISE_TIME,
@@ -944,6 +946,38 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
+
+        self.manual_schedule: list[SchedulePoint] | None = None
+        if schedule_yaml := data.get(CONF_MANUAL_SCHEDULE):
+            try:
+                schedule_data = yaml.safe_load(schedule_yaml)
+                if isinstance(schedule_data, list):
+                    self.manual_schedule = []
+                    for item in schedule_data:
+                        if not isinstance(item, dict):
+                            continue
+                        t_str = str(item.get("time"))
+                        try:
+                            # Try robust parsing with cv.time (handles 7:00)
+                            t = cv.time(t_str)
+                        except (ValueError, vol.Invalid):
+                            # Fallback to pure ISO if cv fails or for standard compliance
+                            t = datetime.time.fromisoformat(t_str)
+
+                        self.manual_schedule.append(
+                            SchedulePoint(
+                                time=t,
+                                brightness_pct=float(item["brightness_pct"]),
+                                color_temp_kelvin=int(item["color_temp_kelvin"]),
+                            )
+                        )
+                    _LOGGER.info(
+                        "Loaded manual schedule with %s points",
+                        len(self.manual_schedule),
+                    )
+            except Exception as e:
+                _LOGGER.error("Failed to parse manual schedule: %s", e)
+
         location, _ = get_astral_location(self.hass)
 
         self._sun_light_settings = SunLightSettings(
@@ -970,6 +1004,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
+            manual_schedule=self.manual_schedule,
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",
@@ -1484,6 +1519,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self._name,
                     light,
                     context.id,
+                )
+                _LOGGER.info(
+                    "%s: Light '%s' is manually controlled. Schedule will NOT apply until reset.",
+                    self._name,
+                    light,
                 )
                 continue
 
