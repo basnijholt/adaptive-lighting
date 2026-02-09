@@ -1696,7 +1696,7 @@ async def test_change_switch_settings_service(hass):
 
 async def test_cancellable_service_calls_task(hass):
     """Test the creation and execution of the task that wraps adaptation service calls."""
-    (light, *_) = await setup_lights(hass)
+    light, *_ = await setup_lights(hass)
     _, switch = await setup_switch(hass, {CONF_SEPARATE_TURN_ON_COMMANDS: True})
     context = switch.create_context("test")
 
