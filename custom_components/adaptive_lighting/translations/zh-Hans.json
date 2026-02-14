@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "自适应照明选项",
-        "description": "配置自适应照明组件。选项名称与YAML设置对齐。如果在YAML中定义了此条目，则此处不会显示任何选项。有关演示参数影响的交互式图表，请访问[此Web应用程序](https://basnijholt.github.io/adaptive-lighting)。有关更多详细信息，请参阅[官方文档](https://github.com/basnijholt/adaptive-lighting#readme)。",
+        "description": "配置自适应照明组件。选项名称与YAML设置对齐。如果在YAML中定义了此条目，则此处不会显示任何选项。有关演示参数影响的交互式图表，请访问[此Web应用程序]({webapp_url})。有关更多详细信息，请参阅[官方文档]({docs_url})。",
         "data": {
           "lights": "lights：要控制的灯光实体ID列表（可以为空）。🌟",
           "interval": "频率(interval)",

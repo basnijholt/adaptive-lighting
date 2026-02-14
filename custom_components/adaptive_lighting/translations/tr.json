@@ -46,7 +46,7 @@
           "sleep_rgb_or_color_temp": "Uyku modunda `\"rgb_color\"` veya `\"color_temp\"` kullanın. 🌙",
           "adapt_delay": "Işık açıldıktan sonra Adaptive Lighting’in değişiklikleri uygulamasına kadar bekleme süresi (saniye cinsinden). Titremeyi önlemeye yardımcı olabilir. ⏲️"
         },
-        "description": "Bir Adaptive Lighting bileşenini yapılandırın. Seçenek adları YAML ayarlarıyla uyumludur. Eğer bu girdiyi YAML’da tanımladıysanız, burada seçenekler görünmez.  \nParametrelerin etkilerini gösteren etkileşimli grafikler için [bu web uygulamasını](https://basnijholt.github.io/adaptive-lighting) ziyaret edebilirsiniz. Daha fazla bilgi için [resmi dokümantasyona](https://github.com/basnijholt/adaptive-lighting#readme) bakın."
+        "description": "Bir Adaptive Lighting bileşenini yapılandırın. Seçenek adları YAML ayarlarıyla uyumludur. Eğer bu girdiyi YAML’da tanımladıysanız, burada seçenekler görünmez.  \nParametrelerin etkilerini gösteren etkileşimli grafikler için [bu web uygulamasını]({webapp_url}) ziyaret edebilirsiniz. Daha fazla bilgi için [resmi dokümantasyona]({docs_url}) bakın."
       }
     },
     "error": {
