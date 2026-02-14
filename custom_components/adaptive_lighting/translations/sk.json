@@ -45,7 +45,7 @@
           "send_split_delay": "Pauza (v ms) medzi príkazmi pri zapnutom `separate_turn_on_commands` pre svetlá, ktoré nepodporujú súčasné nastavenie jasu a teploty svetla. ⏲️"
         },
         "title": "Nastavenia Adaptívneho osvetlenia",
-        "description": "Nastavte komponentu Adaptívneho osvetlenia. Názvy nastavení sú zhodné s názvami v súbore YAML. Ak ste túto položku nastavili už v YAML, tak tu sa nezobrazia žiadne možnosti nastavenia. Interaktívne grafy, ktoré zobrazujú vplyv nastavení, nájdete na [tejto webovej aplikácii](https://basnijholt.github.io/adaptive-lighting). Ďalšie informácie nájdete v [oficiálnej dokumentácii](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Nastavte komponentu Adaptívneho osvetlenia. Názvy nastavení sú zhodné s názvami v súbore YAML. Ak ste túto položku nastavili už v YAML, tak tu sa nezobrazia žiadne možnosti nastavenia. Interaktívne grafy, ktoré zobrazujú vplyv nastavení, nájdete na [tejto webovej aplikácii]({webapp_url}). Ďalšie informácie nájdete v [oficiálnej dokumentácii]({docs_url})."
       }
     },
     "error": {
