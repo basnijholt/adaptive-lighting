@@ -92,7 +92,9 @@ def get_python_version(ha_version: str) -> str:
             if match:
                 return match.group(1)
     except urllib.error.URLError as e:
-        print(f"Warning: Could not fetch python version for {ha_version}: {e}")  # noqa: T201
+        print(
+            f"Warning: Could not fetch python version for {ha_version}: {e}"
+        )  # noqa: T201
 
     # Fallback to hardcoded logic if fetch fails
     parts = ha_version.split(".")
