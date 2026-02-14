@@ -21,6 +21,9 @@ from pathlib import Path
 # This should be the oldest version we want to support
 MIN_VERSION = (2024, 12)
 
+# Allow print statements, since this is a script
+# ruff: noqa: T201
+
 
 def get_ha_core_versions() -> list[str]:
     """Fetch latest stable HA Core versions from GitHub API."""
@@ -92,9 +95,7 @@ def get_python_version(ha_version: str) -> str:
             if match:
                 return match.group(1)
     except urllib.error.URLError as e:
-        print(
-            f"Warning: Could not fetch python version for {ha_version}: {e}"
-        )  # noqa: T201
+        print(f"Warning: Could not fetch python version for {ha_version}: {e}")
 
     # Fallback to hardcoded logic if fetch fails
     parts = ha_version.split(".")
@@ -154,21 +155,21 @@ def update_workflow_file(workflow_path: Path, new_matrix: str) -> bool:
 
 def main() -> None:
     """Main entry point."""
-    print("Fetching latest HA Core versions...")  # noqa: T201
+    print("Fetching latest HA Core versions...")
     versions = get_ha_core_versions()
-    print(f"Found {len(versions)} versions: {', '.join(versions)}")  # noqa: T201
+    print(f"Found {len(versions)} versions: {', '.join(versions)}")
 
-    print("\nGenerating matrix...")  # noqa: T201
+    print("\nGenerating matrix...")
     matrix = generate_matrix_yaml(versions)
-    print(matrix)  # noqa: T201
+    print(matrix)
 
     workflow_path = Path(__file__).parent.parent / ".github/workflows/pytest.yaml"
-    print(f"\nUpdating {workflow_path}...")  # noqa: T201
+    print(f"\nUpdating {workflow_path}...")
 
     if update_workflow_file(workflow_path, matrix):
-        print("Workflow updated successfully!")  # noqa: T201
+        print("Workflow updated successfully!")
     else:
-        print("No changes needed.")  # noqa: T201
+        print("No changes needed.")
 
 
 if __name__ == "__main__":
