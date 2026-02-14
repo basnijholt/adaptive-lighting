@@ -10,8 +10,10 @@ Usage:
 
 from __future__ import annotations
 
+import functools
 import json
 import re
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -78,13 +80,36 @@ def get_ha_core_versions() -> list[str]:
     return sorted(latest.values(), key=lambda v: [int(x) for x in v.split(".")])
 
 
+@functools.cache
 def get_python_version(ha_version: str) -> str:
-    """Determine Python version based on HA Core version."""
+    """Determine Python version based on HA Core version by fetching from GitHub."""
+    url = f"https://raw.githubusercontent.com/home-assistant/core/{ha_version}/pyproject.toml"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:  # noqa: S310
+            content = response.read().decode()
+            # Look for requires-python = ">=3.14.2"
+            match = re.search(r'requires-python\s*=\s*">=(\d+\.\d+(?:\.\d+)?)', content)
+            if match:
+                return match.group(1)
+    except urllib.error.URLError as e:
+        print(f"Warning: Could not fetch python version for {ha_version}: {e}")  # noqa: T201
+
+    # Fallback to hardcoded logic if fetch fails
     parts = ha_version.split(".")
-    year, month = int(parts[0]), int(parts[1])
-    # 2024.x and 2025.1 use Python 3.12, 2025.2+ use Python 3.13
-    if year == 2024 or (year == 2025 and month == 1):
-        return "3.12"
+    if len(parts) >= 2:
+        try:
+            year, month = int(parts[0]), int(parts[1])
+            # 2024.x and 2025.1 use Python 3.12, 2025.2 to 2026.2 use Python 3.13
+            if year == 2024 or (year == 2025 and month == 1):
+                return "3.12"
+            if year == 2025 or (year == 2026 and month <= 2):
+                return "3.13"
+        except ValueError:
+            pass
+
+    if ha_version == "dev":
+        return "3.14"
+
     return "3.13"
 
 
@@ -96,8 +121,9 @@ def generate_matrix_yaml(versions: list[str]) -> str:
         lines.append(f'          - core-version: "{version}"')
         lines.append(f'            python-version: "{python_ver}"')
     # Add dev version
+    dev_python_ver = get_python_version("dev")
     lines.append('          - core-version: "dev"')
-    lines.append('            python-version: "3.13"')
+    lines.append(f'            python-version: "{dev_python_ver}"')
     return "\n".join(lines)
 
 
