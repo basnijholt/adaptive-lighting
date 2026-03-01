@@ -2722,11 +2722,11 @@ class AdaptiveLightingManager:
                 entity_id,
                 off_to_on_event.context.id,
             )
-            _LOGGER.debug(
-                "Full 'off' → 'on' event for '%s': %s",
-                entity_id,
-                off_to_on_event,
-            )
+                            _LOGGER.debug(
+                    "Full 'off' → 'on' event for '%s': %s",
+                    entity_id,
+                    off_to_on_event,
+                )
         turn_on_event: Event | None = self.turn_on_event.get(entity_id)
         id_off_to_on = off_to_on_event.context.id
         return turn_on_event is not None and id_off_to_on == turn_on_event.context.id
