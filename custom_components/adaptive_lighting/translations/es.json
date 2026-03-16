@@ -3,55 +3,94 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configuración de la Iluminación Adaptativa",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
+        "data": {
+          "lights": "lights: Lista de entity_ids de luces a controlar (puede estar vacía). 🌟",
+          "min_brightness": "min_brightness: Porcentaje mínimo de brillo. 💡",
+          "max_brightness": "max_brightness: Porcentaje máximo de brillo. 💡",
+          "min_color_temp": "min_color_temp: Temperatura de color más cálida en grados Kelvin. 🔥",
+          "max_color_temp": "max_color_temp: Temperatura de color más fría en grados Kelvin. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Preferir ajustar el color RGB a la temperatura de color cuando sea posible. 🌈",
+          "room_preset": "Room preset"
+        },
         "data_description": {
-          "sunset_offset": "Define la hora de la puesta del sol con un desfase (positivo o negativo) en segundos. ⏰",
-          "sunrise_offset": "Define la hora de la salida del sol con un desfase (positivo o negativo) en segundos. ⏰",
-          "sleep_color_temp": "Temperatura de color en modo noche (usado cuando`sleep_rgb_or_color_temp` es `color_temp`) en grados Kelvin. 😴",
-          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands` para luces que no soportan ajustes simultáneos de brillo y color. ⏲️",
           "transition": "Duración de la transición cuando las luces se adaptan, en segundos. ⏲️",
-          "initial_transition": "Duración de la primera transición cuando las luces pasan de `off` a `on` en segundos. ⏲️",
-          "sleep_transition": "Duración de la transición cuando el \"modo noche\" se activa o desactiva, en segundos. 😴",
-          "max_sunrise_time": "Define el amanecer virtual más tardío (HH:MM:SS), permitiendo amaneceres más tempranos. 🌅",
-          "max_sunset_time": "Define el atardecer virtual más tardío (HH:MM:SS), permitiendo atardeceres más tempranos. 🌇",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
+          "transition_until_sleep": "transition_until_sleep: Cuando habilitado, Adaptive Lighting tratará los ajustes del modo noche como los valores mínimos, transicionando a esos valores tras la puesta del sol. 🌙"
+        },
+        "data_description": {
           "sleep_brightness": "Porcentaje de brillo de las luces en el modo noche. 😴",
-          "interval": "Frecuencia de adaptación de las luces, en segundos. 🔄",
+          "sleep_rgb_or_color_temp": "Usar el modo`\"rgb_color\"` o `\"color_temp\"` en el modo noche. 🌙",
+          "sleep_color_temp": "Temperatura de color en modo noche (usado cuando`sleep_rgb_or_color_temp` es `color_temp`) en grados Kelvin. 😴",
           "sleep_rgb_color": "Color RGB en modo noche(usado cuando `sleep_rgb_or_color_temp` es \"rgb_color\"). 🌈",
+          "sleep_transition": "Duración de la transición cuando el \"modo noche\" se activa o desactiva, en segundos. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
           "sunrise_time": "Fijar una hora (HH:MM:SS) para el amanecer. 🌅",
           "min_sunrise_time": "Define el amanecer virtual más temprano (HH:MM:SS), permitiendo amaneceres más tardíos. 🌅",
-          "sleep_rgb_or_color_temp": "Usar el modo`\"rgb_color\"` o `\"color_temp\"` en el modo noche. 🌙",
-          "autoreset_control_seconds": "Resetear automáticamente el control manual tras `X` segundos. Poner a 0 para deshabilitar.",
-          "brightness_mode": "Modo de brillo a usar. Valores posibles son: `default`, `linear` y `tanh` (usa`brightness_mode_time_dark` y `brightness_mode_time_light`). 📈",
-          "brightness_mode_time_light": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
-          "brightness_mode_time_dark": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
+          "max_sunrise_time": "Define el amanecer virtual más tardío (HH:MM:SS), permitiendo amaneceres más tempranos. 🌅",
+          "sunrise_offset": "Define la hora de la salida del sol con un desfase (positivo o negativo) en segundos. ⏰",
           "sunset_time": "Fijar una hora (HH:MM:SS) para el atardecer. 🌇",
           "min_sunset_time": "Define el atardecer virtual más temprano (HH:MM:SS), permitiendo atardeceres más tardíos. 🌇",
-          "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️"
-        },
+          "max_sunset_time": "Define el atardecer virtual más tardío (HH:MM:SS), permitiendo atardeceres más tempranos. 🌇",
+          "sunset_offset": "Define la hora de la puesta del sol con un desfase (positivo o negativo) en segundos. ⏰",
+          "interval": "Frecuencia de adaptación de las luces, en segundos. 🔄",
+          "initial_transition": "Duración de la primera transición cuando las luces pasan de `off` a `on` en segundos. ⏲️",
+          "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️",
+          "brightness_mode": "Modo de brillo a usar. Valores posibles son: `default`, `linear` y `tanh` (usa`brightness_mode_time_dark` y `brightness_mode_time_light`). 📈",
+          "brightness_mode_time_dark": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
+          "brightness_mode_time_light": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
         "data": {
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Al encender las luces. Si el valor es `true`, AL adapta sólo si se llama `light.turn_on` sin especificar el color o brillo. ❌🌈 Esto, por ejemplo, previene la adaptación al activar una escena. Si el valor es `false`, AL adapta independientemente de la presencia de color o brillo en `service_data` inicial. Necesita `take_over_control` habilitado. 🕵️",
+          "take_over_control": "take_over_control: Deshabilita Adaptive Lighting si otra fuente llama`light.turn_on` mientras las luces están encendidas y adaptándose. Cuidado, esto llama`homeassistant.update_entity` cada `interval`! 🔒",
           "detect_non_ha_changes": "detect_non_ha_changes: Detecta e interrumpe adaptaciones para cambios de estado no `light.turn_on`. Necesita `take_over_control` habilitado. 🕵️ Precaución: ⚠️ Algunas luces pueden indicar de forma errónea un estado 'on', que puede resultar en luces que se enciendan de forma no esperada. Deshabilita esta función si encuentras dichos problemas.",
-          "intercept": "intercept: Intercepta y adapta llamadas a `light.turn_on` para habilitar adaptaciones instantáneas de color y brillo. 🏎️ Deshabilitar para luces que no soporten `light.turn_on` con color y brillo.",
-          "min_color_temp": "min_color_temp: Temperatura de color más cálida en grados Kelvin. 🔥",
-          "lights": "lights: Lista de entity_ids de luces a controlar (puede estar vacía). 🌟",
-          "max_brightness": "max_brightness: Porcentaje máximo de brillo. 💡",
-          "max_color_temp": "max_color_temp: Temperatura de color más fría en grados Kelvin. ❄️",
-          "min_brightness": "min_brightness: Porcentaje mínimo de brillo. 💡",
-          "prefer_rgb_color": "prefer_rgb_color: Preferir ajustar el color RGB a la temperatura de color cuando sea posible. 🌈",
-          "transition_until_sleep": "transition_until_sleep: Cuando habilitado, Adaptive Lighting tratará los ajustes del modo noche como los valores mínimos, transicionando a esos valores tras la puesta del sol. 🌙",
-          "include_config_in_attributes": "include_config_in_attributes: Muestra todas las opciones como atributes del interruptor en Home Assistant cuando sea `true`. 📝",
-          "multi_light_intercept": "multi_light_intercept: Intercepta y adapta llamadas a `light.turn_on` que apuntan a múltiples luces. ➗⚠️ Esto puede resultar en dividir una única llamada a `light.turn_on` en múltiples llamadas, por ejemplo, cuando las luces están vinculadas a distintos interruptores. Requiere que `intercept` esté habilitado.",
           "only_once": "only_once: Adapta las luces sólo cuando se encienden (`true`) o mantener adaptadas (`false`). 🔄",
-          "separate_turn_on_commands": "separate_turn_on_commands: Usar llamadas independientes a `light.turn_on` para color y brillo, necesario para ciertos tipos de luces. 🔀",
-          "skip_redundant_commands": "skip_redundant_commands: Evitar mandar comandos de adaptación a luces cuyo estado ya sea el esperado. Reduce tráfico en la red y mejora la respuesta de la adaptación en ciertas situaciones. 📉Deshabilitar si el estado real de las luces se desincroniza con el estado registrado en Home Assistant.",
-          "take_over_control": "take_over_control: Deshabilita Adaptive Lighting si otra fuente llama`light.turn_on` mientras las luces están encendidas y adaptándose. Cuidado, esto llama`homeassistant.update_entity` cada `interval`! 🔒"
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Al encender las luces. Si el valor es `true`, AL adapta sólo si se llama `light.turn_on` sin especificar el color o brillo. ❌🌈 Esto, por ejemplo, previene la adaptación al activar una escena. Si el valor es `false`, AL adapta independientemente de la presencia de color o brillo en `service_data` inicial. Necesita `take_over_control` habilitado. 🕵️",
+          "intercept": "intercept: Intercepta y adapta llamadas a `light.turn_on` para habilitar adaptaciones instantáneas de color y brillo. 🏎️ Deshabilitar para luces que no soporten `light.turn_on` con color y brillo.",
+          "multi_light_intercept": "multi_light_intercept: Intercepta y adapta llamadas a `light.turn_on` que apuntan a múltiples luces. ➗⚠️ Esto puede resultar en dividir una única llamada a `light.turn_on` en múltiples llamadas, por ejemplo, cuando las luces están vinculadas a distintos interruptores. Requiere que `intercept` esté habilitado.",
+          "skip_redundant_commands": "skip_redundant_commands: Evitar mandar comandos de adaptación a luces cuyo estado ya sea el esperado. Reduce tráfico en la red y mejora la respuesta de la adaptación en ciertas situaciones. 📉Deshabilitar si el estado real de las luces se desincroniza con el estado registrado en Home Assistant."
         },
-        "description": "Configura un componente Adaptive Lighting. Los nombres de las opciones se asemejan a las disponibles en la configuración YAML. Si has definido esta entrada en YAML, no aparecerá ninguna opción aquí. Para gráficos interactivos que demuestran los efectos de los parámetros, visita [esta web app](https://basnijholt.github.io/adaptive-lighting). Para más detalles, ver la [documentación oficial](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "data_description": {
+          "autoreset_control_seconds": "Resetear automáticamente el control manual tras `X` segundos. Poner a 0 para deshabilitar."
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Usar llamadas independientes a `light.turn_on` para color y brillo, necesario para ciertos tipos de luces. 🔀",
+          "include_config_in_attributes": "include_config_in_attributes: Muestra todas las opciones como atributes del interruptor en Home Assistant cuando sea `true`. 📝"
+        },
+        "data_description": {
+          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands` para luces que no soportan ajustes simultáneos de brillo y color. ⏲️"
+        }
       }
     },
     "error": {
       "option_error": "Opción no válida",
-      "entity_missing": "Una o más entidades de luz seleccionadas no se encuentran en Home Assistant"
+      "entity_missing": "Una o más entidades de luz seleccionadas no se encuentran en Home Assistant",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

@@ -17,66 +17,107 @@
   "options": {
     "step": {
       "init": {
-        "title": "Настройки Adaptive Lighting",
-        "description": "Все настройки компонента Adaptive Lighting. Названия опций соответствуют настройкам в YAML. Параметры не отображаются, если в конфигурации YAML определена запись adaptive_lighting.",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "Осветительные приборы: список источников света, которыми нужно управлять (может быть пустым). 🌟",
-          "initial_transition": "initial_transition: Начальный переход, когда свет переключается с 'off' на 'on'. (секунды)",
-          "sleep_transition": "sleep_transition: Когда прибор переходит в Режима Сна (Sleep Mode) и 'sleep_state' изменяется. (секунды)",
-          "interval": "interval: Интервал между обновлениями переключателя. (секунды)",
-          "max_brightness": "max_brightness: Максимальная яркость света во время цикла. (%)",
-          "max_color_temp": "max_color_temp: Самый холодный оттенок цветовой температуры во время цикла. (Kelvin)",
           "min_brightness": "min_brightness: Минимальная яркость света во время цикла. (%)",
+          "max_brightness": "max_brightness: Максимальная яркость света во время цикла. (%)",
           "min_color_temp": "min_color_temp: Самый теплый оттенок цветовой температуры во время цикла. (Kelvin)",
-          "only_once": "only_once: Адаптировать свет только при включении.",
+          "max_color_temp": "max_color_temp: Самый холодный оттенок цветовой температуры во время цикла. (Kelvin)",
           "prefer_rgb_color": "prefer_rgb_color: По возможности использовать 'rgb_color' вместо 'color_temp'.",
-          "separate_turn_on_commands": "separate_turn_on_commands: Раздельные команды для каждого атрибута (цвет, яркость и т.д.) в 'light.turn_on' (требуется для некоторых источников света).",
+          "transition": "Время перехода при применении изменения к источникам света. (секунды)",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Продолжительность перехода при смене освещения, в секундах. 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
           "sleep_brightness": "sleep_brightness: Настройка яркости для Режима Сна (Sleep Mode). (%)",
           "sleep_color_temp": "sleep_color_temp: Настройка цветовой температуры для Режима Сна (Sleep Mode). (Kelvin)",
-          "sunrise_offset": "sunrise_offset: За сколько времени до (-) или после (+) переопределить время восхода во время цикла. (+/- секунды)",
-          "sunrise_time": "sunrise_time: Ручное изменение времени восхода солнца, если указано 'None', используется фактическое время восхода в Вашем местоположении. (ЧЧ:ММ:СС)",
-          "sunset_offset": "sunset_offset: За сколько времени до (-) или после (+) переопределить время заката во время цикла. (+/- секунды)",
-          "sunset_time": "sunset_time: Ручное изменение времени заката солнца,  если указано 'None', используется фактическое время заката в Вашем местоположении. (ЧЧ:ММ:СС)",
-          "take_over_control": "take_over_control: Если что-либо, кроме Adaptive Lighting, вызывает службу 'light.turn_on', когда свет уже включен, прекратить адаптацию этого осветительного прибора, пока он (или переключатель) не переключится off -> on.",
-          "detect_non_ha_changes": "detect_non_ha_changes: Обнаруживает все изменения на >10% примененные к освещению (также и из-за пределов Home Assistant), требует включения 'take_over_control' (вызывает 'homeassistant.update_entity' каждый 'interval'!)",
-          "transition": "Время перехода при применении изменения к источникам света. (секунды)",
-          "adapt_delay": "Время ожидания между включением света и применением адаптации. Может помочь избежать мерцания. (секунды)",
-          "multi_light_intercept": "multi_light_intercept: перехватывает и адаптирует вызовы `light.turn_on`, нацеленные на несколько источников света. ➗⚠️ Это может привести к разделению одного вызова `light.turn_on` на несколько вызовов, например, когда освещение включено в разные выключатели. Требуется, чтобы `перехват` был включен.",
-          "adapt_only_on_bare_turn_on": "Adapt_only_on_bare_turn_on: При первоначальном включении света. Если установлено значение «true», AL адаптируется только в том случае, если «light.turn_on» вызывается без указания цвета или яркости. ❌🌈 Это, например, предотвращает адаптацию при активации сцены. Если false, AL адаптируется независимо от наличия цвета или яркости в исходных service_data. Требуется включить take_over_control. 🕵️",
-          "skip_redundant_commands": "Skip_redundant_commands: Пропустить отправку команд адаптации, целевое состояние которых уже равно известному состоянию источника света. Минимизирует сетевой трафик и улучшает скорость адаптации в некоторых ситуациях. 📉Отключите, если физические состояния освещения не синхронизируются с записанным состоянием HA.",
-          "intercept": "intercept: перехватывать и адаптировать вызовы `light.turn_on` для обеспечения мгновенной адаптации цвета и яркости. 🏎️ Отключите источники света, которые не поддерживают `light.turn_on` с цветом и яркостью.",
-          "include_config_in_attributes": "include_config_in_attributes: отображать все параметры в качестве атрибутов на переключателе в Home Assistant, если установлено значение `true`. 📝",
+          "sleep_transition": "sleep_transition: Когда прибор переходит в Режима Сна (Sleep Mode) и 'sleep_state' изменяется. (секунды)",
           "transition_until_sleep": "transition_until_sleep: когда включено, адаптивное освещение будет рассматривать настройки сна как минимальные, переходя к этим значениям после захода солнца. 🌙"
         },
         "data_description": {
+          "sleep_brightness": "Процент яркости света в спящем режиме. 😴",
           "sleep_rgb_or_color_temp": "Используйте либо `\"rgb_color\"`, либо `\"color_temp\"` в спящем режиме. 🌙",
           "sleep_color_temp": "Цветовая температура в спящем режиме (используется, когда параметр `sleep_rgb_or_color_temp` имеет значение `color_temp`) в Кельвинах. 😴",
-          "sleep_transition": "Длительность перехода при переключении \"спящего режима\" в секундах. 😴",
-          "autoreset_control_seconds": "Автоматический сброс ручного управления через несколько секунд. Установите значение 0, чтобы отключить. ⏲️",
-          "min_sunset_time": "Устанавливает самое раннее время виртуального заката (ЧЧ:ММ:СС), чтобы обеспечить более поздние закаты. 🌇",
-          "sleep_brightness": "Процент яркости света в спящем режиме. 😴",
-          "min_sunrise_time": "Устанавливает самое раннее время виртуального восхода солнца (ЧЧ:ММ:СС), чтобы обеспечить возможность более позднего восхода солнца. 🌅",
-          "interval": "Частота адаптации освещения в секундах. 🔄",
-          "adapt_delay": "Время ожидания (в секундах) между включением света и применением изменений адаптивного освещения. Возможно поможет избежать мерцания. ⏲️",
           "sleep_rgb_color": "Цвет RGB в спящем режиме (используется, когда параметр `sleep_rgb_or_color_temp` имеет значение \"rgb_color\"). 🌈",
-          "sunrise_offset": "Регулирует время восхода солнца с положительным или отрицательным смещением в секундах. ⏰",
-          "transition": "Продолжительность перехода при смене освещения, в секундах. 🕑",
-          "brightness_mode": "Режим яркости для использования. Возможные значения: `default`, `linear` и `tanh` (используются `brightness_mode_time_dark` и `brightness_mode_time_light`). 📈",
-          "brightness_mode_time_light": "(Игнорируется, если `brightness_mode='default'`) Продолжительность в секундах увеличения/уменьшения яркости после/до восхода/заката. 📈📉.",
-          "sunset_offset": "Регулирует время заката с помощью положительного или отрицательного смещения в секундах. ⏰",
-          "sunset_time": "Устанавливает фиксированное время (ЧЧ:ММ:СС) для заката. 🌇",
-          "max_sunset_time": "Устанавливает последнее время виртуального заката (ЧЧ:ММ:СС), чтобы обеспечить более ранние закаты. 🌇",
+          "sleep_transition": "Длительность перехода при переключении \"спящего режима\" в секундах. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data": {
+          "sunrise_time": "sunrise_time: Ручное изменение времени восхода солнца, если указано 'None', используется фактическое время восхода в Вашем местоположении. (ЧЧ:ММ:СС)",
+          "sunrise_offset": "sunrise_offset: За сколько времени до (-) или после (+) переопределить время восхода во время цикла. (+/- секунды)",
+          "sunset_time": "sunset_time: Ручное изменение времени заката солнца,  если указано 'None', используется фактическое время заката в Вашем местоположении. (ЧЧ:ММ:СС)",
+          "sunset_offset": "sunset_offset: За сколько времени до (-) или после (+) переопределить время заката во время цикла. (+/- секунды)",
+          "interval": "interval: Интервал между обновлениями переключателя. (секунды)",
+          "initial_transition": "initial_transition: Начальный переход, когда свет переключается с 'off' на 'on'. (секунды)",
+          "adapt_delay": "Время ожидания между включением света и применением адаптации. Может помочь избежать мерцания. (секунды)"
+        },
+        "data_description": {
           "sunrise_time": "Устанавливает фиксированное время (ЧЧ:ММ:СС) восхода солнца. 🌅",
-          "initial_transition": "Продолжительность первого перехода, когда освещение переключается с `выключено` на `включено` в секундах. ⏲️",
-          "brightness_mode_time_dark": "(Игнорируется, если `brightness_mode='default'`) Продолжительность в секундах увеличения/уменьшения яркости до/после восхода/заката. 📈📉",
+          "min_sunrise_time": "Устанавливает самое раннее время виртуального восхода солнца (ЧЧ:ММ:СС), чтобы обеспечить возможность более позднего восхода солнца. 🌅",
           "max_sunrise_time": "Устанавливает последнее время виртуального восхода солнца (ЧЧ:ММ:СС), что позволит восходить раньше. 🌅",
+          "sunrise_offset": "Регулирует время восхода солнца с положительным или отрицательным смещением в секундах. ⏰",
+          "sunset_time": "Устанавливает фиксированное время (ЧЧ:ММ:СС) для заката. 🌇",
+          "min_sunset_time": "Устанавливает самое раннее время виртуального заката (ЧЧ:ММ:СС), чтобы обеспечить более поздние закаты. 🌇",
+          "max_sunset_time": "Устанавливает последнее время виртуального заката (ЧЧ:ММ:СС), чтобы обеспечить более ранние закаты. 🌇",
+          "sunset_offset": "Регулирует время заката с помощью положительного или отрицательного смещения в секундах. ⏰",
+          "interval": "Частота адаптации освещения в секундах. 🔄",
+          "initial_transition": "Продолжительность первого перехода, когда освещение переключается с `выключено` на `включено` в секундах. ⏲️",
+          "adapt_delay": "Время ожидания (в секундах) между включением света и применением изменений адаптивного освещения. Возможно поможет избежать мерцания. ⏲️",
+          "brightness_mode": "Режим яркости для использования. Возможные значения: `default`, `linear` и `tanh` (используются `brightness_mode_time_dark` и `brightness_mode_time_light`). 📈",
+          "brightness_mode_time_dark": "(Игнорируется, если `brightness_mode='default'`) Продолжительность в секундах увеличения/уменьшения яркости до/после восхода/заката. 📈📉",
+          "brightness_mode_time_light": "(Игнорируется, если `brightness_mode='default'`) Продолжительность в секундах увеличения/уменьшения яркости после/до восхода/заката. 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: Если что-либо, кроме Adaptive Lighting, вызывает службу 'light.turn_on', когда свет уже включен, прекратить адаптацию этого осветительного прибора, пока он (или переключатель) не переключится off -> on.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Обнаруживает все изменения на >10% примененные к освещению (также и из-за пределов Home Assistant), требует включения 'take_over_control' (вызывает 'homeassistant.update_entity' каждый 'interval'!)",
+          "only_once": "only_once: Адаптировать свет только при включении.",
+          "adapt_only_on_bare_turn_on": "Adapt_only_on_bare_turn_on: При первоначальном включении света. Если установлено значение «true», AL адаптируется только в том случае, если «light.turn_on» вызывается без указания цвета или яркости. ❌🌈 Это, например, предотвращает адаптацию при активации сцены. Если false, AL адаптируется независимо от наличия цвета или яркости в исходных service_data. Требуется включить take_over_control. 🕵️",
+          "intercept": "intercept: перехватывать и адаптировать вызовы `light.turn_on` для обеспечения мгновенной адаптации цвета и яркости. 🏎️ Отключите источники света, которые не поддерживают `light.turn_on` с цветом и яркостью.",
+          "multi_light_intercept": "multi_light_intercept: перехватывает и адаптирует вызовы `light.turn_on`, нацеленные на несколько источников света. ➗⚠️ Это может привести к разделению одного вызова `light.turn_on` на несколько вызовов, например, когда освещение включено в разные выключатели. Требуется, чтобы `перехват` был включен.",
+          "skip_redundant_commands": "Skip_redundant_commands: Пропустить отправку команд адаптации, целевое состояние которых уже равно известному состоянию источника света. Минимизирует сетевой трафик и улучшает скорость адаптации в некоторых ситуациях. 📉Отключите, если физические состояния освещения не синхронизируются с записанным состоянием HA."
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Автоматический сброс ручного управления через несколько секунд. Установите значение 0, чтобы отключить. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Раздельные команды для каждого атрибута (цвет, яркость и т.д.) в 'light.turn_on' (требуется для некоторых источников света).",
+          "include_config_in_attributes": "include_config_in_attributes: отображать все параметры в качестве атрибутов на переключателе в Home Assistant, если установлено значение `true`. 📝"
+        },
+        "data_description": {
           "send_split_delay": "Задержка (миллисекунды) между отдельными командами поворота для источников света, которые не поддерживают одновременную настройку яркости и цвета. ⏲️"
         }
       }
     },
     "error": {
       "option_error": "Ошибка в настройках!",
-      "entity_missing": "Выбранный индикатор не найден"
+      "entity_missing": "Выбранный индикатор не найден",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

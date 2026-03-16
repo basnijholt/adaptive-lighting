@@ -2,55 +2,94 @@
   "options": {
     "step": {
       "init": {
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
-          "detect_non_ha_changes": "detect_non_ha_changes: Deteguje a zastaví prispôbovanie pre zmeny mimo `light.turn_on`. Vyžaduje zapnutie `take_over_control`. 🕵️ Upozornenie: ⚠️ Niektoré svetlá môžu falošne indikovať zapnutý stav, čo spôsobí, že sa svetlo neočakávane zapne. Ak narazíte na tento problém, funkciu vypnite.",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Len pri čistom zapnutí svetiel. Pri nastavení `true` prispôsobí Adaptívne osvetlenie svetlá len pri zavolaní služby `light.turn_on` bez parametrov jasu alebo teploty svetla. ❌🌈 Napríklad: zamedzí to prispôsobovaniu ak je aktivovaná scéna. Pri nastavení `false` dôjde k prispôsobeniu nezávisle na tom či sú parametre jasu alebo teploty svetla prítomné v`service_data`. Vyžaduje zapnutie `take_over_control`. 🕵️ ",
-          "separate_turn_on_commands": "separate_turn_on_commands: Použiť samostatné volania služby `light.turn_on` pre nastavenie teploty svetla a jasu (môže byť potrebné pre niektoré typy svetiel). 🔀",
-          "max_color_temp": "max_color_temp: Najvyššia teplota svetla (v ˚K). ❄️",
-          "prefer_rgb_color": "prefer_rgb_color: Či preferovať nastavenie cez RGB než nastavením teploty svetla, ak je to možné. 🌈",
-          "max_brightness": "max_brightness: Najvyšší jas (v %). 💡",
-          "only_once": "only_once: Prispôsobiť svetlá iba pri zapnutí (`true`) alebo prispôsobovať ich priebežne (`false`). 🔄",
-          "take_over_control": "take_over_control: Ak sú svetlá zapnuté a prispôsobované a niečo zavolá službu `light.turn_on`, dôjde k vypnutiu Adaptívneho osvetlenia. Poznámka: Zapnutie tejto voľby spôsobí volanie služby `homeassistant.update_entity` každý `interval`! 🔒",
           "lights": "svetlá: Zoznam svetiel (entity_id), ktoré majú byť ovládané (môže byť prázdny). 🌟",
           "min_brightness": "min_brightness: Najnižší jas (v %). 💡",
+          "max_brightness": "max_brightness: Najvyšší jas (v %). 💡",
           "min_color_temp": "min_color_temp: Najnižšia teplota svetla (v ˚K). 🔥",
-          "transition_until_sleep": "transition_until_sleep: Keď je funkcia povolená, Adaptívne osvetlenie bude považovať nastavenia režimu spánku ako minimum, a na tieto hodnoty prejde po západe slnka. 🌙",
-          "multi_light_intercept": "multi_light_intercept: Zachytiť a prispôsobiť volanie služby`light.turn_on`, ktoré ovlyvňuje viacero svetiel. ➗⚠️ Toto môže spôsobiť rozdelenie jedného volania `light.turn_on`na viacero volaní, napr. ak sú svetlá pod rôznymi prepínačmi adaptívneho osvetlenia. Vyžaduje zapnutie `intercept`.",
-          "skip_redundant_commands": "skip_redundant_commands: Preskočiť odoslanie prispôsobovacích príkazov, ktorých cieľový stav je zhodný s posledným známym stavom. Nastavenie minimalizuje sieťovú prevádzku a v niektorých prípadoch môže zlepšiť odozvu prispôsobovania. 📉 Vypnite, pokiaľ skutočný stav svetiel prestáva odpovedať stavu zaznamenanom v HA.",
+          "max_color_temp": "max_color_temp: Najvyššia teplota svetla (v ˚K). ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Či preferovať nastavenie cez RGB než nastavením teploty svetla, ak je to možné. 🌈",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Trvanie prechodu, keď sú svetlá zmenené (v sekundách). ⏲️",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
+          "transition_until_sleep": "transition_until_sleep: Keď je funkcia povolená, Adaptívne osvetlenie bude považovať nastavenia režimu spánku ako minimum, a na tieto hodnoty prejde po západe slnka. 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "Jas svetiel pri režime spánku (v %). 😴",
+          "sleep_rgb_or_color_temp": "V režime spánku použiť `\"rgb_color\"` alebo `\"color_temp\"`. 🌙",
+          "sleep_color_temp": "Teplota svetla (v ˚K) v režime spánku (pokiaľ `sleep_rgb_or_color_temp` je `color_temp`). 😴",
+          "sleep_rgb_color": "Farba svetla RGB v režime spánku (pokiaľ `sleep_rgb_or_color_temp` je `rgb_color `). 🌈",
+          "sleep_transition": "Trvanie prechodu do alebo z režimu spánku (v sekundách). 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
+          "sunrise_time": "Nastaviť pevný čas (HH:MM:SS) pre východ slnka. 🌅",
+          "min_sunrise_time": "Nastavte najskorší možný virtuálny východ slnka (HH:MM:SS). Umožňuje neskorší východ slnka. 🌅",
+          "max_sunrise_time": "Nastavte najneskorší možný virtuálny východ slnka (HH:MM:SS). Umožňuje skorší východ slnka. 🌅",
+          "sunrise_offset": "Upravte čas východu slnka o sekundy vpred alebo vzad. ⏰",
+          "sunset_time": "Nastaviť pevný čas (HH:MM:SS) pre západ slnka. 🌇",
+          "min_sunset_time": "Nastavte najskorší možný virtuálny západ slnka (HH:MM:SS). Umožňuje neskorší západ slnka. 🌅",
+          "max_sunset_time": "Nastavte najneskorší možný virtuálny západ slnka (HH:MM:SS). Umožňuje skorší západ slnka. 🌅",
+          "sunset_offset": "Upravte čas západu slnka o sekundy vpred alebo vzad. ⏰",
+          "interval": "Frekvencia s akou prispôsobovať svetlá (v sekundách). 🔄",
+          "initial_transition": "Trvanie prvého prechodu, keď sú svetlá zapnuté z `off` na `on` (v sekundách). ⏲️",
+          "adapt_delay": "Pauza (v sekundách) medzi zapnutím svetla a aplikáciou zmien Adaptívneho osvetlenia. Môže pomôcť zabrániť blikaniu. ⏲️",
+          "brightness_mode": "Výber režimu jasu. Možné hodnotu sú `default`, `linear` a `tanh` (používa `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
+          "brightness_mode_time_dark": "(Ignorované ak `brightness_mode='default'`) Čas na zvýšenie/zníženie jasu po udalosti/pred udalosťou východu/západu slnka. 📈📉",
+          "brightness_mode_time_light": "(Ignorovaný, ak `brightness_mode = 'predvolené') Trvanie v sekundách na rampu / vypnutie jasu po / pred východ slnka/sunset. 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: Ak sú svetlá zapnuté a prispôsobované a niečo zavolá službu `light.turn_on`, dôjde k vypnutiu Adaptívneho osvetlenia. Poznámka: Zapnutie tejto voľby spôsobí volanie služby `homeassistant.update_entity` každý `interval`! 🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: Deteguje a zastaví prispôbovanie pre zmeny mimo `light.turn_on`. Vyžaduje zapnutie `take_over_control`. 🕵️ Upozornenie: ⚠️ Niektoré svetlá môžu falošne indikovať zapnutý stav, čo spôsobí, že sa svetlo neočakávane zapne. Ak narazíte na tento problém, funkciu vypnite.",
+          "only_once": "only_once: Prispôsobiť svetlá iba pri zapnutí (`true`) alebo prispôsobovať ich priebežne (`false`). 🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Len pri čistom zapnutí svetiel. Pri nastavení `true` prispôsobí Adaptívne osvetlenie svetlá len pri zavolaní služby `light.turn_on` bez parametrov jasu alebo teploty svetla. ❌🌈 Napríklad: zamedzí to prispôsobovaniu ak je aktivovaná scéna. Pri nastavení `false` dôjde k prispôsobeniu nezávisle na tom či sú parametre jasu alebo teploty svetla prítomné v`service_data`. Vyžaduje zapnutie `take_over_control`. 🕵️ ",
           "intercept": "intercept: Zachytiť a prispôsobiť volania `light.turn_on`, aby došlo k okamžitému prispôsobeniu jasu a teploty svetla. 🏎️ Vypnite pre svetlá, ktoré nepodporujú `light.turn_on` s teplotou svetla a jasom zároveň.",
+          "multi_light_intercept": "multi_light_intercept: Zachytiť a prispôsobiť volanie služby`light.turn_on`, ktoré ovlyvňuje viacero svetiel. ➗⚠️ Toto môže spôsobiť rozdelenie jedného volania `light.turn_on`na viacero volaní, napr. ak sú svetlá pod rôznymi prepínačmi adaptívneho osvetlenia. Vyžaduje zapnutie `intercept`.",
+          "skip_redundant_commands": "skip_redundant_commands: Preskočiť odoslanie prispôsobovacích príkazov, ktorých cieľový stav je zhodný s posledným známym stavom. Nastavenie minimalizuje sieťovú prevádzku a v niektorých prípadoch môže zlepšiť odozvu prispôsobovania. 📉 Vypnite, pokiaľ skutočný stav svetiel prestáva odpovedať stavu zaznamenanom v HA."
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Automaticky ukončiť manuálne ovládanie po zadanom množtve sekúnd. Pre vypnutie nastavte 0. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Použiť samostatné volania služby `light.turn_on` pre nastavenie teploty svetla a jasu (môže byť potrebné pre niektoré typy svetiel). 🔀",
           "include_config_in_attributes": "include_config_in_attributes: Zobraziť všetky nastavenia ako atribúty prepínača v Home Assistant. 📝"
         },
         "data_description": {
-          "sunset_time": "Nastaviť pevný čas (HH:MM:SS) pre západ slnka. 🌇",
-          "sunrise_time": "Nastaviť pevný čas (HH:MM:SS) pre východ slnka. 🌅",
-          "sleep_rgb_or_color_temp": "V režime spánku použiť `\"rgb_color\"` alebo `\"color_temp\"`. 🌙",
-          "sleep_color_temp": "Teplota svetla (v ˚K) v režime spánku (pokiaľ `sleep_rgb_or_color_temp` je `color_temp`). 😴",
-          "sleep_transition": "Trvanie prechodu do alebo z režimu spánku (v sekundách). 😴",
-          "autoreset_control_seconds": "Automaticky ukončiť manuálne ovládanie po zadanom množtve sekúnd. Pre vypnutie nastavte 0. ⏲️",
-          "min_sunset_time": "Nastavte najskorší možný virtuálny západ slnka (HH:MM:SS). Umožňuje neskorší západ slnka. 🌅",
-          "sleep_brightness": "Jas svetiel pri režime spánku (v %). 😴",
-          "min_sunrise_time": "Nastavte najskorší možný virtuálny východ slnka (HH:MM:SS). Umožňuje neskorší východ slnka. 🌅",
-          "interval": "Frekvencia s akou prispôsobovať svetlá (v sekundách). 🔄",
-          "adapt_delay": "Pauza (v sekundách) medzi zapnutím svetla a aplikáciou zmien Adaptívneho osvetlenia. Môže pomôcť zabrániť blikaniu. ⏲️",
-          "sleep_rgb_color": "Farba svetla RGB v režime spánku (pokiaľ `sleep_rgb_or_color_temp` je `rgb_color `). 🌈",
-          "sunrise_offset": "Upravte čas východu slnka o sekundy vpred alebo vzad. ⏰",
-          "transition": "Trvanie prechodu, keď sú svetlá zmenené (v sekundách). ⏲️",
-          "brightness_mode": "Výber režimu jasu. Možné hodnotu sú `default`, `linear` a `tanh` (používa `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
-          "brightness_mode_time_light": "(Ignorovaný, ak `brightness_mode = 'predvolené') Trvanie v sekundách na rampu / vypnutie jasu po / pred východ slnka/sunset. 📈📉.",
-          "sunset_offset": "Upravte čas západu slnka o sekundy vpred alebo vzad. ⏰",
-          "max_sunset_time": "Nastavte najneskorší možný virtuálny západ slnka (HH:MM:SS). Umožňuje skorší západ slnka. 🌅",
-          "initial_transition": "Trvanie prvého prechodu, keď sú svetlá zapnuté z `off` na `on` (v sekundách). ⏲️",
-          "brightness_mode_time_dark": "(Ignorované ak `brightness_mode='default'`) Čas na zvýšenie/zníženie jasu po udalosti/pred udalosťou východu/západu slnka. 📈📉",
-          "max_sunrise_time": "Nastavte najneskorší možný virtuálny východ slnka (HH:MM:SS). Umožňuje skorší východ slnka. 🌅",
           "send_split_delay": "Pauza (v ms) medzi príkazmi pri zapnutom `separate_turn_on_commands` pre svetlá, ktoré nepodporujú súčasné nastavenie jasu a teploty svetla. ⏲️"
-        },
-        "title": "Nastavenia Adaptívneho osvetlenia",
-        "description": "Nastavte komponentu Adaptívneho osvetlenia. Názvy nastavení sú zhodné s názvami v súbore YAML. Ak ste túto položku nastavili už v YAML, tak tu sa nezobrazia žiadne možnosti nastavenia. Interaktívne grafy, ktoré zobrazujú vplyv nastavení, nájdete na [tejto webovej aplikácii](https://basnijholt.github.io/adaptive-lighting). Ďalšie informácie nájdete v [oficiálnej dokumentácii](https://github.com/basnijholt/adaptive-lighting#readme)."
+        }
       }
     },
     "error": {
       "option_error": "Neplatné nastavenie",
-      "entity_missing": "V Home Assistant chýba jedno alebo viac vybraných svetiel"
+      "entity_missing": "V Home Assistant chýba jedno alebo viac vybraných svetiel",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "title": "Adaptívne osvetlenie",

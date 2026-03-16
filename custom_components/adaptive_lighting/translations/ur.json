@@ -136,55 +136,94 @@
   "options": {
     "step": {
       "init": {
-        "data_description": {
-          "sleep_rgb_or_color_temp": "نیند کے موڈ میں \"rgb_color\" یا \"color_temp\" کا استعمال کریں۔ 🌙",
-          "sleep_color_temp": "کیلون میں نیند کے موڈ میں رنگ کا درجہ حرارت (جب 'sleep_rgb_or_color_temp' 'color_temp' ہوتا ہے) میں استعمال ہوتا ہے۔ 😴",
-          "sleep_transition": "Duration of transition when \"sleep mode\" is toggled in seconds. 😴",
-          "autoreset_control_seconds": "کئی سیکنڈ کے بعد دستی کنٹرول کو خود بخود ری سیٹ کریں۔ غیر فعال کرنے کے لئے 0 پر سیٹ کریں۔ ⏲️",
-          "min_sunset_time": "سب سے پہلے مجازی غروب آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں ، جس سے بعد میں غروب آفتاب کی اجازت ملتی ہے۔ 🌇",
-          "sleep_brightness": "نیند کے موڈ میں روشنی کی چمک کا فیصد. 😴",
-          "min_sunrise_time": "ابتدائی مجازی طلوع آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں ، جس سے بعد میں طلوع آفتاب کی اجازت ملتی ہے۔ 🌅",
-          "interval": "روشنیوں کو سیکنڈوں میں ڈھالنے کی فریکوئنسی۔ 🔄",
-          "adapt_delay": "لائٹ آن ہونے اور ایڈاپٹو لائٹنگ کے درمیان انتظار کا وقت (سیکنڈ) تبدیلیاں لاگو کرتا ہے۔ جھلکنے سے بچنے میں مدد مل سکتی ہے۔ ⏲️",
-          "sleep_rgb_color": "نیند کے موڈ میں آر جی بی رنگ (جب 'sleep_rgb_or_color_temp' \"rgb_color\" ہوتا ہے تو استعمال کیا جاتا ہے). 🌈",
-          "sunrise_offset": "طلوع آفتاب کے وقت کو سیکنڈوں میں مثبت یا منفی آفسیٹ کے ساتھ ایڈجسٹ کریں۔ ⏰",
-          "transition": "جب روشنیاں تبدیل ہوتی ہیں تو منتقلی کا دورانیہ ، سیکنڈوں میں۔ 🕑",
-          "brightness_mode": "استعمال کرنے کے لئے چمک کا موڈ۔ ممکنہ قدریں 'ڈیفالٹ'، 'لکیری' اور 'تن' ہیں ('brightness_mode_time_dark' اور 'brightness_mode_time_light' کا استعمال کرتی ہیں)۔ 📈",
-          "brightness_mode_time_light": "(اگر 'brightness_mode='ڈیفالٹ') سورج طلوع ہونے کے بعد / اس سے پہلے / غروب آفتاب سے پہلے چمک کو بڑھانے کے لئے سیکنڈوں میں دورانیہ۔ 📈📉.",
-          "sunset_offset": "غروب آفتاب کے وقت کو سیکنڈوں میں مثبت یا منفی آفسیٹ کے ساتھ ایڈجسٹ کریں۔ ⏰",
-          "sunset_time": "غروب آفتاب کے لئے ایک مقررہ وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں۔ 🌇",
-          "max_sunset_time": "تازہ ترین مجازی غروب آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) سیٹ کریں ، جس سے قبل غروب آفتاب کی اجازت ملتی ہے۔ 🌇",
-          "sunrise_time": "طلوع آفتاب کے لئے ایک مقررہ وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں۔ 🌅",
-          "initial_transition": "پہلی منتقلی کا دورانیہ جب لائٹس سیکنڈوں میں 'بند' سے 'آن' میں تبدیل ہوجاتی ہیں۔ ⏲️",
-          "brightness_mode_time_dark": "(اگر 'brightness_mode='ڈیفالٹ') سورج طلوع ہونے سے پہلے / غروب آفتاب سے پہلے / بعد میں چمک کو بڑھانے کے لئے سیکنڈ میں دورانیہ۔ 📈📉",
-          "max_sunrise_time": "تازہ ترین مجازی طلوع آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) سیٹ کریں ، جس سے قبل طلوع آفتاب کی اجازت ملتی ہے۔ 🌅",
-          "send_split_delay": "ان روشنیوں کے لئے 'separate_turn_on_commands' کے درمیان تاخیر (ایم ایس) جو بیک وقت چمک اور رنگ کی ترتیب کی حمایت نہیں کرتی ہیں۔ ⏲️"
-        },
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
-          "detect_non_ha_changes": "detect_non_ha_changes: غیر light.turn_on ریاست کی تبدیلیوں کے لئے موافقت کا پتہ لگاتا ہے اور روکتا ہے۔ 'take_over_control' کو فعال کرنے کی ضرورت ہے۔ 🕵️ احتیاط: ⚠️ کچھ لائٹس غلط طور پر 'آن' حالت کی نشاندہی کر سکتی ہیں ، جس کے نتیجے میں لائٹس غیر متوقع طور پر آن ہوسکتی ہیں۔ اگر آپ کو اس طرح کے مسائل کا سامنا کرنا پڑتا ہے تو اس خصوصیت کو غیر فعال کریں۔",
-          "multi_light_intercept": "multi_light_intercept: 'light.turn_on' کالز کو روکیں اور ان کے مطابق ڈھالیں جو متعدد روشنیوں کو نشانہ بناتی ہیں۔ ➗⚠️ اس کے نتیجے میں ایک ہی 'light.turn_on' کال کو متعدد کالز میں تقسیم کیا جاسکتا ہے ، مثال کے طور پر ، جب لائٹس مختلف سوئچوں میں ہوتی ہیں۔ 'انٹرسیپٹ' کو فعال کرنے کی ضرورت ہے۔",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: شروع میں لائٹس آن کرتے وقت۔ اگر 'true' پر سیٹ کیا جاتا ہے، AL صرف اس صورت میں موافق ہوتا ہے جب رنگ یا چمک کی وضاحت کیے بغیر 'light.turn_on' کو مدعو کیا جاتا ہے۔ ❌🌈 یہ مثال کے طور پر، کسی منظر کو چالو کرتے وقت موافقت کو روکتا ہے۔ اگر 'غلط'، AL ابتدائی `سروس_ڈیٹا` میں رنگ یا چمک کی موجودگی سے قطع نظر موافقت کرتا ہے۔ 'ٹیک_اوور_کنٹرول' کو فعال کرنے کی ضرورت ہے۔ 🕵️ ",
-          "skip_redundant_commands": "skip_redundant_commands: موافقت کے احکامات بھیجنے سے گریز کریں جن کی ہدف کی حالت پہلے سے ہی روشنی کی معلوم حالت کے برابر ہے۔ نیٹ ورک ٹریفک کو کم سے کم کرتا ہے اور کچھ حالات میں موافقت کی ذمہ داری کو بہتر بناتا ہے۔ 📉اگر جسمانی روشنی کی حالت یں ایچ اے کی ریکارڈ شدہ حالت کے ساتھ مطابقت سے باہر ہوجاتی ہیں تو غیر فعال کریں۔",
-          "separate_turn_on_commands": "separate_turn_on_commands: رنگ اور چمک کے لئے الگ الگ 'light.turn_on' کا استعمال کریں، جو کچھ روشنی کی اقسام کے لئے ضروری ہے. 🔀",
-          "max_color_temp": "max_color_temp: کیلون میں سرد ترین رنگ کا درجہ حرارت۔ ❄️",
-          "prefer_rgb_color": "prefer_rgb_color: جب ممکن ہو تو روشنی کے رنگ کے درجہ حرارت پر آر جی بی رنگ ایڈجسٹمنٹ کو ترجیح دیں یا نہیں۔ 🌈",
-          "max_brightness": "max_brightness: زیادہ سے زیادہ چمک کا فیصد. 💡",
-          "intercept": "انٹرسیپٹ: 'light.turn_on' کالز کو فوری طور پر رنگ اور چمک کے مطابقت پذیری کو قابل بنانے کے لئے روکیں اور اپنائیں۔ 🏎️ ایسی روشنیوں کو غیر فعال کریں جو رنگ اور چمک کے ساتھ 'light.turn_on' کی حمایت نہیں کرتی ہیں۔",
-          "only_once": "only_once: لائٹس کو صرف اس وقت ڈھالیں جب وہ آن ہوں ('سچ') یا انہیں اپناتے رہیں ('جھوٹ')۔ 🔄",
-          "take_over_control": "take_over_control: اگر کوئی دوسرا ذریعہ 'light.turn_on' کا نام دیتا ہے تو ایڈاپٹو لائٹنگ کو غیر فعال کریں جب لائٹس آن ہیں اور اسے اپنایا جارہا ہے۔ نوٹ کریں کہ یہ ہر 'وقفے' کو 'homeassistant.update_entity' کہتا ہے! 🔒",
           "lights": "لائٹس: کنٹرول کی جانے والی روشنی کے entity_ids کی فہرست (خالی ہوسکتی ہے). 🌟",
           "min_brightness": "min_brightness: کم سے کم چمک کا فیصد. 💡",
+          "max_brightness": "max_brightness: زیادہ سے زیادہ چمک کا فیصد. 💡",
           "min_color_temp": "min_color_temp: کیلون میں گرم ترین رنگ کا درجہ حرارت. 🔥",
-          "transition_until_sleep": "transition_until_sleep: جب فعال کیا جاتا ہے تو ، ایڈاپٹو لائٹنگ نیند کی ترتیبات کو کم سے کم تصور کرے گی ، غروب آفتاب کے بعد ان اقدار میں منتقل ہوگی۔ 🌙",
+          "max_color_temp": "max_color_temp: کیلون میں سرد ترین رنگ کا درجہ حرارت۔ ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: جب ممکن ہو تو روشنی کے رنگ کے درجہ حرارت پر آر جی بی رنگ ایڈجسٹمنٹ کو ترجیح دیں یا نہیں۔ 🌈",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "جب روشنیاں تبدیل ہوتی ہیں تو منتقلی کا دورانیہ ، سیکنڈوں میں۔ 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
+          "transition_until_sleep": "transition_until_sleep: جب فعال کیا جاتا ہے تو ، ایڈاپٹو لائٹنگ نیند کی ترتیبات کو کم سے کم تصور کرے گی ، غروب آفتاب کے بعد ان اقدار میں منتقل ہوگی۔ 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "نیند کے موڈ میں روشنی کی چمک کا فیصد. 😴",
+          "sleep_rgb_or_color_temp": "نیند کے موڈ میں \"rgb_color\" یا \"color_temp\" کا استعمال کریں۔ 🌙",
+          "sleep_color_temp": "کیلون میں نیند کے موڈ میں رنگ کا درجہ حرارت (جب 'sleep_rgb_or_color_temp' 'color_temp' ہوتا ہے) میں استعمال ہوتا ہے۔ 😴",
+          "sleep_rgb_color": "نیند کے موڈ میں آر جی بی رنگ (جب 'sleep_rgb_or_color_temp' \"rgb_color\" ہوتا ہے تو استعمال کیا جاتا ہے). 🌈",
+          "sleep_transition": "Duration of transition when \"sleep mode\" is toggled in seconds. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
+          "sunrise_time": "طلوع آفتاب کے لئے ایک مقررہ وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں۔ 🌅",
+          "min_sunrise_time": "ابتدائی مجازی طلوع آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں ، جس سے بعد میں طلوع آفتاب کی اجازت ملتی ہے۔ 🌅",
+          "max_sunrise_time": "تازہ ترین مجازی طلوع آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) سیٹ کریں ، جس سے قبل طلوع آفتاب کی اجازت ملتی ہے۔ 🌅",
+          "sunrise_offset": "طلوع آفتاب کے وقت کو سیکنڈوں میں مثبت یا منفی آفسیٹ کے ساتھ ایڈجسٹ کریں۔ ⏰",
+          "sunset_time": "غروب آفتاب کے لئے ایک مقررہ وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں۔ 🌇",
+          "min_sunset_time": "سب سے پہلے مجازی غروب آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) مقرر کریں ، جس سے بعد میں غروب آفتاب کی اجازت ملتی ہے۔ 🌇",
+          "max_sunset_time": "تازہ ترین مجازی غروب آفتاب کا وقت (ایچ ایچ: ایم ایم: ایس ایس) سیٹ کریں ، جس سے قبل غروب آفتاب کی اجازت ملتی ہے۔ 🌇",
+          "sunset_offset": "غروب آفتاب کے وقت کو سیکنڈوں میں مثبت یا منفی آفسیٹ کے ساتھ ایڈجسٹ کریں۔ ⏰",
+          "interval": "روشنیوں کو سیکنڈوں میں ڈھالنے کی فریکوئنسی۔ 🔄",
+          "initial_transition": "پہلی منتقلی کا دورانیہ جب لائٹس سیکنڈوں میں 'بند' سے 'آن' میں تبدیل ہوجاتی ہیں۔ ⏲️",
+          "adapt_delay": "لائٹ آن ہونے اور ایڈاپٹو لائٹنگ کے درمیان انتظار کا وقت (سیکنڈ) تبدیلیاں لاگو کرتا ہے۔ جھلکنے سے بچنے میں مدد مل سکتی ہے۔ ⏲️",
+          "brightness_mode": "استعمال کرنے کے لئے چمک کا موڈ۔ ممکنہ قدریں 'ڈیفالٹ'، 'لکیری' اور 'تن' ہیں ('brightness_mode_time_dark' اور 'brightness_mode_time_light' کا استعمال کرتی ہیں)۔ 📈",
+          "brightness_mode_time_dark": "(اگر 'brightness_mode='ڈیفالٹ') سورج طلوع ہونے سے پہلے / غروب آفتاب سے پہلے / بعد میں چمک کو بڑھانے کے لئے سیکنڈ میں دورانیہ۔ 📈📉",
+          "brightness_mode_time_light": "(اگر 'brightness_mode='ڈیفالٹ') سورج طلوع ہونے کے بعد / اس سے پہلے / غروب آفتاب سے پہلے چمک کو بڑھانے کے لئے سیکنڈوں میں دورانیہ۔ 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: اگر کوئی دوسرا ذریعہ 'light.turn_on' کا نام دیتا ہے تو ایڈاپٹو لائٹنگ کو غیر فعال کریں جب لائٹس آن ہیں اور اسے اپنایا جارہا ہے۔ نوٹ کریں کہ یہ ہر 'وقفے' کو 'homeassistant.update_entity' کہتا ہے! 🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: غیر light.turn_on ریاست کی تبدیلیوں کے لئے موافقت کا پتہ لگاتا ہے اور روکتا ہے۔ 'take_over_control' کو فعال کرنے کی ضرورت ہے۔ 🕵️ احتیاط: ⚠️ کچھ لائٹس غلط طور پر 'آن' حالت کی نشاندہی کر سکتی ہیں ، جس کے نتیجے میں لائٹس غیر متوقع طور پر آن ہوسکتی ہیں۔ اگر آپ کو اس طرح کے مسائل کا سامنا کرنا پڑتا ہے تو اس خصوصیت کو غیر فعال کریں۔",
+          "only_once": "only_once: لائٹس کو صرف اس وقت ڈھالیں جب وہ آن ہوں ('سچ') یا انہیں اپناتے رہیں ('جھوٹ')۔ 🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: شروع میں لائٹس آن کرتے وقت۔ اگر 'true' پر سیٹ کیا جاتا ہے، AL صرف اس صورت میں موافق ہوتا ہے جب رنگ یا چمک کی وضاحت کیے بغیر 'light.turn_on' کو مدعو کیا جاتا ہے۔ ❌🌈 یہ مثال کے طور پر، کسی منظر کو چالو کرتے وقت موافقت کو روکتا ہے۔ اگر 'غلط'، AL ابتدائی `سروس_ڈیٹا` میں رنگ یا چمک کی موجودگی سے قطع نظر موافقت کرتا ہے۔ 'ٹیک_اوور_کنٹرول' کو فعال کرنے کی ضرورت ہے۔ 🕵️ ",
+          "intercept": "انٹرسیپٹ: 'light.turn_on' کالز کو فوری طور پر رنگ اور چمک کے مطابقت پذیری کو قابل بنانے کے لئے روکیں اور اپنائیں۔ 🏎️ ایسی روشنیوں کو غیر فعال کریں جو رنگ اور چمک کے ساتھ 'light.turn_on' کی حمایت نہیں کرتی ہیں۔",
+          "multi_light_intercept": "multi_light_intercept: 'light.turn_on' کالز کو روکیں اور ان کے مطابق ڈھالیں جو متعدد روشنیوں کو نشانہ بناتی ہیں۔ ➗⚠️ اس کے نتیجے میں ایک ہی 'light.turn_on' کال کو متعدد کالز میں تقسیم کیا جاسکتا ہے ، مثال کے طور پر ، جب لائٹس مختلف سوئچوں میں ہوتی ہیں۔ 'انٹرسیپٹ' کو فعال کرنے کی ضرورت ہے۔",
+          "skip_redundant_commands": "skip_redundant_commands: موافقت کے احکامات بھیجنے سے گریز کریں جن کی ہدف کی حالت پہلے سے ہی روشنی کی معلوم حالت کے برابر ہے۔ نیٹ ورک ٹریفک کو کم سے کم کرتا ہے اور کچھ حالات میں موافقت کی ذمہ داری کو بہتر بناتا ہے۔ 📉اگر جسمانی روشنی کی حالت یں ایچ اے کی ریکارڈ شدہ حالت کے ساتھ مطابقت سے باہر ہوجاتی ہیں تو غیر فعال کریں۔"
+        },
+        "data_description": {
+          "autoreset_control_seconds": "کئی سیکنڈ کے بعد دستی کنٹرول کو خود بخود ری سیٹ کریں۔ غیر فعال کرنے کے لئے 0 پر سیٹ کریں۔ ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: رنگ اور چمک کے لئے الگ الگ 'light.turn_on' کا استعمال کریں، جو کچھ روشنی کی اقسام کے لئے ضروری ہے. 🔀",
           "include_config_in_attributes": "include_config_in_attributes: 'سچ' پر سیٹ ہونے پر ہوم اسسٹنٹ میں سوئچ پر خصوصیات کے طور پر تمام اختیارات دکھائیں۔ 📝"
         },
-        "title": "مطابقت پذیر روشنی کے اختیارات",
-        "description": "ایک مطابقت پذیر لائٹنگ جزو تشکیل دیں۔ آپشن کے نام YAML کی ترتیبات کے ساتھ مطابقت رکھتے ہیں۔ اگر آپ نے YAML میں اس اندراج کی وضاحت کی ہے تو ، یہاں کوئی آپشن ظاہر نہیں ہوگا۔ انٹرایکٹو گراف کے لئے جو پیرامیٹر کے اثرات کو ظاہر کرتے ہیں ، ملاحظہ کریں [اس ویب ایپ] (https://basnijholt.github.io/adaptive-lighting)۔ مزید تفصیلات کے لئے ، [سرکاری دستاویزات] (https://github.com/basnijholt/adaptive-lighting#readme) ملاحظہ کریں۔"
+        "data_description": {
+          "send_split_delay": "ان روشنیوں کے لئے 'separate_turn_on_commands' کے درمیان تاخیر (ایم ایس) جو بیک وقت چمک اور رنگ کی ترتیب کی حمایت نہیں کرتی ہیں۔ ⏲️"
+        }
       }
     },
     "error": {
       "option_error": "غیر قانونی آپشن",
-      "entity_missing": "ہوم اسسٹنٹ سے ایک یا ایک سے زیادہ منتخب لائٹ ادارے غائب ہیں"
+      "entity_missing": "ہوم اسسٹنٹ سے ایک یا ایک سے زیادہ منتخب لائٹ ادارے غائب ہیں",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "title": "مطابقت پذیر روشنی",

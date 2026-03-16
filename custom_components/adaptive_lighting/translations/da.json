@@ -17,64 +17,105 @@
   "options": {
     "step": {
       "init": {
-        "title": "Adaptiv Belysnings indstillinger",
-        "description": "Alle indstillinger tilhørende en Adaptiv Belysnings komponent. Indstillingernes navne svarer til YAML indstillingernes. Ingen indstillinger vises hvis du allerede har konfigureret den i YAML.",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "lights: lyskilder",
-          "initial_transition": "initial_transition: Hvor lang overgang når lyset går fra 'off' til 'on' eller når 'sleep_state' skiftes. (i sekunder)",
-          "interval": "interval: Tid imellem opdateringer (i sekunder)",
-          "max_brightness": "max_brightness: Højeste lysstyrke i cyklussen. (%)",
-          "max_color_temp": "max_color_temp: Koldeste lystemperatur i cyklussen. (Kelvin)",
           "min_brightness": "min_brightness: Laveste lysstyrke i cyklussen. (%)",
+          "max_brightness": "max_brightness: Højeste lysstyrke i cyklussen. (%)",
           "min_color_temp": "min_color_temp: Varmeste lystemperatur i cyklussen. (Kelvin)",
-          "only_once": "only_once: Juster udelukkende lysene adaptivt i øjeblikket de tændes.",
+          "max_color_temp": "max_color_temp: Koldeste lystemperatur i cyklussen. (Kelvin)",
           "prefer_rgb_color": "prefer_rgb_color: Brug 'rgb_color' istedet for 'color_temp' når muligt.",
-          "separate_turn_on_commands": "separate_turn_on_commands: Adskil kommandoerne for hver attribut (color, brightness, etc.) ved 'light.turn_on' (nødvendigt for bestemte lys).",
-          "sleep_brightness": "sleep_brightness, Lysstyrke for Sleep Mode. (%)",
-          "sleep_color_temp": "sleep_color_temp: Farvetemperatur under Sleep Mode. (Kelvin)",
-          "sunrise_offset": "sunrise_offset: Hvor længe før (-) eller efter (+) at definere solopgangen i cyklussen (+/- sekunder)",
-          "sunrise_time": "sunrise_time: Manuel overstyring af solopgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt din lokation. (HH:MM:SS)",
-          "sunset_offset": "sunset_offset: Hvor længe før (-) eller efter (+) at definere solnedgangen i cyklussen (+/- sekunder)",
-          "sunset_time": "sunset_time: Manuel overstyring af solnedgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt for din lokation. (HH:MM:SS)",
-          "take_over_control": "take_over_control: Hvis andet end Adaptiv Belysning kalder 'light.turn_on' på et lys der allerede er tændt, afbryd adaptering af lyset indtil at det tændes igen.",
-          "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
           "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)",
-          "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙",
-          "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️",
-          "include_config_in_attributes": "include_config_in_attributes: Vis alle indstillinger som attributter for kontakten når dette er sat til »true«. 📝",
-          "skip_redundant_commands": "skip_redundant_commands: Undlad at sende tilpasningskommando, hvis lampens kendte tilstand allerede er lig den ønskede tilstand. Mindsker mængden af netværkstrafik og forbedrer tilpasningens responsivitet i visse situationer. 📉 Slå fra, hvis lampens faktiske tilstand kommer ud af takt med den tilstand, som HA rapporterer.",
-          "intercept": "intercept: Indfang og tilpas »light.turn_on«-kald for at muliggøre øjeblikkelig farve- og lysstyrketilpasning. 🏎️ Slå fra for lyskilder, som ikke understøtter »light.turn_on« med farve og lysstyrke.",
-          "multi_light_intercept": "multi_light_intercept: Indfang og tilpas »light.turn_on«-kald til mere end en enkelt lyskilde. ➗⚠️ Dette kan bevirke at et enkelt »light.turn_on«-kald deles op i flere, f.eks. hvis lyskilderne er forbundet til forskellige kontakter. Forudsætter at »intercept« er slået til."
+          "room_preset": "Room preset"
         },
         "data_description": {
-          "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
-          "sleep_brightness": "Lysstyrkeprocent af lys i søvntilstand. 😴",
           "transition": "Varighed af overgang, når lys ændres, i sekunder. 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
+          "sleep_brightness": "sleep_brightness, Lysstyrke for Sleep Mode. (%)",
+          "sleep_color_temp": "sleep_color_temp: Farvetemperatur under Sleep Mode. (Kelvin)",
+          "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "Lysstyrkeprocent af lys i søvntilstand. 😴",
           "sleep_rgb_or_color_temp": "Brug enten `\"rgb_farve\"` eller `\"farve_temp\"` i søvntilstand. 🌙",
-          "sleep_transition": "Varigheden af overgangen, når \"sovetilstand\" skiftes, i sekunder. 😴",
+          "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴",
+          "sleep_rgb_color": "RGB-farve i søvntilstand (anvendes når »sleep_rgb_or_color_temp« er sat til »rgb_color«). 🌈",
+          "sleep_transition": "Varigheden af overgangen, når \"sovetilstand\" skiftes, i sekunder. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data": {
+          "sunrise_time": "sunrise_time: Manuel overstyring af solopgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt din lokation. (HH:MM:SS)",
+          "sunrise_offset": "sunrise_offset: Hvor længe før (-) eller efter (+) at definere solopgangen i cyklussen (+/- sekunder)",
+          "sunset_time": "sunset_time: Manuel overstyring af solnedgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt for din lokation. (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: Hvor længe før (-) eller efter (+) at definere solnedgangen i cyklussen (+/- sekunder)",
+          "interval": "interval: Tid imellem opdateringer (i sekunder)",
+          "initial_transition": "initial_transition: Hvor lang overgang når lyset går fra 'off' til 'on' eller når 'sleep_state' skiftes. (i sekunder)"
+        },
+        "data_description": {
           "sunrise_time": "Sæt en fast tid (HH:MM:SS) for solopgang. 🌅",
-          "sunset_time": "Sæt en fast tid (HH:MM:SS) for solnedgang. 🌇",
           "min_sunrise_time": "Indstil den tidligste virtuelle solopgangstid (HH:MM:SS), hvilket giver mulighed for senere solopgange. 🌅",
           "max_sunrise_time": "Indstil den seneste virtuelle solopgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solopgange. 🌅",
-          "autoreset_control_seconds": "Nulstil automatisk den manuelle styring efter et antal sekunder. Indstil til 0 for at deaktivere. ⏲️",
-          "min_sunset_time": "Indstil den tidligste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for senere solnedgange. 🌇",
-          "adapt_delay": "Ventetid (sekunder) mellem lyset tændes og Adaptive Lighting anvender ændringer. Kan hjælpe med at undgå flimren. ⏲️",
-          "sunset_offset": "Juster solnedgang tid med et positivt eller negativt offset, i sekunder. ⏰",
           "sunrise_offset": "Juster solopgangstiden med en positiv eller negativ offset på få sekunder. ⏰",
+          "sunset_time": "Sæt en fast tid (HH:MM:SS) for solnedgang. 🌇",
+          "min_sunset_time": "Indstil den tidligste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for senere solnedgange. 🌇",
           "max_sunset_time": "Indstil den seneste virtuelle solnedgangstid (HH:MM:SS), hvilket giver mulighed for tidligere solnedgange. 🌇",
-          "sleep_color_temp": "Farvetemperatur i søvntilstand (bruges når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin. 😴",
-          "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈",
-          "send_split_delay": "Forsinkelse (ms) mellem »separate_turn_on_commands« for lyskilder som ikke understøtter simultane styrke- og farveindstillinger. ⏲️",
+          "sunset_offset": "Juster solnedgang tid med et positivt eller negativt offset, i sekunder. ⏰",
+          "interval": "Frekvens til at tilpasse lysene, i sekunder. 🔄",
           "initial_transition": "Den første overgangs varighed når lysene ændres fra »off« til »on« i sekunder. ⏲️",
-          "sleep_rgb_color": "RGB-farve i søvntilstand (anvendes når »sleep_rgb_or_color_temp« er sat til »rgb_color«). 🌈",
+          "adapt_delay": "Ventetid (sekunder) mellem lyset tændes og Adaptive Lighting anvender ændringer. Kan hjælpe med at undgå flimren. ⏲️",
+          "brightness_mode": "Lysstyrketilstand til brug. Mulige værdier er \"default\", \"linear\" og \"tanh\" (bruger \"brightness_mode_time_dark\" og \"brightness_mode_time_light\"). 📈",
           "brightness_mode_time_dark": "(Ignoreres hvis »brightness_mode='default'«) Varigheden i sekunder for tilpasningen af lysstyrken ved solopgang eller -nedgang. 📈📉",
           "brightness_mode_time_light": "(Ignoreres hvis »brightness_mode='default'«) Varigheden i sekunder for tilpasningen af lysstyrken ved solopgang eller -nedgang. 📈📉"
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: Hvis andet end Adaptiv Belysning kalder 'light.turn_on' på et lys der allerede er tændt, afbryd adaptering af lyset indtil at det tændes igen.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
+          "only_once": "only_once: Juster udelukkende lysene adaptivt i øjeblikket de tændes.",
+          "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️",
+          "intercept": "intercept: Indfang og tilpas »light.turn_on«-kald for at muliggøre øjeblikkelig farve- og lysstyrketilpasning. 🏎️ Slå fra for lyskilder, som ikke understøtter »light.turn_on« med farve og lysstyrke.",
+          "multi_light_intercept": "multi_light_intercept: Indfang og tilpas »light.turn_on«-kald til mere end en enkelt lyskilde. ➗⚠️ Dette kan bevirke at et enkelt »light.turn_on«-kald deles op i flere, f.eks. hvis lyskilderne er forbundet til forskellige kontakter. Forudsætter at »intercept« er slået til.",
+          "skip_redundant_commands": "skip_redundant_commands: Undlad at sende tilpasningskommando, hvis lampens kendte tilstand allerede er lig den ønskede tilstand. Mindsker mængden af netværkstrafik og forbedrer tilpasningens responsivitet i visse situationer. 📉 Slå fra, hvis lampens faktiske tilstand kommer ud af takt med den tilstand, som HA rapporterer."
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Nulstil automatisk den manuelle styring efter et antal sekunder. Indstil til 0 for at deaktivere. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Adskil kommandoerne for hver attribut (color, brightness, etc.) ved 'light.turn_on' (nødvendigt for bestemte lys).",
+          "include_config_in_attributes": "include_config_in_attributes: Vis alle indstillinger som attributter for kontakten når dette er sat til »true«. 📝"
+        },
+        "data_description": {
+          "send_split_delay": "Forsinkelse (ms) mellem »separate_turn_on_commands« for lyskilder som ikke understøtter simultane styrke- og farveindstillinger. ⏲️"
         }
       }
     },
     "error": {
       "option_error": "Ugyldig indstilling",
-      "entity_missing": "Et udvalgt lys blev ikke fundet "
+      "entity_missing": "Et udvalgt lys blev ikke fundet ",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

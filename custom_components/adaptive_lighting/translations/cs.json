@@ -17,71 +17,112 @@
   "options": {
     "step": {
       "init": {
-        "title": "Nastavení Adaptivního osvětlení",
-        "description": "Všechna nastavení komponenty Adaptivního osvětlení. Názvy možností odpovídají nastavení YAML. Pokud máte v konfiguraci YAML definovánu položku 'adaptive_lighting', nezobrazí se žádné možnosti.",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "lights: Seznam světel (entity_id), které mají být ovládané (může být prázdný). 🌟",
-          "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",
-          "sleep_transition": "sleep_transition: Prodleva pro přepnutí do „režimu spánku“ (sekundy)",
-          "interval": "interval: Prodleva pro změny osvětlení (v sekundách)",
-          "max_brightness": "max_brightness: Nejvyšší jas osvětlení během cyklu. (%)",
-          "max_color_temp": "max_color_temp: Nejchladnější odstín cyklu teploty barev. (Kelvin)",
           "min_brightness": "min_brightness: Nejnižší jas osvětlení během cyklu. (%)",
+          "max_brightness": "max_brightness: Nejvyšší jas osvětlení během cyklu. (%)",
           "min_color_temp": "min_color_temp, Nejteplejší odstín cyklu teploty barev. (Kelvin)",
-          "only_once": "only_once: Přizpůsobení osvětlení pouze při rozsvícení.",
+          "max_color_temp": "max_color_temp: Nejchladnější odstín cyklu teploty barev. (Kelvin)",
           "prefer_rgb_color": "prefer_rgb_color: Upřednostněte použití 'rgb_color' před 'color_temp'.",
-          "separate_turn_on_commands": "separate_turn_on_commands: Oddělení příkazů pro každý atribut (barva, jas, atd.) v atributu 'light.turn_on' (vyžadováno pro některá světla).",
-          "send_split_delay": "send_split_delay: prodleva mezi příkazy (milisekundy), když je použit atribut 'separate_turn_on_commands'. Může zajistit správné zpracování obou příkazů.",
+          "transition": "",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Doba trvání přechodu změny světel v sekundách. 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
           "sleep_brightness": "sleep_brightness, Nastavení jasu pro režim spánku. (%)",
           "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, použijte 'rgb_color' nebo 'color_temp'",
-          "sleep_rgb_color": "sleep_rgb_color, v RGB",
           "sleep_color_temp": "sleep_color_temp: Nastavení teploty barev pro režim spánku. (v Kelvinech)",
-          "sunrise_offset": "sunrise_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu východu slunce (+/- v sekundách)",
+          "sleep_rgb_color": "sleep_rgb_color, v RGB",
+          "sleep_transition": "sleep_transition: Prodleva pro přepnutí do „režimu spánku“ (sekundy)",
+          "transition_until_sleep": "transition_until_sleep: Pokud je zapnuto, Adaptive Lighting bude zacházet s nastavením spánku jako s minimem, na tyto hodnoty přejde po západu slunce. 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "Jas světel během režimu spánku (v %). 😴",
+          "sleep_rgb_or_color_temp": "V režimu spánku se použije buď `\"rgb_color\"`, nebo `\"color_temp\"`. 🌙",
+          "sleep_color_temp": "Teplota barev v režimu spánku (používá se, když `sleep_rgb_or_color_temp` je `color_temp`) v Kelvinech. 😴",
+          "sleep_rgb_color": "RGB barva v režimu spánku (používané když `sleep_rgb_or_color_temp` je \"rgb_color\"). 🌈",
+          "sleep_transition": "Doba trvání přechodu do režimu spánku v sekundách. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data": {
           "sunrise_time": "sunrise_time: Manuální přepsání času východu slunce, pokud je „None“, použije se skutečný čas východu slunce ve vaší lokalitě (HH:MM:SS)",
           "max_sunrise_time": "max_sunrise_time: Ruční přepsání nejpozdějšího času východu slunce, pokud je „None“, použije se skutečný čas východu slunce vaší lokality (HH:MM:SS)",
-          "sunset_offset": "sunset_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu západu slunce (+/- v sekundách)",
+          "sunrise_offset": "sunrise_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu východu slunce (+/- v sekundách)",
           "sunset_time": "sunset_time: Ruční přepsání času západu slunce, pokud je „None“, použije se skutečný čas západu slunce vaší lokality (HH:MM:SS)",
           "min_sunset_time": "min_sunset_time: Ruční přepsání nejdřívějšího času západu slunce, pokud je „None“, použije se skutečný čas západu slunce vaší lokality (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: Jak dlouho před (-) nebo po (+) definovat bod cyklu západu slunce (+/- v sekundách)",
+          "interval": "interval: Prodleva pro změny osvětlení (v sekundách)",
+          "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",
+          "adapt_delay": ""
+        },
+        "data_description": {
+          "sunrise_time": "Nastavit pevný čas (HH:MM:SS) pro východ slunce. 🌅",
+          "min_sunrise_time": "Nastavte nejbližší virtuální čas východu slunce (HH:MM:SS), abyste mohli nastavit pozdější východ slunce. 🌅",
+          "max_sunrise_time": "Nastavte nejpozdější virtuální čas východu slunce (HH:MM:SS), což umožňuje dřívější východ slunce. 🌅",
+          "sunrise_offset": "Upravte čas východu slunce o sekundy dopředu nebo dozadu. ⏰",
+          "sunset_time": "Nastavit pevný čas (HH:MM:SS) pro západ slunce. 🌅",
+          "min_sunset_time": "Nastavte nejbližší virtuální čas západu slunce (HH:MM:SS), abyste mohli nastavit pozdější západ slunce. 🌅",
+          "max_sunset_time": "Nastavte nejpozdější virtuální čas západu slunce (HH:MM:SS), což umožňuje dřívější západ slunce. 🌅",
+          "sunset_offset": "Upravte čas západu slunce o sekundy dopředu nebo dozadu. ⏰",
+          "interval": "Frekvence přizpůsobení světel v sekundách. 🔄",
+          "initial_transition": "Doba trvání prvního přechodu, kdy se světla změní z `vypnuto` na `zapnuto`, v sekundách. ⏲️",
+          "adapt_delay": "Doba čekání (v sekundách) mezi zapnutím světla a změnou adaptivního osvětlení. Mohlo by to pomoci zabránit blikání. ⏲️",
+          "brightness_mode": "Výběr režimu jasu. Možné hodnoty jsou `default`, `linear` a `tanh` (používá `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
+          "brightness_mode_time_dark": "(Ignorováno, pokud `brightness_mode='default'`) Doba trvání v sekundách pro zvýšení/snížení jasu po/před východem/západem slunce. 📈📉.",
+          "brightness_mode_time_light": "(Ignorováno, pokud `brightness_mode='default'`) Doba trvání v sekundách pro zvýšení/snížení jasu po/před východem/západem slunce. 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
           "take_over_control": "take_over_control: Je-li volán 'light.turn_on' z jiného zdroje, než Adaptivním osvětlením, když je světlo již rozsvíceno, přestaňte toto světlo ovládat, dokud není vypnuto -> zapnuto (nebo i vypínačem).",
           "detect_non_ha_changes": "detect_non_ha_changes: detekuje všechny změny >10%  provedených pro osvětlení (také mimo HA), vyžaduje povolení atributu 'take_over_control' (každý 'interval' spouští 'homeassistant.update_entity'!)",
-          "transition": "",
-          "adapt_delay": "",
-          "transition_until_sleep": "transition_until_sleep: Pokud je zapnuto, Adaptive Lighting bude zacházet s nastavením spánku jako s minimem, na tyto hodnoty přejde po západu slunce. 🌙",
-          "multi_light_intercept": "multi_light_intercept: Zachytí a přizpůsobí volání `light.turn_on`, která se zaměřují na více světel. ➗⚠️ To může vést k rozdělení jednoho volání `light.turn_on` na více volání, např. když jsou světla v různých vypínačích. Vyžaduje, aby bylo povoleno `intercept`.",
+          "only_once": "only_once: Přizpůsobení osvětlení pouze při rozsvícení.",
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Jenom při prvním zapnutí světel. Je-li nastaveno na `true`, AL udělá přizpůsobení pouze tehdy, je-li vyvoláno `light.turn_on` bez zadání barvy nebo jasu. ❌🌈 Tím se zabrání přizpůsobení např. při aktivaci scény. Pokud je `false`, AL udělá přizpůsobení bez ohledu na přítomnost barvy nebo jasu `service_data` volání. Vyžaduje zapnutí `take_over_control`. 🕵️ ",
-          "skip_redundant_commands": "skip_redundant_commands: Přeskočí odesílání adaptačních příkazů, jejichž cílový stav se již rovná známému stavu světla. Minimalizuje síťový provoz a v některých situacích zlepšuje odezvu adaptace. 📉Zakažte, pokud se fyzické stavy světel dostanou mimo synchronizaci se zaznamenaným stavem HA.",
           "intercept": "intercept: Zachytit a přizpůsobit volání `light.turn_on` a umožnit tak okamžité přizpůsobení barev a jasu. 🏎️ Zakažte pro světla, která nepodporují `light.turn_on` s barvou a jasem najednou.",
+          "multi_light_intercept": "multi_light_intercept: Zachytí a přizpůsobí volání `light.turn_on`, která se zaměřují na více světel. ➗⚠️ To může vést k rozdělení jednoho volání `light.turn_on` na více volání, např. když jsou světla v různých vypínačích. Vyžaduje, aby bylo povoleno `intercept`.",
+          "skip_redundant_commands": "skip_redundant_commands: Přeskočí odesílání adaptačních příkazů, jejichž cílový stav se již rovná známému stavu světla. Minimalizuje síťový provoz a v některých situacích zlepšuje odezvu adaptace. 📉Zakažte, pokud se fyzické stavy světel dostanou mimo synchronizaci se zaznamenaným stavem HA."
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Automatické resetování ručního ovládání po určitém počtu sekund. Nastavením na 0 se vypne. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Oddělení příkazů pro každý atribut (barva, jas, atd.) v atributu 'light.turn_on' (vyžadováno pro některá světla).",
+          "send_split_delay": "send_split_delay: prodleva mezi příkazy (milisekundy), když je použit atribut 'separate_turn_on_commands'. Může zajistit správné zpracování obou příkazů.",
           "include_config_in_attributes": "include_config_in_attributes: Zobrazit všechny možnosti jako atributy přepínače v Home Assistant, pokud je nastaveno na `true`. 📝"
         },
         "data_description": {
-          "sleep_rgb_or_color_temp": "V režimu spánku se použije buď `\"rgb_color\"`, nebo `\"color_temp\"`. 🌙",
-          "sleep_color_temp": "Teplota barev v režimu spánku (používá se, když `sleep_rgb_or_color_temp` je `color_temp`) v Kelvinech. 😴",
-          "sleep_transition": "Doba trvání přechodu do režimu spánku v sekundách. 😴",
-          "autoreset_control_seconds": "Automatické resetování ručního ovládání po určitém počtu sekund. Nastavením na 0 se vypne. ⏲️",
-          "min_sunset_time": "Nastavte nejbližší virtuální čas západu slunce (HH:MM:SS), abyste mohli nastavit pozdější západ slunce. 🌅",
-          "sleep_brightness": "Jas světel během režimu spánku (v %). 😴",
-          "min_sunrise_time": "Nastavte nejbližší virtuální čas východu slunce (HH:MM:SS), abyste mohli nastavit pozdější východ slunce. 🌅",
-          "interval": "Frekvence přizpůsobení světel v sekundách. 🔄",
-          "adapt_delay": "Doba čekání (v sekundách) mezi zapnutím světla a změnou adaptivního osvětlení. Mohlo by to pomoci zabránit blikání. ⏲️",
-          "sleep_rgb_color": "RGB barva v režimu spánku (používané když `sleep_rgb_or_color_temp` je \"rgb_color\"). 🌈",
-          "sunrise_offset": "Upravte čas východu slunce o sekundy dopředu nebo dozadu. ⏰",
-          "transition": "Doba trvání přechodu změny světel v sekundách. 🕑",
-          "brightness_mode": "Výběr režimu jasu. Možné hodnoty jsou `default`, `linear` a `tanh` (používá `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
-          "brightness_mode_time_light": "(Ignorováno, pokud `brightness_mode='default'`) Doba trvání v sekundách pro zvýšení/snížení jasu po/před východem/západem slunce. 📈📉.",
-          "sunset_offset": "Upravte čas západu slunce o sekundy dopředu nebo dozadu. ⏰",
-          "sunset_time": "Nastavit pevný čas (HH:MM:SS) pro západ slunce. 🌅",
-          "max_sunset_time": "Nastavte nejpozdější virtuální čas západu slunce (HH:MM:SS), což umožňuje dřívější západ slunce. 🌅",
-          "sunrise_time": "Nastavit pevný čas (HH:MM:SS) pro východ slunce. 🌅",
-          "initial_transition": "Doba trvání prvního přechodu, kdy se světla změní z `vypnuto` na `zapnuto`, v sekundách. ⏲️",
-          "brightness_mode_time_dark": "(Ignorováno, pokud `brightness_mode='default'`) Doba trvání v sekundách pro zvýšení/snížení jasu po/před východem/západem slunce. 📈📉.",
-          "max_sunrise_time": "Nastavte nejpozdější virtuální čas východu slunce (HH:MM:SS), což umožňuje dřívější východ slunce. 🌅",
           "send_split_delay": "Zpoždění (ms) mezi příkazy `separate_turn_on_commands` pro světla, která nepodporují současné nastavení jasu a barvy. ⏲️"
         }
       }
     },
     "error": {
       "option_error": "Neplatná možnost",
-      "entity_missing": "V aplikaci Home Assistant chybí jedna nebo více vybraných entit osvětlení"
+      "entity_missing": "V aplikaci Home Assistant chybí jedna nebo více vybraných entit osvětlení",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

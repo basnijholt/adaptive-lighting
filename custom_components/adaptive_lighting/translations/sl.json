@@ -2,50 +2,91 @@
   "options": {
     "step": {
       "init": {
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
-          "prefer_rgb_color": "prefer_rgb_color: Ali v primeru možnosti raje uporabiti prilagoditev RGB barve kot barvno temperaturo luči. 🌈",
-          "transition_until_sleep": "transition_until_sleep: Če je omogočeno, bo Adaptive Lighting obravnaval nastavitve spanja kot minimalne vrednosti in bo po zahodu sonca prehajal na te vrednosti. 🌙",
-          "take_over_control": "take_over_control: Onemogoči Adaptive Lighting, če drug vir pokliče \"light.turn_on\", ko so luči prižgane in se prilagajajo. Opozorilo: to ob vsakem intervalu kliče \"homeassistant.update_entity\"! 🔒",
-          "detect_non_ha_changes": "„detect_non_ha_changes: Zazna in ustavi prilagoditve za spremembe stanja, ki niso posledica \"light.turn_on\". Zahteva omogočeno \"take_over_control\". 🕵️ Pozor: ⚠️ Nekatere luči lahko nepravilno poročajo, da so prižgane, kar lahko povzroči nepričakovano vklapljanje. Onemogočite to funkcijo, če naletite na takšne težave.",
           "lights": "lights: Seznam entity_id-jev luči za nadzor (lahko je prazen). 🌟",
           "min_brightness": "min_brightness: Odstotek najmanjše svetlosti. 💡",
           "max_brightness": "max_brightness: Odstotek največeje svetlosti. 💡",
           "min_color_temp": "min_color_temp: Najtoplejša barvna temperatura v Kelvinih. 🔥",
           "max_color_temp": "max_color_temp: Najhladnejša barvna temperatura v kelvinih. ❄️",
-          "separate_turn_on_commands": "separate_turn_on_commands: Uporabi ločene klice \"light.turn_on\" za barvo in jakost, kar je potrebno za nekatere tipe luči. 🔀",
-          "skip_redundant_commands": "skip_redundant_commands: Preskoči pošiljanje prilagoditvenih ukazov, če je ciljano stanje že enako poznanemu stanju luči. Zmanjšuje omrežni promet in izboljšuje odzivnost prilagajanja v določenih situacijah. 📉 Onemogočite, če se fizična stanja luči ne ujemajo z zabeleženim stanjem v HA.",
-          "intercept": "intercept: Prestreza in prilagaja klice \"light.turn_on\" za takojšnjo prilagoditev barve in jakosti. 🏎️ Onemogočite za luči, ki ne podpirajo \"light.turn_on\" z barvo in svetlostjo.",
-          "multi_light_intercept": "multi_light_intercept: Prestreza in prilagaja klice \"light.turn_on\", ki ciljajo več luči. ➗⚠️ To lahko privede do razdelitve enega klica \"light.turn_on\" v več klicev, npr. ko so luči na različnih stikalih. Zahteva omogočeno \"intercept\".",
-          "include_config_in_attributes": "include_config_in_attributes: Ko je nastavljeno na \"true\", prikaže vse možnosti kot atribute stikala v Home Assistantu. 📝",
-          "only_once": "only_once: Prilagodi luči samo ob vklopu (true) ali pa jih še naprej prilagajaj (false). 🔄",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Ob začetnem vklopu luči. Če je nastavljeno na \"true\",  AL prilagodi samo, če je \"light.turn_on\" klic brez podanih parametrov barve ali jakosti. ❌🌈 S tem se npr. prepreči prilagajanje pri aktivaciji scene. Če je \"false\", AL prilagodi ne glede na prisotnost barve ali jakosti v začetnih \"service_data\". Zahteva omogočeno \"take_over_control\". 🕵️"
+          "prefer_rgb_color": "prefer_rgb_color: Ali v primeru možnosti raje uporabiti prilagoditev RGB barve kot barvno temperaturo luči. 🌈",
+          "room_preset": "Room preset"
         },
         "data_description": {
-          "sunrise_offset": "Prilagodite čas sončnega vzhoda z pozitivnim ali negativnim zamikom v sekundah. ⏰",
-          "send_split_delay": "Zamik (ms) med \"separate_turn_on_commands\" za luči, ki ne podpirajo hkratne nastavitve jakosti in barve. ⏲️",
           "transition": "Trajanje prehoda pri spreminjanju luči, v sekundah. 🕑",
-          "interval": "Pogostost prilagajanja luči, v sekundah. 🔄",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
+          "transition_until_sleep": "transition_until_sleep: Če je omogočeno, bo Adaptive Lighting obravnaval nastavitve spanja kot minimalne vrednosti in bo po zahodu sonca prehajal na te vrednosti. 🌙"
+        },
+        "data_description": {
           "sleep_brightness": "Odstotek svetlosti luči v načinu spanja. 😴",
           "sleep_rgb_or_color_temp": "V načinu spanja uporabi  \"rgb_color\" ali \"color_temp\". 🌙",
           "sleep_color_temp": "Barvna temperatura v načinu spanja (uporabljena, ko je \"sleep_rgb_or_color_temp\" nastavljena na \"color_temp\") v Kelvinih. 😴",
-          "sleep_transition": "Trajanje prehoda, ko se preklopi način spanja, v sekundah. 😴",
+          "sleep_rgb_color": "RGB barva v načinu spanja (uporabljena, ko je \"sleep_rgb_or_color_temp\" nastavljeno na \"rgb_color\"). 🌈",
+          "sleep_transition": "Trajanje prehoda, ko se preklopi način spanja, v sekundah. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
           "sunrise_time": "Nastavi fiksni čas (HH:MM:SS) sončnega vzhoda. 🌅",
           "min_sunrise_time": "Nastavi najzgodnejši navidezni sončni vzhod (HH:MM:SS), dovoljuje kasnejše vzhode. 🌅",
+          "max_sunrise_time": "Nastavi najkasnejši virtualni sončni vzhod (HH:MM:SS), dovoljuje zgodnejše vzhode. 🌅",
+          "sunrise_offset": "Prilagodite čas sončnega vzhoda z pozitivnim ali negativnim zamikom v sekundah. ⏰",
           "sunset_time": "Nastavite fiksni čas (HH:MM:SS) za sončni zahod. 🌇",
           "min_sunset_time": "Nastavite najzgodnejši navidezni čas sončnega zahoda (HH:MM:SS), dovoljuje kasnejše sončne zahode. 🌇",
-          "sunset_offset": "Prilagodite čas sončnega zahoda s pozitivnim ali negativnim zamikom v sekundah. ⏰",
-          "brightness_mode_time_dark": "(Prezrto, če je \"brightness_mode='default'\") Trajanje v sekundah za postopno povečanje ali zmanjšanje svetlosti pred/po sončnem vzhodu/zahodu. 📈📉",
-          "brightness_mode_time_light": "(Prezrto, če je \"brightness_mode='default'\") Trajanje v sekundah za postopno povečanje ali zmanjšanje svetlosti po/pred sončnem vzhodu/zahodu. 📈📉",
-          "autoreset_control_seconds": "Samodejno ponastavi ročni nadzor po določenem številu sekund. Nastavite na 0, da onemogočite. ⏲️",
-          "max_sunrise_time": "Nastavi najkasnejši virtualni sončni vzhod (HH:MM:SS), dovoljuje zgodnejše vzhode. 🌅",
           "max_sunset_time": "Nastavite najpoznejši navidezni čas sončnega zahoda (HH:MM:SS), dovoljuje zgodnejše sončne zahode. 🌇",
-          "brightness_mode": "Način upravljanja svetlosti. Možne vrednosti so \"default\", \"linear\" in \"tanh\" (uporablja \"brightness_mode_time_dark\" in \"brightness_mode_time_light\"). 📈",
+          "sunset_offset": "Prilagodite čas sončnega zahoda s pozitivnim ali negativnim zamikom v sekundah. ⏰",
+          "interval": "Pogostost prilagajanja luči, v sekundah. 🔄",
           "initial_transition": "Trajanje prvega prehoda, ko se luči prižgejo (iz \"off\" v \"on\"), v sekundah. ⏲️",
-          "sleep_rgb_color": "RGB barva v načinu spanja (uporabljena, ko je \"sleep_rgb_or_color_temp\" nastavljeno na \"rgb_color\"). 🌈"
+          "brightness_mode": "Način upravljanja svetlosti. Možne vrednosti so \"default\", \"linear\" in \"tanh\" (uporablja \"brightness_mode_time_dark\" in \"brightness_mode_time_light\"). 📈",
+          "brightness_mode_time_dark": "(Prezrto, če je \"brightness_mode='default'\") Trajanje v sekundah za postopno povečanje ali zmanjšanje svetlosti pred/po sončnem vzhodu/zahodu. 📈📉",
+          "brightness_mode_time_light": "(Prezrto, če je \"brightness_mode='default'\") Trajanje v sekundah za postopno povečanje ali zmanjšanje svetlosti po/pred sončnem vzhodu/zahodu. 📈📉"
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: Onemogoči Adaptive Lighting, če drug vir pokliče \"light.turn_on\", ko so luči prižgane in se prilagajajo. Opozorilo: to ob vsakem intervalu kliče \"homeassistant.update_entity\"! 🔒",
+          "detect_non_ha_changes": "„detect_non_ha_changes: Zazna in ustavi prilagoditve za spremembe stanja, ki niso posledica \"light.turn_on\". Zahteva omogočeno \"take_over_control\". 🕵️ Pozor: ⚠️ Nekatere luči lahko nepravilno poročajo, da so prižgane, kar lahko povzroči nepričakovano vklapljanje. Onemogočite to funkcijo, če naletite na takšne težave.",
+          "only_once": "only_once: Prilagodi luči samo ob vklopu (true) ali pa jih še naprej prilagajaj (false). 🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Ob začetnem vklopu luči. Če je nastavljeno na \"true\",  AL prilagodi samo, če je \"light.turn_on\" klic brez podanih parametrov barve ali jakosti. ❌🌈 S tem se npr. prepreči prilagajanje pri aktivaciji scene. Če je \"false\", AL prilagodi ne glede na prisotnost barve ali jakosti v začetnih \"service_data\". Zahteva omogočeno \"take_over_control\". 🕵️",
+          "intercept": "intercept: Prestreza in prilagaja klice \"light.turn_on\" za takojšnjo prilagoditev barve in jakosti. 🏎️ Onemogočite za luči, ki ne podpirajo \"light.turn_on\" z barvo in svetlostjo.",
+          "multi_light_intercept": "multi_light_intercept: Prestreza in prilagaja klice \"light.turn_on\", ki ciljajo več luči. ➗⚠️ To lahko privede do razdelitve enega klica \"light.turn_on\" v več klicev, npr. ko so luči na različnih stikalih. Zahteva omogočeno \"intercept\".",
+          "skip_redundant_commands": "skip_redundant_commands: Preskoči pošiljanje prilagoditvenih ukazov, če je ciljano stanje že enako poznanemu stanju luči. Zmanjšuje omrežni promet in izboljšuje odzivnost prilagajanja v določenih situacijah. 📉 Onemogočite, če se fizična stanja luči ne ujemajo z zabeleženim stanjem v HA."
         },
-        "title": "Nastavitve prilagodljive osvetlitve",
-        "description": "Konfigurirajte komponento Adaptive Lighting. Imena možnosti so usklajena z nastavitvami v YAML. Če ste ta vnos definirali v YAML, tukaj ne bodo prikazane nobene možnosti. Za interaktivne grafe, ki ponazarjajo učinke parametrov, obiščite to [spletno aplikacijo](https://basnijholt.github.io/adaptive-lighting). Za dodatne podrobnosti glejte [uradno dokumentacijo](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "data_description": {
+          "autoreset_control_seconds": "Samodejno ponastavi ročni nadzor po določenem številu sekund. Nastavite na 0, da onemogočite. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Uporabi ločene klice \"light.turn_on\" za barvo in jakost, kar je potrebno za nekatere tipe luči. 🔀",
+          "include_config_in_attributes": "include_config_in_attributes: Ko je nastavljeno na \"true\", prikaže vse možnosti kot atribute stikala v Home Assistantu. 📝"
+        },
+        "data_description": {
+          "send_split_delay": "Zamik (ms) med \"separate_turn_on_commands\" za luči, ki ne podpirajo hkratne nastavitve jakosti in barve. ⏲️"
+        }
       }
+    },
+    "error": {
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "config": {

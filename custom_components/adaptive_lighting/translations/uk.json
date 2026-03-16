@@ -17,64 +17,105 @@
   "options": {
     "step": {
       "init": {
-        "title": "Опції адаптивного освітлення",
-        "description": "Всі налаштування компонента адаптивного освітлення. Назви опцій відповідають налаштуванням у YAML. Опції не відображаються, якщо ви вже визначили їх у компоненті adaptive_lighting вашої YAML-конфігурації.",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "прилади",
-          "initial_transition": "initial_transition: Коли прилад вимикається (off), вмикається (on), або змінює 'sleep_state'. (секунди)",
-          "interval": "interval: Час між оновленнями перемикача. (секунди)",
-          "max_brightness": "max_brightness: Найвища яскравість світла під час циклу. (%)",
-          "max_color_temp": "max_color_temp: Найхолодніший відтінок циклу кольорової температури. (Кельвін)",
           "min_brightness": "min_brightness: Найнижча яскравість світла під час циклу. (%)",
+          "max_brightness": "max_brightness: Найвища яскравість світла під час циклу. (%)",
           "min_color_temp": "min_color_temp: Найтепліший відтінок циклу кольорової температури. (%)",
-          "only_once": "only_once: Адаптувати світло лише після початкового увімкнення.",
+          "max_color_temp": "max_color_temp: Найхолодніший відтінок циклу кольорової температури. (Кельвін)",
           "prefer_rgb_color": "prefer_rgb_color: Використовувати 'rgb_color' замість 'color_temp', коли можливо.",
-          "separate_turn_on_commands": "separate_turn_on_commands: Окремі команди для кожного атрибута (колір, яскравість, тощо.) в 'light.turn_on' (необхідні для деяких приладів).",
+          "transition": "Час переходу, який застосовується до освітлення (секунди)",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Тривалість переходу, коли світло змінюється, у секундах. 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
           "sleep_brightness": "sleep_brightness: Налаштування яскравості для Режиму сну. (%)",
           "sleep_color_temp": "sleep_color_temp: Температура кольору для Режиму сну. (Кельвін)",
-          "sunrise_offset": "sunrise_offset: Як за довго до(-) або після(+) визначати точку сходу сонця для циклу (+/- секунд)",
+          "transition_until_sleep": "transition_until_sleep: Коли активовано, адаптивне освітлення буде ставитись до налаштування сну як мінімум, переходячи до цих значень після заходу сонця. 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "Відсоток яскравості світла в режимі сну. 😴",
+          "sleep_rgb_or_color_temp": "Використовуйте `\"rgb_color\"` або `\"color_temp\"` у режимі сну. 🌙",
+          "sleep_color_temp": "Колірна температура в режимі сну (використовується, коли `sleep_rgb_or_color_temp` має значення `color_temp`) у Кельвінах. 😴",
+          "sleep_rgb_color": "Колір RGB у режимі сну (використовується, коли `sleep_rgb_or_color_temp` має значення \"rgb_color\"). 🌈",
+          "sleep_transition": "Тривалість переходу, коли режим сну \"sleep mode\" увімкнено, у секундах. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data": {
           "sunrise_time": "sunrise_time: Ручний перезапис часу сходу сонця, якщо 'None', тоді використовується час сходу сонця у вашій локації (HH:MM:SS)",
-          "sunset_offset": "sunset_offset: Як за довго до(-) або після(+) визначати точку заходу сонця для циклу (+/- секунд)",
+          "sunrise_offset": "sunrise_offset: Як за довго до(-) або після(+) визначати точку сходу сонця для циклу (+/- секунд)",
           "sunset_time": "sunset_time: Ручний перезапис часу заходу сонця, якщо 'None', тоді використовується час заходу сонця у вашій локації (HH:MM:SS)",
+          "sunset_offset": "sunset_offset: Як за довго до(-) або після(+) визначати точку заходу сонця для циклу (+/- секунд)",
+          "interval": "interval: Час між оновленнями перемикача. (секунди)",
+          "initial_transition": "initial_transition: Коли прилад вимикається (off), вмикається (on), або змінює 'sleep_state'. (секунди)"
+        },
+        "data_description": {
+          "sunrise_time": "Встановіть фіксований час (ГГ:ХХ:СС) для сходу сонця. 🌅",
+          "min_sunrise_time": "Встановіть найраніший час віртуального сходу сонця (ГГ:ХХ:СС), враховуючи пізніші сходи. 🌅",
+          "max_sunrise_time": "Встановіть найпізніший час віртуального сходу сонця (ГГ:ХХ:СС), враховуючи більш ранні сходи сонця. 🌅",
+          "sunrise_offset": "Змінити час сходу сонця на +/- секунд. ⏰",
+          "sunset_time": "Встановіть фіксований час (ГГ:ХХ:СС) для заходу сонця. 🌇",
+          "min_sunset_time": "Встановіть найраніший час віртуального заходу сонця (ГГ:ХХ:СС), враховуючи пізніші заходи сонця. 🌇",
+          "max_sunset_time": "Встановіть найновіший час віртуального заходу сонця (ГГ:ХХ:СС), враховуючи більш ранні заходи сонця. 🌇",
+          "sunset_offset": "Змінити час заходу сонця на +/- секунд. ⏰",
+          "interval": "Частота адаптації освітлення, у секундах. 🔄",
+          "initial_transition": "Тривалість першого переходу, коли світло перемикається зі стану вимкнено `off` на увімкнено `on`, у секундах. ⏲️",
+          "adapt_delay": "Час очікування (секунди) між увімкненням світла та застосуванням змін системою адаптивного освітлення. Може допомогти уникнути мерехтіння. ⏲️",
+          "brightness_mode": "Режим яскравості для використання. Можливі значення: default (стандартний) , linear (лінійний) та tanh (гіперболічний тангенс) (використовує значення brightness_mode_time_dark та brightness_mode_time_light).",
+          "brightness_mode_time_dark": "(Ігнорується, якщо `brightness_mode='default'`) Тривалість у секундах для збільшення/зменшення яскравості до/після сходу/заходу сонця. 📈📉",
+          "brightness_mode_time_light": "(Ігнорується, якщо brightness_mode='default') Тривалість у секундах для збільшення/зменшення яскравості після/до сходу/заходу сонця. 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
           "take_over_control": "take_over_control: Якщо що-небудь, окрім Адаптивного освітлення, викликає 'light.turn_on', коли світло вже увімкнено, чи адаптувати освітлення допоки світло (або перемикач) перемкнеться (off -> on).",
           "detect_non_ha_changes": "detect_non_ha_changes: виявляти всі зміни >10% до освітлення (включаючи ті, що зроблені поза HA), вимагає, щоб 'take_over_control' був включений (виклик 'homeassistant.update_entity' кожного оновлення 'interval'!)",
-          "transition": "Час переходу, який застосовується до освітлення (секунди)",
+          "only_once": "only_once: Адаптувати світло лише після початкового увімкнення.",
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: На початку вмикання світла. Якщо `true`, освітлення адаптується лише якщо `light.turn_on` викликано без вказання кольору чи яскравості. ❌🌈 Це, наприклад, запобігає адаптації, коли сцена активується. Якщо `false`, освітлення адаптується незалежно від наявності кольору чи яскравості у початковому `service_data`. Потребує ввімкнення `take_over_control`. 🕵️",
-          "transition_until_sleep": "transition_until_sleep: Коли активовано, адаптивне освітлення буде ставитись до налаштування сну як мінімум, переходячи до цих значень після заходу сонця. 🌙",
           "intercept": "intercept: Перехоплювати та адаптувати виклики увімкнення світла (`light.turn_on`), щоб увімкнути миттєву адаптацію кольору та яскравості. 🏎️ Вимкніть для світла, що не підтримує увімкнення світла (`light.turn_on`) з кольором та яскравістю.",
-          "include_config_in_attributes": "Включити конфігурацію в атрибути (`include_config_in_attributes`): Показувати всі опції як атрибути на перемикачі в Home Assistant, якщо встановлено значення `true`. 📝",
           "multi_light_intercept": "multi_light_intercept: Перехоплення та адаптація викликів `light.turn_on`, які спрямовані на кілька світильників. ➗⚠️ Це може призвести до розділення одного виклику `light.turn_on` на кілька викликів, наприклад, коли світильники підключені до різних вимикачів. Потрібно ввімкнути `intercept`.",
           "skip_redundant_commands": "skip_redundant_commands: Пропускати надсилання команд адаптації, цільовий стан яких вже дорівнює відомому стану освітлення. Мінімізує мережевий трафік і покращує швидкість реагування адаптації в деяких ситуаціях. 📉Вимкнути, якщо фізичний стан освітлення не синхронізується із записаним станом HA."
         },
         "data_description": {
-          "sunrise_offset": "Змінити час сходу сонця на +/- секунд. ⏰",
-          "sunset_offset": "Змінити час заходу сонця на +/- секунд. ⏰",
-          "autoreset_control_seconds": "Самочинно скидати ручне керування після кількох секунд. Встановіть 0, щоб вимкнути.",
-          "initial_transition": "Тривалість першого переходу, коли світло перемикається зі стану вимкнено `off` на увімкнено `on`, у секундах. ⏲️",
-          "brightness_mode": "Режим яскравості для використання. Можливі значення: default (стандартний) , linear (лінійний) та tanh (гіперболічний тангенс) (використовує значення brightness_mode_time_dark та brightness_mode_time_light).",
-          "send_split_delay": "Затримка (мс) між `separate_turn_on_commands` (окремі команди увімкнення)  для світла, що не підтримує одночасне налаштування яскравості та кольору. ⏲️",
-          "brightness_mode_time_dark": "(Ігнорується, якщо `brightness_mode='default'`) Тривалість у секундах для збільшення/зменшення яскравості до/після сходу/заходу сонця. 📈📉",
-          "brightness_mode_time_light": "(Ігнорується, якщо brightness_mode='default') Тривалість у секундах для збільшення/зменшення яскравості після/до сходу/заходу сонця. 📈📉.",
-          "transition": "Тривалість переходу, коли світло змінюється, у секундах. 🕑",
-          "interval": "Частота адаптації освітлення, у секундах. 🔄",
-          "sleep_brightness": "Відсоток яскравості світла в режимі сну. 😴",
-          "sleep_color_temp": "Колірна температура в режимі сну (використовується, коли `sleep_rgb_or_color_temp` має значення `color_temp`) у Кельвінах. 😴",
-          "sleep_transition": "Тривалість переходу, коли режим сну \"sleep mode\" увімкнено, у секундах. 😴",
-          "sleep_rgb_color": "Колір RGB у режимі сну (використовується, коли `sleep_rgb_or_color_temp` має значення \"rgb_color\"). 🌈",
-          "sunrise_time": "Встановіть фіксований час (ГГ:ХХ:СС) для сходу сонця. 🌅",
-          "sunset_time": "Встановіть фіксований час (ГГ:ХХ:СС) для заходу сонця. 🌇",
-          "min_sunrise_time": "Встановіть найраніший час віртуального сходу сонця (ГГ:ХХ:СС), враховуючи пізніші сходи. 🌅",
-          "min_sunset_time": "Встановіть найраніший час віртуального заходу сонця (ГГ:ХХ:СС), враховуючи пізніші заходи сонця. 🌇",
-          "max_sunrise_time": "Встановіть найпізніший час віртуального сходу сонця (ГГ:ХХ:СС), враховуючи більш ранні сходи сонця. 🌅",
-          "max_sunset_time": "Встановіть найновіший час віртуального заходу сонця (ГГ:ХХ:СС), враховуючи більш ранні заходи сонця. 🌇",
-          "sleep_rgb_or_color_temp": "Використовуйте `\"rgb_color\"` або `\"color_temp\"` у режимі сну. 🌙",
-          "adapt_delay": "Час очікування (секунди) між увімкненням світла та застосуванням змін системою адаптивного освітлення. Може допомогти уникнути мерехтіння. ⏲️"
+          "autoreset_control_seconds": "Самочинно скидати ручне керування після кількох секунд. Встановіть 0, щоб вимкнути."
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Окремі команди для кожного атрибута (колір, яскравість, тощо.) в 'light.turn_on' (необхідні для деяких приладів).",
+          "include_config_in_attributes": "Включити конфігурацію в атрибути (`include_config_in_attributes`): Показувати всі опції як атрибути на перемикачі в Home Assistant, якщо встановлено значення `true`. 📝"
+        },
+        "data_description": {
+          "send_split_delay": "Затримка (мс) між `separate_turn_on_commands` (окремі команди увімкнення)  для світла, що не підтримує одночасне налаштування яскравості та кольору. ⏲️"
         }
       }
     },
     "error": {
       "option_error": "Хибна опція",
-      "entity_missing": "Вибраного світла в домашньому помічнику не знайшли"
+      "entity_missing": "Вибраного світла в домашньому помічнику не знайшли",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

@@ -2,15 +2,51 @@
   "options": {
     "step": {
       "init": {
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
+        "data": {
+          "room_preset": "Room preset"
+        },
         "data_description": {
-          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴",
-          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data_description": {
+          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
           "sunrise_offset": "Axusta a hora do amencer cun desfasamento positivo ou negativo en segundos. ⏰",
           "sunset_offset": "Axusta a hora da posta de sol cun desfasamento positivo ou negativo en segundos. ⏰",
           "interval": "Frecuencia para adaptar as luces, en segundos. 🔄"
-        },
-        "title": "Configuración de Iluminación Adaptativa"
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights."
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data_description": {
+          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`"
+        }
       }
+    },
+    "error": {
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "title": "Iluminación Adaptativa",

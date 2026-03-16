@@ -3,55 +3,94 @@
   "options": {
     "step": {
       "init": {
-        "title": "Akıllı Aydınlatma seçenekleri",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
-          "adapt_only_on_bare_turn_on": "Işıklar açıldığında geçerlidir. `true` olarak ayarlanırsa, eklenti yalnızca `light.turn_on` işlemi renk veya parlaklık belirtilmeden çağrıldığında uyarlama yapar (örneğin sahne etkinleştirmelerinde uyarlama yapılmaz).  ❌🌈\n`false` olarak ayarlanırsa, renk veya parlaklık belirtilmiş olsa bile uyarlama yapılır. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️",
-          "detect_non_ha_changes": "`detect_non_ha_changes`: `light.turn_on` dışındaki durum değişikliklerini algılar ve uyarlamayı durdurur. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️\nDikkat: ⚠️ Bazı ışıklar yanlışlıkla “açık” durumunu bildirebilir, bu da ışıkların beklenmedik şekilde açılmasına yol açabilir. Böyle bir durumla karşılaşırsanız bu özelliği devre dışı bırakın.",
-          "include_config_in_attributes": "`include_config_in_attributes`: `true` olarak ayarlandığında, tüm seçenekleri Home Assistant’ta anahtarın attribute’ları olarak gösterir. 📝",
-          "intercept": "`intercept`: `light.turn_on` çağrılarını yakalar ve renk ile parlaklığın anında uyarlanmasını sağlar. 🏎️ Renk ve parlaklığı desteklemeyen ışıklar için devre dışı bırakın.",
           "lights": "`lights`: Kontrol edilecek ışıkların entity_id listesi (boş bırakılabilir). 🌟",
-          "max_brightness": "`max_brightness`: Maksimum parlaklık yüzdesi. 💡",
-          "max_color_temp": "`max_color_temp`: En düşük renk sıcaklığı (Kelvin cinsinden). ❄️",
           "min_brightness": "min_brightness: Minimum parlaklık yüzdesi.💡",
+          "max_brightness": "`max_brightness`: Maksimum parlaklık yüzdesi. 💡",
           "min_color_temp": "`min_color_temp`: En yüksek (sıcak) renk sıcaklığı (Kelvin cinsinden). 🔥",
-          "multi_light_intercept": "`multi_light_intercept`: Birden fazla ışığı hedefleyen `light.turn_on` çağrılarını yakalar ve uyarlama yapar. ➗⚠️ Bu, örneğin ışıklar farklı anahtarlardaysa tek bir `light.turn_on` çağrısının birden fazla çağrıya bölünmesine yol açabilir. `intercept` etkin olmalıdır.",
-          "only_once": "`only_once`: Işıkları yalnızca açıldıklarında mı uyarlasın (`true`), yoksa sürekli uyarlamaya devam mı etsin (`false`). 🔄",
+          "max_color_temp": "`max_color_temp`: En düşük renk sıcaklığı (Kelvin cinsinden). ❄️",
           "prefer_rgb_color": "`prefer_rgb_color`: Mümkünse ışık renk sıcaklığı yerine RGB renk ayarını tercih edip etmeyeceğini belirler. 🌈",
-          "separate_turn_on_commands": "`separate_turn_on_commands`: Renk ve parlaklık için ayrı `light.turn_on` çağrıları kullanır; bazı ışık türleri için gereklidir. 🔀",
-          "skip_redundant_commands": "`skip_redundant_commands`: Hedef durumu ışığın bilinen durumu ile aynı olan uyarlama komutlarını atlar. Ağ trafiğini azaltır ve bazı durumlarda uyarlamanın yanıt hızını artırır. 📉  \nFiziksel ışık durumları HA’daki kaydedilen durumla senkronize değilse devre dışı bırakın.",
-          "take_over_control": "`take_over_control`: Işıklar açıkken ve uyarlanırken başka bir kaynaktan `light.turn_on` çağrılırsa Adaptive Lighting’i devre dışı bırakır. Dikkat: Bu işlem her `interval` süresinde `homeassistant.update_entity` çağrısı yapar! 🔒",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Işıklar değişirken geçiş süresi (saniye cinsinden). 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
           "transition_until_sleep": "`transition_until_sleep`: Etkinleştirildiğinde, Adaptive Lighting uyku ayarlarını minimum değer olarak kabul eder ve gün batımından sonra bu değerlere geçiş yapar. 🌙"
         },
         "data_description": {
-          "sunrise_offset": "Gün doğumu saatini, saniye cinsinden pozitif veya negatif bir kaydırma ile ayarlayın. ⏰",
-          "sunset_offset": "Gün batımı saatini, saniye cinsinden pozitif veya negatif bir kaydırma ile ayarlayın. ⏰",
-          "autoreset_control_seconds": "Manuel kontrolü belirtilen saniye sonunda otomatik olarak sıfırlar. Devre dışı bırakmak için 0 olarak ayarlayın. ⏲️",
-          "brightness_mode": "Kullanılacak parlaklık modunu belirtir. Olası değerler: `default`, `linear` ve `tanh` (`brightness_mode_time_dark` ve `brightness_mode_time_light` ayarlarını kullanır). 📈",
           "sleep_brightness": "Uyku modundayken ışıkların parlaklık yüzdesi 😴",
-          "sleep_color_temp": "Uyku modunda renk sıcaklığı ( `sleep_rgb_or_color_temp` `color_temp` olarak ayarlandığında kullanılır) Kelvin cinsinden. 😴",
-          "send_split_delay": "Parlaklık ve renk ayarını aynı anda desteklemeyen ışıklar için `separate_turn_on_commands` arasındaki gecikme (ms). ⏲️",
-          "initial_transition": "Işıklar `off` durumundan `on` durumuna geçerken ilk geçişin süresi (saniye cinsinden). ⏲️",
-          "transition": "Işıklar değişirken geçiş süresi (saniye cinsinden). 🕑",
-          "sleep_transition": "“Uyku modu” açılıp kapatıldığında geçiş süresi (saniye cinsinden). 😴",
-          "interval": "Işıkların uyarlanma sıklığı (saniye cinsinden). 🔄",
-          "brightness_mode_time_light": "(`brightness_mode='default'` ise göz ardı edilir) Gün doğumu/gün batımı öncesi/sonrası parlaklığı kademeli olarak artırma/azaltma süresi (saniye cinsinden). 📈📉",
-          "brightness_mode_time_dark": "(`brightness_mode='default'` ise göz ardı edilir) Gün doğumu/gün batımı öncesi/sonrası parlaklığı kademeli olarak artırma/azaltma süresi (saniye cinsinden). 📈📉",
-          "sleep_rgb_color": "Uyku modunda RGB renk ( `sleep_rgb_or_color_temp` \"rgb_color\" olarak ayarlandığında kullanılır). 🌈",
-          "sunrise_time": "Gün doğumu için sabit bir saat (SS:DD:YY) belirleyin. 🌅",
-          "sunset_time": "Gün batımı için sabit bir saat (SS:DD:YY) belirleyin. 🌇",
-          "min_sunrise_time": "En erken sanal gün doğumu saatini (SS:DD:YY) belirleyin; daha geç gün doğumlarına izin verir. 🌅",
-          "min_sunset_time": "En erken sanal gün batımı saatini (SS:DD:YY) belirleyin; daha geç gün batımlarına izin verir. 🌇",
-          "max_sunrise_time": "En geç sanal gün doğumu saatini (SS:DD:YY) belirleyin; daha erken gün doğumlarına izin verir. 🌅",
-          "max_sunset_time": "En geç sanal gün batımı saatini (SS:DD:YY) belirleyin; daha erken gün batımlarına izin verir. 🌇",
           "sleep_rgb_or_color_temp": "Uyku modunda `\"rgb_color\"` veya `\"color_temp\"` kullanın. 🌙",
-          "adapt_delay": "Işık açıldıktan sonra Adaptive Lighting’in değişiklikleri uygulamasına kadar bekleme süresi (saniye cinsinden). Titremeyi önlemeye yardımcı olabilir. ⏲️"
+          "sleep_color_temp": "Uyku modunda renk sıcaklığı ( `sleep_rgb_or_color_temp` `color_temp` olarak ayarlandığında kullanılır) Kelvin cinsinden. 😴",
+          "sleep_rgb_color": "Uyku modunda RGB renk ( `sleep_rgb_or_color_temp` \"rgb_color\" olarak ayarlandığında kullanılır). 🌈",
+          "sleep_transition": "“Uyku modu” açılıp kapatıldığında geçiş süresi (saniye cinsinden). 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
+          "sunrise_time": "Gün doğumu için sabit bir saat (SS:DD:YY) belirleyin. 🌅",
+          "min_sunrise_time": "En erken sanal gün doğumu saatini (SS:DD:YY) belirleyin; daha geç gün doğumlarına izin verir. 🌅",
+          "max_sunrise_time": "En geç sanal gün doğumu saatini (SS:DD:YY) belirleyin; daha erken gün doğumlarına izin verir. 🌅",
+          "sunrise_offset": "Gün doğumu saatini, saniye cinsinden pozitif veya negatif bir kaydırma ile ayarlayın. ⏰",
+          "sunset_time": "Gün batımı için sabit bir saat (SS:DD:YY) belirleyin. 🌇",
+          "min_sunset_time": "En erken sanal gün batımı saatini (SS:DD:YY) belirleyin; daha geç gün batımlarına izin verir. 🌇",
+          "max_sunset_time": "En geç sanal gün batımı saatini (SS:DD:YY) belirleyin; daha erken gün batımlarına izin verir. 🌇",
+          "sunset_offset": "Gün batımı saatini, saniye cinsinden pozitif veya negatif bir kaydırma ile ayarlayın. ⏰",
+          "interval": "Işıkların uyarlanma sıklığı (saniye cinsinden). 🔄",
+          "initial_transition": "Işıklar `off` durumundan `on` durumuna geçerken ilk geçişin süresi (saniye cinsinden). ⏲️",
+          "adapt_delay": "Işık açıldıktan sonra Adaptive Lighting’in değişiklikleri uygulamasına kadar bekleme süresi (saniye cinsinden). Titremeyi önlemeye yardımcı olabilir. ⏲️",
+          "brightness_mode": "Kullanılacak parlaklık modunu belirtir. Olası değerler: `default`, `linear` ve `tanh` (`brightness_mode_time_dark` ve `brightness_mode_time_light` ayarlarını kullanır). 📈",
+          "brightness_mode_time_dark": "(`brightness_mode='default'` ise göz ardı edilir) Gün doğumu/gün batımı öncesi/sonrası parlaklığı kademeli olarak artırma/azaltma süresi (saniye cinsinden). 📈📉",
+          "brightness_mode_time_light": "(`brightness_mode='default'` ise göz ardı edilir) Gün doğumu/gün batımı öncesi/sonrası parlaklığı kademeli olarak artırma/azaltma süresi (saniye cinsinden). 📈📉"
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "`take_over_control`: Işıklar açıkken ve uyarlanırken başka bir kaynaktan `light.turn_on` çağrılırsa Adaptive Lighting’i devre dışı bırakır. Dikkat: Bu işlem her `interval` süresinde `homeassistant.update_entity` çağrısı yapar! 🔒",
+          "detect_non_ha_changes": "`detect_non_ha_changes`: `light.turn_on` dışındaki durum değişikliklerini algılar ve uyarlamayı durdurur. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️\nDikkat: ⚠️ Bazı ışıklar yanlışlıkla “açık” durumunu bildirebilir, bu da ışıkların beklenmedik şekilde açılmasına yol açabilir. Böyle bir durumla karşılaşırsanız bu özelliği devre dışı bırakın.",
+          "only_once": "`only_once`: Işıkları yalnızca açıldıklarında mı uyarlasın (`true`), yoksa sürekli uyarlamaya devam mı etsin (`false`). 🔄",
+          "adapt_only_on_bare_turn_on": "Işıklar açıldığında geçerlidir. `true` olarak ayarlanırsa, eklenti yalnızca `light.turn_on` işlemi renk veya parlaklık belirtilmeden çağrıldığında uyarlama yapar (örneğin sahne etkinleştirmelerinde uyarlama yapılmaz).  ❌🌈\n`false` olarak ayarlanırsa, renk veya parlaklık belirtilmiş olsa bile uyarlama yapılır. Bu ayarın çalışması için `take_over_control` etkin olmalıdır. 🕵️",
+          "intercept": "`intercept`: `light.turn_on` çağrılarını yakalar ve renk ile parlaklığın anında uyarlanmasını sağlar. 🏎️ Renk ve parlaklığı desteklemeyen ışıklar için devre dışı bırakın.",
+          "multi_light_intercept": "`multi_light_intercept`: Birden fazla ışığı hedefleyen `light.turn_on` çağrılarını yakalar ve uyarlama yapar. ➗⚠️ Bu, örneğin ışıklar farklı anahtarlardaysa tek bir `light.turn_on` çağrısının birden fazla çağrıya bölünmesine yol açabilir. `intercept` etkin olmalıdır.",
+          "skip_redundant_commands": "`skip_redundant_commands`: Hedef durumu ışığın bilinen durumu ile aynı olan uyarlama komutlarını atlar. Ağ trafiğini azaltır ve bazı durumlarda uyarlamanın yanıt hızını artırır. 📉  \nFiziksel ışık durumları HA’daki kaydedilen durumla senkronize değilse devre dışı bırakın."
         },
-        "description": "Bir Adaptive Lighting bileşenini yapılandırın. Seçenek adları YAML ayarlarıyla uyumludur. Eğer bu girdiyi YAML’da tanımladıysanız, burada seçenekler görünmez.  \nParametrelerin etkilerini gösteren etkileşimli grafikler için [bu web uygulamasını](https://basnijholt.github.io/adaptive-lighting) ziyaret edebilirsiniz. Daha fazla bilgi için [resmi dokümantasyona](https://github.com/basnijholt/adaptive-lighting#readme) bakın."
+        "data_description": {
+          "autoreset_control_seconds": "Manuel kontrolü belirtilen saniye sonunda otomatik olarak sıfırlar. Devre dışı bırakmak için 0 olarak ayarlayın. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "`separate_turn_on_commands`: Renk ve parlaklık için ayrı `light.turn_on` çağrıları kullanır; bazı ışık türleri için gereklidir. 🔀",
+          "include_config_in_attributes": "`include_config_in_attributes`: `true` olarak ayarlandığında, tüm seçenekleri Home Assistant’ta anahtarın attribute’ları olarak gösterir. 📝"
+        },
+        "data_description": {
+          "send_split_delay": "Parlaklık ve renk ayarını aynı anda desteklemeyen ışıklar için `separate_turn_on_commands` arasındaki gecikme (ms). ⏲️"
+        }
       }
     },
     "error": {
       "option_error": "Geçersiz seçenek",
-      "entity_missing": "Seçilen bir veya birden fazla ışık entity’si Home Assistant’ta bulunamadı."
+      "entity_missing": "Seçilen bir veya birden fazla ışık entity’si Home Assistant’ta bulunamadı.",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

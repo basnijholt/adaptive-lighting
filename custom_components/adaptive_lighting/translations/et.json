@@ -17,34 +17,69 @@
   "options": {
     "step": {
       "init": {
-        "title": "Kohanduva valguse suvandid",
-        "description": "Kohanduva valguse suvandid. Valikute nimetused ühtuvad YAML kirjes olevatega. Valikuid ei kuvata kui seadistus on tehtud YAML kirjes.",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "valgustid",
-          "initial_transition": "Algne üleminek kui valgustid lülituvad sisse/välja või unerežiim muutub",
-          "interval": "Intervall, aeg muutuste vahel sekundites",
-          "max_brightness": "Suurim heledus %",
-          "max_color_temp": "Suurim värvustemperatuur Kelvinites",
           "min_brightness": "Vähim heledus %",
+          "max_brightness": "Suurim heledus %",
           "min_color_temp": "Vähim värvustemperatuur Kelvinites",
-          "only_once": "Ainult üks kord, rakendub ainult valgusti sisselülitamisel",
+          "max_color_temp": "Suurim värvustemperatuur Kelvinites",
           "prefer_rgb_color": "Eelista RGB värve, võimalusel kasuta RGB sätteid värvustemperatuuri asemel",
-          "separate_turn_on_commands": "Eraldi lülitused iga valiku (värvus, heledus jne.) sisselülitamiseks, mõned valgustid vajavad seda.",
+          "transition": "Üleminekud, sekundites",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
           "sleep_brightness": "Unerežiimi heledus %",
-          "sleep_color_temp": "Uneržiimi värvus Kelvinites",
-          "sunrise_offset": "Nihe päikesetõusust, +/- sekundit",
+          "sleep_color_temp": "Uneržiimi värvus Kelvinites"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data": {
           "sunrise_time": "Päikesetõusu aeg 'HH:MM:SS' vormingus. (Kui jätta tühjaks kasutatakse asukohajärgset)",
-          "sunset_offset": "Nihe päikeseloojangust, +/- sekundit",
+          "sunrise_offset": "Nihe päikesetõusust, +/- sekundit",
           "sunset_time": "Päikeseloojangu aeg 'HH:MM:SS' vormingus. (Kui jätta tühjaks kasutatakse asukohajärgset)",
+          "sunset_offset": "Nihe päikeseloojangust, +/- sekundit",
+          "interval": "Intervall, aeg muutuste vahel sekundites",
+          "initial_transition": "Algne üleminek kui valgustid lülituvad sisse/välja või unerežiim muutub"
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
           "take_over_control": "Käsitsi juhtimine: kui miski peale kohanduva valguse enda lültiab valgusti sisse ja see juba põleb, katkesta kohandamine kuni järgmise välise lülitamiseni.",
           "detect_non_ha_changes": "Märka väliseid lülitusi: kui mõni säte muutub üle 10% (isegi väljaspoolt HA juhituna) siis peab käsitsi juhtimine olema lubatud (kutsutakse 'homeassistant.update_entity')'interval'!)",
-          "transition": "Üleminekud, sekundites"
+          "only_once": "Ainult üks kord, rakendub ainult valgusti sisselülitamisel"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "Eraldi lülitused iga valiku (värvus, heledus jne.) sisselülitamiseks, mõned valgustid vajavad seda."
         }
       }
     },
     "error": {
       "option_error": "Vigane suvand",
-      "entity_missing": "Valitud valgust ei leitud"
+      "entity_missing": "Valitud valgust ei leitud",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   }
 }

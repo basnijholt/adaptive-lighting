@@ -17,24 +17,46 @@
   "options": {
     "step": {
       "init": {
-        "title": "Настройки на Адаптивно осветление",
-        "description": "Конфигурирайте компонент за Адаптивно осветление. Имената на опциите съвпадат с настройките на YAML. Ако сте дефинирали този запис в YAML, няма да се появят опции тук. За интерактивни графики, които демонстрират ефектите на параметрите, посетете [това уеб приложение](https://basnijholt.github.io/adaptive-lighting). За повече подробности, вижте [официалната документация](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "lights: Списък от entity_ids на лампи за контрол (може да е празен). 🌟",
-          "interval": "интервал",
-          "transition": "преход",
-          "initial_transition": "начален преход",
           "min_brightness": "min_brightness: Минимален процент на яркост. 💡",
           "max_brightness": "max_brightness: Максимален процент на яркост. 💡",
           "min_color_temp": "min_color_temp: Най-топла цветова температура в Келвини. 🔥",
           "max_color_temp": "max_color_temp: Най-студена цветова температура в Келвини. ❄️",
           "prefer_rgb_color": "prefer_rgb_color: Дали да се предпочита RGB цветова корекция пред температура на светлината, когато е възможно. 🌈",
+          "transition": "преход",
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Продължителност на прехода, когато лампите се променят, в секунди. 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
           "sleep_brightness": "яркост при сън",
           "sleep_rgb_or_color_temp": "RGB или цветова температура при сън",
           "sleep_color_temp": "цветова температура при сън",
           "sleep_rgb_color": "RGB цвят при сън",
           "sleep_transition": "преход при сън",
-          "transition_until_sleep": "transition_until_sleep: Когато е активирано, Adaptive Lighting ще третира настройките за сън като минимум, преминавайки към тези стойности след залез. 🌙",
+          "transition_until_sleep": "transition_until_sleep: Когато е активирано, Adaptive Lighting ще третира настройките за сън като минимум, преминавайки към тези стойности след залез. 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "Процент на яркостта на лампите в режим на сън. 😴",
+          "sleep_rgb_or_color_temp": "Използвайте или \"\"rgb_color\"\" или \"\"color_temp\"\" в режим на сън. 🌙",
+          "sleep_color_temp": "Цветова температура в режим на сън (използва се, когато \"sleep_rgb_or_color_temp\" е \"color_temp\") в Келвин. 😴",
+          "sleep_rgb_color": "RGB цвят в режим на сън (използва се, когато \"sleep_rgb_or_color_temp\" е \"rgb_color\"). 🌈",
+          "sleep_transition": "Продължителност на прехода, когато се превключва \"режим на сън\" в секунди. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data": {
           "sunrise_time": "време на изгрев",
           "min_sunrise_time": "минимално време на изгрев",
           "max_sunrise_time": "максимално време на изгрев",
@@ -43,31 +65,14 @@
           "min_sunset_time": "минимално време на залез",
           "max_sunset_time": "максимално време на залез",
           "sunset_offset": "отместване на залеза",
+          "interval": "интервал",
+          "initial_transition": "начален преход",
+          "adapt_delay": "забавяне при адаптация",
           "brightness_mode": "режим на яркост",
           "brightness_mode_time_dark": "време на режим на яркост при тъмно",
-          "brightness_mode_time_light": "време на режим на яркост при светло",
-          "take_over_control": "take_over_control: Деактивира Adaptive Lighting, ако друг източник извика \"light.turn_on\", докато лампите са включени и се адаптират. Имайте предвид, че това извиква \"homeassistant.update_entity\" на всеки \"interval\"! 🔒",
-          "detect_non_ha_changes": "detect_non_ha_changes: Открива и спира адаптации за промени в състоянието, които не са \"light.turn_on\". Изисква \"take_over_control\" активиран. 🕵️ Внимание: ⚠️ Някои лампиможе лъжливо да указват 'включено' състояние, което може да доведе до неочаквано включване на лампите. Деактивирайте тази функция, ако се сблъскате с такива проблеми.",
-          "autoreset_control_seconds": "секунди за автоматично нулиране на контрола",
-          "only_once": "only_once: Адаптира лампите само когато са включени (\"true\") или продължава да ги адаптира (\"false\"). 🔄",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: При първоначално включване на лампите. Ако е зададено на \"true\", Адаптивно Осветление се адаптира само ако е извикано \"light.turn_on\" без указване на цвят или яркост. ❌🌈 Това например предотвратява адаптация при активиране на сцена. Ако е \"false\", Адаптивно Осветление се адаптира независимо от наличието на цвят или яркост в първоначалните \"service_data\". Изисква \"take_over_control\" активиран. 🕵️ ",
-          "separate_turn_on_commands": "separate_turn_on_commands: Използва отделни \"light.turn_on\" команди за цвят и яркост, необходими за някои типове светлини. 🔀",
-          "send_split_delay": "забавяне при изпращане на разделени",
-          "adapt_delay": "забавяне при адаптация",
-          "skip_redundant_commands": "skip_redundant_commands: Пропуска изпращането на команди за адаптация, чиято целева състояние вече е равно на известното състояние на светлината. Минимизира мрежовия трафик и подобрява отговорността на адаптацията в някои ситуации. 📉Деактивирайте, ако физическите състояния на лампите се разминават с записаното състояние на HA.",
-          "intercept": "intercept: Прихваща и адаптира \"light.turn_on\" повиквания, позволявайки моментална адаптация на цвета и яркостта. 🏎️ Деактивирайте за светлини, които не поддържат \"light.turn_on\" с цвят и яркост.",
-          "multi_light_intercept": "multi_light_intercept: Прихваща и адаптира \"light.turn_on\" повиквания, които целят множество светлини. ➗⚠️ Това може да доведе до разделяне на едно \"light.turn_on\" повикване на множество повиквания, например когато лампите са в различни превключватели. Изисква \"intercept\" да бъде активиран.",
-          "include_config_in_attributes": "include_config_in_attributes: Показва всички опции като атрибути на ключа в Home Assistant, когато е зададено на \"true\". 📝"
+          "brightness_mode_time_light": "време на режим на яркост при светло"
         },
         "data_description": {
-          "interval": "Честота за адаптиране на лампите, в секунди. 🔄",
-          "transition": "Продължителност на прехода, когато лампите се променят, в секунди. 🕑",
-          "initial_transition": "Продължителност на първия преход, когато лампите преминават от \"off\" на \"on\" в секунди. ⏲️",
-          "sleep_brightness": "Процент на яркостта на лампите в режим на сън. 😴",
-          "sleep_rgb_or_color_temp": "Използвайте или \"\"rgb_color\"\" или \"\"color_temp\"\" в режим на сън. 🌙",
-          "sleep_color_temp": "Цветова температура в режим на сън (използва се, когато \"sleep_rgb_or_color_temp\" е \"color_temp\") в Келвин. 😴",
-          "sleep_rgb_color": "RGB цвят в режим на сън (използва се, когато \"sleep_rgb_or_color_temp\" е \"rgb_color\"). 🌈",
-          "sleep_transition": "Продължителност на прехода, когато се превключва \"режим на сън\" в секунди. 😴",
           "sunrise_time": "Задайте фиксирано време (HH:MM:SS) за изгрев. 🌅",
           "min_sunrise_time": "Задайте най-ранното виртуално време за изгрев (HH:MM:SS), позволяващо по-късни изгреви. 🌅",
           "max_sunrise_time": "Задайте най-късното виртуално време за изгрев (HH:MM:SS), позволяващо по-ранни изгреви. 🌅",
@@ -76,18 +81,54 @@
           "min_sunset_time": "Задайте най-ранното виртуално време за залез (HH:MM:SS), позволяващо по-късни залези. 🌇",
           "max_sunset_time": "Задайте най-късното виртуално време за залез (HH:MM:SS), позволяващо по-ранни залези. 🌇",
           "sunset_offset": "Регулирайте времето на залез с положителен или отрицателен отместване в секунди. ⏰",
+          "interval": "Честота за адаптиране на лампите, в секунди. 🔄",
+          "initial_transition": "Продължителност на първия преход, когато лампите преминават от \"off\" на \"on\" в секунди. ⏲️",
+          "adapt_delay": "Време за изчакване (секунди) между включване на светлината и прилагане на промени от Адаптивно Осветление. Може да помогне за избягване на трептене. ⏲️",
           "brightness_mode": "Режим на яркост за използване. Възможни стойности са \"default\", \"linear\" и \"tanh\" (използва \"brightness_mode_time_dark\" и \"brightness_mode_time_light\"). 📈",
           "brightness_mode_time_dark": "(Игнорира се, ако \"brightness_mode='default'\") Продължителност в секунди за увеличаване/намаляване на яркостта преди/след изгрев/залез. 📈📉",
-          "brightness_mode_time_light": "(Игнорира се, ако \"brightness_mode='default'\") Продължителност в секунди за увеличаване/намаляване на яркостта след/преди изгрев/залез. 📈📉.",
-          "autoreset_control_seconds": "Автоматично нулиране на ръчния контрол след определен брой секунди. Задайте на 0 за деактивиране. ⏲️",
-          "send_split_delay": "Забавяне (ms) между \"separate_turn_on_commands\" за светлини, които не поддържат едновременна настройка на яркост и цвят. ⏲️",
-          "adapt_delay": "Време за изчакване (секунди) между включване на светлината и прилагане на промени от Адаптивно Осветление. Може да помогне за избягване на трептене. ⏲️"
+          "brightness_mode_time_light": "(Игнорира се, ако \"brightness_mode='default'\") Продължителност в секунди за увеличаване/намаляване на яркостта след/преди изгрев/залез. 📈📉."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: Деактивира Adaptive Lighting, ако друг източник извика \"light.turn_on\", докато лампите са включени и се адаптират. Имайте предвид, че това извиква \"homeassistant.update_entity\" на всеки \"interval\"! 🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: Открива и спира адаптации за промени в състоянието, които не са \"light.turn_on\". Изисква \"take_over_control\" активиран. 🕵️ Внимание: ⚠️ Някои лампиможе лъжливо да указват 'включено' състояние, което може да доведе до неочаквано включване на лампите. Деактивирайте тази функция, ако се сблъскате с такива проблеми.",
+          "autoreset_control_seconds": "секунди за автоматично нулиране на контрола",
+          "only_once": "only_once: Адаптира лампите само когато са включени (\"true\") или продължава да ги адаптира (\"false\"). 🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: При първоначално включване на лампите. Ако е зададено на \"true\", Адаптивно Осветление се адаптира само ако е извикано \"light.turn_on\" без указване на цвят или яркост. ❌🌈 Това например предотвратява адаптация при активиране на сцена. Ако е \"false\", Адаптивно Осветление се адаптира независимо от наличието на цвят или яркост в първоначалните \"service_data\". Изисква \"take_over_control\" активиран. 🕵️ ",
+          "intercept": "intercept: Прихваща и адаптира \"light.turn_on\" повиквания, позволявайки моментална адаптация на цвета и яркостта. 🏎️ Деактивирайте за светлини, които не поддържат \"light.turn_on\" с цвят и яркост.",
+          "multi_light_intercept": "multi_light_intercept: Прихваща и адаптира \"light.turn_on\" повиквания, които целят множество светлини. ➗⚠️ Това може да доведе до разделяне на едно \"light.turn_on\" повикване на множество повиквания, например когато лампите са в различни превключватели. Изисква \"intercept\" да бъде активиран.",
+          "skip_redundant_commands": "skip_redundant_commands: Пропуска изпращането на команди за адаптация, чиято целева състояние вече е равно на известното състояние на светлината. Минимизира мрежовия трафик и подобрява отговорността на адаптацията в някои ситуации. 📉Деактивирайте, ако физическите състояния на лампите се разминават с записаното състояние на HA."
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Автоматично нулиране на ръчния контрол след определен брой секунди. Задайте на 0 за деактивиране. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right.",
+        "data": {
+          "separate_turn_on_commands": "separate_turn_on_commands: Използва отделни \"light.turn_on\" команди за цвят и яркост, необходими за някои типове светлини. 🔀",
+          "send_split_delay": "забавяне при изпращане на разделени",
+          "include_config_in_attributes": "include_config_in_attributes: Показва всички опции като атрибути на ключа в Home Assistant, когато е зададено на \"true\". 📝"
+        },
+        "data_description": {
+          "send_split_delay": "Забавяне (ms) между \"separate_turn_on_commands\" за светлини, които не поддържат едновременна настройка на яркост и цвят. ⏲️"
         }
       }
     },
     "error": {
       "option_error": "Невалидна опция",
-      "entity_missing": "Една или повече избрани entity-та на лампилипсват от Home Assistant"
+      "entity_missing": "Една или повече избрани entity-та на лампилипсват от Home Assistant",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   },
   "services": {

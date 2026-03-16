@@ -62,17 +62,8 @@
   "options": {
     "step": {
       "init": {
-        "data_description": {
-          "sunrise_offset": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰",
-          "sunset_offset": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰",
-          "sleep_transition": "Duração da transição quando o \"modo dormir\" é alternado em segundos. 😴",
-          "autoreset_control_seconds": "Reiniciar o controlo manual automaticamente após um número de segundos. Definir 0 para desativar. ⏲️",
-          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑",
-          "sleep_brightness": "Porcentagem do brilho da lâmpadas no modo \"sleep mode\".",
-          "brightness_mode": "Brilho que irá ser usado. Possíveis valores são `default`, `linear` e `tanh`(usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈"
-        },
-        "title": "Opções da Iluminação Adaptativa",
-        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app](https://basnijholt.github.io/adaptive-lighting). Para mais detalhes, veja a [documentação oficial](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "title": "Essentials",
+        "description": "Pick your lights and set brightness and color ranges. Most users only need this page. For interactive graphs, visit [this web app](https://basnijholt.github.io/adaptive-lighting).",
         "data": {
           "lights": "lights: Lista das entity_ids das luzes para serem controladas (pode ser vazia). 🌟",
           "min_brightness": "min_brightness: Percentagem minima de brilho. 💡",
@@ -80,13 +71,57 @@
           "min_color_temp": "min_color_temp: Cor mais quente em Kelvin. 🔥",
           "max_color_temp": "max_color_temp: Cor mais fria em Kelvin. ❄️",
           "prefer_rgb_color": "prefer_rgb_color: Quando possível escolher ajuste em RGB em vez de temperatura da cor. 🌈",
-          "transition_until_sleep": "transition_until_sleep: Quando ativado, Adaptive Lighting usará as definições do modo noturno como os mínimos, passando para esses valores no por do sol. 🌙",
-          "take_over_control": "take_over_control: Desativa Adaptive Lighting se alguma fonte chamar`light.turn_on` enquanto as luzes estiverem ligadas e a serem controladas. Tomar nota que esta opção chama o serviço `homeassistant.update_entity` a cada `interval`! 🔒"
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑",
+          "room_preset": "Pre-fills settings for a typical room. Choose 'custom' to set everything manually."
         }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {
+          "transition_until_sleep": "transition_until_sleep: Quando ativado, Adaptive Lighting usará as definições do modo noturno como os mínimos, passando para esses valores no por do sol. 🌙"
+        },
+        "data_description": {
+          "sleep_brightness": "Porcentagem do brilho da lâmpadas no modo \"sleep mode\".",
+          "sleep_transition": "Duração da transição quando o \"modo dormir\" é alternado em segundos. 😴"
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset times, update intervals, and brightness curves.",
+        "data_description": {
+          "sunrise_offset": "Ajustar a hora do nascer do sol com um offset  positivo ou negativo em segundos. ⏰",
+          "sunset_offset": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰",
+          "brightness_mode": "Brilho que irá ser usado. Possíveis valores são `default`, `linear` e `tanh`(usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈"
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "How the integration responds when something else changes your lights.",
+        "data": {
+          "take_over_control": "take_over_control: Desativa Adaptive Lighting se alguma fonte chamar`light.turn_on` enquanto as luzes estiverem ligadas e a serem controladas. Tomar nota que esta opção chama o serviço `homeassistant.update_entity` a cada `interval`! 🔒"
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Reiniciar o controlo manual automaticamente após um número de segundos. Definir 0 para desativar. ⏲️"
+        }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for specific hardware quirks. Skip this page unless something isn't working right."
       }
     },
     "error": {
-      "option_error": "Opção inválida"
+      "option_error": "Opção inválida",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature",
+      "sunrise_range_invalid": "Minimum sunrise time must be earlier than maximum sunrise time",
+      "sunset_range_invalid": "Minimum sunset time must be earlier than maximum sunset time",
+      "requires_take_over_control": "This option requires take_over_control to be enabled",
+      "requires_intercept": "This option requires intercept to be enabled",
+      "requires_separate_turn_on": "This option only applies when separate_turn_on_commands is enabled"
     }
   }
 }
