@@ -1,15 +1,12 @@
 """Test Adaptive Lighting config flow."""
 
 from homeassistant.components.adaptive_lighting.const import (
-    CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INTERCEPT,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
-    CONF_MAX_SUNRISE_TIME,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
-    CONF_MIN_SUNRISE_TIME,
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ROOM_PRESET,
     CONF_SEND_SPLIT_DELAY,

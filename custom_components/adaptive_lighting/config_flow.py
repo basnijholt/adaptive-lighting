@@ -46,8 +46,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Build a lookup from option name to its (default, validation) tuple
 _VALIDATION_MAP: dict[str, tuple[Any, Any]] = {
-    name: (default, validation)
-    for name, default, validation in VALIDATION_TUPLES
+    name: (default, validation) for name, default, validation in VALIDATION_TUPLES
 }
 
 # Ordered list of steps (init must be first per HA convention)
@@ -301,19 +300,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # Validate sunrise range
             min_sr = user_input.get(CONF_MIN_SUNRISE_TIME, NONE_STR)
             max_sr = user_input.get(CONF_MAX_SUNRISE_TIME, NONE_STR)
-            if (
-                NONE_STR not in (min_sr, max_sr)
-                and min_sr >= max_sr
-            ):
+            if NONE_STR not in (min_sr, max_sr) and min_sr >= max_sr:
                 errors[CONF_MIN_SUNRISE_TIME] = "sunrise_range_invalid"
 
             # Validate sunset range
             min_ss = user_input.get(CONF_MIN_SUNSET_TIME, NONE_STR)
             max_ss = user_input.get(CONF_MAX_SUNSET_TIME, NONE_STR)
-            if (
-                NONE_STR not in (min_ss, max_ss)
-                and min_ss >= max_ss
-            ):
+            if NONE_STR not in (min_ss, max_ss) and min_ss >= max_ss:
                 errors[CONF_MIN_SUNSET_TIME] = "sunset_range_invalid"
 
             if not errors:
@@ -335,7 +328,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     # Step 4: Behavior (manual control & interception)
     # ------------------------------------------------------------------
     async def async_step_manual_control(
-        self, user_input: dict[str, Any] | None = None,
+        self,
+        user_input: dict[str, Any] | None = None,
     ):
         """Handle Behavior options (Step 4 of 5)."""
         errors: dict[str, str] = {}
