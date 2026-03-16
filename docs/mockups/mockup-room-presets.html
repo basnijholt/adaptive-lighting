@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup: Room Presets</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1c1c1c; color: #e1e1e1; padding: 32px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 26px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+  .subtitle { text-align: center; color: #999; font-size: 14px; margin-bottom: 36px; }
+  .presets-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px;
+  }
+  .preset-card {
+    background: #262626; border-radius: 14px; padding: 20px;
+    border: 1px solid #333; text-align: center; transition: all 0.2s;
+  }
+  .preset-card.selected { border-color: #4589ff; background: #1a2a3a; }
+  .preset-icon { font-size: 36px; margin-bottom: 8px; }
+  .preset-name {
+    font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 6px;
+    text-transform: capitalize;
+  }
+  .preset-summary { font-size: 11px; color: #888; line-height: 1.5; }
+  .preset-values {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;
+  }
+  .preset-value {
+    display: flex; justify-content: space-between; padding: 2px 0;
+    font-size: 11px;
+  }
+  .preset-value-key { color: #888; }
+  .preset-value-val { color: #c9d1d9; font-weight: 500; }
+
+  .arrow-section {
+    text-align: center; margin: 24px 0; color: #555; font-size: 28px;
+  }
+
+  .result-panel {
+    background: #262626; border-radius: 16px; padding: 24px;
+    border: 1px solid #333; max-width: 500px; margin: 0 auto;
+  }
+  .result-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #333;
+  }
+  .badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    background: #1a3a2a; color: #51cf66;
+  }
+  .result-title { font-size: 15px; font-weight: 600; }
+  .ha-field {
+    margin-bottom: 10px; padding: 10px 14px;
+    background: #1c1c1c; border-radius: 10px; border: 1px solid #3a3a3a;
+  }
+  .ha-field.prefilled { border-color: #2a4a35; }
+  .ha-field-label { font-size: 12px; font-weight: 500; color: #c9d1d9; }
+  .ha-field-description { font-size: 11px; color: #8b949e; margin-top: 3px; line-height: 1.4; }
+  .ha-field-input {
+    margin-top: 6px; height: 30px; background: #333; border-radius: 6px;
+    border: 1px solid #444; display: flex; align-items: center;
+    padding: 0 10px; color: #ccc; font-size: 12px;
+  }
+  .ha-field-input.highlight { color: #51cf66; border-color: #2a4a35; }
+  .prefill-badge {
+    display: inline-block; font-size: 9px; font-weight: 600;
+    background: #1a3a2a; color: #51cf66; padding: 2px 6px;
+    border-radius: 4px; margin-left: 6px; vertical-align: middle;
+  }
+  .callout {
+    background: #1a2a1a; border: 1px solid #2a4a35; border-radius: 8px;
+    padding: 12px 16px; margin-top: 16px; font-size: 12px;
+    color: #88cc88; line-height: 1.5;
+  }
+  .comparison-label {
+    text-align: center; font-size: 12px; font-weight: 600; color: #666;
+    text-transform: uppercase; letter-spacing: 1px; margin: 32px 0 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Room Presets</h1>
+  <p class="subtitle">One click pre-fills sensible defaults &mdash; no more re-entering the same 7 values for every room</p>
+
+  <div class="comparison-label">Step 1: Choose a room type</div>
+  <div class="presets-grid">
+    <div class="preset-card">
+      <div class="preset-icon">&#x1F527;</div>
+      <div class="preset-name">Custom</div>
+      <div class="preset-summary">Set everything manually from scratch</div>
+    </div>
+    <div class="preset-card selected">
+      <div class="preset-icon">&#x1F6CF;&#xFE0F;</div>
+      <div class="preset-name">Bedroom</div>
+      <div class="preset-summary">Dim at night, warm tones, sleep mode ready</div>
+      <div class="preset-values">
+        <div class="preset-value"><span class="preset-value-key">Brightness</span><span class="preset-value-val">1% &ndash; 80%</span></div>
+        <div class="preset-value"><span class="preset-value-key">Color temp</span><span class="preset-value-val">2000K &ndash; 4000K</span></div>
+        <div class="preset-value"><span class="preset-value-key">Sleep mode</span><span class="preset-value-val">1%, 1000K</span></div>
+        <div class="preset-value"><span class="preset-value-key">Transition</span><span class="preset-value-val">60s</span></div>
+      </div>
+    </div>
+    <div class="preset-card">
+      <div class="preset-icon">&#x1F4BB;</div>
+      <div class="preset-name">Office</div>
+      <div class="preset-summary">Bright and alert, cooler tones for focus</div>
+      <div class="preset-values">
+        <div class="preset-value"><span class="preset-value-key">Brightness</span><span class="preset-value-val">40% &ndash; 100%</span></div>
+        <div class="preset-value"><span class="preset-value-key">Color temp</span><span class="preset-value-val">3000K &ndash; 5500K</span></div>
+        <div class="preset-value"><span class="preset-value-key">Transition</span><span class="preset-value-val">45s</span></div>
+      </div>
+    </div>
+    <div class="preset-card">
+      <div class="preset-icon">&#x1F6CB;&#xFE0F;</div>
+      <div class="preset-name">Living Room</div>
+      <div class="preset-summary">Balanced range for relaxing and entertaining</div>
+      <div class="preset-values">
+        <div class="preset-value"><span class="preset-value-key">Brightness</span><span class="preset-value-val">20% &ndash; 100%</span></div>
+        <div class="preset-value"><span class="preset-value-key">Color temp</span><span class="preset-value-val">2200K &ndash; 5000K</span></div>
+        <div class="preset-value"><span class="preset-value-key">Transition</span><span class="preset-value-val">45s</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-section">&darr;</div>
+
+  <div class="comparison-label">Result: Fields pre-filled from "Bedroom" preset</div>
+  <div class="result-panel">
+    <div class="result-header">
+      <span class="badge">Pre-filled</span>
+      <span class="result-title">Essentials (Step 1 of 5)</span>
+    </div>
+
+    <div class="ha-field prefilled">
+      <div class="ha-field-label">Room preset <span class="prefill-badge">BEDROOM</span></div>
+      <div class="ha-field-input highlight">bedroom</div>
+    </div>
+
+    <div class="ha-field">
+      <div class="ha-field-label">lights</div>
+      <div class="ha-field-description">Light entities controlled by this switch.</div>
+      <div class="ha-field-input" style="color: #666; font-style: italic;">select lights...</div>
+    </div>
+
+    <div class="ha-field prefilled">
+      <div class="ha-field-label">min_brightness <span class="prefill-badge">PRESET</span></div>
+      <div class="ha-field-input highlight">1</div>
+    </div>
+
+    <div class="ha-field prefilled">
+      <div class="ha-field-label">max_brightness <span class="prefill-badge">PRESET</span></div>
+      <div class="ha-field-input highlight">80</div>
+    </div>
+
+    <div class="ha-field prefilled">
+      <div class="ha-field-label">min_color_temp <span class="prefill-badge">PRESET</span></div>
+      <div class="ha-field-input highlight">2000</div>
+    </div>
+
+    <div class="ha-field prefilled">
+      <div class="ha-field-label">max_color_temp <span class="prefill-badge">PRESET</span></div>
+      <div class="ha-field-input highlight">4000</div>
+    </div>
+
+    <div class="ha-field prefilled">
+      <div class="ha-field-label">transition <span class="prefill-badge">PRESET</span></div>
+      <div class="ha-field-input highlight">60</div>
+    </div>
+
+    <div class="callout">Preset pre-fills 6 fields instantly. User just picks their lights and clicks Next. Presets also carry into Step 2 (sleep mode gets pre-filled with 1% / 1000K for bedroom). The preset value itself is <strong>not persisted</strong> &mdash; only the individual fields are saved.</div>
+  </div>
+</div>
+</body>
+</html>

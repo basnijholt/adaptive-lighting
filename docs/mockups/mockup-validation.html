@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup: Contextual Validation Errors</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1c1c1c; color: #e1e1e1; padding: 32px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 26px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+  .subtitle { text-align: center; color: #999; font-size: 14px; margin-bottom: 36px; }
+  .scenarios {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  }
+  .scenario {
+    background: #262626; border-radius: 16px; padding: 24px;
+    border: 1px solid #333;
+  }
+  .scenario-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #333;
+  }
+  .scenario-step {
+    display: inline-block; padding: 3px 10px; border-radius: 6px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    background: #1a2a3a; color: #4589ff; letter-spacing: 0.3px;
+  }
+  .scenario-title { font-size: 14px; font-weight: 600; }
+  .scenario-desc {
+    font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.5;
+  }
+  .ha-field {
+    margin-bottom: 10px; padding: 10px 14px;
+    background: #1c1c1c; border-radius: 10px; border: 1px solid #3a3a3a;
+  }
+  .ha-field.error { border-color: #c53030; background: #1f1515; }
+  .ha-field.disabled { opacity: 0.4; }
+  .ha-field-label { font-size: 12px; font-weight: 500; color: #c9d1d9; }
+  .ha-field-description { font-size: 11px; color: #8b949e; margin-top: 3px; line-height: 1.4; }
+  .ha-field-input {
+    margin-top: 6px; height: 30px; background: #333; border-radius: 6px;
+    border: 1px solid #444; display: flex; align-items: center;
+    padding: 0 10px; color: #ccc; font-size: 12px;
+  }
+  .ha-field-input.error-input { border-color: #c53030; color: #ff6b6b; }
+  .ha-toggle { margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .ha-toggle-track {
+    width: 32px; height: 18px; background: #555; border-radius: 9px; position: relative;
+  }
+  .ha-toggle-track.on { background: #4589ff; }
+  .ha-toggle-track.off-red { background: #6b3030; }
+  .ha-toggle-thumb {
+    width: 14px; height: 14px; background: #fff; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px;
+  }
+  .ha-toggle-track.on .ha-toggle-thumb { left: 16px; }
+  .ha-toggle-label { font-size: 11px; color: #888; }
+  .error-msg {
+    margin-top: 6px; padding: 6px 10px; background: #2a1010; border: 1px solid #c53030;
+    border-radius: 6px; font-size: 11px; color: #ff6b6b; line-height: 1.4;
+  }
+  .callout {
+    border-radius: 8px; padding: 12px 16px; margin-top: 14px;
+    font-size: 12px; line-height: 1.5;
+  }
+  .callout-bad  { background: #2a1a1a; border: 1px solid #4a2020; color: #ff9999; }
+  .callout-good { background: #1a2a1a; border: 1px solid #2a4a35; color: #88cc88; }
+
+  .before-after-label {
+    text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: #666; font-weight: 600; margin: 32px 0 12px;
+  }
+  .before-box {
+    background: #262626; border-radius: 12px; padding: 16px 20px;
+    border: 1px solid #4a2020; max-width: 600px; margin: 0 auto 32px;
+  }
+  .before-box-title {
+    font-size: 13px; font-weight: 600; color: #ff6b6b; margin-bottom: 8px;
+  }
+  .before-box-text {
+    font-size: 12px; color: #ccc; line-height: 1.6;
+  }
+  .before-box code {
+    background: #1c1c1c; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #ff9999;
+  }
+  .dep-arrow {
+    display: flex; align-items: center; gap: 6px; margin: 8px 0 8px 14px;
+    font-size: 10px; color: #666;
+  }
+  .dep-arrow::before { content: ''; width: 16px; height: 1px; background: #555; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Contextual Validation</h1>
+  <p class="subtitle">Errors caught inline where they happen &mdash; not as silent log warnings or broken behavior</p>
+
+  <div class="before-after-label">Before: errors were invisible</div>
+  <div class="before-box">
+    <div class="before-box-title">What happened before this PR</div>
+    <div class="before-box-text">
+      Setting <code>min_brightness: 80</code> and <code>max_brightness: 20</code> was silently accepted.
+      Enabling <code>detect_non_ha_changes</code> without <code>take_over_control</code> was silently accepted.
+      Setting <code>min_sunrise_time</code> after <code>max_sunrise_time</code> was silently accepted.<br><br>
+      All produced confusing runtime behavior with no indication of what went wrong. Users spent hours debugging in GitHub issues.
+    </div>
+  </div>
+
+  <div class="before-after-label">After: errors caught at the point of configuration</div>
+  <div class="scenarios">
+
+    <!-- Scenario 1: Brightness range -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <span class="scenario-step">Step 1</span>
+        <span class="scenario-title">Brightness range inverted</span>
+      </div>
+      <div class="scenario-desc">User sets min brightness higher than max brightness.</div>
+
+      <div class="ha-field error">
+        <div class="ha-field-label">min_brightness</div>
+        <div class="ha-field-description">Lowest brightness (%) applied at night.</div>
+        <div class="ha-field-input error-input">80</div>
+        <div class="error-msg">Minimum brightness must be less than or equal to maximum brightness</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">max_brightness</div>
+        <div class="ha-field-description">Highest brightness (%) applied during the day.</div>
+        <div class="ha-field-input">20</div>
+      </div>
+
+      <div class="callout callout-good">Error appears immediately on Submit. User fixes it before it causes confusing runtime behavior.</div>
+    </div>
+
+    <!-- Scenario 2: Color temp range -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <span class="scenario-step">Step 1</span>
+        <span class="scenario-title">Color temp range inverted</span>
+      </div>
+      <div class="scenario-desc">User sets warmest color temp higher than coldest.</div>
+
+      <div class="ha-field error">
+        <div class="ha-field-label">min_color_temp</div>
+        <div class="ha-field-description">Warmest color temperature (Kelvin) applied at night.</div>
+        <div class="ha-field-input error-input">6500</div>
+        <div class="error-msg">Minimum color temperature must be less than or equal to maximum color temperature</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">max_color_temp</div>
+        <div class="ha-field-description">Coldest color temperature (Kelvin) applied around midday.</div>
+        <div class="ha-field-input">2700</div>
+      </div>
+    </div>
+
+    <!-- Scenario 3: Dependency violation -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <span class="scenario-step">Step 4</span>
+        <span class="scenario-title">Missing dependency: take_over_control</span>
+      </div>
+      <div class="scenario-desc">User enables detect_non_ha_changes but take_over_control is off.</div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">take_over_control</div>
+        <div class="ha-field-description">Pauses adaptation when another source changes a light.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track off-red"><div class="ha-toggle-thumb"></div></div>
+          <span class="ha-toggle-label">Off</span>
+        </div>
+      </div>
+
+      <div class="dep-arrow">depends on</div>
+
+      <div class="ha-field error">
+        <div class="ha-field-label">detect_non_ha_changes</div>
+        <div class="ha-field-description">Detects changes made outside Home Assistant by polling lights.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div>
+          <span class="ha-toggle-label">On</span>
+        </div>
+        <div class="error-msg">This option requires take_over_control to be enabled</div>
+      </div>
+
+      <div class="ha-field error">
+        <div class="ha-field-label">adapt_only_on_bare_turn_on</div>
+        <div class="ha-field-description">Skips adaptation when a light is turned on with explicit color or brightness.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div>
+          <span class="ha-toggle-label">On</span>
+        </div>
+        <div class="error-msg">This option requires take_over_control to be enabled</div>
+      </div>
+
+      <div class="callout callout-good">Both dependent options show errors simultaneously. User sees exactly which toggle they need to flip.</div>
+    </div>
+
+    <!-- Scenario 4: Sunrise range -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <span class="scenario-step">Step 3</span>
+        <span class="scenario-title">Sunrise time range inverted</span>
+      </div>
+      <div class="scenario-desc">User sets min sunrise after max sunrise &mdash; previously caused silent misbehavior.</div>
+
+      <div class="ha-field error">
+        <div class="ha-field-label">min_sunrise_time</div>
+        <div class="ha-field-description">Earliest allowed sunrise time (HH:MM:SS).</div>
+        <div class="ha-field-input error-input">09:00:00</div>
+        <div class="error-msg">Minimum sunrise time must be earlier than maximum sunrise time</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">max_sunrise_time</div>
+        <div class="ha-field-description">Latest allowed sunrise time (HH:MM:SS).</div>
+        <div class="ha-field-input">07:30:00</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">sunrise_offset</div>
+        <div class="ha-field-description">Shifts the sunrise time (seconds).</div>
+        <div class="ha-field-input">0</div>
+      </div>
+
+      <div class="callout callout-good">Caught at config time instead of causing the effective sunrise to silently default to an unexpected value.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

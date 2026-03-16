@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Lighting Config UI: Before &amp; After</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1c1c1c;
+    color: #e1e1e1;
+    padding: 32px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .subtitle {
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+    margin-bottom: 40px;
+  }
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 48px;
+  }
+  .panel {
+    background: #262626;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #333;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #333;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-before {
+    background: #4a2020;
+    color: #ff6b6b;
+  }
+  .badge-after {
+    background: #1a3a2a;
+    color: #51cf66;
+  }
+  .panel-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  /* HA-style form fields */
+  .ha-field {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #1c1c1c;
+    border-radius: 12px;
+    border: 1px solid #3a3a3a;
+  }
+  .ha-field-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #c9d1d9;
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+  .ha-field-label.cramped {
+    font-size: 12px;
+    color: #a0a8b0;
+    line-height: 1.5;
+  }
+  .ha-field-description {
+    font-size: 11.5px;
+    color: #8b949e;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .ha-field-input {
+    margin-top: 8px;
+    height: 36px;
+    background: #333;
+    border-radius: 8px;
+    border: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    color: #ccc;
+    font-size: 13px;
+  }
+  .ha-toggle {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ha-toggle-track {
+    width: 36px;
+    height: 20px;
+    background: #555;
+    border-radius: 10px;
+    position: relative;
+  }
+  .ha-toggle-track.on {
+    background: #4589ff;
+  }
+  .ha-toggle-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+  }
+  .ha-toggle-track.on .ha-toggle-thumb {
+    left: 18px;
+  }
+  .no-desc {
+    font-size: 11px;
+    color: #555;
+    font-style: italic;
+    margin-top: 4px;
+  }
+  .highlight-problem {
+    border-color: #6b3030;
+    background: #1f1515;
+  }
+  .highlight-good {
+    border-color: #2a4a35;
+  }
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+    margin: 24px 0 12px;
+    font-weight: 600;
+  }
+  .callout {
+    background: #2a1a1a;
+    border: 1px solid #4a2020;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 12px;
+    color: #ff9999;
+    line-height: 1.5;
+  }
+  .callout-good {
+    background: #1a2a1a;
+    border-color: #2a4a35;
+    color: #88cc88;
+  }
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 32px 0;
+  }
+  .stat-card {
+    background: #262626;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #333;
+  }
+  .stat-number {
+    font-size: 36px;
+    font-weight: 700;
+    color: #4589ff;
+  }
+  .stat-number.red { color: #ff6b6b; }
+  .stat-number.green { color: #51cf66; }
+  .stat-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Config UI: Before &amp; After</h1>
+  <p class="subtitle">How the options page looks in Home Assistant Settings &rarr; Devices &amp; Services &rarr; Adaptive Lighting &rarr; Configure</p>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-number red">15</div>
+      <div class="stat-label">Options with description crammed into label (before)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number red">0</div>
+      <div class="stat-label">Options with tooltip/help text (before, for booleans)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number green">39</div>
+      <div class="stat-label">Options with clean label + tooltip (after)</div>
+    </div>
+  </div>
+
+  <!-- Manual Control Section -->
+  <div class="section-label">Manual Control Options (the most confusing area)</div>
+  <div class="comparison">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-before">Before</span>
+        <span class="panel-title">Current config UI</span>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">take_over_control: Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. &#x1F512;</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">detect_non_ha_changes: Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. &#x1F575;&#xFE0F; Caution: &#x26A0;&#xFE0F; Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">adapt_only_on_bare_turn_on: When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is invoked without specifying color or brightness. &#x274C;&#x1F308; This e.g., prevents adaptation when activating a scene and marks the light as manually controlled. If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. Needs `take_over_control` enabled. &#x1F575;&#xFE0F;</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="callout">Every boolean option puts its entire description into the label. Users see walls of technical text with no visual hierarchy.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-after">After</span>
+        <span class="panel-title">New config UI</span>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">take_over_control</div>
+        <div class="ha-field-description">Pauses adaptation when another source (automation, scene, or voice assistant) changes a light. The light stays paused until turned off and on again or reset via the set_manual_control service.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">detect_non_ha_changes</div>
+        <div class="ha-field-description">Detects changes made outside Home Assistant (physical switches, third-party apps) by polling lights each interval, and pauses adaptation until manually reset. Requires take_over_control. &#x26A0;&#xFE0F; Some lights falsely report an 'on' state, which can cause them to turn on unexpectedly.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">adapt_only_on_bare_turn_on</div>
+        <div class="ha-field-description">Skips adaptation when a light is turned on with explicit color or brightness values (e.g., a scene). The light is then treated as manually controlled. Requires take_over_control.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="callout callout-good">Clean label + descriptive tooltip. Plain language. Only &#x26A0;&#xFE0F; where behavior could be surprising.</div>
+    </div>
+  </div>
+
+  <!-- Brightness & Color Section -->
+  <div class="section-label">Brightness &amp; Color Options</div>
+  <div class="comparison">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-before">Before</span>
+        <span class="panel-title">Current config UI</span>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">min_brightness: Minimum brightness percentage. &#x1F4A1;</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-field-input">1</div>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">max_brightness: Maximum brightness percentage. &#x1F4A1;</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-field-input">100</div>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">min_color_temp: Warmest color temperature in Kelvin. &#x1F525;</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-field-input">2000</div>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">max_color_temp: Coldest color temperature in Kelvin. &#x2744;&#xFE0F;</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-field-input">5500</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-after">After</span>
+        <span class="panel-title">New config UI</span>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">min_brightness</div>
+        <div class="ha-field-description">Lowest brightness (%) applied at night.</div>
+        <div class="ha-field-input">1</div>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">max_brightness</div>
+        <div class="ha-field-description">Highest brightness (%) applied during the day.</div>
+        <div class="ha-field-input">100</div>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">min_color_temp</div>
+        <div class="ha-field-description">Warmest color temperature (Kelvin) applied at night.</div>
+        <div class="ha-field-input">2000</div>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">max_color_temp</div>
+        <div class="ha-field-description">Coldest color temperature (Kelvin) applied around midday.</div>
+        <div class="ha-field-input">5500</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Section -->
+  <div class="section-label">Performance &amp; Intercept Options</div>
+  <div class="comparison">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-before">Before</span>
+        <span class="panel-title">Current config UI</span>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">intercept: Intercept and adapt `light.turn_on` calls to enabling instantaneous color and brightness adaptation. &#x1F3CE;&#xFE0F; Disable for lights that do not support `light.turn_on` with color and brightness.</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="ha-field highlight-problem">
+        <div class="ha-field-label cramped">skip_redundant_commands: Skip sending adaptation commands whose target state already equals the light's known state. Minimizes network traffic and improves the adaptation responsivity in some situations. &#x1F4C9;Disable if physical light states get out of sync with HA's recorded state.</div>
+        <div class="no-desc">No tooltip available</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-after">After</span>
+        <span class="panel-title">New config UI</span>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">intercept</div>
+        <div class="ha-field-description">Prevents lights from flashing at incorrect settings on turn-on by intercepting the command and immediately applying adaptive brightness and color.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="ha-field highlight-good">
+        <div class="ha-field-label">skip_redundant_commands</div>
+        <div class="ha-field-description">Skips commands when the target state matches the light's last known state, reducing network traffic. Disable if light states drift out of sync.</div>
+        <div class="ha-toggle">
+          <div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

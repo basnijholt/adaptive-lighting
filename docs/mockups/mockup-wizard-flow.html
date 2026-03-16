@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup: 40 Options Wall vs 5-Step Wizard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1c1c1c;
+    color: #e1e1e1;
+    padding: 32px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 26px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+  .subtitle { text-align: center; color: #999; font-size: 14px; margin-bottom: 36px; }
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 40px;
+  }
+  .panel {
+    background: #262626;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #333;
+  }
+  .panel-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #333;
+  }
+  .badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-before { background: #4a2020; color: #ff6b6b; }
+  .badge-after  { background: #1a3a2a; color: #51cf66; }
+  .panel-title { font-size: 15px; font-weight: 600; }
+
+  /* Scrollable wall */
+  .wall {
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+  .wall::-webkit-scrollbar { width: 6px; }
+  .wall::-webkit-scrollbar-track { background: #1c1c1c; border-radius: 3px; }
+  .wall::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+  .ha-field {
+    margin-bottom: 10px; padding: 10px 14px;
+    background: #1c1c1c; border-radius: 10px; border: 1px solid #3a3a3a;
+  }
+  .ha-field.dim { opacity: 0.45; }
+  .ha-field-label {
+    font-size: 12px; font-weight: 500; color: #a0a8b0; line-height: 1.4;
+  }
+  .ha-field-input {
+    margin-top: 6px; height: 30px; background: #333; border-radius: 6px;
+    border: 1px solid #444; display: flex; align-items: center;
+    padding: 0 10px; color: #ccc; font-size: 12px;
+  }
+  .ha-toggle { margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .ha-toggle-track {
+    width: 32px; height: 18px; background: #555; border-radius: 9px; position: relative;
+  }
+  .ha-toggle-track.on { background: #4589ff; }
+  .ha-toggle-thumb {
+    width: 14px; height: 14px; background: #fff; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px;
+  }
+  .ha-toggle-track.on .ha-toggle-thumb { left: 16px; }
+
+  .field-count {
+    text-align: center; padding: 10px; font-size: 12px; color: #666;
+    border-top: 1px solid #333; margin-top: 12px;
+  }
+
+  /* Wizard steps */
+  .step-tabs {
+    display: flex; gap: 4px; margin-bottom: 16px;
+  }
+  .step-tab {
+    flex: 1; padding: 8px 6px; text-align: center;
+    font-size: 10px; font-weight: 600; border-radius: 8px;
+    background: #1c1c1c; color: #666; border: 1px solid #333;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .step-tab.active {
+    background: #1a2a3a; color: #4589ff; border-color: #4589ff;
+  }
+  .step-tab.done {
+    background: #1a2a1a; color: #51cf66; border-color: #2a4a35;
+  }
+  .step-title {
+    font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px;
+  }
+  .step-desc {
+    font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.5;
+  }
+  .ha-field-description {
+    font-size: 11px; color: #8b949e; margin-top: 3px; line-height: 1.4;
+  }
+  .callout {
+    border-radius: 8px; padding: 12px 16px; margin: 14px 0;
+    font-size: 12px; line-height: 1.5;
+  }
+  .callout-bad  { background: #2a1a1a; border: 1px solid #4a2020; color: #ff9999; }
+  .callout-good { background: #1a2a1a; border: 1px solid #2a4a35; color: #88cc88; }
+  .nav-buttons {
+    display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;
+  }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    border: none; cursor: pointer;
+  }
+  .btn-primary { background: #4589ff; color: #fff; }
+  .btn-secondary { background: #333; color: #ccc; }
+  .stat-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 28px 0;
+  }
+  .stat-card {
+    background: #262626; border-radius: 12px; padding: 16px;
+    text-align: center; border: 1px solid #333;
+  }
+  .stat-number { font-size: 32px; font-weight: 700; }
+  .stat-number.red { color: #ff6b6b; }
+  .stat-number.green { color: #51cf66; }
+  .stat-number.blue { color: #4589ff; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>40-Option Wall vs 5-Step Wizard</h1>
+  <p class="subtitle">Settings &rarr; Devices &amp; Services &rarr; Adaptive Lighting &rarr; Configure</p>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-number red">40</div>
+      <div class="stat-label">Options on one page (before)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number green">7</div>
+      <div class="stat-label">Options on first page (after)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number blue">5</div>
+      <div class="stat-label">Guided steps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number green">80%</div>
+      <div class="stat-label">Users only need Step 1</div>
+    </div>
+  </div>
+
+  <div class="comparison">
+    <!-- BEFORE: Wall of 40 options -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-before">Before</span>
+        <span class="panel-title">One page, 40 options, scroll forever</span>
+      </div>
+      <div class="wall">
+        <div class="ha-field"><div class="ha-field-label">lights: List of light entity_ids to be controlled (may be empty). &#x1F31F;</div><div class="ha-field-input">light.living_room</div></div>
+        <div class="ha-field"><div class="ha-field-label">min_brightness: Minimum brightness percentage. &#x1F4A1;</div><div class="ha-field-input">1</div></div>
+        <div class="ha-field"><div class="ha-field-label">max_brightness: Maximum brightness percentage. &#x1F4A1;</div><div class="ha-field-input">100</div></div>
+        <div class="ha-field"><div class="ha-field-label">min_color_temp: Warmest color temperature in Kelvin. &#x1F525;</div><div class="ha-field-input">2000</div></div>
+        <div class="ha-field"><div class="ha-field-label">max_color_temp: Coldest color temperature in Kelvin. &#x2744;&#xFE0F;</div><div class="ha-field-input">5500</div></div>
+        <div class="ha-field"><div class="ha-field-label">prefer_rgb_color &#x1F308;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field"><div class="ha-field-label">transition &#x1F551;</div><div class="ha-field-input">45</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sleep_brightness &#x1F634;</div><div class="ha-field-input">1</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sleep_rgb_or_color_temp &#x1F319;</div><div class="ha-field-input">color_temp</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sleep_color_temp &#x1F634;</div><div class="ha-field-input">1000</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sleep_rgb_color &#x1F308;</div><div class="ha-field-input">[255, 0, 0]</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sleep_transition &#x1F634;</div><div class="ha-field-input">1</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">transition_until_sleep &#x1F319;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sunrise_time &#x1F305;</div><div class="ha-field-input">None</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">min_sunrise_time &#x1F305;</div><div class="ha-field-input">None</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">max_sunrise_time &#x1F305;</div><div class="ha-field-input">None</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sunrise_offset &#x23F0;</div><div class="ha-field-input">0</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sunset_time &#x1F307;</div><div class="ha-field-input">None</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">min_sunset_time &#x1F307;</div><div class="ha-field-input">None</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">max_sunset_time &#x1F307;</div><div class="ha-field-input">None</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">sunset_offset &#x23F0;</div><div class="ha-field-input">0</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">interval &#x1F504;</div><div class="ha-field-input">90</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">initial_transition &#x23F2;&#xFE0F;</div><div class="ha-field-input">1</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">adapt_delay &#x23F2;&#xFE0F;</div><div class="ha-field-input">0</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">brightness_mode &#x1F4C8;</div><div class="ha-field-input">default</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">brightness_mode_time_dark</div><div class="ha-field-input">900</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">brightness_mode_time_light</div><div class="ha-field-input">900</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">take_over_control &#x1F512;</div><div class="ha-toggle"><div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">take_over_control_mode</div><div class="ha-field-input">pause_all</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">detect_non_ha_changes &#x1F575;&#xFE0F;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">autoreset_control_seconds</div><div class="ha-field-input">0</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">only_once &#x1F504;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">adapt_only_on_bare_turn_on &#x274C;&#x1F308;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">intercept &#x1F3CE;&#xFE0F;</div><div class="ha-toggle"><div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">multi_light_intercept &#x2797;&#x26A0;&#xFE0F;</div><div class="ha-toggle"><div class="ha-toggle-track on"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">skip_redundant_commands &#x1F4C9;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">separate_turn_on_commands &#x1F500;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+        <div class="ha-field dim"><div class="ha-field-label">send_split_delay &#x23F2;&#xFE0F;</div><div class="ha-field-input">0</div></div>
+        <div class="ha-field dim"><div class="ha-field-label">include_config_in_attributes &#x1F4DD;</div><div class="ha-toggle"><div class="ha-toggle-track"><div class="ha-toggle-thumb"></div></div></div></div>
+      </div>
+      <div class="field-count">&#x2B06; scroll to see all 40 options</div>
+      <div class="callout callout-bad">New users must scroll through 40 options to set up a simple bedroom light. Most of these are advanced settings they'll never touch.</div>
+    </div>
+
+    <!-- AFTER: Step 1 of 5 -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="badge badge-after">After</span>
+        <span class="panel-title">Step 1 of 5 &mdash; most users stop here</span>
+      </div>
+
+      <div class="step-tabs">
+        <div class="step-tab active">1. Essentials</div>
+        <div class="step-tab">2. Sleep</div>
+        <div class="step-tab">3. Sun & Timing</div>
+        <div class="step-tab">4. Behavior</div>
+        <div class="step-tab">5. Workarounds</div>
+      </div>
+
+      <div class="step-title">Essentials</div>
+      <div class="step-desc">Pick your lights and set brightness and color ranges. Most users only need this page.</div>
+
+      <div class="ha-field" style="border-color: #2a4a35;">
+        <div class="ha-field-label">Room preset</div>
+        <div class="ha-field-description">Pre-fills settings for a typical room. Choose 'custom' to set everything manually.</div>
+        <div class="ha-field-input" style="border-color: #4589ff; color: #4589ff;">bedroom</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">lights</div>
+        <div class="ha-field-description">Light entities controlled by this switch.</div>
+        <div class="ha-field-input">light.bedroom_ceiling</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">min_brightness</div>
+        <div class="ha-field-description">Lowest brightness (%) applied at night.</div>
+        <div class="ha-field-input">1</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">max_brightness</div>
+        <div class="ha-field-description">Highest brightness (%) applied during the day.</div>
+        <div class="ha-field-input">80</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">min_color_temp</div>
+        <div class="ha-field-description">Warmest color temperature (Kelvin) applied at night.</div>
+        <div class="ha-field-input">2000</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">max_color_temp</div>
+        <div class="ha-field-description">Coldest color temperature (Kelvin) applied around midday.</div>
+        <div class="ha-field-input">4000</div>
+      </div>
+
+      <div class="ha-field">
+        <div class="ha-field-label">transition</div>
+        <div class="ha-field-description">Fade duration (seconds) when applying each adaptive update.</div>
+        <div class="ha-field-input">60</div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-primary">Next: Sleep Mode &rarr;</button>
+      </div>
+
+      <div class="callout callout-good">7 fields. Room preset pre-fills sensible defaults. Most users click "Submit" and they're done. Advanced users continue to steps 2-5.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
