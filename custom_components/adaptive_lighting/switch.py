@@ -170,9 +170,9 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=10)
 
 # Consider it a significant change when attribute changes more than
-BRIGHTNESS_CHANGE = 25  # â10% of total range
-COLOR_TEMP_CHANGE = 100  # â3% of total range (2000-6500)
-RGB_REDMEAN_CHANGE = 80  # â10% of total range
+BRIGHTNESS_CHANGE = 25  # ≈10% of total range
+COLOR_TEMP_CHANGE = 100  # ≈3% of total range (2000-6500)
+RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
@@ -1522,7 +1522,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             # one for brightness and one for color. Now we will mark both switches
             # as manually controlled, which is not 100% correct.
             _LOGGER.debug(
-                "%s: Ignoring 'off' â 'on' event for '%s' with context.id='%s'"
+                "%s: Ignoring 'off' → 'on' event for '%s' with context.id='%s'"
                 " because 'light.turn_on' was not called by HA and"
                 " 'detect_non_ha_changes' is False",
                 self._name,
@@ -1700,9 +1700,9 @@ class AdaptiveLightingManager:
         self.turn_on_event: dict[str, Event] = {}
         # Tracks 'light.toggle' service calls
         self.toggle_event: dict[str, Event] = {}
-        # Tracks 'on' â 'off' state changes
+        # Tracks 'on' → 'off' state changes
         self.on_to_off_event: dict[str, Event[EventStateChangedData]] = {}
-        # Tracks 'off' â 'on' state changes
+        # Tracks 'off' → 'on' state changes
         self.off_to_on_event: dict[str, Event[EventStateChangedData]] = {}
         # Keep 'asyncio.sleep' tasks that can be cancelled by 'light.turn_on' events
         self.sleep_tasks: dict[str, asyncio.Task[None]] = {}
@@ -1821,7 +1821,7 @@ class AdaptiveLightingManager:
         data: ServiceData,
     ) -> tuple[AdaptiveSwitchMap, list[str]]:
         # Create a mapping from switch to entity IDs
-        # AdaptiveSwitch â entity_ids mapping
+        # AdaptiveSwitch → entity_ids mapping
         switch_to_eids: AdaptiveSwitchMap = {}
         skipped: list[str] = []
         for entity_id in entity_ids:
@@ -2534,26 +2534,26 @@ class AdaptiveLightingManager:
                 self.our_last_state_on_change[entity_id].append(new_on)
 
         if old_on and new_off:
-            # Tracks 'on' â 'off' state changes
+            # Tracks 'on' → 'off' state changes
             self.on_to_off_event[entity_id] = event
             self.reset(entity_id)
             _LOGGER.debug(
-                "Detected an 'on' â 'off' event for '%s' with context.id='%s'",
+                "Detected an 'on' → 'off' event for '%s' with context.id='%s'",
                 entity_id,
                 event.context.id,
             )
         elif old_off and new_on:
-            # Tracks 'off' â 'on' state changes
+            # Tracks 'off' → 'on' state changes
             self.off_to_on_event[entity_id] = event
             _LOGGER.debug(
-                "Detected an 'off' â 'on' event for '%s' with context.id='%s'",
+                "Detected an 'off' → 'on' event for '%s' with context.id='%s'",
                 entity_id,
                 event.context.id,
             )
 
             if self.is_proactively_adapting(event.context.id):
                 _LOGGER.debug(
-                    "Skipping responding to 'off' â 'on' event for '%s' with context.id='%s' because"
+                    "Skipping responding to 'off' → 'on' event for '%s' with context.id='%s' because"
                     " we are already proactively adapting",
                     entity_id,
                     event.context.id,
@@ -2565,7 +2565,7 @@ class AdaptiveLightingManager:
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
                 if await self.just_turned_off(entity_id):
-                    # Stop if a rapid 'off' â 'on' â 'off' happens.
+                    # Stop if a rapid 'off' → 'on' → 'off' happens.
                     _LOGGER.debug(
                         "Cancelling adjusting lights for %s",
                         entity_id,
@@ -2715,7 +2715,7 @@ class AdaptiveLightingManager:
             "service",  # adaptive_lighting.apply is allowed to turn on lights
         ):
             _LOGGER.warning(
-                "Detected an 'off' â 'on' event for '%s' with context.id='%s',"
+                "Detected an 'off' → 'on' event for '%s' with context.id='%s',"
                 " triggered by the adaptive_lighting integration itself,"
                 " which *should* not happen. If you see this please submit an issue with"
                 " your full logs at https://github.com/basnijholt/adaptive-lighting",
@@ -2723,7 +2723,7 @@ class AdaptiveLightingManager:
                 off_to_on_event.context.id,
             )
             _LOGGER.debug(
-                "Full 'off' â 'on' event for '%s': %s",
+                "Full 'off' → 'on' event for '%s': %s",
                 entity_id,
                 off_to_on_event,
             )
@@ -2740,10 +2740,10 @@ class AdaptiveLightingManager:
         Possibly the lights just got a 'turn_off' call, however, the light
         is actually still turning off (e.g., because of a 'transition') and
         HA polls the light before the light is 100% off. This might trigger
-        a rapid switch 'off' â 'on' â 'off'. To prevent this component
+        a rapid switch 'off' → 'on' → 'off'. To prevent this component
         from interfering on the 'on' state, we make sure to wait at least
         TURNING_OFF_DELAY (or the 'turn_off' transition time) between a
-        'off' â 'on' event and then check whether the light is still 'on' or
+        'off' → 'on' event and then check whether the light is still 'on' or
         if the brightness is still decreasing. Only if it is the case we
         adjust the lights.
         """
@@ -2752,7 +2752,7 @@ class AdaptiveLightingManager:
 
         if on_to_off_event is None:
             _LOGGER.debug(
-                "just_turned_off: No 'on' â 'off' state change has been registered before for '%s'."
+                "just_turned_off: No 'on' → 'off' state change has been registered before for '%s'."
                 " It's possible that the light was already on when Home Assistant was turned on.",
                 entity_id,
             )
@@ -2760,8 +2760,8 @@ class AdaptiveLightingManager:
 
         if off_to_on_event.context.id == on_to_off_event.context.id:
             _LOGGER.debug(
-                "just_turned_off: 'on' â 'off' state change has the same context.id as the"
-                " 'off' â 'on' state change for '%s'. This is probably a false positive.",
+                "just_turned_off: 'on' → 'off' state change has the same context.id as the"
+                " 'off' → 'on' state change for '%s'. This is probably a false positive.",
                 entity_id,
             )
             return True
@@ -2778,7 +2778,7 @@ class AdaptiveLightingManager:
             is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
             from_service = "light.toggle" if is_toggle else "light.turn_on"
             _LOGGER.debug(
-                "just_turned_off: State change 'off' â 'on' triggered by '%s'",
+                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
                 from_service,
             )
             return False
@@ -2788,11 +2788,11 @@ class AdaptiveLightingManager:
             and id_on_to_off == turn_off_event.context.id
             and transition is not None  # 'turn_off' is called with transition=...
         ):
-            # State change 'on' â 'off' and 'light.turn_off(..., transition=...)' come
+            # State change 'on' → 'off' and 'light.turn_off(..., transition=...)' come
             # from the same event, so wait at least the 'turn_off' transition time.
             delay = max(transition, TURNING_OFF_DELAY)
         else:
-            # State change 'off' â 'on' happened because the light state was set.
+            # State change 'off' → 'on' happened because the light state was set.
             # Possibly because of polling.
             delay = TURNING_OFF_DELAY
 
@@ -2810,7 +2810,7 @@ class AdaptiveLightingManager:
         # sleep_state) for some time, we wait below until the light
         # is 'off' or the time has passed.
 
-        delay -= delta_time  # delta_time has passed since the 'off' â 'on' event
+        delay -= delta_time  # delta_time has passed since the 'off' → 'on' event
         _LOGGER.debug(
             "just_turned_off: Waiting with adjusting '%s' for %s",
             entity_id,
