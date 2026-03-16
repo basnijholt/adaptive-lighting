@@ -9,7 +9,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from random import randint
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import homeassistant.util.dt as dt_util
 import pytest
@@ -1696,7 +1696,7 @@ async def test_change_switch_settings_service(hass):
 
 async def test_cancellable_service_calls_task(hass):
     """Test the creation and execution of the task that wraps adaptation service calls."""
-    (light, *_) = await setup_lights(hass)
+    light, *_ = await setup_lights(hass)
     _, switch = await setup_switch(hass, {CONF_SEPARATE_TURN_ON_COMMANDS: True})
     context = switch.create_context("test")
 
@@ -2914,3 +2914,75 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
         f"With take_over_control_mode=PAUSE_CHANGED and only brightness marked "
         f"as manually controlled, color_temp should still be adapted."
     )
+
+
+async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
+    """Regression test for detect_non_ha_changes with separate_turn_on_commands.
+
+    With separate_turn_on_commands=True, each adaptation cycle makes two sequential
+    light.turn_on calls (brightness, then color). If the second call overwrites
+    last_service_data instead of merging, brightness is dropped — and
+    _attributes_have_changed silently skips the brightness comparison, so a direct
+    Zigbee brightness change is never detected as manual control.
+    """
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_TAKE_OVER_CONTROL: True,
+        },
+    )
+
+    context = switch.create_context("test")
+
+    async def update(force: bool = False):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=context,
+            force=force,
+            transition=0,
+        )
+        await hass.async_block_till_done()
+
+    await update(force=True)
+
+    last_sd = switch.manager.last_service_data.get(ENTITY_LIGHT_1)
+    assert last_sd is not None, "last_service_data not set after force adapt"
+    assert (
+        ATTR_BRIGHTNESS in last_sd
+    ), f"brightness missing from last_service_data after split calls: {last_sd}"
+    assert (
+        ATTR_COLOR_TEMP_KELVIN in last_sd or ATTR_RGB_COLOR in last_sd
+    ), f"color missing from last_service_data after split calls: {last_sd}"
+
+    al_brightness = light._brightness
+    switch.manager.manual_control[ENTITY_LIGHT_1] = LightControlAttributes.NONE
+
+    manual_brightness = (
+        al_brightness - 120 if al_brightness >= 120 else al_brightness + 120
+    )
+    light._brightness = manual_brightness
+
+    async def _flush_attr_state(hass, entity_id):
+        """Mimic a ZHA attribute report: write current hardware state to HA."""
+        light.async_write_ha_state()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.async_update_entity",
+        new=AsyncMock(side_effect=_flush_attr_state),
+    ):
+        await update(force=False)
+
+        assert LightControlAttributes.BRIGHTNESS in switch.manager.manual_control.get(
+            ENTITY_LIGHT_1,
+            LightControlAttributes.NONE,
+        ), (
+            f"manual_control={switch.manager.manual_control.get(ENTITY_LIGHT_1)}, "
+            f"last_service_data={switch.manager.last_service_data.get(ENTITY_LIGHT_1)}"
+        )
+
+        await update(force=False)
+
+    assert (
+        light._brightness == manual_brightness
+    ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
