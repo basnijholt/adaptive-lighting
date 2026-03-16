@@ -9,7 +9,9 @@ from pathlib import Path
 
 import yaml
 
-_COMPONENT_DIR = Path(__file__).parent.parent / "custom_components" / "adaptive_lighting"
+_COMPONENT_DIR = (
+    Path(__file__).parent.parent / "custom_components" / "adaptive_lighting"
+)
 _TRANSLATIONS_DIR = _COMPONENT_DIR / "translations"
 
 
@@ -60,7 +62,9 @@ def test_translation_files_have_step_structure():
             missing = expected_steps - actual_steps
             extra = actual_steps - expected_steps
             failures.append(f"{path.name}: missing={missing}, extra={extra}")
-    assert not failures, "Translation step structure mismatches:\n" + "\n".join(failures)
+    assert not failures, "Translation step structure mismatches:\n" + "\n".join(
+        failures
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -95,8 +99,8 @@ def test_services_yaml_fields_have_descriptions():
         for field_name, field_def in service_def.get("fields", {}).items():
             if not field_def.get("description"):
                 missing.append(f"{service_name}.{field_name}")
-    assert not missing, (
-        "Services.yaml fields missing descriptions: " + ", ".join(missing)
+    assert not missing, "Services.yaml fields missing descriptions: " + ", ".join(
+        missing
     )
 
 
@@ -115,9 +119,7 @@ def test_error_keys_cover_config_flow():
     }
     strings_error_keys = set(_strings()["options"]["error"].keys())
     missing = config_flow_error_keys - strings_error_keys
-    assert not missing, (
-        f"config_flow.py uses error keys not in strings.json: {missing}"
-    )
+    assert not missing, f"config_flow.py uses error keys not in strings.json: {missing}"
 
 
 # ---------------------------------------------------------------------------
