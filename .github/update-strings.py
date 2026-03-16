@@ -4,7 +4,6 @@ import json
 import sys
 from pathlib import Path
 
-import homeassistant.helpers.config_validation as cv
 import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
@@ -20,13 +19,10 @@ with strings_fname.open() as f:
 # Set "options"
 data = {}
 data_description = {}
-for k, _, typ in const.VALIDATION_TUPLES:
+for k, _, _ in const.VALIDATION_TUPLES:
     desc = const.DOCS[k]
-    if len(desc) > 40 and typ not in (bool, cv.entity_ids):
-        data[k] = k
-        data_description[k] = desc
-    else:
-        data[k] = f"{k}: {desc}"
+    data[k] = k
+    data_description[k] = desc
 strings["options"]["step"]["init"]["data"] = data
 strings["options"]["step"]["init"]["data_description"] = data_description
 
