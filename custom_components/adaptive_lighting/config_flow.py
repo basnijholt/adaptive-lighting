@@ -44,14 +44,6 @@ from .switch import validate
 
 _LOGGER = logging.getLogger(__name__)
 
-# Build a lookup from option name to its (default, validation) tuple
-_VALIDATION_MAP: dict[str, tuple[Any, Any]] = {
-    name: (default, validation) for name, default, validation in VALIDATION_TUPLES
-}
-
-# Ordered list of steps (init must be first per HA convention)
-_STEP_ORDER = ["init", "sleep", "sun_timing", "manual_control", "workarounds"]
-
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Adaptive Lighting."""
