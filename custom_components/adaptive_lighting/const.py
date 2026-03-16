@@ -477,6 +477,100 @@ def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
     )
 
 
+CONF_ROOM_PRESET = "room_preset"
+
+# Mapping of step names to their config option keys.
+# Used by OptionsFlowHandler to partition VALIDATION_TUPLES across steps.
+STEP_OPTIONS: dict[str, list[str]] = {
+    "init": [
+        CONF_LIGHTS,
+        CONF_MIN_BRIGHTNESS,
+        CONF_MAX_BRIGHTNESS,
+        CONF_MIN_COLOR_TEMP,
+        CONF_MAX_COLOR_TEMP,
+        CONF_PREFER_RGB_COLOR,
+        CONF_TRANSITION,
+    ],
+    "sleep": [
+        CONF_SLEEP_BRIGHTNESS,
+        CONF_SLEEP_RGB_OR_COLOR_TEMP,
+        CONF_SLEEP_COLOR_TEMP,
+        CONF_SLEEP_RGB_COLOR,
+        CONF_SLEEP_TRANSITION,
+        CONF_ADAPT_UNTIL_SLEEP,
+    ],
+    "sun_timing": [
+        CONF_SUNRISE_TIME,
+        CONF_MIN_SUNRISE_TIME,
+        CONF_MAX_SUNRISE_TIME,
+        CONF_SUNRISE_OFFSET,
+        CONF_SUNSET_TIME,
+        CONF_MIN_SUNSET_TIME,
+        CONF_MAX_SUNSET_TIME,
+        CONF_SUNSET_OFFSET,
+        CONF_INTERVAL,
+        CONF_INITIAL_TRANSITION,
+        CONF_ADAPT_DELAY,
+        CONF_BRIGHTNESS_MODE,
+        CONF_BRIGHTNESS_MODE_TIME_DARK,
+        CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    ],
+    "manual_control": [
+        CONF_TAKE_OVER_CONTROL,
+        CONF_TAKE_OVER_CONTROL_MODE,
+        CONF_DETECT_NON_HA_CHANGES,
+        CONF_AUTORESET_CONTROL,
+        CONF_ONLY_ONCE,
+        CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
+        CONF_INTERCEPT,
+        CONF_MULTI_LIGHT_INTERCEPT,
+        CONF_SKIP_REDUNDANT_COMMANDS,
+    ],
+    "workarounds": [
+        CONF_SEPARATE_TURN_ON_COMMANDS,
+        CONF_SEND_SPLIT_DELAY,
+        CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
+    ],
+}
+
+ROOM_PRESETS: dict[str, dict[str, Any]] = {
+    "custom": {},
+    "bedroom": {
+        CONF_MIN_BRIGHTNESS: 1,
+        CONF_MAX_BRIGHTNESS: 80,
+        CONF_MIN_COLOR_TEMP: 2000,
+        CONF_MAX_COLOR_TEMP: 4000,
+        CONF_SLEEP_BRIGHTNESS: 1,
+        CONF_SLEEP_COLOR_TEMP: 1000,
+        CONF_ADAPT_UNTIL_SLEEP: True,
+        CONF_TRANSITION: 60,
+    },
+    "office": {
+        CONF_MIN_BRIGHTNESS: 40,
+        CONF_MAX_BRIGHTNESS: 100,
+        CONF_MIN_COLOR_TEMP: 3000,
+        CONF_MAX_COLOR_TEMP: 5500,
+        CONF_TRANSITION: 45,
+    },
+    "living_room": {
+        CONF_MIN_BRIGHTNESS: 20,
+        CONF_MAX_BRIGHTNESS: 100,
+        CONF_MIN_COLOR_TEMP: 2200,
+        CONF_MAX_COLOR_TEMP: 5000,
+        CONF_TRANSITION: 45,
+    },
+    "nursery": {
+        CONF_MIN_BRIGHTNESS: 1,
+        CONF_MAX_BRIGHTNESS: 60,
+        CONF_MIN_COLOR_TEMP: 2000,
+        CONF_MAX_COLOR_TEMP: 3500,
+        CONF_SLEEP_BRIGHTNESS: 1,
+        CONF_SLEEP_COLOR_TEMP: 1000,
+        CONF_ADAPT_UNTIL_SLEEP: True,
+        CONF_TRANSITION: 90,
+    },
+}
+
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
