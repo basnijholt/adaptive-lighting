@@ -46,7 +46,7 @@
           "intercept": "intercept: Intercepta i adapta les crides `light.turn_on` per permetre canvis instantanis de color i brillantor. 🏎️ Inhabilita-ho per a llums que no admeten `light.turn_on` amb color i brillantor.",
           "skip_redundant_commands": "skip_redundant_commands: Evita l'enviament de d'ordres d'adaptació als objectius on el seu estat ja és el conegut del llum. Minimitza el trànsit de la xarxa i millora la resposta de l'adaptació en alguns casos. 📉 Inhabilita-ho si l'estat físic del llum queda desincronitzat amb l'estat registrat a Home Assistant."
         },
-        "description": "Configura un component d'Adaptive Lighting. Els noms de les opcions s'alineen amb la configuració de YAML. Si has definit aquesta entrada a YAML, aquí no apareixerà cap opció. Per veure gràfics interactius que demostren efectes de paràmetres, visita [aquesta aplicació web] (https://basnijholt.github.io/adaptive-lighting). Per a més detalls, pots veure la [documentació oficial] (https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Configura un component d'Adaptive Lighting. Els noms de les opcions s'alineen amb la configuració de YAML. Si has definit aquesta entrada a YAML, aquí no apareixerà cap opció. Per veure gràfics interactius que demostren efectes de paràmetres, visita [aquesta aplicació web] ({webapp_url}). Per a més detalls, pots veure la [documentació oficial] ({docs_url})."
       }
     },
     "error": {
