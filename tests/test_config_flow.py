@@ -498,6 +498,28 @@ async def test_brightness_range_validation(hass):
     assert result["errors"].get("min_brightness") == "brightness_range_invalid"
 
 
+async def test_color_temp_range_validation(hass):
+    """Test min_color_temp > max_color_temp is rejected."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=DEFAULT_NAME,
+        data={CONF_NAME: DEFAULT_NAME},
+        options={},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    bad_init = INIT_DATA.copy()
+    bad_init["min_color_temp"] = 5500
+    bad_init["max_color_temp"] = 2000
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input=bad_init
+    )
+    assert result["step_id"] == "init"
+    assert result["errors"].get("min_color_temp") == "color_temp_range_invalid"
+
+
 # === Full wizard test ===
 
 
