@@ -82,8 +82,12 @@ en["config"]["step"]["user"] = strings["config"]["step"]["user"]
 for step_name in STEP_OPTIONS:
     if step_name not in en.get("options", {}).get("step", {}):
         en.setdefault("options", {}).setdefault("step", {})[step_name] = {}
-    en["options"]["step"][step_name]["data"] = strings["options"]["step"][step_name]["data"]
-    en["options"]["step"][step_name]["data_description"] = strings["options"]["step"][step_name]["data_description"]
+    en["options"]["step"][step_name]["data"] = strings["options"]["step"][step_name][
+        "data"
+    ]
+    en["options"]["step"][step_name]["data_description"] = strings["options"]["step"][
+        step_name
+    ]["data_description"]
 en["services"] = services_json
 
 with en_fname.open("w") as f:

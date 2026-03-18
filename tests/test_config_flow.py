@@ -59,33 +59,40 @@ async def walk_options_flow(
         if manual_control_data is not None
         else MANUAL_CONTROL_DATA.copy()
     )
-    _work = workarounds_data if workarounds_data is not None else WORKAROUNDS_DATA.copy()
+    _work = (
+        workarounds_data if workarounds_data is not None else WORKAROUNDS_DATA.copy()
+    )
 
     result = await hass.config_entries.options.async_init(entry_id)
     assert result["step_id"] == "init"
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=_init
+        result["flow_id"],
+        user_input=_init,
     )
     assert result["step_id"] == "sleep"
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=_sleep
+        result["flow_id"],
+        user_input=_sleep,
     )
     assert result["step_id"] == "sun_timing"
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=_sun
+        result["flow_id"],
+        user_input=_sun,
     )
     assert result["step_id"] == "manual_control"
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=_manual
+        result["flow_id"],
+        user_input=_manual,
     )
     assert result["step_id"] == "workarounds"
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=_work
+        result["flow_id"],
+        user_input=_work,
     )
     return result
 
@@ -260,10 +267,12 @@ async def test_incorrect_options(hass):
     # Walk to sun_timing step
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=INIT_DATA.copy()
+        result["flow_id"],
+        user_input=INIT_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SLEEP_DATA.copy()
+        result["flow_id"],
+        user_input=SLEEP_DATA.copy(),
     )
     assert result["step_id"] == "sun_timing"
 
@@ -272,7 +281,8 @@ async def test_incorrect_options(hass):
     bad_sun_data[CONF_SUNRISE_TIME] = "yolo"
     bad_sun_data[CONF_SUNSET_TIME] = "yolo"
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=bad_sun_data
+        result["flow_id"],
+        user_input=bad_sun_data,
     )
     # Should stay on sun_timing with errors
     assert result["step_id"] == "sun_timing"
@@ -359,13 +369,16 @@ async def test_dependency_detect_non_ha(hass):
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=INIT_DATA.copy()
+        result["flow_id"],
+        user_input=INIT_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SLEEP_DATA.copy()
+        result["flow_id"],
+        user_input=SLEEP_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SUN_TIMING_DATA.copy()
+        result["flow_id"],
+        user_input=SUN_TIMING_DATA.copy(),
     )
     assert result["step_id"] == "manual_control"
 
@@ -373,12 +386,12 @@ async def test_dependency_detect_non_ha(hass):
     bad_manual[CONF_DETECT_NON_HA_CHANGES] = True
     bad_manual[CONF_TAKE_OVER_CONTROL] = False
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=bad_manual
+        result["flow_id"],
+        user_input=bad_manual,
     )
     assert result["step_id"] == "manual_control"
     assert (
-        result["errors"].get(CONF_DETECT_NON_HA_CHANGES)
-        == "requires_take_over_control"
+        result["errors"].get(CONF_DETECT_NON_HA_CHANGES) == "requires_take_over_control"
     )
 
 
@@ -395,20 +408,24 @@ async def test_dependency_multi_light_intercept(hass):
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=INIT_DATA.copy()
+        result["flow_id"],
+        user_input=INIT_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SLEEP_DATA.copy()
+        result["flow_id"],
+        user_input=SLEEP_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SUN_TIMING_DATA.copy()
+        result["flow_id"],
+        user_input=SUN_TIMING_DATA.copy(),
     )
 
     bad_manual = MANUAL_CONTROL_DATA.copy()
     bad_manual[CONF_MULTI_LIGHT_INTERCEPT] = True
     bad_manual[CONF_INTERCEPT] = False
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=bad_manual
+        result["flow_id"],
+        user_input=bad_manual,
     )
     assert result["step_id"] == "manual_control"
     assert result["errors"].get(CONF_MULTI_LIGHT_INTERCEPT) == "requires_intercept"
@@ -427,16 +444,20 @@ async def test_dependency_send_split_delay(hass):
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=INIT_DATA.copy()
+        result["flow_id"],
+        user_input=INIT_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SLEEP_DATA.copy()
+        result["flow_id"],
+        user_input=SLEEP_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=SUN_TIMING_DATA.copy()
+        result["flow_id"],
+        user_input=SUN_TIMING_DATA.copy(),
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=MANUAL_CONTROL_DATA.copy()
+        result["flow_id"],
+        user_input=MANUAL_CONTROL_DATA.copy(),
     )
     assert result["step_id"] == "workarounds"
 
@@ -444,7 +465,8 @@ async def test_dependency_send_split_delay(hass):
     bad_workarounds[CONF_SEND_SPLIT_DELAY] = 100
     bad_workarounds[CONF_SEPARATE_TURN_ON_COMMANDS] = False
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=bad_workarounds
+        result["flow_id"],
+        user_input=bad_workarounds,
     )
     assert result["step_id"] == "workarounds"
     assert result["errors"].get(CONF_SEND_SPLIT_DELAY) == "requires_separate_turn_on"
@@ -469,7 +491,8 @@ async def test_brightness_range_validation(hass):
     bad_init["min_brightness"] = 80
     bad_init["max_brightness"] = 20
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=bad_init
+        result["flow_id"],
+        user_input=bad_init,
     )
     assert result["step_id"] == "init"
     assert result["errors"].get("min_brightness") == "brightness_range_invalid"

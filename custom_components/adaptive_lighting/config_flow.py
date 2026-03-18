@@ -206,11 +206,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             # Range validation
             if user_input.get(CONF_MIN_BRIGHTNESS, 1) > user_input.get(
-                CONF_MAX_BRIGHTNESS, 100
+                CONF_MAX_BRIGHTNESS,
+                100,
             ):
                 errors[CONF_MIN_BRIGHTNESS] = "brightness_range_invalid"
             if user_input.get(CONF_MIN_COLOR_TEMP, 2000) > user_input.get(
-                CONF_MAX_COLOR_TEMP, 5500
+                CONF_MAX_COLOR_TEMP,
+                5500,
             ):
                 errors[CONF_MIN_COLOR_TEMP] = "color_temp_range_invalid"
 
@@ -236,11 +238,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ),
         }
         schema = self._build_step_schema(
-            STEP_INIT_OPTIONS, extra_fields=preset_selector
+            STEP_INIT_OPTIONS,
+            extra_fields=preset_selector,
         )
 
         return self.async_show_form(
-            step_id="init", data_schema=schema, errors=errors
+            step_id="init",
+            data_schema=schema,
+            errors=errors,
         )
 
     async def async_step_sleep(self, user_input: dict[str, Any] | None = None):
@@ -281,15 +286,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             # Dependency validation
             if user_input.get(CONF_DETECT_NON_HA_CHANGES) and not user_input.get(
-                CONF_TAKE_OVER_CONTROL
+                CONF_TAKE_OVER_CONTROL,
             ):
                 errors[CONF_DETECT_NON_HA_CHANGES] = "requires_take_over_control"
             if user_input.get(CONF_ADAPT_ONLY_ON_BARE_TURN_ON) and not user_input.get(
-                CONF_TAKE_OVER_CONTROL
+                CONF_TAKE_OVER_CONTROL,
             ):
                 errors[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = "requires_take_over_control"
             if user_input.get(CONF_MULTI_LIGHT_INTERCEPT) and not user_input.get(
-                CONF_INTERCEPT
+                CONF_INTERCEPT,
             ):
                 errors[CONF_MULTI_LIGHT_INTERCEPT] = "requires_intercept"
 
@@ -311,7 +316,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             # Dependency validation
             if user_input.get(CONF_SEND_SPLIT_DELAY, 0) > 0 and not user_input.get(
-                CONF_SEPARATE_TURN_ON_COMMANDS
+                CONF_SEPARATE_TURN_ON_COMMANDS,
             ):
                 errors[CONF_SEND_SPLIT_DELAY] = "requires_separate_turn_on"
 
