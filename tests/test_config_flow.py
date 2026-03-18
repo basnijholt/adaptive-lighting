@@ -514,7 +514,8 @@ async def test_color_temp_range_validation(hass):
     bad_init["min_color_temp"] = 5500
     bad_init["max_color_temp"] = 2000
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=bad_init
+        result["flow_id"],
+        user_input=bad_init,
     )
     assert result["step_id"] == "init"
     assert result["errors"].get("min_color_temp") == "color_temp_range_invalid"
