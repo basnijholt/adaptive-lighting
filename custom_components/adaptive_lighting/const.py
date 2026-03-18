@@ -33,8 +33,7 @@ DOCS[CONF_NAME] = "Display name for this Adaptive Lighting instance."
 
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 DOCS[CONF_LIGHTS] = (
-    "Light entities controlled by this switch. "
-    "Leave empty to add lights later."
+    "Light entities controlled by this switch. " "Leave empty to add lights later."
 )
 
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
@@ -129,7 +128,7 @@ DOCS[CONF_SLEEP_COLOR_TEMP] = (
 CONF_SLEEP_RGB_COLOR, DEFAULT_SLEEP_RGB_COLOR = "sleep_rgb_color", [255, 56, 0]
 DOCS[CONF_SLEEP_RGB_COLOR] = (
     "RGB color applied while sleep mode is active. "
-    'Requires `sleep_rgb_or_color_temp` set to `rgb_color`.'
+    "Requires `sleep_rgb_or_color_temp` set to `rgb_color`."
 )
 
 CONF_SLEEP_RGB_OR_COLOR_TEMP, DEFAULT_SLEEP_RGB_OR_COLOR_TEMP = (
