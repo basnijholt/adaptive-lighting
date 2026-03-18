@@ -36,10 +36,7 @@ for step_name, step_keys in STEP_OPTIONS.items():
     # Add room_preset to init step
     if step_name == "init":
         data[const.CONF_ROOM_PRESET] = const.CONF_ROOM_PRESET
-        data_description[const.CONF_ROOM_PRESET] = (
-            "Select a room type for recommended default settings, "
-            "or choose 'Custom' to configure everything manually."
-        )
+        data_description[const.CONF_ROOM_PRESET] = const.DOCS[const.CONF_ROOM_PRESET]
     if step_name in strings["options"]["step"]:
         strings["options"]["step"][step_name]["data"] = data
         strings["options"]["step"][step_name]["data_description"] = data_description
@@ -80,14 +77,11 @@ with en_fname.open() as f:
 
 en["config"]["step"]["user"] = strings["config"]["step"]["user"]
 for step_name in STEP_OPTIONS:
-    if step_name not in en.get("options", {}).get("step", {}):
-        en.setdefault("options", {}).setdefault("step", {})[step_name] = {}
-    en["options"]["step"][step_name]["data"] = strings["options"]["step"][step_name][
-        "data"
-    ]
-    en["options"]["step"][step_name]["data_description"] = strings["options"]["step"][
-        step_name
-    ]["data_description"]
+    en.setdefault("options", {}).setdefault("step", {}).setdefault(step_name, {})
+    src = strings["options"]["step"][step_name]
+    tgt = en["options"]["step"][step_name]
+    tgt["data"] = src["data"]
+    tgt["data_description"] = src["data_description"]
 en["services"] = services_json
 
 with en_fname.open("w") as f:

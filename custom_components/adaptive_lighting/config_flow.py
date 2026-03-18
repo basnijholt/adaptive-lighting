@@ -136,8 +136,9 @@ def validate_options(
     This is an extra validation step because the validators
     in `EXTRA_VALIDATION` cannot be serialized to json.
     """
+    step_key_set = set(step_keys) if step_keys is not None else None
     for key, (_validate, _) in EXTRA_VALIDATION.items():
-        if step_keys is not None and key not in step_keys:
+        if step_key_set is not None and key not in step_key_set:
             continue
         # these are unserializable validators
         value = user_input.get(key)
@@ -163,11 +164,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     ) -> vol.Schema:
         """Build a schema for a specific step's options."""
         conf = self.config_entry
-        to_replace: dict[str, Any] = {
-            CONF_LIGHTS: EntitySelector(
+        to_replace: dict[str, Any] = {}
+        if CONF_LIGHTS in step_options:
+            to_replace[CONF_LIGHTS] = EntitySelector(
                 EntitySelectorConfig(domain="light", multiple=True),
-            ),
-        }
+            )
         options_schema = {}
         for name in step_options:
             _name, default, validation = VALIDATION_TUPLES_BY_KEY[name]
@@ -231,7 +232,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         preset_selector = {
             vol.Optional(CONF_ROOM_PRESET, default="custom"): SelectSelector(
                 SelectSelectorConfig(
-                    options=["custom", "bedroom", "office", "living_room", "nursery"],
+                    options=["custom", *ROOM_PRESETS],
                     multiple=False,
                     mode=SelectSelectorMode.DROPDOWN,
                 ),

@@ -441,6 +441,10 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
 ]
 
 CONF_ROOM_PRESET = "room_preset"
+DOCS[CONF_ROOM_PRESET] = (
+    "Select a room type for recommended default settings, "
+    "or choose 'Custom' to configure everything manually."
+)
 
 STEP_INIT_OPTIONS = [
     CONF_LIGHTS,
