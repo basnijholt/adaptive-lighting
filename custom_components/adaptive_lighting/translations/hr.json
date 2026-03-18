@@ -2,15 +2,48 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opcije prilagodljivog osvjetljenja",
+        "title": "Essentials",
+        "description": "Pick your lights and set basic brightness and color ranges. Choose a room preset for quick setup.",
+        "data": {
+          "room_preset": "Room preset"
+        },
+        "data_description": {
+          "room_preset": "Select a room type for recommended default settings, or choose 'Custom' to configure everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {}
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset tracking, update timing, and brightness curves.",
+        "data": {},
         "data_description": {
           "sunrise_offset": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰",
           "sunset_offset": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰"
-        },
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "Control how the integration responds when other sources change your lights.",
         "data": {
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Prilikom početnog paljenja svjetla. Ako je postavljeno na \"true\", AL se prilagođava samo ako se \"light.turn_on\" pozove bez navođenja boje ili svjetline. ❌🌈 Ovo npr. sprječava prilagodbu prilikom aktiviranja scene. Ako je \"false\", AL se prilagođava bez obzira na prisutnost boje ili svjetline u početnim \"service_data\". Potrebno je omogućiti `take_over_control`. 🕵️ "
         }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for lights that don't handle standard commands correctly.",
+        "data": {}
       }
+    },
+    "error": {
+      "requires_take_over_control": "This option requires 'take_over_control' to be enabled",
+      "requires_intercept": "This option requires 'intercept' to be enabled",
+      "requires_separate_turn_on": "This option requires 'separate_turn_on_commands' to be enabled",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature"
     }
   },
   "title": "prilagodi svjetlinu",

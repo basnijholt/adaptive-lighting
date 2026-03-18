@@ -3,8 +3,37 @@
   "options": {
     "step": {
       "init": {
-        "title": "Επιλογές Adaptive Lighting"
+        "title": "Επιλογές Adaptive Lighting",
+        "description": "Pick your lights and set basic brightness and color ranges. Choose a room preset for quick setup.",
+        "data": {}
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {}
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset tracking, update timing, and brightness curves.",
+        "data": {}
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "Control how the integration responds when other sources change your lights.",
+        "data": {}
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for lights that don't handle standard commands correctly.",
+        "data": {}
       }
+    },
+    "error": {
+      "requires_take_over_control": "This option requires 'take_over_control' to be enabled",
+      "requires_intercept": "This option requires 'intercept' to be enabled",
+      "requires_separate_turn_on": "This option requires 'separate_turn_on_commands' to be enabled",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature"
     }
   },
   "services": {

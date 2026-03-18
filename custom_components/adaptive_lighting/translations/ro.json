@@ -13,20 +13,57 @@
   "options": {
     "step": {
       "init": {
-        "data_description": {
-          "brightness_mode_time_light": "(Se ignoră dacă `modul_de_luminozitate='implicit'`) Durată în secunde a modificării luminozităţii în sus/jos cand poziţia sorelui este înainte sau după răsărit/apus.",
-          "sunrise_offset": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde.⏰",
-          "autoreset_control_seconds": "Resetare automată al controlului manual după un număr de secunde. Setaţi la 0 pentru a dezactiva.",
-          "brightness_mode": "Mod de luminozitate de utilizat. Valorile posibile sunt: 'implicit', 'liniar' şi 'hiperbolic' ( ultilizează 'mod_luminozitate_timp_de_noapte' şi 'mod_luminozitate_timp_de_zi').",
-          "sleep_brightness": "Procentul luminozităţii luminilor în modul 'somn'.",
-          "interval": "Frecvenţa adaptării luminilor, în secunde.",
-          "sunset_offset": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde."
+        "title": "Essentials",
+        "description": "Pick your lights and set basic brightness and color ranges. Choose a room preset for quick setup.",
+        "data": {
+          "room_preset": "Room preset"
         },
-        "title": "Opţiuni Iluminare Adaptivă",
+        "data_description": {
+          "interval": "Frecvenţa adaptării luminilor, în secunde.",
+          "room_preset": "Select a room type for recommended default settings, or choose 'Custom' to configure everything manually."
+        }
+      },
+      "sleep": {
+        "title": "Sleep Mode",
+        "description": "Configure how lights behave when sleep mode is active.",
+        "data": {},
+        "data_description": {
+          "sleep_brightness": "Procentul luminozităţii luminilor în modul 'somn'."
+        }
+      },
+      "sun_timing": {
+        "title": "Sun & Timing",
+        "description": "Fine-tune sunrise/sunset tracking, update timing, and brightness curves.",
+        "data": {},
+        "data_description": {
+          "sunrise_offset": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde.⏰",
+          "sunset_offset": "Ajustați ora răsăritului cu un decalaj pozitiv sau negativ în secunde.",
+          "brightness_mode": "Mod de luminozitate de utilizat. Valorile posibile sunt: 'implicit', 'liniar' şi 'hiperbolic' ( ultilizează 'mod_luminozitate_timp_de_noapte' şi 'mod_luminozitate_timp_de_zi').",
+          "brightness_mode_time_light": "(Se ignoră dacă `modul_de_luminozitate='implicit'`) Durată în secunde a modificării luminozităţii în sus/jos cand poziţia sorelui este înainte sau după răsărit/apus."
+        }
+      },
+      "manual_control": {
+        "title": "Behavior",
+        "description": "Control how the integration responds when other sources change your lights.",
         "data": {
           "adapt_only_on_bare_turn_on": "adaptează_doar_la_comanda_de_arpindere:  La aprinderea iniţială a luminilor. Dacă este activat, IA va adapta luminile doar dacă se invocă  'light.turn_on' fără a specifica culoarea sau luminozitatea. Aceasta, de exemplu, previne adaptarea atunci când se activează o scenă. Dacă este dezactivat,IA va adaptata luminile indiferent de prezența  valorilor culorii sau luminozității în service_data. Necesită activarea opţiunii 'preia_controlul. "
+        },
+        "data_description": {
+          "autoreset_control_seconds": "Resetare automată al controlului manual după un număr de secunde. Setaţi la 0 pentru a dezactiva."
         }
+      },
+      "workarounds": {
+        "title": "Device Workarounds",
+        "description": "Fixes for lights that don't handle standard commands correctly.",
+        "data": {}
       }
+    },
+    "error": {
+      "requires_take_over_control": "This option requires 'take_over_control' to be enabled",
+      "requires_intercept": "This option requires 'intercept' to be enabled",
+      "requires_separate_turn_on": "This option requires 'separate_turn_on_commands' to be enabled",
+      "brightness_range_invalid": "Minimum brightness must be less than or equal to maximum brightness",
+      "color_temp_range_invalid": "Minimum color temperature must be less than or equal to maximum color temperature"
     }
   },
   "title": "Iluminare Adaptivă",

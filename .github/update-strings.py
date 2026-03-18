@@ -4,7 +4,6 @@ import json
 import sys
 from pathlib import Path
 
-import homeassistant.helpers.config_validation as cv
 import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
@@ -17,18 +16,40 @@ en_fname = folder / "translations" / "en.json"
 with strings_fname.open() as f:
     strings = json.load(f)
 
-# Set "options"
-data = {}
-data_description = {}
-for k, _, typ in const.VALIDATION_TUPLES:
-    desc = const.DOCS[k]
-    if len(desc) > 40 and typ not in (bool, cv.entity_ids):
+# Step option groupings
+STEP_OPTIONS = {
+    "init": const.STEP_INIT_OPTIONS,
+    "sleep": const.STEP_SLEEP_OPTIONS,
+    "sun_timing": const.STEP_SUN_TIMING_OPTIONS,
+    "manual_control": const.STEP_MANUAL_CONTROL_OPTIONS,
+    "workarounds": const.STEP_WORKAROUNDS_OPTIONS,
+}
+
+# Set "options" per step
+for step_name, step_keys in STEP_OPTIONS.items():
+    data = {}
+    data_description = {}
+    for k in step_keys:
+        desc = const.DOCS[k]
         data[k] = k
         data_description[k] = desc
+    # Add room_preset to init step
+    if step_name == "init":
+        data[const.CONF_ROOM_PRESET] = const.CONF_ROOM_PRESET
+        data_description[const.CONF_ROOM_PRESET] = (
+            "Select a room type for recommended default settings, "
+            "or choose 'Custom' to configure everything manually."
+        )
+    if step_name in strings["options"]["step"]:
+        strings["options"]["step"][step_name]["data"] = data
+        strings["options"]["step"][step_name]["data_description"] = data_description
     else:
-        data[k] = f"{k}: {desc}"
-strings["options"]["step"]["init"]["data"] = data
-strings["options"]["step"]["init"]["data_description"] = data_description
+        strings["options"]["step"][step_name] = {
+            "title": step_name,
+            "description": "",
+            "data": data,
+            "data_description": data_description,
+        }
 
 # Set "services"
 services_filename = Path("custom_components") / "adaptive_lighting" / "services.yaml"
@@ -58,8 +79,11 @@ with en_fname.open() as f:
     en = json.load(f)
 
 en["config"]["step"]["user"] = strings["config"]["step"]["user"]
-en["options"]["step"]["init"]["data"] = data
-en["options"]["step"]["init"]["data_description"] = data_description
+for step_name in STEP_OPTIONS:
+    if step_name not in en.get("options", {}).get("step", {}):
+        en.setdefault("options", {}).setdefault("step", {})[step_name] = {}
+    en["options"]["step"][step_name]["data"] = strings["options"]["step"][step_name]["data"]
+    en["options"]["step"][step_name]["data_description"] = strings["options"]["step"][step_name]["data_description"]
 en["services"] = services_json
 
 with en_fname.open("w") as f:
