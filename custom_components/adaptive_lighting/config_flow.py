@@ -7,10 +7,24 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (  # pylint: disable=unused-import
+    CONF_BAD_WEATHER,
     CONF_LIGHTS,
+    CONF_LUX_SENSOR,
+    CONF_LUX_SMOOTHING_SAMPLES,
+    CONF_LUX_SMOOTHING_WINDOW,
+    CONF_WEATHER_ENTITY,
     DOMAIN,
     EXTRA_VALIDATION,
     NONE_STR,
@@ -130,6 +144,27 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_show_form(step_id="init", data_schema=None)
         errors: dict[str, str] = {}
         if user_input is not None:
+            if CONF_LUX_SENSOR in user_input:
+                lux_value = user_input[CONF_LUX_SENSOR]
+                if lux_value is None or lux_value == "":
+                    user_input[CONF_LUX_SENSOR] = NONE_STR
+            else:
+                user_input[CONF_LUX_SENSOR] = NONE_STR
+
+            if CONF_WEATHER_ENTITY in user_input:
+                weather_value = user_input[CONF_WEATHER_ENTITY]
+                if weather_value is None or weather_value == "":
+                    user_input[CONF_WEATHER_ENTITY] = NONE_STR
+            else:
+                user_input[CONF_WEATHER_ENTITY] = NONE_STR
+
+            if CONF_BAD_WEATHER in user_input:
+                bad_weather = user_input[CONF_BAD_WEATHER]
+                if isinstance(bad_weather, str):
+                    user_input[CONF_BAD_WEATHER] = [bad_weather]
+                elif bad_weather is None:
+                    user_input[CONF_BAD_WEATHER] = []
+
             validate_options(user_input, errors)
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
@@ -152,16 +187,89 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     multiple=True,
                 ),
             ),
+            CONF_LUX_SENSOR: EntitySelector(
+                EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="illuminance",
+                    multiple=False,
+                ),
+            ),
+            CONF_WEATHER_ENTITY: EntitySelector(
+                EntitySelectorConfig(
+                    domain="weather",
+                    multiple=False,
+                ),
+            ),
+            CONF_LUX_SMOOTHING_SAMPLES: NumberSelector(
+                NumberSelectorConfig(min=1, max=100, mode=NumberSelectorMode.BOX),
+            ),
+            CONF_LUX_SMOOTHING_WINDOW: NumberSelector(
+                NumberSelectorConfig(min=1, max=3600, mode=NumberSelectorMode.BOX),
+            ),
+            CONF_BAD_WEATHER: SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        "clear-night",
+                        "cloudy",
+                        "exceptional",
+                        "fog",
+                        "hail",
+                        "lightning",
+                        "lightning-rainy",
+                        "partlycloudy",
+                        "pouring",
+                        "rainy",
+                        "snowy",
+                        "snowy-rainy",
+                        "sunny",
+                        "windy",
+                        "windy-variant",
+                    ],
+                    multiple=True,
+                    custom_value=True,
+                ),
+            ),
         }
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:
-            key = vol.Optional(name, default=conf.options.get(name, default))
-            value = to_replace.get(name, validation)
+            current_value = conf.options.get(name, default)
+
+            if name in (CONF_LUX_SENSOR, CONF_WEATHER_ENTITY):
+                key = vol.Optional(name)
+            else:
+                if name == CONF_BAD_WEATHER:
+                    if isinstance(current_value, str):
+                        current_value = [current_value]
+                    elif current_value is None:
+                        current_value = []
+
+                key = vol.Optional(name, default=current_value)
+
+            if name in to_replace:
+                value = to_replace[name]
+            else:
+                if callable(validation) and hasattr(validation, "__module__"):
+                    module_name = getattr(validation, "__module__", "")
+                    if "config_validation" in module_name:
+                        value = str
+                    else:
+                        value = validation
+                else:
+                    value = validation
+
             options_schema[key] = value
+
+        suggested_values = {}
+        for name in (CONF_LUX_SENSOR, CONF_WEATHER_ENTITY):
+            current_value = conf.options.get(name)
+            if current_value and current_value != NONE_STR:
+                suggested_values[name] = current_value
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(options_schema),
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema(options_schema), suggested_values
+            ),
             errors=errors,
         )

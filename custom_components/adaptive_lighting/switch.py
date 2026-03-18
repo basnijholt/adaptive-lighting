@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import time
 import zoneinfo
+from collections import deque
 from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
@@ -93,6 +95,7 @@ from .const import (
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
+    CONF_BAD_WEATHER,
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
@@ -102,6 +105,12 @@ from .const import (
     CONF_INTERCEPT,
     CONF_INTERVAL,
     CONF_LIGHTS,
+    CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR,
+    CONF_LUX_MAX,
+    CONF_LUX_MIN,
+    CONF_LUX_SENSOR,
+    CONF_LUX_SMOOTHING_SAMPLES,
+    CONF_LUX_SMOOTHING_WINDOW,
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
@@ -131,6 +140,8 @@ from .const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+    CONF_WEATHER_ENTITY,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
@@ -866,6 +877,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Set in self._update_attrs_and_maybe_adapt_lights
         self._settings: dict[str, Any] = {}
 
+        # Lux smoothing: store historical lux readings with timestamps
+        # Each entry is a tuple of (timestamp, lux_value)
+        self._lux_history: deque[tuple[float, float]] = deque()
+
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners: list[CALLBACK_TYPE] = []
         self.remove_interval: CALLBACK_TYPE = lambda: None
@@ -970,6 +985,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
+            # Lux mode parameters
+            lux_sensor=data[CONF_LUX_SENSOR],
+            lux_min=data[CONF_LUX_MIN],
+            lux_max=data[CONF_LUX_MAX],
+            lux_smoothing_samples=data[CONF_LUX_SMOOTHING_SAMPLES],
+            lux_smoothing_window=data[CONF_LUX_SMOOTHING_WINDOW],
+            lux_brightness_reduction_factor=data[CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR],
+            # Weather mode parameters
+            weather_entity=data[CONF_WEATHER_ENTITY],
+            bad_weather=data[CONF_BAD_WEATHER],
+            weather_brightness_reduction_factor=data[CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR],
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",
@@ -1113,6 +1139,75 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Icon to use in the frontend, if any."""
         return self._icon
 
+    def _get_lux_value(self) -> float | None:
+        """Get the current lux value from the configured lux sensor with optional smoothing."""
+        if self._sun_light_settings.lux_sensor is None:
+            return None
+
+        lux_state = self.hass.states.get(self._sun_light_settings.lux_sensor)
+        if lux_state is None or lux_state.state in ("unknown", "unavailable"):
+            return None
+
+        try:
+            raw_lux = float(lux_state.state)
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "%s: Could not convert lux sensor value '%s' to float",
+                self._name,
+                lux_state.state,
+            )
+            return None
+
+        # Apply smoothing if configured
+        samples = self._sun_light_settings.lux_smoothing_samples
+        window = self._sun_light_settings.lux_smoothing_window
+
+        # If smoothing is disabled (samples <= 1), return raw value
+        if samples <= 1:
+            return raw_lux
+
+        # Add current reading to history with timestamp
+        now = time.time()
+        self._lux_history.append((now, raw_lux))
+
+        # Remove readings outside the time window
+        window_start = now - window
+        while self._lux_history and self._lux_history[0][0] < window_start:
+            self._lux_history.popleft()
+
+        # Limit to max number of samples
+        while len(self._lux_history) > samples:
+            self._lux_history.popleft()
+
+        # Calculate moving average
+        if not self._lux_history:
+            return raw_lux
+
+        total_lux = sum(lux for _, lux in self._lux_history)
+        smoothed_lux = total_lux / len(self._lux_history)
+
+        _LOGGER.debug(
+            "%s: Lux smoothing: raw=%s, smoothed=%s, samples=%s/%s",
+            self._name,
+            raw_lux,
+            smoothed_lux,
+            len(self._lux_history),
+            samples,
+        )
+
+        return smoothed_lux
+
+    def _get_weather_state(self) -> str | None:
+        """Get the current weather state from the configured weather entity."""
+        if self._sun_light_settings.weather_entity is None:
+            return None
+
+        weather_state = self.hass.states.get(self._sun_light_settings.weather_entity)
+        if weather_state is None or weather_state.state in ("unknown", "unavailable"):
+            return None
+
+        return weather_state.state
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the attributes of the switch."""
@@ -1224,6 +1319,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on,
             transition,
+            self._get_lux_value(),
+            self._get_weather_state(),
         )
 
         # Build service data.
@@ -1422,6 +1519,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._sun_light_settings.get_settings(
                 self.sleep_mode_switch.is_on,
                 transition,
+                self._get_lux_value(),
+                self._get_weather_state(),
             ),
         )
         self.async_write_ha_state()
