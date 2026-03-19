@@ -8,6 +8,11 @@
         "data": {
           "name": "Navn"
         }
+      },
+      "menu": {
+        "data": {
+          "action": "Handling"
+        }
       }
     },
     "abort": {
@@ -36,8 +41,8 @@
           "sunrise_time": "sunrise_time: Manuel overstyring af solopgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt din lokation. (HH:MM:SS)",
           "sunset_offset": "sunset_offset: Hvor længe før (-) eller efter (+) at definere solnedgangen i cyklussen (+/- sekunder)",
           "sunset_time": "sunset_time: Manuel overstyring af solnedgangstidspunktet, hvis 'None', bruges det egentlige tidspunkt for din lokation. (HH:MM:SS)",
-          "take_over_control": "take_over_control: Hvis andet end Adaptiv Belysning kalder 'light.turn_on' på et lys der allerede er tændt, afbryd adaptering af lyset indtil at det tændes igen.",
-          "detect_non_ha_changes": "detect_non_ha_changes: Registrer alle ændringer på >10% på et lys (også udenfor HA), kræver at 'take_over_control' er slået til (kalder 'homeassistant.update_entity' hvert 'interval'!)",
+          "take_over_control": "take_over_control: Sæt tilpasning af lyskilder på pause og overlad (manuel) kontrol til andre kilder, som foretager »light.turn_on«-kald til lyskilder, som allerede er tændt.",
+          "detect_non_ha_changes": "detect_non_ha_changes: Opdager og stopper tilpasningen ved tilstandsændringer, som ikke er udløst af »light.turn_on«. Indstillingen »take_over_control« skal være aktiveret. 🕵️ Advarsel: ⚠️ Nogle lyskilder kan rapportere en falsk tændt-tilstand, hvilket kan medføre af lyskilden tændes når det ikke er meningen. Vær opmærksom på, at dette kalder »homeassistant.update_entity« for hvert »interval«! Slå denne funktion fra, hvis du oplever dette problem.",
           "transition": "Overgangsperiode når en ændring i lyset udføres (i sekunder)",
           "transition_until_sleep": "overgang_til_sove: Når aktiveret, vil adaptiv belysning behandle søvnindstillinger som minimum, og overgår til disse værdier efter solnedgang. 🌙",
           "adapt_only_on_bare_turn_on": "tilpas_kun_ved_enkelt_tænd: Når du tænder lys for første gang. Hvis indstillet til 'true', tilpasser AL kun, hvis 'lys.tænd' er kaldt uden at angive farve eller lysstyrke. ❌🌈 Dette forhindrer f.eks. tilpasning, når du aktiverer en scene. Hvis indstillet til 'false' tilpasser AL sig uanset tilstanden af farve eller lysstyrke i den oprindelige 'service_data'. Har brug for at 'take_over_control' er aktiveret. 🕵️",
