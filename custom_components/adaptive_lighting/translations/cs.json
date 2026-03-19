@@ -8,6 +8,10 @@
         "data": {
           "name": "Název"
         }
+      },
+      "menu": {
+        "title": "Vytvořit nebo duplikovat",
+        "description": "Chcete vytvořit novou instanci nebo duplikovat stávající?"
       }
     },
     "abort": {
