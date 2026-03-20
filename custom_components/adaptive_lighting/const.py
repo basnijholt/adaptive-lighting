@@ -33,7 +33,7 @@ DOCS[CONF_NAME] = "Display name for this Adaptive Lighting instance."
 
 CONF_LIGHTS, DEFAULT_LIGHTS = "lights", []
 DOCS[CONF_LIGHTS] = (
-    "Light entities controlled by this switch. " "Leave empty to add lights later."
+    "Light entities controlled by this switch. Leave empty to add lights later."
 )
 
 CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES = (
