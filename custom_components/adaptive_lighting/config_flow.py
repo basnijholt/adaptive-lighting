@@ -1,6 +1,7 @@
 """Config flow for Adaptive Lighting integration."""
 
 import logging
+from datetime import time as dt_time
 from typing import Any
 
 import voluptuous as vol
@@ -292,13 +293,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # Validate sunrise range
             min_sr = user_input.get(CONF_MIN_SUNRISE_TIME, NONE_STR)
             max_sr = user_input.get(CONF_MAX_SUNRISE_TIME, NONE_STR)
-            if NONE_STR not in (min_sr, max_sr) and min_sr >= max_sr:
+            if NONE_STR not in (min_sr, max_sr) and dt_time.fromisoformat(min_sr) >= dt_time.fromisoformat(max_sr):
                 errors[CONF_MIN_SUNRISE_TIME] = "sunrise_range_invalid"
 
             # Validate sunset range
             min_ss = user_input.get(CONF_MIN_SUNSET_TIME, NONE_STR)
             max_ss = user_input.get(CONF_MAX_SUNSET_TIME, NONE_STR)
-            if NONE_STR not in (min_ss, max_ss) and min_ss >= max_ss:
+            if NONE_STR not in (min_ss, max_ss) and dt_time.fromisoformat(min_ss) >= dt_time.fromisoformat(max_ss):
                 errors[CONF_MIN_SUNSET_TIME] = "sunset_range_invalid"
 
             if not errors:
