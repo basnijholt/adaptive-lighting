@@ -332,13 +332,13 @@ class SunLightSettings:
 
         Returns:
             Expected brightness factor between 0 and 1
+
         """
         # When sun is above horizon (sun_position > 0), expect full brightness
         # When sun is below horizon, expect reduced brightness
         if sun_position > 0:
             return sun_position
-        else:
-            return 0.0
+        return 0.0
 
     def _calculate_sun_influence_weight(self, sun_position: float) -> float:
         """Calculate how much the sun is above the horizon.
@@ -354,6 +354,7 @@ class SunLightSettings:
             Weight between 0 and 1, where:
             - 1.0 means sun is well above horizon (full compensation)
             - 0.0 means sun is at/below horizon (no compensation)
+
         """
         # Sun below horizon: no compensation
         if sun_position <= 0:
@@ -363,8 +364,7 @@ class SunLightSettings:
         threshold = 0.3
         if sun_position >= threshold:
             return 1.0
-        else:
-            return sun_position / threshold
+        return sun_position / threshold
 
     def _calculate_lux_compensation_factor(
         self,
@@ -385,6 +385,7 @@ class SunLightSettings:
             - 1.0 means no compensation (conditions as expected)
             - <1.0 means reduce brightness (darker than expected)
             - >1.0 is clamped to 1.0 (we don't increase beyond baseline)
+
         """
         # If no lux sensor configured or no value available; no compensation
         if not self.lux_sensor or lux_value is None:
@@ -416,7 +417,9 @@ class SunLightSettings:
             compensation = 1.0
         else:
             # Scale the reduction by the configured reduction factor from (1 - lux_brightness_reduction_factor) to 1.0
-            compensation = 1.0 - (1.0 - lux_ratio) * self.lux_brightness_reduction_factor
+            compensation = (
+                1.0 - (1.0 - lux_ratio) * self.lux_brightness_reduction_factor
+            )
 
         # Apply sun influence weight to blend between no compensation and full compensation
         final_compensation = 1.0 - sun_weight * (1.0 - compensation)
@@ -441,6 +444,7 @@ class SunLightSettings:
             Compensation factor between 0 and 1, where:
             - 1.0 means no compensation (good weather or not applicable)
             - <1.0 means reduce brightness (bad weather)
+
         """
         # If no weather entity configured or no state available: no compensation
         if not self.weather_entity or not weather_state or not self.bad_weather:
@@ -484,6 +488,7 @@ class SunLightSettings:
 
         Returns:
             Combined compensation factor between 0 and 1
+
         """
         has_lux = lux_compensation < 1.0
         has_weather = weather_compensation < 1.0
@@ -508,7 +513,9 @@ class SunLightSettings:
         lux_weight = 0.5 + 0.3 * sun_weight
         weather_weight = 1.0 - lux_weight
 
-        combined = (lux_compensation * lux_weight) + (weather_compensation * weather_weight)
+        combined = (lux_compensation * lux_weight) + (
+            weather_compensation * weather_weight
+        )
 
         return combined
 
@@ -534,8 +541,12 @@ class SunLightSettings:
             return None
 
         # Calculate compensation factors based on lux and weather
-        lux_compensation = self._calculate_lux_compensation_factor(lux_value, sun_position)
-        weather_compensation = self._calculate_weather_compensation_factor(weather_state, sun_position)
+        lux_compensation = self._calculate_lux_compensation_factor(
+            lux_value, sun_position
+        )
+        weather_compensation = self._calculate_weather_compensation_factor(
+            weather_state, sun_position
+        )
 
         # Combine compensation factors intelligently
         combined_compensation = self._combine_compensation_factors(

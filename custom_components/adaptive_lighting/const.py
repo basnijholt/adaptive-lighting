@@ -222,11 +222,12 @@ DOCS[CONF_LUX_SMOOTHING_SAMPLES] = (
 )
 
 CONF_LUX_SMOOTHING_WINDOW, DEFAULT_LUX_SMOOTHING_WINDOW = "lux_smoothing_window", 300
-DOCS[CONF_LUX_SMOOTHING_WINDOW] = (
-    "Time window in seconds for smoothing lux readings. ⏱️"
-)
+DOCS[CONF_LUX_SMOOTHING_WINDOW] = "Time window in seconds for smoothing lux readings. ⏱️"
 
-CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR, DEFAULT_LUX_BRIGHTNESS_REDUCTION_FACTOR = "lux_brightness_reduction_factor", 0.5
+CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR, DEFAULT_LUX_BRIGHTNESS_REDUCTION_FACTOR = (
+    "lux_brightness_reduction_factor",
+    0.5,
+)
 DOCS[CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR] = (
     "Maximum brightness reduction factor (0-1) when lux is at minimum. "
     "Linearly scales to 0 when lux is at maximum. 🌤️"
@@ -239,19 +240,20 @@ DOCS[CONF_WEATHER_ENTITY] = (
 )
 
 CONF_BAD_WEATHER, DEFAULT_BAD_WEATHER = "bad_weather", [
-    'cloudy',
-    'pouring',
-    'hail',
-    'fog',
-    'rainy',
-    'snowy',
-    'snowy-rainy'
+    "cloudy",
+    "pouring",
+    "hail",
+    "fog",
+    "rainy",
+    "snowy",
+    "snowy-rainy",
 ]
-DOCS[CONF_BAD_WEATHER] = (
-    "List of weather conditions considered as bad weather. 🌧️"
-)
+DOCS[CONF_BAD_WEATHER] = "List of weather conditions considered as bad weather. 🌧️"
 
-CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR, DEFAULT_WEATHER_BRIGHTNESS_REDUCTION_FACTOR = "weather_brightness_reduction_factor", 0.3
+(
+    CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+    DEFAULT_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+) = ("weather_brightness_reduction_factor", 0.3)
 DOCS[CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR] = (
     "Brightness reduction factor (0-1) applied during bad weather. ☁️"
 )
@@ -435,10 +437,18 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_LUX_MAX, DEFAULT_LUX_MAX, cv.positive_int),
     (CONF_LUX_SMOOTHING_SAMPLES, DEFAULT_LUX_SMOOTHING_SAMPLES, cv.positive_int),
     (CONF_LUX_SMOOTHING_WINDOW, DEFAULT_LUX_SMOOTHING_WINDOW, cv.positive_int),
-    (CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR, DEFAULT_LUX_BRIGHTNESS_REDUCTION_FACTOR, vol.All(vol.Coerce(float), vol.Range(min=0, max=1))),
+    (
+        CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR,
+        DEFAULT_LUX_BRIGHTNESS_REDUCTION_FACTOR,
+        vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
+    ),
     (CONF_WEATHER_ENTITY, NONE_STR, str),
     (CONF_BAD_WEATHER, DEFAULT_BAD_WEATHER, cv.ensure_list),
-    (CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR, DEFAULT_WEATHER_BRIGHTNESS_REDUCTION_FACTOR, vol.All(vol.Coerce(float), vol.Range(min=0, max=1))),
+    (
+        CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+        DEFAULT_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+        vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
+    ),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,

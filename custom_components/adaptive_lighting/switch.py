@@ -995,7 +995,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             # Weather mode parameters
             weather_entity=data[CONF_WEATHER_ENTITY],
             bad_weather=data[CONF_BAD_WEATHER],
-            weather_brightness_reduction_factor=data[CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR],
+            weather_brightness_reduction_factor=data[
+                CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR
+            ],
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",

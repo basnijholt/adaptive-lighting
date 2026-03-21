@@ -15,7 +15,6 @@ from homeassistant.helpers.selector import (
     NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
-    SelectSelectorMode,
 )
 
 from .const import (  # pylint: disable=unused-import
@@ -248,15 +247,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             if name in to_replace:
                 value = to_replace[name]
-            else:
-                if callable(validation) and hasattr(validation, "__module__"):
-                    module_name = getattr(validation, "__module__", "")
-                    if "config_validation" in module_name:
-                        value = str
-                    else:
-                        value = validation
+            elif callable(validation) and hasattr(validation, "__module__"):
+                module_name = getattr(validation, "__module__", "")
+                if "config_validation" in module_name:
+                    value = str
                 else:
                     value = validation
+            else:
+                value = validation
 
             options_schema[key] = value
 
@@ -269,7 +267,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                vol.Schema(options_schema), suggested_values
+                vol.Schema(options_schema),
+                suggested_values,
             ),
             errors=errors,
         )
