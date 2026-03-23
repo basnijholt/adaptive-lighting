@@ -294,7 +294,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             min_sr = user_input.get(CONF_MIN_SUNRISE_TIME, NONE_STR)
             max_sr = user_input.get(CONF_MAX_SUNRISE_TIME, NONE_STR)
             if NONE_STR not in (min_sr, max_sr) and dt_time.fromisoformat(
-                min_sr
+                min_sr,
             ) >= dt_time.fromisoformat(max_sr):
                 errors[CONF_MIN_SUNRISE_TIME] = "sunrise_range_invalid"
 
@@ -302,7 +302,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             min_ss = user_input.get(CONF_MIN_SUNSET_TIME, NONE_STR)
             max_ss = user_input.get(CONF_MAX_SUNSET_TIME, NONE_STR)
             if NONE_STR not in (min_ss, max_ss) and dt_time.fromisoformat(
-                min_ss
+                min_ss,
             ) >= dt_time.fromisoformat(max_ss):
                 errors[CONF_MIN_SUNSET_TIME] = "sunset_range_invalid"
 
