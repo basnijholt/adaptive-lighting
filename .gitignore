@@ -138,3 +138,4 @@ config/*
 
 # Home Assistant core
 core/
+.gstack/
