@@ -116,7 +116,9 @@ DOCS[CONF_SEPARATE_TURN_ON_COMMANDS] = (
 )
 
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
-DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness percentage of lights in sleep mode. Set to 0 to prevent lights from turning on. 😴"
+DOCS[CONF_SLEEP_BRIGHTNESS] = (
+    "Brightness percentage of lights in sleep mode. Set to 0 to prevent lights from turning on. 😴"
+)
 
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
 DOCS[CONF_SLEEP_COLOR_TEMP] = (
