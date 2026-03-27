@@ -15,7 +15,7 @@ pip install \
 
 pip cache purge
 
-uv venv --clear --python 3.13
+uv venv --clear --python 3.14
 ./scripts/setup-dependencies
 ./scripts/setup-symlinks
 uv run pre-commit install-hooks
