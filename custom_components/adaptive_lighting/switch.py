@@ -7,9 +7,8 @@ import datetime
 import logging
 import zoneinfo
 from copy import deepcopy
-from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
@@ -145,13 +144,10 @@ from .const import (
     SET_MANUAL_CONTROL_SCHEMA,
     SIGNAL_STATUS_UPDATED,
     SLEEP_MODE_SWITCH,
-    STATUS_ACTIVE,
-    STATUS_BLOCKED,
-    STATUS_ERROR,
-    STATUS_INACTIVE,
-    STATUS_MANUAL_OVERRIDE,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
+    LightStatus,
+    LightStatusInfo,
     TakeOverControlMode,
     apply_service_schema,
     replace_none_str,
@@ -160,6 +156,7 @@ from .hass_utils import area_entities, setup_service_call_interceptor
 from .helpers import (
     clamp,
     color_difference_redmean,
+    expand_light_groups,
     int_to_base36,
     remove_vowels,
     short_hash,
@@ -185,17 +182,6 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
-
-
-@dataclass
-class LightStatusInfo:
-    """Track adaptive lighting status for a light and source."""
-
-    status: str
-    since: datetime.datetime | None = None
-    reason: str | None = None
-    source: str | None = None
-    last_error: str | None = None
 
 
 def create_context(
@@ -610,24 +596,23 @@ def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
 ) -> list[str]:
-    all_lights: set[str] = set()
+    """Expand light groups and update manager's light set."""
+    all_lights = expand_light_groups(hass, lights)
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
     for light in lights:
         state = hass.states.get(light)
-        if state is None:
-            _LOGGER.debug("State of %s is None", light)
-            all_lights.add(light)
-        elif _is_light_group(state):
-            group = state.attributes["entity_id"]
+        if state is not None and _is_light_group(state):
             manager.lights.discard(light)
-            all_lights.update(group)
-            _LOGGER.debug("Expanded %s to %s", light, group)
-        else:
-            all_lights.add(light)
-    return sorted(all_lights)
+            _LOGGER.debug(
+                "Expanded %s to %s",
+                light,
+                state.attributes["entity_id"],
+            )
+    return all_lights
 
 
 def _is_light_group(state: State) -> bool:
+    """Check if a state represents a light group."""
     return "entity_id" in state.attributes and not state.attributes.get(
         "is_hue_group",
         False,
@@ -1196,7 +1181,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.manager.set_light_status(
                 light,
                 self.entity_id,
-                STATUS_INACTIVE,
+                LightStatus.INACTIVE,
                 reason="switch_off",
             )
         self.manager.reset(*self.lights)
@@ -1331,7 +1316,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.manager.set_light_status(
                 light,
                 self.entity_id,
-                STATUS_BLOCKED,
+                LightStatus.BLOCKED,
                 reason="turn_off_lock",
             )
             return
@@ -1350,7 +1335,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self.manager.set_light_status(
                     light,
                     self.entity_id,
-                    STATUS_ACTIVE,
+                    LightStatus.ACTIVE,
                     reason="no_change",
                 )
             return  # nothing to adapt
@@ -1358,7 +1343,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.manager.set_light_status(
             light,
             self.entity_id,
-            STATUS_ACTIVE,
+            LightStatus.ACTIVE,
             reason="apply",
         )
         try:
@@ -1367,7 +1352,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.manager.set_light_status(
                 light,
                 self.entity_id,
-                STATUS_ERROR,
+                LightStatus.ERROR,
                 reason="exception",
                 last_error=str(exc),
             )
@@ -1376,14 +1361,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.manager.set_light_status(
                 light,
                 self.entity_id,
-                STATUS_ACTIVE,
+                LightStatus.ACTIVE,
                 reason="applied",
             )
         else:
             self.manager.set_light_status(
                 light,
                 self.entity_id,
-                STATUS_BLOCKED,
+                LightStatus.BLOCKED,
                 reason="cancelled",
             )
 
@@ -1449,12 +1434,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """
         # Prevent overlap of multiple adaptation sequences
         self.manager.cancel_ongoing_adaptation_calls(data.entity_id)
-        self.manager.set_light_status(
-            data.entity_id,
-            self.entity_id,
-            STATUS_ACTIVE,
-            reason="apply",
-        )
         _LOGGER.debug(
             "%s: execute_cancellable_adaptation_calls with data: %s",
             self._name,
@@ -1530,7 +1509,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self.manager.set_light_status(
                         light,
                         self.entity_id,
-                        STATUS_BLOCKED,
+                        LightStatus.BLOCKED,
                         reason="transition",
                     )
                 elif (
@@ -1551,7 +1530,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self.manager.set_light_status(
                         light,
                         self.entity_id,
-                        STATUS_BLOCKED,
+                        LightStatus.BLOCKED,
                         reason="recent_off",
                     )
                 else:
@@ -1583,14 +1562,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self.manager.set_light_status(
                         light,
                         self.entity_id,
-                        STATUS_MANUAL_OVERRIDE,
+                        LightStatus.MANUAL_OVERRIDE,
                         reason="manual_control",
                     )
                 else:
                     self.manager.set_light_status(
                         light,
                         self.entity_id,
-                        STATUS_BLOCKED,
+                        LightStatus.BLOCKED,
                         reason="adaptation_disabled",
                     )
                 continue
@@ -1789,8 +1768,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
-type AdaptiveSwitches = list[AdaptiveSwitch]
-type AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
+AdaptiveSwitches: TypeAlias = list[AdaptiveSwitch]
+AdaptiveSwitchMap: TypeAlias = dict[AdaptiveSwitch, list[str]]
 
 
 class AdaptiveLightingManager:
@@ -1979,8 +1958,8 @@ class AdaptiveLightingManager:
         """Return the combined status for a light across all sources."""
         statuses = list(self.get_light_statuses(light).values())
         if not statuses:
-            return LightStatusInfo(status=STATUS_INACTIVE)
-        winner = max(statuses, key=lambda entry: self._status_priority(entry.status))
+            return LightStatusInfo(status=LightStatus.INACTIVE)
+        winner = max(statuses, key=lambda entry: LightStatus.STATUS_PRIORITY.get(entry.status, 0))
         return LightStatusInfo(
             status=winner.status,
             since=winner.since,
@@ -1991,13 +1970,7 @@ class AdaptiveLightingManager:
 
     @staticmethod
     def _status_priority(status: str) -> int:
-        return {
-            STATUS_ERROR: 5,
-            STATUS_MANUAL_OVERRIDE: 4,
-            STATUS_ACTIVE: 2,
-            STATUS_BLOCKED: 1,
-            STATUS_INACTIVE: 0,
-        }.get(status, 0)
+        return LightStatus.STATUS_PRIORITY.get(status, 0)
 
     def _separate_entity_ids(
         self,
@@ -2406,7 +2379,7 @@ class AdaptiveLightingManager:
         if attributes.has_any():
             self.set_light_status_for_switches(
                 light,
-                STATUS_MANUAL_OVERRIDE,
+                LightStatus.MANUAL_OVERRIDE,
                 reason="manual_control",
             )
         delay = self.auto_reset_manual_control_times.get(light)
@@ -2535,18 +2508,19 @@ class AdaptiveLightingManager:
                         self.set_light_status(
                             light,
                             switch.entity_id,
-                            STATUS_INACTIVE,
+                            LightStatus.INACTIVE,
                             reason="switch_off",
                         )
                     else:
                         self.set_light_status(
                             light,
                             switch.entity_id,
-                            STATUS_ACTIVE,
+                            LightStatus.ACTIVE,
                             reason="manual_control_reset",
                         )
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
+            self.light_status.pop(light, None)
             self.cancel_ongoing_adaptation_calls(light)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
@@ -2756,7 +2730,6 @@ class AdaptiveLightingManager:
                 entity_id,
                 event.context.id,
             )
-            async_dispatcher_send(self.hass, SIGNAL_STATUS_UPDATED, entity_id)
 
             if self.is_proactively_adapting(event.context.id):
                 _LOGGER.debug(

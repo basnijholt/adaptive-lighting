@@ -5,7 +5,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_LIGHTS,
     DEFAULT_NAME,
     DOMAIN,
-    STATUS_INACTIVE,
+    LightStatus,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.const import CONF_NAME, EntityCategory
@@ -83,4 +83,4 @@ async def test_diagnostic_status_sensors_created(hass: HomeAssistant) -> None:
         assert reg_entry.entity_category is EntityCategory.DIAGNOSTIC
         state = hass.states.get(reg_entry.entity_id)
         assert state is not None
-        assert state.state == STATUS_INACTIVE
+        assert state.state == LightStatus.INACTIVE

@@ -36,25 +36,10 @@ from .const import (
     DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
     DOMAIN,
     SIGNAL_STATUS_UPDATED,
-    STATUS_INACTIVE,
+    LightStatus,
 )
+from .helpers import expand_light_groups, get_friendly_name
 from .switch import validate
-
-
-def _expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
-    expanded: set[str] = set()
-    for light in lights:
-        state = hass.states.get(light)
-        if state is None:
-            expanded.add(light)
-        elif "entity_id" in state.attributes and not state.attributes.get(
-            "is_hue_group",
-            False,
-        ):
-            expanded.update(state.attributes["entity_id"])
-        else:
-            expanded.add(light)
-    return sorted(expanded)
 
 
 def ensure_status_sensors_enabled(hass: HomeAssistant, entry_id: str) -> None:
@@ -73,7 +58,11 @@ def ensure_status_sensors_enabled(hass: HomeAssistant, entry_id: str) -> None:
             ent_reg.async_update_entity(entry.entity_id, disabled_by=None)
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry,
+    async_add_entities,
+) -> None:
     """Set up Adaptive Lighting status sensors."""
     data = validate(config_entry)
     if not data.get(CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS):
@@ -81,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
     store = hass.data[DOMAIN].setdefault("status_sensors", {})
 
-    lights = _expand_light_groups(hass, data.get(CONF_LIGHTS, []))
+    lights = expand_light_groups(hass, data.get(CONF_LIGHTS, []))
 
     ensure_status_sensors_enabled(hass, config_entry.entry_id)
 
@@ -113,15 +102,14 @@ class AdaptiveLightingStatusSensor(SensorEntity):
     @property
     def name(self) -> str:
         """Return the sensor name."""
-        state = self.hass.states.get(self._light_entity_id)
-        light_name = state.name if state is not None else self._light_entity_id
+        light_name = get_friendly_name(self.hass, self._light_entity_id)
         return f"Adaptive Lighting Status: {light_name}"
 
     @property
     def native_value(self) -> str:
         """Return the current combined status."""
         combined = self._manager.get_combined_status(self._light_entity_id)
-        return combined.status if combined.status else STATUS_INACTIVE
+        return combined.status if combined.status else LightStatus.INACTIVE
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -151,8 +139,12 @@ class AdaptiveLightingStatusSensor(SensorEntity):
                 if attr in last_service_data:
                     target_attrs[attr] = last_service_data[attr]
 
+        manual_control_attrs = self._manager.get_manual_control_attributes(
+            self._light_entity_id,
+        )
+        is_manually_controlled = manual_control_attrs.has_any()
         override_until = None
-        if self._manager.get_manual_control_attributes(self._light_entity_id).has_any():
+        if is_manually_controlled:
             timer = self._manager.auto_reset_manual_control_timers.get(
                 self._light_entity_id,
             )
@@ -166,12 +158,10 @@ class AdaptiveLightingStatusSensor(SensorEntity):
             ATTR_STATUS_SOURCE: combined.source,
             ATTR_STATUS_PROFILES: profile_statuses,
             ATTR_STATUS_TARGET: target_attrs or None,
-            ATTR_STATUS_MANUAL_CONTROL: self._manager.get_manual_control_attributes(
-                self._light_entity_id,
-            ).has_any(),
-            ATTR_STATUS_OVERRIDE_UNTIL: override_until.isoformat()
-            if override_until
-            else None,
+            ATTR_STATUS_MANUAL_CONTROL: is_manually_controlled,
+            ATTR_STATUS_OVERRIDE_UNTIL: (
+                override_until.isoformat() if override_until else None
+            ),
             ATTR_STATUS_LAST_ERROR: combined.last_error,
         }
 
