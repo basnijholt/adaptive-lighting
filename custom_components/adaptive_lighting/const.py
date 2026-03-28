@@ -4,7 +4,7 @@ import datetime
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum, StrEnum
-from typing import Any, ClassVar
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -30,13 +30,14 @@ class LightStatus(StrEnum):
     BLOCKED = "blocked"
     ERROR = "error"
 
-    STATUS_PRIORITY: ClassVar[dict["LightStatus", int]] = {
-        ERROR: 5,
-        MANUAL_OVERRIDE: 4,
-        ACTIVE: 2,
-        BLOCKED: 1,
-        INACTIVE: 0,
-    }
+
+STATUS_PRIORITY: dict[str, int] = {
+    "error": 5,
+    "manual_override": 4,
+    "active": 2,
+    "blocked": 1,
+    "inactive": 0,
+}
 
 
 ATTR_STATUS = "status"
