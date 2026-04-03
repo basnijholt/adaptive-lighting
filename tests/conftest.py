@@ -1,5 +1,12 @@
 """Pytest configuration for adaptive-lighting tests."""
 
+import sys
+import os
+
+CORE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core"))
+if CORE_PATH not in sys.path:
+    sys.path.insert(0, CORE_PATH)
+
 from unittest.mock import patch
 
 import pytest
