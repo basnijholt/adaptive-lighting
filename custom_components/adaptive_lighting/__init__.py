@@ -74,11 +74,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         CONF_ENABLE_DIAGNOSTIC_SENSORS, DEFAULT_ENABLE_DIAGNOSTIC_SENSORS
     )
 
-    if enable_diagnostic_sensors and config_entry.pref_disable_new_entities:
-        hass.config_entries.async_update_entry(
-            config_entry,
-            pref_disable_new_entities=False,
-        )
     if enable_diagnostic_sensors:
         ensure_status_sensors_enabled(hass, config_entry.entry_id)
 
@@ -109,13 +104,16 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         config_entry,
         "sensor",
     )
+    if not unload_ok:
+        return False
+
     data = hass.data[DOMAIN]
     data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()
-    if unload_ok:
-        data.pop(config_entry.entry_id)
+    data.pop(config_entry.entry_id)
 
     if len(data) == 1 and ATTR_ADAPTIVE_LIGHTING_MANAGER in data:
         # no more config_entries
+        data.pop("status_sensors", None)
         manager = data.pop(ATTR_ADAPTIVE_LIGHTING_MANAGER)
         manager.disable()
 

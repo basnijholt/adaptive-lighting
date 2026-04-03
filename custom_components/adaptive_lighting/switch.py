@@ -8,7 +8,7 @@ import logging
 import zoneinfo
 from copy import deepcopy
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
@@ -561,8 +561,8 @@ def validate(
     if config_entry is not None:
         assert service_data is None
         assert defaults is None
-        data.update(config_entry.data)  # all yaml settings come from data
         data.update(config_entry.options)  # come from options flow
+        data.update(config_entry.data)  # all yaml settings come from data
     else:
         assert service_data is not None
         changed_settings = {
@@ -1178,13 +1178,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
         self._state = False
         self._remove_listeners()
-        for light in self.lights:
-            self.manager.set_light_status(
-                light,
-                self.entity_id,
-                LightStatus.INACTIVE,
-                reason="switch_off",
-            )
         self.manager.reset(*self.lights)
 
     async def _async_update_at_interval_action(
@@ -1341,12 +1334,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 )
             return  # nothing to adapt
 
-        self.manager.set_light_status(
-            light,
-            self.entity_id,
-            LightStatus.ACTIVE,
-            reason="apply",
-        )
         try:
             success = await self.execute_cancellable_adaptation_calls(data)
         except Exception as exc:
@@ -1769,8 +1756,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._state = False
 
 
-AdaptiveSwitches: TypeAlias = list[AdaptiveSwitch]
-AdaptiveSwitchMap: TypeAlias = dict[AdaptiveSwitch, list[str]]
+type AdaptiveSwitches = list[AdaptiveSwitch]
+type AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
 
 
 class AdaptiveLightingManager:
@@ -2521,7 +2508,6 @@ class AdaptiveLightingManager:
                         )
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
-            self.light_status.pop(light, None)
             self.cancel_ongoing_adaptation_calls(light)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:

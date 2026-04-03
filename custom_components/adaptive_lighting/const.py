@@ -31,12 +31,12 @@ class LightStatus(StrEnum):
     ERROR = "error"
 
 
-STATUS_PRIORITY: dict[str, int] = {
-    "error": 5,
-    "manual_override": 4,
-    "active": 2,
-    "blocked": 1,
-    "inactive": 0,
+STATUS_PRIORITY: dict[LightStatus, int] = {
+    LightStatus.ERROR: 5,
+    LightStatus.MANUAL_OVERRIDE: 4,
+    LightStatus.ACTIVE: 2,
+    LightStatus.BLOCKED: 1,
+    LightStatus.INACTIVE: 0,
 }
 
 
