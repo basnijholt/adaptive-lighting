@@ -58,7 +58,8 @@
           "include_config_in_attributes": "include_config_in_attributes: Alle Optionen als Attribute auf dem Schalter im Home Assistant anzeigen, wenn auf `true` gesetzt. 📝",
           "multi_light_intercept": "multi_light_intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, die auf mehrere Lichter aufrufen. ➗⚠️ Dies kann dazu führen, dass ein einzelner `light.turn_on`-Aufruf in mehrere Aufrufe aufgeteilt wird, z.B. wenn Lichter in verschiedenen Schaltern sind. Erfordert, dass `intercept` aktiviert ist.",
           "transition_until_sleep": "transition_until_sleep: Wenn diese Option aktiviert ist, behandelt die adaptive Beleuchtung die Schlafeinstellungen als Minimum und geht nach Sonnenuntergang zu diesen Werten über. 🌙",
-          "intercept": "intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, um eine sofortige Anpassung von Farbe und Helligkeit zu ermöglichen. 🏎️ Deaktivieren für Leuchten, die `light.turn_on` mit Farbe und Helligkeit nicht unterstützen."
+          "intercept": "intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, um eine sofortige Anpassung von Farbe und Helligkeit zu ermöglichen. 🏎️ Deaktivieren für Leuchten, die `light.turn_on` mit Farbe und Helligkeit nicht unterstützen.",
+          "expand_light_groups": "expand_light_groups: Lichtgruppen auf einzelne Mitgliedsentitäten erweitern (`true`) oder die Gruppenentität direkt steuern (`false`)."
         },
         "data_description": {
           "sunrise_offset": "Anpassung der Sonnenaufgangszeit mit positivem oder negativem Versatz in Sekunden. ⏰",
@@ -82,7 +83,8 @@
           "initial_transition": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️",
           "sleep_rgb_or_color_temp": "Verwende entweder `rgb_color` oder `color_temp` im Schlafmodus. 🌙",
           "sleep_transition": "Dauer des Übergangs, wenn der \"Schlafmodus\" umgeschaltet wird, in Sekunden. 😴",
-          "sunrise_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenaufgang ein. 🌅"
+          "sunrise_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenaufgang ein. 🌅",
+          "expand_light_groups": "Wenn auf `false` gesetzt, werden Anpassungsbefehle direkt an die Gruppenentität gesendet und nicht an die einzelnen Mitglieder."
         }
       }
     },
