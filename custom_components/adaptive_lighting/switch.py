@@ -97,6 +97,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERCEPT,
@@ -943,6 +944,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._name,
             )
             self._multi_light_intercept = False
+        self._expand_light_groups_flag = data[CONF_EXPAND_LIGHT_GROUPS]
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
 
@@ -1027,7 +1029,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     def _expand_light_groups(self, hass: HomeAssistant | None = None) -> None:
         hass = hass or self.hass
-        all_lights = _expand_light_groups(hass, self.lights)
+        if self._expand_light_groups_flag:
+            all_lights = _expand_light_groups(hass, self.lights)
+        else:
+            all_lights = list(self.lights)  # keep group entities as-is
         self.manager.lights.update(all_lights)
         self.manager.set_auto_reset_manual_control_times(
             all_lights,
@@ -1848,8 +1853,12 @@ class AdaptiveLightingManager:
                 if (
                     not switch.is_on
                     or not switch._intercept
-                    # Never adapt on light groups, because HA will make a separate light.turn_on
-                    or ((e := self.hass.states.get(entity_id)) and _is_light_group(e))
+                    # Never adapt on light groups when expanding, because HA will make a separate light.turn_on
+                    or (
+                        switch._expand_light_groups_flag
+                        and (e := self.hass.states.get(entity_id))
+                        and _is_light_group(e)
+                    )
                     # Prevent adaptation of TURN_ON calls when light is already on,
                     # and of TOGGLE calls when toggling off.
                     or self.hass.states.is_state(entity_id, STATE_ON)
