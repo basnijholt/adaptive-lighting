@@ -5,13 +5,13 @@ cd "$(dirname "$0")/.."
 # Remove mypy-dev from requirements_test.txt since the maintainer deletes old versions from PyPI.
 # We'll install the latest version separately below.
 # See: https://github.com/cdce8p/mypy-dev/issues/62
-sed -i '/^mypy-dev/d' core/requirements_test.txt
+grep -v '^mypy-dev' core/requirements_test.txt > core/requirements_test.txt.tmp && mv core/requirements_test.txt.tmp core/requirements_test.txt
 
 uv pip install -r core/requirements.txt
 uv pip install -r core/requirements_test.txt
 uv pip install -e core/
 uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
-uv pip install $(python test_dependencies.py)
+uv pip install $(python3 test_dependencies.py)
 
 # Install the latest mypy-dev (not pinned since old versions get deleted from PyPI)
 uv pip install --upgrade mypy-dev
