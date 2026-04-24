@@ -1513,7 +1513,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data.context.id,
             )
             light = service_data[ATTR_ENTITY_ID]
-            self.manager.last_service_data[light] = service_data
+            self.manager.last_service_data[light] = {
+                **self.manager.last_service_data.get(light, {}),
+                **service_data,
+            }
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
