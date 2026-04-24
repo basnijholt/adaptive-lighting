@@ -47,7 +47,7 @@ jobs:
           echo "Webapp integrated at site/simulator/"
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./site
 
