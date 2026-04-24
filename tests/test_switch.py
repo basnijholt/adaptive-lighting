@@ -362,14 +362,14 @@ def create_transition_events(
 
 async def test_adaptive_lighting_switches(hass):
     """Test switches created for adaptive_lighting integration."""
-    entry, _ = await setup_switch(hass, {})
+    entry, switch = await setup_switch(hass, {})
 
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert set(hass.states.async_entity_ids(SWITCH_DOMAIN)) == {
-        ENTITY_SWITCH,
-        ENTITY_SLEEP_MODE_SWITCH,
-        ENTITY_ADAPT_COLOR_SWITCH,
-        ENTITY_ADAPT_BRIGHTNESS_SWITCH,
+        switch.entity_id,
+        switch.sleep_mode_switch.entity_id,
+        switch.adapt_color_switch.entity_id,
+        switch.adapt_brightness_switch.entity_id,
     }
     assert ATTR_ADAPTIVE_LIGHTING_MANAGER in hass.data[DOMAIN]
     assert entry.entry_id in hass.data[DOMAIN]
@@ -510,7 +510,7 @@ async def test_light_settings(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -530,7 +530,7 @@ async def test_light_settings(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_OFF,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -736,7 +736,7 @@ async def test_manual_control(
     ), manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
-    for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
+    for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
         await change_manual_control(True)
         assert manual_control[ENTITY_LIGHT_1]
         await turn_switch(False, entity_id)
@@ -816,7 +816,7 @@ async def test_manual_control(
         DOMAIN,
         SERVICE_APPLY,
         {
-            ATTR_ENTITY_ID: ENTITY_SWITCH,
+            ATTR_ENTITY_ID: switch.entity_id,
             CONF_LIGHTS: [ENTITY_LIGHT_1],
             CONF_TURN_ON_LIGHTS: True,
         },
@@ -1068,7 +1068,7 @@ async def test_apply_service(hass):
             DOMAIN,
             SERVICE_APPLY,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                ATTR_ENTITY_ID: switch.entity_id,
                 CONF_LIGHTS: [entity_id],
                 CONF_TURN_ON_LIGHTS: True,
                 **kwargs,
@@ -1285,7 +1285,7 @@ async def test_state_change_handlers(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -1657,7 +1657,7 @@ async def test_change_switch_settings_service(hass):
             DOMAIN,
             SERVICE_CHANGE_SWITCH_SETTINGS,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                ATTR_ENTITY_ID: switch.entity_id,
                 **kwargs,
             },
             blocking=True,
