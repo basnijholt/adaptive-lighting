@@ -45,7 +45,7 @@
           "include_config_in_attributes": "include_config_in_attributes: A kapcsoló összes opciójának attribútumként való megjelenítése a Home Assistantben, ha a beállítás értéke `igaz`. 📝"
         },
         "title": "Adaptív világítás beállításai",
-        "description": "Egy Adaptív világítás komponens konfigurálása. Az opciók nevei a YAML-beállításokhoz igazodnak. Ha ezt a bejegyzést YAML-ben definiálta, itt nem jelennek meg beállítások. A paraméterek hatásait bemutató interaktív grafikonokért látogasson el [erre a webes alkalmazásra](https://basnijholt.github.io/adaptive-lighting). További részletekért olvasd el a [hivatalos dokumentációt](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Egy Adaptív világítás komponens konfigurálása. Az opciók nevei a YAML-beállításokhoz igazodnak. Ha ezt a bejegyzést YAML-ben definiálta, itt nem jelennek meg beállítások. A paraméterek hatásait bemutató interaktív grafikonokért látogasson el [erre a webes alkalmazásra]({webapp_url}). További részletekért olvasd el a [hivatalos dokumentációt]({docs_url})."
       }
     },
     "error": {

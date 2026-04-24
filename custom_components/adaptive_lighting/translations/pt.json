@@ -72,7 +72,7 @@
           "brightness_mode": "Brilho que irá ser usado. Possíveis valores são `default`, `linear` e `tanh`(usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈"
         },
         "title": "Opções da Iluminação Adaptativa",
-        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app](https://basnijholt.github.io/adaptive-lighting). Para mais detalhes, veja a [documentação oficial](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app]({webapp_url}). Para mais detalhes, veja a [documentação oficial]({docs_url}).",
         "data": {
           "lights": "lights: Lista das entity_ids das luzes para serem controladas (pode ser vazia). 🌟",
           "min_brightness": "min_brightness: Percentagem minima de brilho. 💡",

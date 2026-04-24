@@ -82,9 +82,13 @@ def get_python_version(ha_version: str) -> str:
     """Determine Python version based on HA Core version."""
     parts = ha_version.split(".")
     year, month = int(parts[0]), int(parts[1])
-    # 2024.x and 2025.1 use Python 3.12, 2025.2+ use Python 3.13
+    # 2024.x and 2025.1 use Python 3.12.
+    # 2025.2 through 2026.2 use Python 3.13.
+    # 2026.3+ uses Python 3.14.
     if year == 2024 or (year == 2025 and month == 1):
         return "3.12"
+    if year > 2026 or (year == 2026 and month >= 3):
+        return "3.14.2"
     return "3.13"
 
 
@@ -97,7 +101,7 @@ def generate_matrix_yaml(versions: list[str]) -> str:
         lines.append(f'            python-version: "{python_ver}"')
     # Add dev version
     lines.append('          - core-version: "dev"')
-    lines.append('            python-version: "3.13"')
+    lines.append('            python-version: "3.14.2"')
     return "\n".join(lines)
 
 
