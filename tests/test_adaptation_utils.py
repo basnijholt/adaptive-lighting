@@ -54,6 +54,13 @@ from homeassistant.core import Context, State
             [{ATTR_BRIGHTNESS: 10}, {ATTR_COLOR_TEMP_KELVIN: 3500}],
         ),
         (
+            {ATTR_BRIGHTNESS: 0, ATTR_COLOR_TEMP_KELVIN: 3500, ATTR_TRANSITION: 2},
+            [
+                {ATTR_BRIGHTNESS: 0, ATTR_TRANSITION: 1},
+                {ATTR_COLOR_TEMP_KELVIN: 3500, ATTR_TRANSITION: 1},
+            ],
+        ),
+        (
             {ATTR_BRIGHTNESS: 10, ATTR_COLOR_TEMP_KELVIN: 3500, ATTR_TRANSITION: 2},
             [
                 {ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 1},
@@ -71,6 +78,7 @@ from homeassistant.core import Context, State
         "color only yields one service call",
         "include entity ID",
         "brightness and color are split into two with brightness first",
+        "brightness zero is preserved",
         "transition time is distributed among service calls",
         "ignore transition time without service calls",
     ],

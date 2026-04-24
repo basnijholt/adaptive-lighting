@@ -1858,6 +1858,119 @@ async def test_proactive_adaptation_with_separate_commands(hass):
     assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
 
 
+async def test_proactive_adaptation_survives_transient_off_state(hass):
+    """Keep split proactive adaptation alive when a turn_on reports a transient off."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+        },
+        True,
+    )
+
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        "test_context",
+        ENTITY_LIGHT_3,
+        return_full_events=True,
+    )
+
+    turned_on_state = hass.states.get(ENTITY_LIGHT_3)
+    assert turned_on_state is not None
+    assert turned_on_state.state == STATE_ON
+
+    hass.states.async_set(
+        ENTITY_LIGHT_3,
+        STATE_OFF,
+        turned_on_state.attributes,
+        context=Context(id="test_context"),
+    )
+    await hass.async_block_till_done()
+
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    event_context_ids = [event.context.id for event in events]
+    assert len(event_context_ids) == 2, event_context_ids
+    assert event_context_ids[0] == "test_context"
+    assert is_our_context_id(event_context_ids[1])
+
+    state = hass.states.get(ENTITY_LIGHT_3)
+    assert state.attributes[ATTR_BRIGHTNESS] == 171
+    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
+
+
+async def test_proactive_on_to_off_without_matching_turn_on_resets(hass):
+    """Do not treat every proactive-context on-to-off event as transient."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_INTERCEPT: True}, True)
+    manager = switch.manager
+    context_id = "orphaned_proactive_context"
+
+    manager.clear_proactively_adapting(ENTITY_LIGHT_1)
+    manager.set_proactively_adapting(context_id, ENTITY_LIGHT_1)
+    manager.off_to_on_event.pop(ENTITY_LIGHT_1, None)
+    manager.turn_on_event.pop(ENTITY_LIGHT_1, None)
+
+    old_state = hass.states.get(ENTITY_LIGHT_1)
+    assert old_state is not None
+    assert old_state.state == STATE_ON
+
+    with patch.object(manager, "reset", wraps=manager.reset) as reset_mock:
+        hass.states.async_set(
+            ENTITY_LIGHT_1,
+            STATE_OFF,
+            old_state.attributes,
+            context=Context(id=context_id),
+        )
+        await hass.async_block_till_done()
+
+    reset_mock.assert_called_once_with(ENTITY_LIGHT_1)
+
+
+async def test_turn_off_transition_same_context_still_blocks_adaptation(hass):
+    """Preserve the same-context turn_off transition guard added for #696."""
+    switch, _ = await setup_lights_and_switch(hass)
+    context = Context(id="turn_off_transition_context")
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_TRANSITION: 1},
+        blocking=True,
+        context=context,
+    )
+    await hass.async_block_till_done()
+
+    off_state = hass.states.get(ENTITY_LIGHT_1)
+    assert off_state is not None
+    assert off_state.state == STATE_OFF
+
+    with patch.object(
+        switch,
+        "_respond_to_off_to_on_event",
+        wraps=switch._respond_to_off_to_on_event,
+    ) as respond_mock:
+        hass.states.async_set(
+            ENTITY_LIGHT_1,
+            STATE_ON,
+            off_state.attributes,
+            context=context,
+        )
+        await hass.async_block_till_done()
+
+    respond_mock.assert_not_called()
+
+
 async def test_proactive_adaptation_toggle(hass):
     """Validate that a proactive adaptation updates service calls which toggle a light on,
     but not those which toggle off.

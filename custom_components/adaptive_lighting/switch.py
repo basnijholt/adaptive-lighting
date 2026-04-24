@@ -2539,7 +2539,10 @@ class AdaptiveLightingManager:
         if old_on and new_off:
             # Tracks 'on' → 'off' state changes
             self.on_to_off_event[entity_id] = event
-            if self.is_proactively_adapting(event.context.id):
+            if self._on_to_off_state_event_is_transient_from_turn_on(
+                entity_id,
+                event,
+            ):
                 # A transient 'off' state reported by the device during a
                 # proactive turn-on adaptation (e.g., Zigbee devices that
                 # briefly report 'off' mid-transition). Do not cancel the
@@ -2719,6 +2722,27 @@ class AdaptiveLightingManager:
             )
         return changed_attributes
 
+    def _on_to_off_state_event_is_transient_from_turn_on(
+        self,
+        entity_id: str,
+        on_to_off_event: Event[EventStateChangedData],
+    ) -> bool:
+        """Detect a transient off report during a proactive turn_on."""
+        if (
+            self._proactively_adapting_contexts.get(on_to_off_event.context.id)
+            != entity_id
+        ):
+            return False
+
+        off_to_on_event = self.off_to_on_event.get(entity_id)
+        if (
+            off_to_on_event is None
+            or off_to_on_event.context.id != on_to_off_event.context.id
+        ):
+            return False
+
+        return self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event)
+
     def _off_to_on_state_event_is_from_turn_on(
         self,
         entity_id: str,
@@ -2730,12 +2754,16 @@ class AdaptiveLightingManager:
             "service",  # adaptive_lighting.apply is allowed to turn on lights
         ):
             _LOGGER.warning(
-                "Detected an 'off' → 'on' event for '%s' with context.id='%s' and"
-                " event='%s', triggered by the adaptive_lighting integration itself,"
+                "Detected an 'off' → 'on' event for '%s' with context.id='%s',"
+                " triggered by the adaptive_lighting integration itself,"
                 " which *should* not happen. If you see this please submit an issue with"
                 " your full logs at https://github.com/basnijholt/adaptive-lighting",
                 entity_id,
                 off_to_on_event.context.id,
+            )
+            _LOGGER.debug(
+                "Full 'off' → 'on' event for '%s': %s",
+                entity_id,
                 off_to_on_event,
             )
         turn_on_event: Event | None = self.turn_on_event.get(entity_id)
