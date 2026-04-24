@@ -97,7 +97,7 @@ def generate_matrix_yaml(versions: list[str]) -> str:
         lines.append(f'            python-version: "{python_ver}"')
     # Add dev version
     lines.append('          - core-version: "dev"')
-    lines.append('            python-version: "3.13"')
+    lines.append('            python-version: "3.14.2"')
     return "\n".join(lines)
 
 
