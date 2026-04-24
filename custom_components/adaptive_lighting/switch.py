@@ -2718,12 +2718,16 @@ class AdaptiveLightingManager:
             "service",  # adaptive_lighting.apply is allowed to turn on lights
         ):
             _LOGGER.warning(
-                "Detected an 'off' → 'on' event for '%s' with context.id='%s' and"
-                " event='%s', triggered by the adaptive_lighting integration itself,"
+                "Detected an 'off' → 'on' event for '%s' with context.id='%s',"
+                " triggered by the adaptive_lighting integration itself,"
                 " which *should* not happen. If you see this please submit an issue with"
                 " your full logs at https://github.com/basnijholt/adaptive-lighting",
                 entity_id,
                 off_to_on_event.context.id,
+            )
+            _LOGGER.debug(
+                "Full 'off' → 'on' event for '%s': %s",
+                entity_id,
                 off_to_on_event,
             )
         turn_on_event: Event | None = self.turn_on_event.get(entity_id)
