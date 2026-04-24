@@ -36,7 +36,7 @@
           "sunrise_offset": "Upravte čas východu slnka o sekundy vpred alebo vzad. ⏰",
           "transition": "Trvanie prechodu, keď sú svetlá zmenené (v sekundách). ⏲️",
           "brightness_mode": "Výber režimu jasu. Možné hodnotu sú `default`, `linear` a `tanh` (používa `brightness_mode_time_dark` a `brightness_mode_time_light`). 📈",
-          "brightness_mode_time_light": "(Ignorované ak `brightness_mode='default'`) Čas na zvýšenie/zníženie jasu po udalosti/pred udalosťou východu/západu slnka. 📈📉",
+          "brightness_mode_time_light": "(Ignorovaný, ak `brightness_mode = 'predvolené') Trvanie v sekundách na rampu / vypnutie jasu po / pred východ slnka/sunset. 📈📉.",
           "sunset_offset": "Upravte čas západu slnka o sekundy vpred alebo vzad. ⏰",
           "max_sunset_time": "Nastavte najneskorší možný virtuálny západ slnka (HH:MM:SS). Umožňuje skorší západ slnka. 🌅",
           "initial_transition": "Trvanie prvého prechodu, keď sú svetlá zapnuté z `off` na `on` (v sekundách). ⏲️",
@@ -45,7 +45,7 @@
           "send_split_delay": "Pauza (v ms) medzi príkazmi pri zapnutom `separate_turn_on_commands` pre svetlá, ktoré nepodporujú súčasné nastavenie jasu a teploty svetla. ⏲️"
         },
         "title": "Nastavenia Adaptívneho osvetlenia",
-        "description": "Nastavte komponentu Adaptívneho osvetlenia. Názvy nastavení sú zhodné s názvami v súbore YAML. Ak ste túto položku nastavili už v YAML, tak tu sa nezobrazia žiadne možnosti nastavenia. Interaktívne grafy, ktoré zobrazujú vplyv nastavení, nájdete na [tejto webovej aplikácii](https://basnijholt.github.io/adaptive-lighting). Ďalšie informácie nájdete v [oficiálnej dokumentácii](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Nastavte komponentu Adaptívneho osvetlenia. Názvy nastavení sú zhodné s názvami v súbore YAML. Ak ste túto položku nastavili už v YAML, tak tu sa nezobrazia žiadne možnosti nastavenia. Interaktívne grafy, ktoré zobrazujú vplyv nastavení, nájdete na [tejto webovej aplikácii]({webapp_url}). Ďalšie informácie nájdete v [oficiálnej dokumentácii]({docs_url})."
       }
     },
     "error": {
@@ -132,7 +132,7 @@
           "description": "Prispôsobiť svetlá len pri zapnutí (`true`) alebo prispôsobovať ich priebežne (`false`). 🔄"
         },
         "use_defaults": {
-          "description": "Nastaví predvolené hodnoty, ktoré nie sú špecifikované v tomto volaní služby. Možnosti: \"current\" (predvolené, zachová aktuálne hodnoty), \"factory\" (použije predvolené hodnoty z dokumentácie) alebo \"configuration\" (vráti na predvolené nastavenia prepínača). ⚙️"
+          "description": "Stanovuje predvolené hodnoty nie sú uvedené v tomto servisnom hovore. Možnosti: \"current\" (predvolené, zachováva aktuálne hodnoty), \"chôdzky na zdokumentované predvolené nastavenia), alebo \"konfigurácia\" (odkazy prepínať predvolené nastavenia). ⚙️"
         },
         "separate_turn_on_commands": {
           "description": "Použiť samostatné volania služby `light.turn_on` pre nastavenie teploty svetla a jasu (môže byť potrebné pre niektoré typy svetiel). 🔀"
@@ -196,7 +196,7 @@
           "description": "`entity_id` prepínača u ktorého sa majú svetlá o(d)značiť ako \"manuálne ovládané\". 📝"
         },
         "lights": {
-          "description": "entity_id svetiel, ak nie sú špecifikované, tak sú vybrané všetky svetlá prepínača. 💡"
+          "description": "subjekt_id(s) svietidiel, ak nie je špecifikované, všetky svetlá v prepínači sú vybrané. 💡"
         }
       },
       "description": "Či označiť svetlo ako \"manuálne ovládané\"."

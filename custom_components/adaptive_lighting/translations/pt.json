@@ -26,8 +26,15 @@
         },
         "transition": {
           "description": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+        },
+        "max_color_temp": {
+          "description": "Cor mais fria em Kelvin. ❄️"
+        },
+        "sleep_brightness": {
+          "description": "Porcentagem do brilho da lâmpadas no modo \"sleep mode\"."
         }
-      }
+      },
+      "description": "Muda alguma configuração que você quiser no interruptor. Todas as opções aqui são as mesmas que estão no processo de configuração."
     },
     "apply": {
       "description": "Aplica as definições atuais da Iluminação Adaptativa às luzes.",
@@ -60,9 +67,22 @@
           "sunset_offset": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰",
           "sleep_transition": "Duração da transição quando o \"modo dormir\" é alternado em segundos. 😴",
           "autoreset_control_seconds": "Reiniciar o controlo manual automaticamente após um número de segundos. Definir 0 para desativar. ⏲️",
-          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑"
+          "transition": "Duração da transição quando as luzes mudam, em segundos. 🕑",
+          "sleep_brightness": "Porcentagem do brilho da lâmpadas no modo \"sleep mode\".",
+          "brightness_mode": "Brilho que irá ser usado. Possíveis valores são `default`, `linear` e `tanh`(usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈"
         },
-        "title": "Opções da Iluminação Adaptativa"
+        "title": "Opções da Iluminação Adaptativa",
+        "description": "Configure um componente da Iluminação Adaptativa. O nome das opções são as mesmas que as do YML. Se você já definiu essa configuração no YAML, nenhuma opção vai aparecer aqui. Para acessar um gráfico que demonstra o efeito dos parâmetros, acesse [esse app]({webapp_url}). Para mais detalhes, veja a [documentação oficial]({docs_url}).",
+        "data": {
+          "lights": "lights: Lista das entity_ids das luzes para serem controladas (pode ser vazia). 🌟",
+          "min_brightness": "min_brightness: Percentagem minima de brilho. 💡",
+          "max_brightness": "max_brightness: Percentagem máxima de brilho. 💡",
+          "min_color_temp": "min_color_temp: Cor mais quente em Kelvin. 🔥",
+          "max_color_temp": "max_color_temp: Cor mais fria em Kelvin. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Quando possível escolher ajuste em RGB em vez de temperatura da cor. 🌈",
+          "transition_until_sleep": "transition_until_sleep: Quando ativado, Adaptive Lighting usará as definições do modo noturno como os mínimos, passando para esses valores no por do sol. 🌙",
+          "take_over_control": "take_over_control: Desativa Adaptive Lighting se alguma fonte chamar`light.turn_on` enquanto as luzes estiverem ligadas e a serem controladas. Tomar nota que esta opção chama o serviço `homeassistant.update_entity` a cada `interval`! 🔒"
+        }
       }
     },
     "error": {

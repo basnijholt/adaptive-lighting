@@ -1,0 +1,46 @@
+/* Adaptive Lighting Documentation Custom Styles */
+
+/* Hero section on index page */
+.md-content__inner > h1:first-child {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Logo in header - make it slightly larger */
+.md-header__button.md-logo img {
+  height: 1.8rem;
+}
+
+/* Simulator link button styling */
+.simulator-link {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--md-primary-fg-color), var(--md-accent-fg-color));
+  color: white !important;
+  text-decoration: none;
+  border-radius: 2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.simulator-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  text-decoration: none;
+}
+
+/* Code block improvements */
+.highlight code {
+  font-size: 0.85rem;
+}
+
+/* Table improvements */
+.md-typeset table:not([class]) {
+  font-size: 0.8rem;
+}
+
+.md-typeset table:not([class]) th {
+  font-weight: 700;
+}

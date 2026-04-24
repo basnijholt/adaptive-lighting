@@ -2,7 +2,14 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opcije prilagodljivog osvjetljenja"
+        "title": "Opcije prilagodljivog osvjetljenja",
+        "data_description": {
+          "sunrise_offset": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰",
+          "sunset_offset": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰"
+        },
+        "data": {
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Prilikom početnog paljenja svjetla. Ako je postavljeno na \"true\", AL se prilagođava samo ako se \"light.turn_on\" pozove bez navođenja boje ili svjetline. ❌🌈 Ovo npr. sprječava prilagodbu prilikom aktiviranja scene. Ako je \"false\", AL se prilagođava bez obzira na prisutnost boje ili svjetline u početnim \"service_data\". Potrebno je omogućiti `take_over_control`. 🕵️ "
+        }
       }
     }
   },
@@ -12,6 +19,12 @@
       "fields": {
         "only_once": {
           "description": "Prilagodi svjetla samo kada su uključena (true) ili ih neprestano prilagođavaj (false). 🔄"
+        },
+        "sunrise_offset": {
+          "description": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰"
+        },
+        "sunset_offset": {
+          "description": "Podesite vrijeme izlaska sunca s pozitivnim ili negativnim pomakom u sekundama. ⏰"
         }
       }
     }
