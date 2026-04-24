@@ -258,3 +258,85 @@ change_switch_settings:
       example: 0
       selector:
         text: null
+    lux_sensor:
+      description: Entity ID of the illuminance sensor (optional, enables lux-based brightness adjustment). 💡
+      required: false
+      example: ''
+      selector:
+        entity:
+          domain: sensor
+    lux_min:
+      description: Minimum lux value from the sensor (no brightness reduction applied). 🌞
+      required: false
+      example: 0
+      selector:
+        text: null
+    lux_max:
+      description: Maximum lux value from the sensor (full brightness reduction applied). ☀️
+      required: false
+      example: 10000
+      selector:
+        text: null
+    lux_smoothing_samples:
+      description: Number of samples to use for smoothing lux readings (moving average). 📊
+      required: false
+      example: 5
+      selector:
+        text: null
+    lux_smoothing_window:
+      description: Time window in seconds for smoothing lux readings. ⏱️
+      required: false
+      example: 300
+      selector:
+        text: null
+    lux_brightness_reduction_factor:
+      description: Maximum brightness reduction factor (0-1) when lux is at minimum. Linearly scales to 0 when lux is at maximum. 🌤️
+      required: false
+      example: 0.5
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.01
+          mode: slider
+    weather_entity:
+      description: Entity ID of the weather entity (optional, enables weather-based brightness adjustment). 🌦️
+      required: false
+      example: ''
+      selector:
+        entity:
+          domain: weather
+    bad_weather:
+      description: List of weather conditions considered as bad weather. 🌧️
+      required: false
+      example: ['cloudy', 'pouring', 'hail', 'fog', 'rainy', 'snowy', 'snowy-rainy']
+      selector:
+        select:
+          options:
+            - clear-night
+            - cloudy
+            - exceptional
+            - fog
+            - hail
+            - lightning
+            - lightning-rainy
+            - partlycloudy
+            - pouring
+            - rainy
+            - snowy
+            - snowy-rainy
+            - sunny
+            - windy
+            - windy-variant
+          multiple: true
+          mode: dropdown
+    weather_brightness_reduction_factor:
+      description: Brightness reduction factor (0-1) applied during bad weather. ☁️
+      required: false
+      example: 0.3
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.01
+          mode: slider

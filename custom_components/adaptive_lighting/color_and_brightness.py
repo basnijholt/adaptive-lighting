@@ -230,6 +230,15 @@ class SunLightSettings:
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
+    lux_sensor: str | None = None
+    lux_min: int = 0
+    lux_max: int = 10000
+    lux_smoothing_samples: int = 5
+    lux_smoothing_window: int = 300
+    lux_brightness_reduction_factor: float = 0.5
+    weather_entity: str | None = None
+    bad_weather: list[str] | None = None
+    weather_brightness_reduction_factor: float = 0.5
 
     @cached_property
     def sun(self) -> SunEvents:
@@ -312,18 +321,247 @@ class SunLightSettings:
             raise ValueError(msg)
         return clamp(brightness, self.min_brightness, self.max_brightness)
 
-    def brightness_pct(self, dt: datetime.datetime, is_sleep: bool) -> float | None:
+    def _expected_brightness_factor(self, sun_position: float) -> float:
+        """Calculate expected brightness factor for clear-sky conditions.
+
+        This represents what brightness we expect at a given sun position
+        under normal clear-sky conditions. Used as baseline for compensation.
+
+        Args:
+            sun_position: Sun position between [-1, 1]
+
+        Returns:
+            Expected brightness factor between 0 and 1
+
+        """
+        # When sun is above horizon (sun_position > 0), expect full brightness
+        # When sun is below horizon, expect reduced brightness
+        if sun_position > 0:
+            return sun_position
+        return 0.0
+
+    def _calculate_sun_influence_weight(self, sun_position: float) -> float:
+        """Calculate how much the sun is above the horizon.
+
+        This weight determines when compensation should be applied.
+        Near sunrise/sunset, we reduce compensation influence to avoid
+        misinterpreting natural dusk/dawn as weather changes.
+
+        Args:
+            sun_position: Sun position between [-1, 1]
+
+        Returns:
+            Weight between 0 and 1, where:
+            - 1.0 means sun is well above horizon (full compensation)
+            - 0.0 means sun is at/below horizon (no compensation)
+
+        """
+        # Sun below horizon: no compensation
+        if sun_position <= 0:
+            return 0.0
+
+        # Gradually increase influence as sun rises with a threshold to avoid compensation during early dawn/dusk
+        threshold = 0.3
+        if sun_position >= threshold:
+            return 1.0
+        return sun_position / threshold
+
+    def _calculate_lux_compensation_factor(
+        self,
+        lux_value: float | None,
+        sun_position: float,
+    ) -> float:
+        """Calculate brightness compensation factor based on illumination sensor.
+
+        Compares actual lux reading against expected brightness for current sun position.
+        Only applies compensation when sun is sufficiently above horizon.
+
+        Args:
+            lux_value: Current lux value from sensor (None if unavailable)
+            sun_position: Sun position between [-1, 1]
+
+        Returns:
+            Compensation factor between 0 and 1, where:
+            - 1.0 means no compensation (conditions as expected)
+            - <1.0 means reduce brightness (darker than expected)
+            - >1.0 is clamped to 1.0 (we don't increase beyond baseline)
+
+        """
+        # If no lux sensor configured or no value available; no compensation
+        if not self.lux_sensor or lux_value is None:
+            return 1.0
+
+        sun_weight = self._calculate_sun_influence_weight(sun_position)
+        # If sun is below horizon: no compensation
+        if sun_weight == 0.0:
+            return 1.0
+
+        # Calculate expected lux for current sun position under clear sky and map to lux range [lux_min, lux_max]
+        expected_factor = self._expected_brightness_factor(sun_position)
+        # No expected brightness: no compensation
+        if expected_factor <= 0:
+            return 1.0
+
+        expected_lux = self.lux_min + (self.lux_max - self.lux_min) * expected_factor
+
+        lux_clamped = clamp(lux_value, self.lux_min, self.lux_max)
+
+        # Calculate ratio of actual to expected lux
+        if expected_lux > 0:
+            lux_ratio = lux_clamped / expected_lux
+        else:
+            lux_ratio = 1.0
+
+        # Convert ratio to compensation factor
+        if lux_ratio >= 1.0:
+            compensation = 1.0
+        else:
+            # Scale the reduction by the configured reduction factor from (1 - lux_brightness_reduction_factor) to 1.0
+            compensation = (
+                1.0 - (1.0 - lux_ratio) * self.lux_brightness_reduction_factor
+            )
+
+        # Apply sun influence weight to blend between no compensation and full compensation
+        final_compensation = 1.0 - sun_weight * (1.0 - compensation)
+
+        return final_compensation
+
+    def _calculate_weather_compensation_factor(
+        self,
+        weather_state: str | None,
+        sun_position: float,
+    ) -> float:
+        """Calculate brightness compensation factor based on weather conditions.
+
+        Only applies compensation when sun is sufficiently above horizon,
+        as weather doesn't affect brightness during night.
+
+        Args:
+            weather_state: Current weather state (None if unavailable)
+            sun_position: Sun position between [-1, 1]
+
+        Returns:
+            Compensation factor between 0 and 1, where:
+            - 1.0 means no compensation (good weather or not applicable)
+            - <1.0 means reduce brightness (bad weather)
+
+        """
+        # If no weather entity configured or no state available: no compensation
+        if not self.weather_entity or not weather_state or not self.bad_weather:
+            return 1.0
+
+        # Get sun influence weight - dont compensate if sun is low/below horizon
+        sun_weight = self._calculate_sun_influence_weight(sun_position)
+        if sun_weight == 0.0:
+            return 1.0
+
+        # Check if current weather is considered bad weather
+        is_bad_weather = weather_state.lower() in [w.lower() for w in self.bad_weather]
+
+        if not is_bad_weather:
+            return 1.0
+
+        # Apply weather reduction, scaled by sun influence
+        compensation = 1.0 - self.weather_brightness_reduction_factor
+        final_compensation = 1.0 - sun_weight * (1.0 - compensation)
+
+        return final_compensation
+
+    def _combine_compensation_factors(
+        self,
+        lux_compensation: float,
+        weather_compensation: float,
+        sun_position: float,
+    ) -> float:
+        """Combine lux and weather compensation factors intelligently.
+
+        If both sources available: blend them based on sun position
+        - During high sun: prefer lux sensor (more accurate)
+        - During low sun: prefer weather (sensor less reliable)
+        If only one source available: use that source
+        If neither available: return 1.0 (no compensation)
+
+        Args:
+            lux_compensation: Compensation factor from lux sensor (1.0 if unavailable)
+            weather_compensation: Compensation factor from weather (1.0 if unavailable)
+            sun_position: Sun position between [-1, 1]
+
+        Returns:
+            Combined compensation factor between 0 and 1
+
+        """
+        has_lux = lux_compensation < 1.0
+        has_weather = weather_compensation < 1.0
+
+        # No compensation from either source
+        if not has_lux and not has_weather:
+            return 1.0
+
+        # Only lux compensation available
+        if has_lux and not has_weather:
+            return lux_compensation
+
+        # Only weather compensation available
+        if has_weather and not has_lux:
+            return weather_compensation
+
+        # Both available: blend based on sun position
+        sun_weight = self._calculate_sun_influence_weight(sun_position)
+
+        # When sun is high (weight=1.0): 80% lux, 20% weather
+        # When sun is low (weight=0.3): 50% lux, 50% weather
+        lux_weight = 0.5 + 0.3 * sun_weight
+        weather_weight = 1.0 - lux_weight
+
+        combined = (lux_compensation * lux_weight) + (
+            weather_compensation * weather_weight
+        )
+
+        return combined
+
+    def brightness_pct(
+        self,
+        dt: datetime.datetime,
+        is_sleep: bool,
+        lux_value: float | None = None,
+        weather_state: str | None = None,
+    ) -> float | None:
         """Calculate the brightness in %."""
         if is_sleep:
             return self.sleep_brightness
         assert self.brightness_mode in ("default", "linear", "tanh")
+        sun_position = self.sun.sun_position(dt)
         if self.brightness_mode == "default":
-            return self._brightness_pct_default(dt)
-        if self.brightness_mode == "linear":
-            return self._brightness_pct_linear(dt)
-        if self.brightness_mode == "tanh":
-            return self._brightness_pct_tanh(dt)
-        return None
+            brightness = self._brightness_pct_default(dt)
+        elif self.brightness_mode == "linear":
+            brightness = self._brightness_pct_linear(dt)
+        elif self.brightness_mode == "tanh":
+            brightness = self._brightness_pct_tanh(dt)
+        else:
+            return None
+
+        # Calculate compensation factors based on lux and weather
+        lux_compensation = self._calculate_lux_compensation_factor(
+            lux_value,
+            sun_position,
+        )
+        weather_compensation = self._calculate_weather_compensation_factor(
+            weather_state,
+            sun_position,
+        )
+
+        # Combine compensation factors intelligently
+        combined_compensation = self._combine_compensation_factors(
+            lux_compensation,
+            weather_compensation,
+            sun_position,
+        )
+
+        # Apply combined compensation to base brightness
+        compensated_brightness = brightness * combined_compensation
+
+        # Ensure brightness stays within bounds
+        return clamp(compensated_brightness, self.min_brightness, self.max_brightness)
 
     def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""
@@ -344,13 +582,15 @@ class SunLightSettings:
         self,
         dt: datetime.datetime,
         is_sleep: bool,
+        lux_value: float | None = None,
+        weather_state: str | None = None,
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
-        brightness_pct = self.brightness_pct(dt, is_sleep)
+        brightness_pct = self.brightness_pct(dt, is_sleep, lux_value, weather_state)
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
@@ -394,13 +634,15 @@ class SunLightSettings:
         self,
         is_sleep: bool,
         transition: float | None,
+        lux_value: float | None = None,
+        weather_state: str | None = None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
         """
         dt = utcnow() + timedelta(seconds=transition or 0)
-        return self.brightness_and_color(dt, is_sleep)
+        return self.brightness_and_color(dt, is_sleep, lux_value, weather_state)
 
 
 def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:
