@@ -9,7 +9,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from random import randint
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import homeassistant.util.dt as dt_util
 import pytest
@@ -47,6 +47,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     CONF_TAKE_OVER_CONTROL,
+    CONF_TAKE_OVER_CONTROL_MODE,
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
@@ -241,13 +242,23 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
 
     await lights[0].async_turn_on()
     await lights[1].async_turn_on()
+    for light in lights[2:]:
+        await light.async_turn_off()
 
     for light in lights:
-        light._attr_brightness = 255
+        set_light_brightness(light, 255)
         light._attr_color_temp = 250
+        light.async_write_ha_state()
 
     assert all(hass.states.get(light.entity_id) is not None for light in lights)
     return lights
+
+
+def set_light_brightness(light: LightTemplate, brightness: int) -> None:
+    """Set brightness across Home Assistant template light internals."""
+    if hasattr(light, "_brightness"):
+        light._brightness = brightness
+    light._attr_brightness = brightness
 
 
 async def setup_lights_and_switch(
@@ -351,14 +362,14 @@ def create_transition_events(
 
 async def test_adaptive_lighting_switches(hass):
     """Test switches created for adaptive_lighting integration."""
-    entry, _ = await setup_switch(hass, {})
+    entry, switch = await setup_switch(hass, {})
 
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert set(hass.states.async_entity_ids(SWITCH_DOMAIN)) == {
-        ENTITY_SWITCH,
-        ENTITY_SLEEP_MODE_SWITCH,
-        ENTITY_ADAPT_COLOR_SWITCH,
-        ENTITY_ADAPT_BRIGHTNESS_SWITCH,
+        switch.entity_id,
+        switch.sleep_mode_switch.entity_id,
+        switch.adapt_color_switch.entity_id,
+        switch.adapt_brightness_switch.entity_id,
     }
     assert ATTR_ADAPTIVE_LIGHTING_MANAGER in hass.data[DOMAIN]
     assert entry.entry_id in hass.data[DOMAIN]
@@ -499,7 +510,7 @@ async def test_light_settings(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -519,7 +530,7 @@ async def test_light_settings(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_OFF,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -705,12 +716,27 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     await turn_light(True, brightness=increased_brightness())
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    # Turning on from OFF with brightness:
+    # - With adapt_only_on_bare_turn_on=True: SHOULD mark as manually controlled (to preserve scenes)
+    # - With adapt_only_on_bare_turn_on=False: should NOT mark (fix for issue #1378)
+    if adapt_only_on_bare_turn_on:
+        assert (
+            manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+        ), manual_control
+    else:
+        assert not manual_control[ENTITY_LIGHT_1], manual_control
+    # Reset for next test
+    await turn_light(False)
+    await turn_light(True)
+    assert not manual_control[ENTITY_LIGHT_1], manual_control
+    # Now change brightness while ON - this should always be manual control
+    await turn_light(True, brightness=increased_brightness())
     assert (
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
-    for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
+    for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
         await change_manual_control(True)
         assert manual_control[ENTITY_LIGHT_1]
         await turn_switch(False, entity_id)
@@ -790,7 +816,7 @@ async def test_manual_control(
         DOMAIN,
         SERVICE_APPLY,
         {
-            ATTR_ENTITY_ID: ENTITY_SWITCH,
+            ATTR_ENTITY_ID: switch.entity_id,
             CONF_LIGHTS: [ENTITY_LIGHT_1],
             CONF_TURN_ON_LIGHTS: True,
         },
@@ -1042,7 +1068,7 @@ async def test_apply_service(hass):
             DOMAIN,
             SERVICE_APPLY,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                ATTR_ENTITY_ID: switch.entity_id,
                 CONF_LIGHTS: [entity_id],
                 CONF_TURN_ON_LIGHTS: True,
                 **kwargs,
@@ -1259,7 +1285,7 @@ async def test_state_change_handlers(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -1631,7 +1657,7 @@ async def test_change_switch_settings_service(hass):
             DOMAIN,
             SERVICE_CHANGE_SWITCH_SETTINGS,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                ATTR_ENTITY_ID: switch.entity_id,
                 **kwargs,
             },
             blocking=True,
@@ -1680,7 +1706,7 @@ async def test_change_switch_settings_service(hass):
 
 async def test_cancellable_service_calls_task(hass):
     """Test the creation and execution of the task that wraps adaptation service calls."""
-    (light, *_) = await setup_lights(hass)
+    light, *_ = await setup_lights(hass)
     _, switch = await setup_switch(hass, {CONF_SEPARATE_TURN_ON_COMMANDS: True})
     context = switch.create_context("test")
 
@@ -2746,3 +2772,228 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
         f"but got {name_hash_in_context}. This indicates the context is still "
         f"being created from an arbitrary switch instead of the manager."
     )
+
+
+async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
+    """Test that turning on a light from OFF via automation is not marked as manual control.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1378
+
+    When an automation turns on a light from OFF state with brightness/color attributes,
+    the light should NOT be marked as manually controlled. Adaptive Lighting should
+    adapt the light normally.
+
+    The bug in v1.30.0 was that `update_manually_controlled_from_event` was called for
+    ALL `light.turn_on` events, not just when the light was already ON. This caused
+    lights turned on by automations to be incorrectly marked as "manually controlled".
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: True,
+            CONF_DETECT_NON_HA_CHANGES: False,
+        },
+    )
+
+    # Ensure light is OFF
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+
+    # Verify light is not manually controlled
+    assert not switch.manager.manual_control.get(
+        ENTITY_LIGHT_1,
+    ), "Light should not be manually controlled before test"
+
+    # Simulate an automation turning on the light with brightness
+    # This is an external call (not from AL) with brightness attribute
+    external_context = Context(id="automation_context_12345")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+            ATTR_BRIGHTNESS: 255,
+        },
+        blocking=True,
+        context=external_context,
+    )
+    await hass.async_block_till_done()
+
+    # The light should be ON
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+
+    # CRITICAL: The light should NOT be marked as manually controlled!
+    # The bug in v1.30.0 would incorrectly mark this as manual control because
+    # the turn_on had a brightness attribute.
+    manual_control_attrs = switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    assert not manual_control_attrs, (
+        f"Bug confirmed: Light was incorrectly marked as manually controlled "
+        f"(attributes: {manual_control_attrs}) when turned on from OFF state. "
+        f"Lights turned on from OFF by automations should NOT be marked as "
+        f"manually controlled - only lights that were already ON and then had "
+        f"their brightness/color changed externally should be marked as such."
+    )
+
+
+@pytest.mark.parametrize("intercept", [True, False])
+async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, intercept):
+    """Test that adapt_only_on_bare_turn_on respects take_over_control_mode=PAUSE_CHANGED.
+
+    When adapt_only_on_bare_turn_on=True and take_over_control_mode=PAUSE_CHANGED,
+    turning on a light from OFF with only brightness should:
+    1. Mark ONLY brightness as manually controlled (not all attributes)
+    2. Continue adapting color (since only brightness was specified)
+
+    This test verifies the integration of #1356 (individual attribute tracking)
+    with adapt_only_on_bare_turn_on. Prior to the fix, the code would return early
+    after marking attributes as manually controlled, skipping all adaptation
+    including unspecified attributes like color.
+
+    The test is parameterized with intercept=True/False to verify consistency
+    between the intercept path and the reactive (event-based) path.
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: True,
+            CONF_TAKE_OVER_CONTROL_MODE: TakeOverControlMode.PAUSE_CHANGED.value,
+            CONF_ADAPT_ONLY_ON_BARE_TURN_ON: True,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INTERCEPT: intercept,
+        },
+    )
+
+    # Verify settings
+    assert switch._take_over_control
+    assert switch._take_over_control_mode == TakeOverControlMode.PAUSE_CHANGED
+    assert switch._adapt_only_on_bare_turn_on
+
+    # Ensure light is OFF
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+
+    # Clear any prior service data
+    switch.manager.last_service_data.pop(ENTITY_LIGHT_1, None)
+
+    # Turn on light from OFF with only brightness (simulating a scene or automation)
+    external_context = Context(id="scene_turn_on_with_brightness")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+            ATTR_BRIGHTNESS: 200,  # Only brightness specified
+        },
+        blocking=True,
+        context=external_context,
+    )
+    await hass.async_block_till_done()
+
+    # Light should be ON
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+
+    # 1. Verify that ONLY brightness is marked as manually controlled
+    manual_control_attrs = switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    assert manual_control_attrs == LightControlAttributes.BRIGHTNESS, (
+        f"Expected only BRIGHTNESS to be marked as manually controlled, "
+        f"but got: {manual_control_attrs}. With adapt_only_on_bare_turn_on=True, "
+        f"only the attributes specified in the turn_on call should be marked."
+    )
+
+    # 2. Verify that color WAS adapted (last_service_data should have color_temp)
+    last_service_data = switch.manager.last_service_data.get(ENTITY_LIGHT_1)
+    assert last_service_data is not None, (
+        "Bug: last_service_data is None, meaning adaptation was skipped entirely. "
+        "With PAUSE_CHANGED mode, color should still be adapted since only brightness "
+        "was marked as manually controlled."
+    )
+    assert ATTR_COLOR_TEMP_KELVIN in last_service_data, (
+        f"Bug: Color was not adapted. last_service_data={last_service_data}. "
+        f"With take_over_control_mode=PAUSE_CHANGED and only brightness marked "
+        f"as manually controlled, color_temp should still be adapted."
+    )
+
+
+async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
+    """Regression test for detect_non_ha_changes with separate_turn_on_commands.
+
+    With separate_turn_on_commands=True, each adaptation cycle makes two sequential
+    light.turn_on calls (brightness, then color). If the second call overwrites
+    last_service_data instead of merging, brightness is dropped — and
+    _attributes_have_changed silently skips the brightness comparison, so a direct
+    Zigbee brightness change is never detected as manual control.
+    """
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_TAKE_OVER_CONTROL: True,
+        },
+    )
+
+    context = switch.create_context("test")
+
+    async def update(force: bool = False):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=context,
+            force=force,
+            transition=0,
+        )
+        await hass.async_block_till_done()
+
+    await update(force=True)
+
+    last_sd = switch.manager.last_service_data.get(ENTITY_LIGHT_1)
+    assert last_sd is not None, "last_service_data not set after force adapt"
+    assert (
+        ATTR_BRIGHTNESS in last_sd
+    ), f"brightness missing from last_service_data after split calls: {last_sd}"
+    assert (
+        ATTR_COLOR_TEMP_KELVIN in last_sd or ATTR_RGB_COLOR in last_sd
+    ), f"color missing from last_service_data after split calls: {last_sd}"
+
+    al_brightness = light.brightness
+    assert al_brightness is not None
+    switch.manager.manual_control[ENTITY_LIGHT_1] = LightControlAttributes.NONE
+
+    manual_brightness = (
+        al_brightness - 120 if al_brightness >= 120 else al_brightness + 120
+    )
+    set_light_brightness(light, manual_brightness)
+
+    async def _flush_attr_state(hass, entity_id):
+        """Mimic a ZHA attribute report: write current hardware state to HA."""
+        light.async_write_ha_state()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.async_update_entity",
+        new=AsyncMock(side_effect=_flush_attr_state),
+    ):
+        await update(force=False)
+
+        assert LightControlAttributes.BRIGHTNESS in switch.manager.manual_control.get(
+            ENTITY_LIGHT_1,
+            LightControlAttributes.NONE,
+        ), (
+            f"manual_control={switch.manager.manual_control.get(ENTITY_LIGHT_1)}, "
+            f"last_service_data={switch.manager.last_service_data.get(ENTITY_LIGHT_1)}"
+        )
+
+        await update(force=False)
+
+    assert (
+        light.brightness == manual_brightness
+    ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"

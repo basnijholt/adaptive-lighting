@@ -135,3 +135,6 @@ dmypy.json
 # Home Assistant configuration
 config/*
 !config/configuration.yaml
+
+# Home Assistant core
+core/

@@ -1391,7 +1391,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data.context.id,
             )
             light = service_data[ATTR_ENTITY_ID]
-            self.manager.last_service_data[light] = service_data
+            self.manager.last_service_data[light] = {
+                **self.manager.last_service_data.get(light, {}),
+                **service_data,
+            }
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
@@ -1585,13 +1588,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
             ):
                 _LOGGER.debug(
-                    "Skipping responding to 'off' → 'on' event for '%s' with context.id='%s' because"
-                    " we only adapt on bare `light.turn_on` events and not on service_data: '%s'",
+                    "Marked attributes from service_data as manually controlled for '%s' "
+                    "with context.id='%s'. Continuing to adapt remaining attributes. "
+                    "service_data: '%s'",
                     entity_id,
                     event.context.id,
                     service_data,
                 )
-                return
 
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
@@ -2256,7 +2259,7 @@ class AdaptiveLightingManager:
             "Light %s: Setting manual control attributes to %s (from %s).",
             light,
             attributes,
-            self.manual_control[light],
+            self.get_manual_control_attributes(light),
         )
         self.manual_control[light] = attributes
         delay = self.auto_reset_manual_control_times.get(light)
@@ -2432,22 +2435,28 @@ class AdaptiveLightingManager:
                 task.cancel()
             self.turn_on_event[eid] = event
 
-            try:
-                switch = _switch_with_lights(
-                    self.hass,
-                    [eid],
-                    expand_light_groups=False,
-                )
-                await self.update_manually_controlled_from_event(
-                    switch,
-                    eid,
-                    force=False,
-                )
-            except NoSwitchFoundError:
-                _LOGGER.debug(
-                    "No switch found for entity_id='%s' in 'on' event listener",
-                    eid,
-                )
+            # Only check for manual control via this path if the light was already ON.
+            # Turning on from OFF is handled separately in _respond_to_off_to_on_event,
+            # where adapt_only_on_bare_turn_on can mark lights as manually controlled.
+            # Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378
+            state = self.hass.states.get(eid)
+            if state is not None and state.state == STATE_ON:
+                try:
+                    switch = _switch_with_lights(
+                        self.hass,
+                        [eid],
+                        expand_light_groups=False,
+                    )
+                    await self.update_manually_controlled_from_event(
+                        switch,
+                        eid,
+                        force=False,
+                    )
+                except NoSwitchFoundError:
+                    _LOGGER.debug(
+                        "No switch found for entity_id='%s' in 'on' event listener",
+                        eid,
+                    )
 
             timer = self.auto_reset_manual_control_timers.get(eid)
             if (
@@ -2891,6 +2900,12 @@ class AdaptiveLightingManager:
         entity_id: str,
         service_data: ServiceData,
     ) -> bool:
+        """Mark light as manually controlled if turn_on call has brightness/color attributes.
+
+        This is used by adapt_only_on_bare_turn_on to mark lights as manually controlled
+        when they are turned on with specific attributes (e.g., from a scene).
+        This ensures scenes persist and AL doesn't override them.
+        """
         _LOGGER.debug(
             "_mark_manual_control_if_non_bare_turn_on: entity_id='%s', service_data='%s'",
             entity_id,
