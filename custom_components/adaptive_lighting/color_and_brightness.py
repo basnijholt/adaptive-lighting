@@ -542,10 +542,12 @@ class SunLightSettings:
 
         # Calculate compensation factors based on lux and weather
         lux_compensation = self._calculate_lux_compensation_factor(
-            lux_value, sun_position
+            lux_value,
+            sun_position,
         )
         weather_compensation = self._calculate_weather_compensation_factor(
-            weather_state, sun_position
+            weather_state,
+            sun_position,
         )
 
         # Combine compensation factors intelligently
