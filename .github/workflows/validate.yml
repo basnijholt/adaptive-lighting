@@ -10,6 +10,7 @@ on:
 jobs:
   validate_hacs:
     runs-on: "ubuntu-latest"
+    if: github.repository == 'basnijholt/adaptive-lighting' # Don't run on forked repos
     steps:
       - uses: "actions/checkout@v6"
       - name: HACS validation
