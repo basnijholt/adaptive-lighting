@@ -243,13 +243,23 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
 
     await lights[0].async_turn_on()
     await lights[1].async_turn_on()
+    for light in lights[2:]:
+        await light.async_turn_off()
 
     for light in lights:
-        light._attr_brightness = 255
+        set_light_brightness(light, 255)
         light._attr_color_temp = 250
+        light.async_write_ha_state()
 
     assert all(hass.states.get(light.entity_id) is not None for light in lights)
     return lights
+
+
+def set_light_brightness(light: LightTemplate, brightness: int) -> None:
+    """Set brightness across Home Assistant template light internals."""
+    if hasattr(light, "_brightness"):
+        light._brightness = brightness
+    light._attr_brightness = brightness
 
 
 async def setup_lights_and_switch(
@@ -353,14 +363,14 @@ def create_transition_events(
 
 async def test_adaptive_lighting_switches(hass):
     """Test switches created for adaptive_lighting integration."""
-    entry, _ = await setup_switch(hass, {})
+    entry, switch = await setup_switch(hass, {})
 
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert set(hass.states.async_entity_ids(SWITCH_DOMAIN)) == {
-        ENTITY_SWITCH,
-        ENTITY_SLEEP_MODE_SWITCH,
-        ENTITY_ADAPT_COLOR_SWITCH,
-        ENTITY_ADAPT_BRIGHTNESS_SWITCH,
+        switch.entity_id,
+        switch.sleep_mode_switch.entity_id,
+        switch.adapt_color_switch.entity_id,
+        switch.adapt_brightness_switch.entity_id,
     }
     assert ATTR_ADAPTIVE_LIGHTING_MANAGER in hass.data[DOMAIN]
     assert entry.entry_id in hass.data[DOMAIN]
@@ -501,7 +511,7 @@ async def test_light_settings(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -521,7 +531,7 @@ async def test_light_settings(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_OFF,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -727,7 +737,7 @@ async def test_manual_control(
     ), manual_control
 
     # Check that toggling (sleep mode) switch resets manual control
-    for entity_id in [ENTITY_SWITCH, ENTITY_SLEEP_MODE_SWITCH]:
+    for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
         await change_manual_control(True)
         assert manual_control[ENTITY_LIGHT_1]
         await turn_switch(False, entity_id)
@@ -807,7 +817,7 @@ async def test_manual_control(
         DOMAIN,
         SERVICE_APPLY,
         {
-            ATTR_ENTITY_ID: ENTITY_SWITCH,
+            ATTR_ENTITY_ID: switch.entity_id,
             CONF_LIGHTS: [ENTITY_LIGHT_1],
             CONF_TURN_ON_LIGHTS: True,
         },
@@ -1059,7 +1069,7 @@ async def test_apply_service(hass):
             DOMAIN,
             SERVICE_APPLY,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                ATTR_ENTITY_ID: switch.entity_id,
                 CONF_LIGHTS: [entity_id],
                 CONF_TURN_ON_LIGHTS: True,
                 **kwargs,
@@ -1276,7 +1286,7 @@ async def test_state_change_handlers(hass):
     await hass.services.async_call(
         SWITCH_DOMAIN,
         SERVICE_TURN_ON,
-        {ATTR_ENTITY_ID: ENTITY_SLEEP_MODE_SWITCH},
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
         blocking=True,
     )
     await hass.async_block_till_done()
@@ -1648,7 +1658,7 @@ async def test_change_switch_settings_service(hass):
             DOMAIN,
             SERVICE_CHANGE_SWITCH_SETTINGS,
             {
-                ATTR_ENTITY_ID: ENTITY_SWITCH,
+                ATTR_ENTITY_ID: switch.entity_id,
                 **kwargs,
             },
             blocking=True,
@@ -2956,13 +2966,14 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
         ATTR_COLOR_TEMP_KELVIN in last_sd or ATTR_RGB_COLOR in last_sd
     ), f"color missing from last_service_data after split calls: {last_sd}"
 
-    al_brightness = light._brightness
+    al_brightness = light.brightness
+    assert al_brightness is not None
     switch.manager.manual_control[ENTITY_LIGHT_1] = LightControlAttributes.NONE
 
     manual_brightness = (
         al_brightness - 120 if al_brightness >= 120 else al_brightness + 120
     )
-    light._brightness = manual_brightness
+    set_light_brightness(light, manual_brightness)
 
     async def _flush_attr_state(hass, entity_id):
         """Mimic a ZHA attribute report: write current hardware state to HA."""
@@ -2985,7 +2996,7 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
         await update(force=False)
 
     assert (
-        light._brightness == manual_brightness
+        light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
 
 
