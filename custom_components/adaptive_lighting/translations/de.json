@@ -25,7 +25,7 @@
     "step": {
       "init": {
         "title": "Optionen für Adaptive Beleuchtung",
-        "description": "Alle Einstellungen für eine Adaptive Lighting Komponente. Die Optionsnamen entsprechen den YAML-Einstellungen. Es werden keine Optionen angezeigt, wenn dieser Eintrag in YAML konfiguriert wurde. Interaktive Diagramme zur Veranschaulichung der Auswirkungen der Parameter finden Sie unter [dieser Webanwendung](https://basnijholt.github.io/adaptive-lighting). Weitere Details finden Sie in der [offiziellen Dokumentation](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "description": "Alle Einstellungen für eine Adaptive Lighting Komponente. Die Optionsnamen entsprechen den YAML-Einstellungen. Es werden keine Optionen angezeigt, wenn dieser Eintrag in YAML konfiguriert wurde. Interaktive Diagramme zur Veranschaulichung der Auswirkungen der Parameter finden Sie unter [dieser Webanwendung]({webapp_url}). Weitere Details finden Sie in der [offiziellen Dokumentation]({docs_url}).",
         "data": {
           "lights": "Lichter",
           "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt",
