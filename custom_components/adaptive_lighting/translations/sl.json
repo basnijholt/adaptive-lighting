@@ -44,7 +44,7 @@
           "sleep_rgb_color": "RGB barva v načinu spanja (uporabljena, ko je \"sleep_rgb_or_color_temp\" nastavljeno na \"rgb_color\"). 🌈"
         },
         "title": "Nastavitve prilagodljive osvetlitve",
-        "description": "Konfigurirajte komponento Adaptive Lighting. Imena možnosti so usklajena z nastavitvami v YAML. Če ste ta vnos definirali v YAML, tukaj ne bodo prikazane nobene možnosti. Za interaktivne grafe, ki ponazarjajo učinke parametrov, obiščite to [spletno aplikacijo](https://basnijholt.github.io/adaptive-lighting). Za dodatne podrobnosti glejte [uradno dokumentacijo](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Konfigurirajte komponento Adaptive Lighting. Imena možnosti so usklajena z nastavitvami v YAML. Če ste ta vnos definirali v YAML, tukaj ne bodo prikazane nobene možnosti. Za interaktivne grafe, ki ponazarjajo učinke parametrov, obiščite to [spletno aplikacijo]({webapp_url}). Za dodatne podrobnosti glejte [uradno dokumentacijo]({docs_url})."
       }
     }
   },
