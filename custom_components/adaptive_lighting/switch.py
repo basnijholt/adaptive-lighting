@@ -969,7 +969,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                                 time=t,
                                 brightness_pct=float(item["brightness_pct"]),
                                 color_temp_kelvin=int(item["color_temp_kelvin"]),
-                            )
+                            ),
                         )
                     _LOGGER.info(
                         "Loaded manual schedule with %s points",
