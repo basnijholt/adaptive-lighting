@@ -242,13 +242,23 @@ async def setup_lights(hass: HomeAssistant, with_group: bool = False):
 
     await lights[0].async_turn_on()
     await lights[1].async_turn_on()
+    for light in lights[2:]:
+        await light.async_turn_off()
 
     for light in lights:
-        light._attr_brightness = 255
+        set_light_brightness(light, 255)
         light._attr_color_temp = 250
+        light.async_write_ha_state()
 
     assert all(hass.states.get(light.entity_id) is not None for light in lights)
     return lights
+
+
+def set_light_brightness(light: LightTemplate, brightness: int) -> None:
+    """Set brightness across Home Assistant template light internals."""
+    if hasattr(light, "_brightness"):
+        light._brightness = brightness
+    light._attr_brightness = brightness
 
 
 async def setup_lights_and_switch(
@@ -2955,13 +2965,14 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
         ATTR_COLOR_TEMP_KELVIN in last_sd or ATTR_RGB_COLOR in last_sd
     ), f"color missing from last_service_data after split calls: {last_sd}"
 
-    al_brightness = light._brightness
+    al_brightness = light.brightness
+    assert al_brightness is not None
     switch.manager.manual_control[ENTITY_LIGHT_1] = LightControlAttributes.NONE
 
     manual_brightness = (
         al_brightness - 120 if al_brightness >= 120 else al_brightness + 120
     )
-    light._brightness = manual_brightness
+    set_light_brightness(light, manual_brightness)
 
     async def _flush_attr_state(hass, entity_id):
         """Mimic a ZHA attribute report: write current hardware state to HA."""
@@ -2984,5 +2995,5 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
         await update(force=False)
 
     assert (
-        light._brightness == manual_brightness
+        light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"

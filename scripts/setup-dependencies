@@ -9,6 +9,17 @@ sed -i '/^mypy-dev/d' core/requirements_test.txt
 
 uv pip install -r core/requirements.txt
 uv pip install -r core/requirements_test.txt
+
+# HA 2026.4+ imports aiohasupervisor from tests/components/conftest.py
+# but pins it in requirements_test_all.txt instead of requirements_test.txt.
+aiohasupervisor_req=""
+if [[ -f core/requirements_test_all.txt ]]; then
+  aiohasupervisor_req="$(grep -m1 '^aiohasupervisor' core/requirements_test_all.txt || true)"
+fi
+if [[ -n "${aiohasupervisor_req}" ]]; then
+  uv pip install "${aiohasupervisor_req}"
+fi
+
 uv pip install -e core/
 uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
 uv pip install $(python test_dependencies.py)
