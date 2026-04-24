@@ -2,20 +2,44 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-pip install -r core/requirements.txt
+# Remove mypy-dev from requirements_test.txt since the maintainer deletes old versions from PyPI.
+# We'll install the latest version separately below.
+# See: https://github.com/cdce8p/mypy-dev/issues/62
+sed -i '/^mypy-dev/d' core/requirements_test.txt
 
-if grep -q 'codecov' core/requirements_test.txt; then
-    # Older HA versions still have `codecov` in `requirements_test.txt`
-    # however it is removed from PyPI, so we cannot install it
-    sed -i '/codecov/d' core/requirements_test.txt
+uv pip install -r core/requirements.txt
+uv pip install -r core/requirements_test.txt
+
+# HA 2026.4+ imports aiohasupervisor from tests/components/conftest.py
+# but pins it in requirements_test_all.txt instead of requirements_test.txt.
+aiohasupervisor_req=""
+if [[ -f core/requirements_test_all.txt ]]; then
+  aiohasupervisor_req="$(grep -m1 '^aiohasupervisor' core/requirements_test_all.txt || true)"
+fi
+if [[ -n "${aiohasupervisor_req}" ]]; then
+  uv pip install "${aiohasupervisor_req}"
 fi
 
-if grep -q 'mypy-dev==1.10.0a3' core/requirements_test.txt; then
-    # mypy-dev==1.10.0a3 seems to not be available anymore, HA 2024.4 and 2024.5 are affected
-    sed -i 's/mypy-dev==1.10.0a3/mypy-dev==1.10.0b1/' core/requirements_test.txt
-fi
-pip install -r core/requirements_test.txt
+# HA 2026.4+ validates service translations through translations/en.json.
+# The core checkout keeps English source strings in strings.json, so seed en.json
+# in the temporary CI checkout before tests load integrations.
+for strings_file in core/homeassistant/components/*/strings.json; do
+  [[ -f "${strings_file}" ]] || continue
+  translations_dir="$(dirname "${strings_file}")/translations"
+  en_translation="${translations_dir}/en.json"
+  if [[ ! -f "${en_translation}" ]]; then
+    mkdir -p "${translations_dir}"
+    cp "${strings_file}" "${en_translation}"
+  fi
+done
 
-pip install -e core/
-pip install ulid-transform # this is in Adaptive-lighting's manifest.json
-pip install $(python test_dependencies.py)
+uv pip install -e core/
+uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
+uv pip install $(python test_dependencies.py)
+
+# Install the latest mypy-dev (not pinned since old versions get deleted from PyPI)
+uv pip install --upgrade mypy-dev
+
+# Workaround for aiodns/pycares compatibility issue
+# See: https://github.com/aio-libs/aiodns/issues/214
+uv pip install --upgrade aiodns

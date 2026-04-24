@@ -29,7 +29,7 @@
           "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️"
         },
         "data": {
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Al encender las luces. Si el valor es `true`, AL adapta sólo si se llama `light.turn_on` sin especificar el color o brillo. ❌🌈 Esto, por ejemplo, previene la adaptación al activar una escena. Si el valor es `false`, AL adapta independientemente de la presencia de color o brillo en `service_data` inicial. Necesita `take_over_control` habilitado. 🕵️ ",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Al encender las luces. Si el valor es `true`, AL adapta sólo si se llama `light.turn_on` sin especificar el color o brillo. ❌🌈 Esto, por ejemplo, previene la adaptación al activar una escena. Si el valor es `false`, AL adapta independientemente de la presencia de color o brillo en `service_data` inicial. Necesita `take_over_control` habilitado. 🕵️",
           "detect_non_ha_changes": "detect_non_ha_changes: Detecta e interrumpe adaptaciones para cambios de estado no `light.turn_on`. Necesita `take_over_control` habilitado. 🕵️ Precaución: ⚠️ Algunas luces pueden indicar de forma errónea un estado 'on', que puede resultar en luces que se enciendan de forma no esperada. Deshabilita esta función si encuentras dichos problemas.",
           "intercept": "intercept: Intercepta y adapta llamadas a `light.turn_on` para habilitar adaptaciones instantáneas de color y brillo. 🏎️ Deshabilitar para luces que no soporten `light.turn_on` con color y brillo.",
           "min_color_temp": "min_color_temp: Temperatura de color más cálida en grados Kelvin. 🔥",
@@ -46,7 +46,7 @@
           "skip_redundant_commands": "skip_redundant_commands: Evitar mandar comandos de adaptación a luces cuyo estado ya sea el esperado. Reduce tráfico en la red y mejora la respuesta de la adaptación en ciertas situaciones. 📉Deshabilitar si el estado real de las luces se desincroniza con el estado registrado en Home Assistant.",
           "take_over_control": "take_over_control: Deshabilita Adaptive Lighting si otra fuente llama`light.turn_on` mientras las luces están encendidas y adaptándose. Cuidado, esto llama`homeassistant.update_entity` cada `interval`! 🔒"
         },
-        "description": "Configura un componente Adaptive Lighting. Los nombres de las opciones se asemejan a las disponibles en la configuración YAML. Si has definido esta entrada en YAML, no aparecerá ninguna opción aquí. Para gráficos interactivos que demuestran los efectos de los parámetros, visita [esta web app](https://basnijholt.github.io/adaptive-lighting). Para más detalles, ver la [documentación oficial](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Configura un componente Adaptive Lighting. Los nombres de las opciones se asemejan a las disponibles en la configuración YAML. Si has definido esta entrada en YAML, no aparecerá ninguna opción aquí. Para gráficos interactivos que demuestran los efectos de los parámetros, visita [esta web app]({webapp_url}). Para más detalles, ver la [documentación oficial]({docs_url})."
       }
     },
     "error": {

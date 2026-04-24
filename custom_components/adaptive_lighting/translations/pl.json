@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Opcje adaptacyjnego oświetlenia",
-        "description": "Konfiguracja komponentu Adaptacyjnego oświetlenia. Nazwy opcji odpowiadają ustawieniom YAML. Żadne opcje nie są wyświetlane, jeśli są zdefiniowane w konfiguracji YAML. Aby zobaczyć interaktywne wykresy demonstrujące działanie parametrów odwiedź [tą aplikację webową](https://basnijholt.github.io/adaptive-lighting). Aby zobaczyć więcej szczegółów odwiedź [oficjalną dokumentację](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "description": "Konfiguracja komponentu Adaptacyjnego oświetlenia. Nazwy opcji odpowiadają ustawieniom YAML. Żadne opcje nie są wyświetlane, jeśli są zdefiniowane w konfiguracji YAML. Aby zobaczyć interaktywne wykresy demonstrujące działanie parametrów odwiedź [tą aplikację webową]({webapp_url}). Aby zobaczyć więcej szczegółów odwiedź [oficjalną dokumentację]({docs_url}).",
         "data": {
           "lights": "lights: Lista `entity_id`, które mają być kontrolowane (może być pusta). 🌟",
           "initial_transition": "initial_transition: When lights turn 'off' to 'on'. (sekund)",
@@ -41,7 +41,7 @@
           "detect_non_ha_changes": "detect_non_ha_changes: Wykrywa i zatrzymuje adaptacje oświetlenia przy zmianach nie pochodzących od `light.turn_on`. Wymaga aktywnego `take_over_control`. 🕵️ Uwaga: ⚠️ Niektóre światła mogą błędnie wskazywać stan \"on\", co może powodować nieoczekiwane włączanie się świateł. Wyłącz to ustawienie, jeżeli doświadczasz takich objawów.",
           "transition": "Transition time when applying a change to the lights (sekund)",
           "transition_until_sleep": "transition_until_sleep: Gdy włączone, Adaptacyjne oświetlenie będzie traktowało ustawienia spania jako minimalne i przejdzie do nich po zachodzie słońca. 🌙",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Gdy włączone (`true`) to adaptacyjne oświetlenie zastosuje adaptacje tylko jeżeli `light.turn_on` jest wywołane bez konkretnego koloru lub jasności. ❌🌈 To ustawienie zapobiega między innymi adaptacji, gdy aktywowana jest scena. Gdy wyłączone (`false`), adaptacyjne oświetlenie zastosuje adaptacje niezależnie czy `service_data` zawiera kolor lub jasność. Potrzebuje włączonej opcji `take_over_control`. 🕵️ ",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Gdy włączone (`true`) to adaptacyjne oświetlenie zastosuje adaptacje tylko jeżeli `light.turn_on` jest wywołane bez konkretnego koloru lub jasności. ❌🌈 To ustawienie zapobiega między innymi adaptacji, gdy aktywowana jest scena. Gdy wyłączone (`false`), adaptacyjne oświetlenie zastosuje adaptacje niezależnie czy `service_data` zawiera kolor lub jasność. Potrzebuje włączonej opcji `take_over_control`. 🕵️",
           "skip_redundant_commands": "skip_redundant_commands: Pomiń wysyłanie polecenia adaptacji, jeżeli stan światła jest taki sam jak docelowy stan adaptacji. Minimalizuje to ruch sieciowy oraz w niektórych przypadkach poprawia szybkość działania. 📉 Wyłącz, jeżeli faktyczny stan światła się nie pokrywa z tym który widnieje w Home Assistant.",
           "include_config_in_attributes": "include_config_in_attributes: Gdy włączone (`true`) pokaż ustawienia jako atrybuty w encji przełącznika w Home Assistant. 📝",
           "intercept": "intercept: Przechwyć i zaadaptuj wywołanie `light.turn_on`, aby błyskawicznie dostosować kolor i jasność. 🏎️ Wyłącz dla świateł, które nie akceptują wywołania `light.turn_on` zawierającego kolor i jasność.",

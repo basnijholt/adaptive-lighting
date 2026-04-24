@@ -7,6 +7,13 @@
         "data": {
           "name": "Name"
         }
+      },
+      "menu": {
+        "title": "Create or Duplicate",
+        "description": "Do you want to create a new instance or duplicate an existing one?",
+        "data": {
+          "action": "Action"
+        }
       }
     },
     "abort": {
@@ -17,7 +24,7 @@
     "step": {
       "init": {
         "title": "Adaptive Lighting options",
-        "description": "Configure an Adaptive Lighting component. Option names align with the YAML settings. If you've defined this entry in YAML, no options will appear here. For interactive graphs that demonstrate parameter effects, visit [this web app](https://basnijholt.github.io/adaptive-lighting). For further details, see the [official documentation](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "description": "Configure an Adaptive Lighting component. Option names align with the YAML settings. If you've defined this entry in YAML, no options will appear here. For interactive graphs that demonstrate parameter effects, visit [this web app]({webapp_url}). For further details, see the [official documentation]({docs_url}).",
         "data": {
           "lights": "lights: List of light entity_ids to be controlled (may be empty). 🌟",
           "interval": "interval",
@@ -45,11 +52,12 @@
           "brightness_mode": "brightness_mode",
           "brightness_mode_time_dark": "brightness_mode_time_dark",
           "brightness_mode_time_light": "brightness_mode_time_light",
-          "take_over_control": "take_over_control: Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒",
-          "detect_non_ha_changes": "detect_non_ha_changes: Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.",
+          "take_over_control": "take_over_control: Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒",
+          "take_over_control_mode": "take_over_control_mode",
+          "detect_non_ha_changes": "detect_non_ha_changes: Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.",
           "autoreset_control_seconds": "autoreset_control_seconds",
           "only_once": "only_once: Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is invoked without specifying color or brightness. ❌🌈 This e.g., prevents adaptation when activating a scene. If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. Needs `take_over_control` enabled. 🕵️ ",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is invoked without specifying color or brightness. ❌🌈 This e.g., prevents adaptation when activating a scene and marks the light as manually controlled. If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. Needs `take_over_control` enabled. 🕵️",
           "separate_turn_on_commands": "separate_turn_on_commands: Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀",
           "send_split_delay": "send_split_delay",
           "adapt_delay": "adapt_delay",
@@ -78,6 +86,7 @@
           "brightness_mode": "Brightness mode to use. Possible values are `default`, `linear`, and `tanh` (uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈",
           "brightness_mode_time_dark": "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down the brightness before/after sunrise/sunset. 📈📉",
           "brightness_mode_time_light": "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down the brightness after/before sunrise/sunset. 📈📉.",
+          "take_over_control_mode": "The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.",
           "autoreset_control_seconds": "Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️",
           "send_split_delay": "Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
           "adapt_delay": "Wait time (seconds) between light turn on and Adaptive Lighting applying changes. Might help to avoid flickering. ⏲️"
@@ -137,7 +146,7 @@
           "name": "lights"
         },
         "manual_control": {
-          "description": "Whether to add (\"true\") or remove (\"false\") the light from the \"manual_control\" list. 🔒",
+          "description": "Whether to add (\"true\") or remove (\"false\") all adapted attributes of the light from the \"manual_control\" list, or the name of an attribute for selective addition. 🔒",
           "name": "manual_control"
         }
       }
@@ -243,11 +252,15 @@
           "name": "min_sunset_time"
         },
         "take_over_control": {
-          "description": "Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒",
+          "description": "Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒",
           "name": "take_over_control"
         },
+        "take_over_control_mode": {
+          "description": "The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.",
+          "name": "take_over_control_mode"
+        },
         "detect_non_ha_changes": {
-          "description": "Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.",
+          "description": "Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.",
           "name": "detect_non_ha_changes"
         },
         "transition": {
