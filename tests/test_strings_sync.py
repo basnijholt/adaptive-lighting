@@ -63,7 +63,7 @@ def test_translation_files_have_step_structure():
             extra = actual_steps - expected_steps
             failures.append(f"{path.name}: missing={missing}, extra={extra}")
     assert not failures, "Translation step structure mismatches:\n" + "\n".join(
-        failures
+        failures,
     )
 
 
@@ -100,7 +100,7 @@ def test_services_yaml_fields_have_descriptions():
             if not field_def.get("description"):
                 missing.append(f"{service_name}.{field_name}")
     assert not missing, "Services.yaml fields missing descriptions: " + ", ".join(
-        missing
+        missing,
     )
 
 
