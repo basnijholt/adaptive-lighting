@@ -42,6 +42,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_PREFER_RGB_COLOR,
     CONF_SEPARATE_TURN_ON_COMMANDS,
+    CONF_SLEEP_BRIGHTNESS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
@@ -2997,3 +2998,81 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
     assert (
         light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
+
+
+async def test_zero_sleep_brightness_and_separate_turn_on_commands(hass):
+    """Test behavior when sleep_brightness is 0 with separate_turn_on_commands enabled.
+
+    This test verifies that when:
+    - CONF_SLEEP_BRIGHTNESS: 0 (brightness set to 0%)
+    - CONF_SEPARATE_TURN_ON_COMMANDS: True (split brightness and color commands)
+    - Sleep mode is active
+
+    Attempting to turn on a light results in the light staying OFF because:
+    1. With separate_turn_on_commands=True, the first command sets brightness=0
+    2. Setting brightness to 0 is equivalent to turning the light off
+    3. The second command (color) is then skipped because the light is off
+
+    This documents the edge case behavior where sleep_brightness=0 effectively
+    prevents lights from turning on when using separate turn-on commands.
+    """
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_SLEEP_BRIGHTNESS: 0,
+        },
+    )
+
+    #  Turn on the light without sleep mode
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    ), "light is not on after normal turn on"
+
+    # Turn off the light without sleep mode
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+    ), "light is not off after normal turn off"
+
+    # Turn on sleep mode
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert (
+        switch.sleep_mode_switch.is_on
+    ), "sleep mode is not on after toggling the switch"
+
+    # Turn on the light while in sleep mode
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # The light should be in "off" state even if we turned it on
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+    ), "light is on, even though sleep mode should prevent it"

@@ -71,7 +71,7 @@
           "interval": "Frequency to adapt the lights, in seconds. 🔄",
           "transition": "Duration of transition when lights change, in seconds. 🕑",
           "initial_transition": "Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️",
-          "sleep_brightness": "Brightness percentage of lights in sleep mode. 😴",
+          "sleep_brightness": "Brightness percentage of lights in sleep mode. Set to 0 to prevent lights from turning on. 😴",
           "sleep_rgb_or_color_temp": "Use either `\"rgb_color\"` or `\"color_temp\"` in sleep mode. 🌙",
           "sleep_color_temp": "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴",
           "sleep_rgb_color": "RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is \"rgb_color\"). 🌈",
@@ -213,7 +213,7 @@
           "name": "send_split_delay"
         },
         "sleep_brightness": {
-          "description": "Brightness percentage of lights in sleep mode. 😴",
+          "description": "Brightness percentage of lights in sleep mode. Set to 0 to prevent lights from turning on. 😴",
           "name": "sleep_brightness"
         },
         "sleep_rgb_or_color_temp": {
