@@ -2462,7 +2462,7 @@ class AdaptiveLightingManager:
                 elif state.state == STATE_OFF:  # is turning on
                     await on(eid, event)
 
-    async def state_changed_event_listener(
+    async def state_changed_event_listener(  # noqa: PLR0912
         self,
         event: Event[EventStateChangedData],
     ) -> None:
@@ -2539,12 +2539,27 @@ class AdaptiveLightingManager:
         if old_on and new_off:
             # Tracks 'on' → 'off' state changes
             self.on_to_off_event[entity_id] = event
-            self.reset(entity_id)
-            _LOGGER.debug(
-                "Detected an 'on' → 'off' event for '%s' with context.id='%s'",
+            if self._on_to_off_state_event_is_transient_from_turn_on(
                 entity_id,
-                event.context.id,
-            )
+                event,
+            ):
+                # A transient 'off' state reported by the device during a
+                # proactive turn-on adaptation (e.g., Zigbee devices that
+                # briefly report 'off' mid-transition). Do not cancel the
+                # in-flight adaptation task — just record the event.
+                _LOGGER.debug(
+                    "Detected an 'on' → 'off' event for '%s' with context.id='%s'"
+                    " during proactive adaptation, skipping reset",
+                    entity_id,
+                    event.context.id,
+                )
+            else:
+                self.reset(entity_id)
+                _LOGGER.debug(
+                    "Detected an 'on' → 'off' event for '%s' with context.id='%s'",
+                    entity_id,
+                    event.context.id,
+                )
         elif old_off and new_on:
             # Tracks 'off' → 'on' state changes
             self.off_to_on_event[entity_id] = event
@@ -2707,6 +2722,27 @@ class AdaptiveLightingManager:
             )
         return changed_attributes
 
+    def _on_to_off_state_event_is_transient_from_turn_on(
+        self,
+        entity_id: str,
+        on_to_off_event: Event[EventStateChangedData],
+    ) -> bool:
+        """Detect a transient off report during a proactive turn_on."""
+        if (
+            self._proactively_adapting_contexts.get(on_to_off_event.context.id)
+            != entity_id
+        ):
+            return False
+
+        off_to_on_event = self.off_to_on_event.get(entity_id)
+        if (
+            off_to_on_event is None
+            or off_to_on_event.context.id != on_to_off_event.context.id
+        ):
+            return False
+
+        return self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event)
+
     def _off_to_on_state_event_is_from_turn_on(
         self,
         entity_id: str,
@@ -2761,14 +2797,6 @@ class AdaptiveLightingManager:
             )
             return False
 
-        if off_to_on_event.context.id == on_to_off_event.context.id:
-            _LOGGER.debug(
-                "just_turned_off: 'on' → 'off' state change has the same context.id as the"
-                " 'off' → 'on' state change for '%s'. This is probably a false positive.",
-                entity_id,
-            )
-            return True
-
         id_on_to_off = on_to_off_event.context.id
 
         turn_off_event = self.turn_off_event.get(entity_id)
@@ -2777,6 +2805,10 @@ class AdaptiveLightingManager:
         else:
             transition = None
 
+        # Check if the off→on was triggered by a real turn_on service call
+        # BEFORE the context-equality check. This prevents false positives
+        # where a Zigbee device briefly reports 'off' during a turn_on
+        # transition, causing both events to share the same context ID.
         if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
             is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
             from_service = "light.toggle" if is_toggle else "light.turn_on"
@@ -2785,6 +2817,21 @@ class AdaptiveLightingManager:
                 from_service,
             )
             return False
+
+        if (
+            off_to_on_event.context.id == on_to_off_event.context.id
+            and turn_off_event is not None
+            and turn_off_event.context.id == on_to_off_event.context.id
+        ):
+            # Context IDs match AND a real turn_off service call was made with
+            # the same context. This is the legitimate case: a light still
+            # transitioning off that briefly polls as 'on'. Safe to cancel.
+            _LOGGER.debug(
+                "just_turned_off: 'on' → 'off' state change has the same context.id as the"
+                " 'off' → 'on' state change for '%s', confirmed by turn_off event.",
+                entity_id,
+            )
+            return True
 
         if (
             turn_off_event is not None
