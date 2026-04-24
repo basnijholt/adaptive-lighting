@@ -2988,6 +2988,7 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
         light._brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
 
+
 async def test_zero_sleep_brightness_and_separate_turn_on_commands(hass):
     """Test behavior when sleep_brightness is 0 with separate_turn_on_commands enabled.
 
@@ -3021,7 +3022,9 @@ async def test_zero_sleep_brightness_and_separate_turn_on_commands(hass):
     )
     await hass.async_block_till_done()
 
-    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON, "light is not on after normal turn on"
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    ), "light is not on after normal turn on"
 
     # Turn off the light without sleep mode
     await hass.services.async_call(
@@ -3032,7 +3035,9 @@ async def test_zero_sleep_brightness_and_separate_turn_on_commands(hass):
     )
     await hass.async_block_till_done()
 
-    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF, "light is not off after normal turn off"
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+    ), "light is not off after normal turn off"
 
     # Turn on sleep mode
     await hass.services.async_call(
@@ -3043,7 +3048,9 @@ async def test_zero_sleep_brightness_and_separate_turn_on_commands(hass):
     )
     await hass.async_block_till_done()
 
-    assert switch.sleep_mode_switch.is_on, "sleep mode is not on after toggling the switch"
+    assert (
+        switch.sleep_mode_switch.is_on
+    ), "sleep mode is not on after toggling the switch"
 
     # Turn on the light while in sleep mode
     await hass.services.async_call(
@@ -3055,4 +3062,6 @@ async def test_zero_sleep_brightness_and_separate_turn_on_commands(hass):
     await hass.async_block_till_done()
 
     # The light should be in "off" state even if we turned it on
-    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF, "light is on, even though sleep mode should prevent it"
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+    ), "light is on, even though sleep mode should prevent it"
