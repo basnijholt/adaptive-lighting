@@ -1,5 +1,9 @@
 """Constants for the Adaptive Lighting integration."""
 
+from datetime import timedelta
+from enum import Enum
+from typing import Any
+
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.light import VALID_TRANSITION
@@ -12,6 +16,14 @@ ICON_COLOR_TEMP = "mdi:sun-thermometer"
 ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
+
+
+class TakeOverControlMode(Enum):
+    """Modes for pausing adaptation when control of a light is taken over externally."""
+
+    PAUSE_ALL = "pause_all"
+    PAUSE_CHANGED = "pause_changed"
+
 
 DOCS = {CONF_ENTITY_ID: "Entity ID of the switch. 📝"}
 
@@ -31,6 +43,7 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Needs `take_over_control` enabled. 🕵️ "
     "Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result "
     "in lights turning on unexpectedly. "
+    "Note that this calls `homeassistant.update_entity` every `interval`! "
     "Disable this feature if you encounter such issues."
 )
 
@@ -82,7 +95,7 @@ CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON = (
 DOCS[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = (
     "When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is "
     "invoked without specifying color or brightness. ❌🌈 "
-    "This e.g., prevents adaptation when activating a scene. "
+    "This e.g., prevents adaptation when activating a scene and marks the light as manually controlled. "
     "If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. "
     "Needs `take_over_control` enabled. 🕵️"
 )
@@ -185,9 +198,19 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
-    "Disable Adaptive Lighting if another source calls `light.turn_on` while lights "
-    "are on and being adapted. Note that this calls `homeassistant.update_entity` "
-    "every `interval`! 🔒"
+    "Pause adaptation of individual lights and hand over (manual) control to other sources that "
+    "issue `light.turn_on` calls for lights that are on. 🔒"
+)
+
+CONF_TAKE_OVER_CONTROL_MODE, DEFAULT_TAKE_OVER_CONTROL_MODE = (
+    "take_over_control_mode",
+    TakeOverControlMode.PAUSE_ALL.value,
+)
+DOCS[CONF_TAKE_OVER_CONTROL_MODE] = (
+    "The adaptation pausing mode when other sources change brightness and/or color of lights. "
+    "`pause_all` always pauses both brightness and color adaptation. "
+    "`pause_changed` pauses the adaptation of only the changed attributes and continues adapting "
+    "unchanged attributes, e.g., continues color adaptation when only brightness was changed."
 )
 
 CONF_TRANSITION, DEFAULT_TRANSITION = "transition", 45
@@ -285,8 +308,9 @@ DOCS_MANUAL_CONTROL = {
     "light as being `manually controlled`. 📝",
     CONF_LIGHTS: "entity_id(s) of lights, if not specified, all lights in the "
     "switch are selected. 💡",
-    CONF_MANUAL_CONTROL: 'Whether to add ("true") or remove ("false") the '
-    'light from the "manual_control" list. 🔒',
+    CONF_MANUAL_CONTROL: 'Whether to add ("true") or remove ("false") all '
+    'adapted attributes of the light from the "manual_control" list, or the '
+    "name of an attribute for selective addition. 🔒",
 }
 
 DOCS_APPLY = {
@@ -295,13 +319,13 @@ DOCS_APPLY = {
 }
 
 
-def int_between(min_int, max_int):
+def int_between(min_int: int, max_int: int) -> vol.All:
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
 
-VALIDATION_TUPLES = [
-    (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),
+VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
+    (CONF_LIGHTS, DEFAULT_LIGHTS, cv.entity_ids),  # type: ignore[arg-type]
     (CONF_INTERVAL, DEFAULT_INTERVAL, cv.positive_int),
     (CONF_TRANSITION, DEFAULT_TRANSITION, VALID_TRANSITION),
     (CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION, VALID_TRANSITION),
@@ -314,7 +338,7 @@ VALIDATION_TUPLES = [
     (
         CONF_SLEEP_RGB_OR_COLOR_TEMP,
         DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,
-        selector.SelectSelector(
+        selector.SelectSelector(  # type: ignore[arg-type]
             selector.SelectSelectorConfig(
                 options=["color_temp", "rgb_color"],
                 multiple=False,
@@ -326,7 +350,7 @@ VALIDATION_TUPLES = [
     (
         CONF_SLEEP_RGB_COLOR,
         DEFAULT_SLEEP_RGB_COLOR,
-        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),
+        selector.ColorRGBSelector(selector.ColorRGBSelectorConfig()),  # type: ignore[arg-type]
     ),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
@@ -341,7 +365,7 @@ VALIDATION_TUPLES = [
     (
         CONF_BRIGHTNESS_MODE,
         DEFAULT_BRIGHTNESS_MODE,
-        selector.SelectSelector(
+        selector.SelectSelector(  # type: ignore[arg-type]
             selector.SelectSelectorConfig(
                 options=["default", "linear", "tanh"],
                 multiple=False,
@@ -352,6 +376,20 @@ VALIDATION_TUPLES = [
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
+    (
+        CONF_TAKE_OVER_CONTROL_MODE,
+        DEFAULT_TAKE_OVER_CONTROL_MODE,
+        selector.SelectSelector(  # type: ignore[arg-type]
+            selector.SelectSelectorConfig(
+                options=[
+                    TakeOverControlMode.PAUSE_ALL.value,
+                    TakeOverControlMode.PAUSE_CHANGED.value,
+                ],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        ),
+    ),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
     (
         CONF_AUTORESET_CONTROL,
@@ -375,7 +413,7 @@ VALIDATION_TUPLES = [
 ]
 
 
-def timedelta_as_int(value):
+def timedelta_as_int(value: timedelta) -> float:
     """Convert a `datetime.timedelta` object to an integer.
 
     This integer can be serialized to json but a timedelta cannot.
@@ -385,7 +423,7 @@ def timedelta_as_int(value):
 
 # conf_option: (validator, coerce) tuples
 # these validators cannot be serialized but can be serialized when coerced by coerce.
-EXTRA_VALIDATION = {
+EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_INTERVAL: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_OFFSET: (cv.time_period, timedelta_as_int),
     CONF_SUNRISE_TIME: (cv.time, str),
@@ -400,7 +438,7 @@ EXTRA_VALIDATION = {
 }
 
 
-def maybe_coerce(key, validation):
+def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
     """Coerce the validation into a json serializable type."""
     validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
     if coerce is not None:
@@ -408,7 +446,7 @@ def maybe_coerce(key, validation):
     return validation
 
 
-def replace_none_str(value, replace_with=None):
+def replace_none_str(value: Any, replace_with: Any | None = None) -> Any:
     """Replace "None" -> replace_with."""
     return value if value != NONE_STR else replace_with
 
@@ -426,12 +464,12 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
-def apply_service_schema(initial_transition: int = 1):
+def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
     """Return the schema for the apply service."""
     return vol.Schema(
         {
-            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
-            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
+            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(
                 CONF_TRANSITION,
                 default=initial_transition,
@@ -447,8 +485,11 @@ def apply_service_schema(initial_transition: int = 1):
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
-        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,
-        vol.Optional(CONF_MANUAL_CONTROL, default=True): cv.boolean,
+        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
+        vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
+        vol.Optional(CONF_MANUAL_CONTROL, default=True): vol.Any(
+            cv.boolean,
+            vol.In(["brightness", "color"]),
+        ),
     },
 )

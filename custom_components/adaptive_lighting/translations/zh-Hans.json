@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "自适应照明选项",
-        "description": "配置自适应照明组件。选项名称与YAML设置对齐。如果在YAML中定义了此条目，则此处不会显示任何选项。有关演示参数影响的交互式图表，请访问[此Web应用程序](https://basnijholt.github.io/adaptive-lighting)。有关更多详细信息，请参阅[官方文档](https://github.com/basnijholt/adaptive-lighting#readme)。",
+        "description": "配置自适应照明组件。选项名称与YAML设置对齐。如果在YAML中定义了此条目，则此处不会显示任何选项。有关演示参数影响的交互式图表，请访问[此Web应用程序]({webapp_url})。有关更多详细信息，请参阅[官方文档]({docs_url})。",
         "data": {
           "lights": "lights：要控制的灯光实体ID列表（可以为空）。🌟",
           "interval": "频率(interval)",
@@ -50,7 +50,7 @@
           "detect_non_ha_changes": "detect_non_ha_changes: 检测非`light.turn_on`的状态更改，并停止自适应照明。需要启用`take_over_control`。🕵️ 注意：⚠️ 一些灯光可能错误地显示为“开启”状态，这可能会导致灯光意外打开。如果遇到此类问题，请禁用此功能。",
           "autoreset_control_seconds": "自动重置时间(autoreset_control_seconds)",
           "only_once": "only_once：仅在打开时调整灯光（`true`）或始终调整灯光（`false`）。🔄",
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on：当首次打开灯光时。如果设置为`true`，仅在没有指定颜色或亮度的情况下，AL才进行适应。❌🌈 例如，这可以防止在激活场景时进行适应。如果为`false`，则不考虑初始`service_data`中是否存在颜色或亮度，AL都会适应。需要启用`take_over_control`。🕵️ ",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on：当首次打开灯光时。如果设置为`true`，仅在没有指定颜色或亮度的情况下，AL才进行适应。❌🌈 例如，这可以防止在激活场景时进行适应。如果为`false`，则不考虑初始`service_data`中是否存在颜色或亮度，AL都会适应。需要启用`take_over_control`。🕵️",
           "separate_turn_on_commands": "separate_turn_on_commands：为某些灯光类型需要使用单独的`light.turn_on`调用来设置颜色和亮度。🔀",
           "send_split_delay": "指令发送间隔延迟(send_split_delay)",
           "adapt_delay": "自适应照明延迟(adapt_delay)",

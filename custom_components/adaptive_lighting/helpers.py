@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import base64
 import math
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -83,3 +87,12 @@ def color_difference_redmean(
     green_term = 4 * delta_g**2
     blue_term = (2 + (255 - r_hat) / 256) * delta_b**2
     return math.sqrt(red_term + green_term + blue_term)
+
+
+def get_friendly_name(hass: HomeAssistant, entity_id: str) -> str:
+    """Retrieve the friendly name of an entity."""
+    state = hass.states.get(entity_id)
+    if state and hasattr(state, "attributes"):
+        attributes: dict[str, Any] = dict(getattr(state, "attributes", {}))
+        return attributes.get("friendly_name", entity_id)
+    return entity_id

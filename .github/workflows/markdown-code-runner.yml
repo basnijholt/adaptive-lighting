@@ -1,0 +1,48 @@
+name: markdown-code-runner
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  markdown-code-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14.2"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Update generated content
+        run: ./scripts/update-generated-content
+
+      - name: Check for changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "::error::Auto-generated files are not up to date. Please run './scripts/update-generated-content' locally and push the changes."
+              exit 1
+            else
+              echo "Changes detected, committing and pushing..."
+              git add -u .
+              git config --local user.email "github-actions[bot]@users.noreply.github.com"
+              git config --local user.name "github-actions[bot]"
+              git commit -m "Update auto-generated content"
+              git pull --rebase
+              git push
+            fi
+          else
+            echo "No changes detected."
+          fi

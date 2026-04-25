@@ -16,5 +16,8 @@
         "-p",
         "no:sugar",
         "core/tests/components/adaptive_lighting"
+    ],
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/core"
     ]
 }

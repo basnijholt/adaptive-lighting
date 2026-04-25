@@ -1,12 +1,13 @@
 """Config flow for Adaptive Lighting integration."""
 
 import logging
+from typing import Any
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME, MAJOR_VERSION, MINOR_VERSION
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
+from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
     CONF_LIGHTS,
@@ -15,9 +16,14 @@ from .const import (  # pylint: disable=unused-import
     NONE_STR,
     VALIDATION_TUPLES,
 )
-from .switch import _supported_features, validate
+from .switch import validate
 
 _LOGGER = logging.getLogger(__name__)
+
+OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS = {
+    "webapp_url": "https://basnijholt.github.io/adaptive-lighting",
+    "docs_url": "https://github.com/basnijholt/adaptive-lighting#readme",
+}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -25,14 +31,49 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
+    source_options: dict[str, Any] | None = None
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial step."""
-        errors = {}
+        if user_input is None and self._async_current_entries():
+            return await self.async_step_menu()
+        return await self.async_step_wait_for_name(user_input)
+
+    async def async_step_menu(self, user_input: dict[str, Any] | None = None):
+        """Handle the menu step."""
+        if user_input is not None:
+            if user_input["action"] != "new":
+                entry_id = user_input["action"]
+                entry = self.hass.config_entries.async_get_entry(entry_id)
+                if entry:
+                    self.source_options = dict(entry.options)
+            return await self.async_step_wait_for_name()
+
+        entries = self._async_current_entries()
+        options = {"new": "Create new instance"}
+        for entry in entries:
+            options[entry.entry_id] = f"Duplicate '{entry.title}'"
+
+        return self.async_show_form(
+            step_id="menu",
+            data_schema=vol.Schema(
+                {vol.Required("action", default="new"): vol.In(options)},
+            ),
+        )
+
+    async def async_step_wait_for_name(self, user_input: dict[str, Any] | None = None):
+        """Handle the name step."""
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_NAME])
             self._abort_if_unique_id_configured()
-            return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
+            options = self.source_options
+            return self.async_create_entry(
+                title=user_input[CONF_NAME],
+                data=user_input,
+                options=options,
+            )
 
         return self.async_show_form(
             step_id="user",
@@ -40,8 +81,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_import(self, user_input=None):
+    async def async_step_import(self, user_input: dict[str, Any] | None = None):
         """Handle configuration by YAML file."""
+        if user_input is None:
+            return self.async_abort(reason="no_data")
+
         await self.async_set_unique_id(user_input[CONF_NAME])
         # Keep a list of switches that are configured via YAML
         data = self.hass.data.setdefault(DOMAIN, {})
@@ -56,15 +100,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,  # noqa: ARG004
+    ) -> "OptionsFlowHandler":
         """Get the options flow for this handler."""
-        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
-            # https://github.com/home-assistant/core/pull/129651
-            return OptionsFlowHandler()
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
-def validate_options(user_input, errors):
+def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None:
     """Validate the options in the OptionsFlow.
 
     This is an extra validation step because the validators
@@ -84,31 +127,24 @@ def validate_options(user_input, errors):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize options flow."""
-        if (MAJOR_VERSION, MINOR_VERSION) >= (2024, 12):
-            super().__init__(*args, **kwargs)
-            # https://github.com/home-assistant/core/pull/129651
-        else:
-            self.config_entry = args[0]
-
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Handle options flow."""
         conf = self.config_entry
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
-            return self.async_show_form(step_id="init", data_schema=None)
-        errors = {}
+            return self.async_show_form(
+                step_id="init",
+                data_schema=None,
+                description_placeholders=OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS,
+            )
+        errors: dict[str, str] = {}
         if user_input is not None:
             validate_options(user_input, errors)
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        all_lights = [
-            light
-            for light in self.hass.states.async_entity_ids("light")
-            if _supported_features(self.hass, light)
-        ]
+        # Validate that all configured lights still exist
+        all_lights = set(self.hass.states.async_entity_ids("light"))
         for configured_light in data[CONF_LIGHTS]:
             if configured_light not in all_lights:
                 errors = {CONF_LIGHTS: "entity_missing"}
@@ -117,8 +153,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     data[CONF_NAME],
                     configured_light,
                 )
-                all_lights.append(configured_light)
-        to_replace = {CONF_LIGHTS: cv.multi_select(sorted(all_lights))}
+
+        to_replace: dict[str, Any] = {
+            CONF_LIGHTS: EntitySelector(
+                EntitySelectorConfig(
+                    domain="light",
+                    multiple=True,
+                ),
+            ),
+        }
 
         options_schema = {}
         for name, default, validation in VALIDATION_TUPLES:
@@ -130,4 +173,5 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(options_schema),
             errors=errors,
+            description_placeholders=OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS,
         )

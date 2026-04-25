@@ -57,7 +57,7 @@ set_manual_control:
           domain: light
           multiple: true
     manual_control:
-      description: Whether to add ("true") or remove ("false") the light from the "manual_control" list. 🔒
+      description: Whether to add ("true") or remove ("false") all adapted attributes of the light from the "manual_control" list, or the name of an attribute for selective addition. 🔒
       example: true
       default: true
       selector:
@@ -220,13 +220,22 @@ change_switch_settings:
       selector:
         time: null
     take_over_control:
-      description: Disable Adaptive Lighting if another source calls `light.turn_on` while lights are on and being adapted. Note that this calls `homeassistant.update_entity` every `interval`! 🔒
+      description: Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒
       required: false
       example: true
       selector:
         boolean: null
+    take_over_control_mode:
+      description: The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.
+      required: false
+      example: pause_changed
+      selector:
+        select:
+          options:
+          - pause_all
+          - pause_changed
     detect_non_ha_changes:
-      description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Disable this feature if you encounter such issues.'
+      description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.'
       required: false
       example: false
       selector:

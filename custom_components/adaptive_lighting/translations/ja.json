@@ -1,5 +1,5 @@
 {
-  "title": "適応型照明",
+  "title": "明るさの自動調整",
   "services": {
     "change_switch_settings": {
       "fields": {
@@ -7,7 +7,7 @@
           "description": "日の出時間を基準に秒単位で正値もしくは負値で調整する。⏰"
         },
         "only_once": {
-          "description": "適応型照明を照明がオンになっているときのみ（`true`）それとも適応し続ける場合は（`false`）。"
+          "description": "一度だけ明るさを自動調整するには（`true`）、常に自動調整し続ける場合は（`false`）。"
         },
         "sunset_offset": {
           "description": "日の入時間を基準に秒単位で正値もしくは負値で調整する。⏰"
@@ -35,7 +35,7 @@
           "sunrise_offset": "日の出時間を基準に秒単位で正値もしくは負値で調整する。⏰",
           "sunset_offset": "日の入時間を基準に秒単位で正値もしくは負値で調整する。⏰"
         },
-        "title": "適応型照明オプション"
+        "title": "明るさの自動調整オプション"
       }
     }
   }
