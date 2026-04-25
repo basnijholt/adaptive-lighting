@@ -1717,6 +1717,11 @@ class AdaptiveLightingManager:
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
+        # Per-light: most recent context.id we've already marked manual for.
+        # Dedupes the instant-context-based marking path so a single user-initiated
+        # service call (which may emit several state_changed events during a transition)
+        # only marks manual once.
+        self.last_external_marking_context: dict[str, str] = {}
         # Track ongoing split adaptations to be able to cancel them
         self.adaptation_tasks_brightness: dict[str, asyncio.Task[None]] = {}
         self.adaptation_tasks_color: dict[str, asyncio.Task[None]] = {}
@@ -2344,6 +2349,7 @@ class AdaptiveLightingManager:
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
+            self.last_external_marking_context.pop(light, None)
             self.cancel_ongoing_adaptation_calls(light)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
@@ -2535,6 +2541,57 @@ class AdaptiveLightingManager:
                     self.start_transition_timer(entity_id)
             elif last_state is not None:
                 self.our_last_state_on_change[entity_id].append(new_on)
+
+        # Instant context-based manual-control marking.
+        # If the new state was caused by a non-AL service call (its context.id
+        # does not carry the `:al:` marker) and at least one tracked attribute
+        # actually differs from the previous state, mark the relevant axes
+        # manual right away. This closes the race where AL's periodic significant_change
+        # check (every `interval` seconds) might tick mid-operation and re-adapt
+        # the user's in-flight change.
+        #
+        # Dedupe by context.id so a single user-initiated service call (which
+        # can emit several state_changed events during a transition) only marks
+        # manual once.
+        if (
+            new_on is not None
+            and old_on is not None
+            and not is_our_context(new_on.context)
+            and self.last_external_marking_context.get(entity_id) != new_on.context.id
+        ):
+            switches = _switches_with_lights(self.hass, [entity_id])
+            instant_changed = LightControlAttributes.NONE
+            old_attrs = old_on.attributes
+            new_attrs = new_on.attributes
+            if old_attrs.get(ATTR_BRIGHTNESS) != new_attrs.get(ATTR_BRIGHTNESS):
+                instant_changed |= LightControlAttributes.BRIGHTNESS
+            if old_attrs.get(ATTR_COLOR_TEMP_KELVIN) != new_attrs.get(
+                ATTR_COLOR_TEMP_KELVIN,
+            ):
+                instant_changed |= LightControlAttributes.COLOR
+            if old_attrs.get(ATTR_RGB_COLOR) != new_attrs.get(ATTR_RGB_COLOR):
+                instant_changed |= LightControlAttributes.COLOR
+            if instant_changed:
+                self.last_external_marking_context[entity_id] = new_on.context.id
+                for switch in switches:
+                    if not switch.is_on or not switch._take_over_control:
+                        continue
+                    _LOGGER.debug(
+                        "%s: instant_manual_control_marking for '%s' "
+                        "(context.id=%s, attrs=%s)",
+                        switch._name,
+                        entity_id,
+                        new_on.context.id,
+                        instant_changed,
+                    )
+                    self.add_manual_control_attributes(
+                        entity_id,
+                        instant_changed,
+                    )
+                    switch.fire_manual_control_event(
+                        entity_id,
+                        new_on.context,
+                    )
 
         if old_on and new_off:
             # Tracks 'on' → 'off' state changes
