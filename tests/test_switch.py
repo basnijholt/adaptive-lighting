@@ -704,10 +704,19 @@ async def test_manual_control(
     await turn_light(True, brightness=increased_brightness())
     # Check that ENTITY_LIGHT_1 is manually controlled
     assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    # Per-attribute state attributes should reflect this
+    state_attrs = hass.states.get(switch.entity_id).attributes
+    assert ENTITY_LIGHT_1 in state_attrs["manual_control"]
+    assert ENTITY_LIGHT_1 in state_attrs["manual_control_brightness"]
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control_color"]
     # Test adaptive_lighting.set_manual_control
     await change_manual_control(False)
     # Check that ENTITY_LIGHT_1 is not manually controlled
     assert not manual_control[ENTITY_LIGHT_1]
+    state_attrs = hass.states.get(switch.entity_id).attributes
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control"]
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control_brightness"]
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control_color"]
 
     # Check that toggling light off to on resets manual control
     await change_manual_control(True)

@@ -1124,6 +1124,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         extra_state_attributes["manual_control"] = [
             light for light in self.lights if self.manager.manual_control.get(light)
         ]
+        extra_state_attributes["manual_control_brightness"] = [
+            light
+            for light in self.lights
+            if self.manager.manual_control.get(light, LightControlAttributes.NONE)
+            & LightControlAttributes.BRIGHTNESS
+        ]
+        extra_state_attributes["manual_control_color"] = [
+            light
+            for light in self.lights
+            if self.manager.manual_control.get(light, LightControlAttributes.NONE)
+            & LightControlAttributes.COLOR
+        ]
         extra_state_attributes.update(self._settings)
         timers = self.manager.auto_reset_manual_control_timers
         extra_state_attributes["autoreset_time_remaining"] = {
