@@ -14,6 +14,8 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
 import voluptuous as vol
+from aiohue import HueBridgeV2
+from aiohue.v2.models.scene import ScenePut
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -60,6 +62,13 @@ from homeassistant.core import (
 from homeassistant.helpers import entity_platform, entity_registry
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
+
+from .hue_utils import ResourceIdentifier
+
+if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
+    from homeassistant.helpers.entity import DeviceInfo
+else:
+    from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import (
     EventStateChangedData,
     async_track_state_change_event,
@@ -69,6 +78,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import slugify
 from homeassistant.util.color import (
+    color_temperature_kelvin_to_mired,
     color_temperature_to_rgb,
     color_xy_to_RGB,
 )
@@ -97,6 +107,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_HUE_KEYWORD,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERCEPT,
@@ -177,6 +188,9 @@ RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
+
+# The interval of time between each scene updates
+HUE_SCENE_UPDATE_DELAY = 300  # 5 minutes
 
 
 def create_context(
@@ -851,6 +865,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._name = data[CONF_NAME]
         self._interval: timedelta = data[CONF_INTERVAL]
         self.lights: list[str] = data[CONF_LIGHTS]
+        self.hue_keyword = data[CONF_HUE_KEYWORD]
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
@@ -1426,6 +1441,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
         self.async_write_ha_state()
 
+        await self.update_hue_run()
+
         if not force and self._only_once:
             return
 
@@ -1586,6 +1603,68 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force=True,
         )
 
+    async def update_hue_run(self):
+        """Function updating HUE scene."""
+        if replace_none_str(self.hue_keyword) is None:
+            return
+
+        timer = self.manager.hue_scene_update_timers.get(self.hue_keyword)
+        if timer is not None and timer.is_running():
+            _LOGGER.debug(
+                "%s: Not updating %s because there is throttle, remaining_time:%s",
+                self._name,
+                self.hue_keyword,
+                timer.remaining_time(),
+            )
+            return
+
+        self.manager.start_hue_scene_update_throttle(self.hue_keyword)
+
+        _LOGGER.debug(
+            "%s: Will updates scenes containing %s",
+            self._name,
+            self.hue_keyword,
+        )
+        config_entries = self.hass.config_entries.async_entries(domain="hue")
+        config_entry = config_entries[0]
+
+        color_temp = color_temperature_kelvin_to_mired(
+            self._settings["color_temp_kelvin"],
+        )
+
+        brightness = round(self._settings["brightness_pct"], 2)
+
+        async with HueBridgeV2(
+            config_entry.data["host"],
+            config_entry.data["api_key"],
+        ) as bridge:
+            for scene in bridge.scenes:
+                if self.hue_keyword in scene.metadata.name:
+                    _LOGGER.debug(
+                        "%s: Updating %s with values bri:%s, color_temp:%s",
+                        self._name,
+                        scene.metadata.name,
+                        brightness,
+                        color_temp,
+                    )
+                    actions = []
+                    for action in scene.actions:
+                        action.target = ResourceIdentifier(
+                            rid=action.target.rid,
+                            rtype="light",
+                        )
+                        light = bridge.lights.get(action.target.rid)
+                        color_temp = clamp(
+                            color_temp,
+                            light.color_temperature.mirek_schema.mirek_minimum,
+                            light.color_temperature.mirek_schema.mirek_maximum,
+                        )
+                        action.action.color_temperature.mirek = color_temp
+                        action.action.dimming.brightness = brightness
+                        actions.append(action)
+                    update_obj = ScenePut(actions=actions)
+                    await bridge.scenes.scene.update(scene.id, update_obj)
+
     def fire_manual_control_event(
         self,
         light: str,
@@ -1727,6 +1806,9 @@ class AdaptiveLightingManager:
 
         # Track light transitions
         self.transition_timers: dict[str, _AsyncSingleShotTimer] = {}
+
+        # Handle HUE delay to avoid overloading the bridge
+        self.hue_scene_update_timers: dict[str, _AsyncSingleShotTimer] = {}
 
         # Track _execute_cancellable_adaptation_calls tasks
         self.adaptation_tasks: set[asyncio.Task[None]] = set()
@@ -2180,6 +2262,28 @@ class AdaptiveLightingManager:
             )
 
         self._handle_timer(light, self.transition_timers, last_transition, reset)
+
+    def start_hue_scene_update_throttle(self, scene: str) -> None:
+        """Set a timer between each scene update call."""
+        _LOGGER.debug(
+            "Start throttle timer of %s seconds for scene %s",
+            HUE_SCENE_UPDATE_DELAY,
+            scene,
+        )
+
+        async def reset():
+            # Called when the timer expires, doesn't need to do anything
+            _LOGGER.debug(
+                "Throttle finished for scene %s",
+                scene,
+            )
+
+        self._handle_timer(
+            scene,
+            self.hue_scene_update_timers,
+            HUE_SCENE_UPDATE_DELAY,
+            reset,
+        )
 
     def set_auto_reset_manual_control_times(
         self,

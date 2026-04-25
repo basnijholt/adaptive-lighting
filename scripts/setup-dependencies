@@ -35,6 +35,7 @@ done
 
 uv pip install -e core/
 uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
+uv pip install aiohue
 uv pip install $(python3 test_dependencies.py)
 
 # Install the latest mypy-dev (not pinned since old versions get deleted from PyPI)
