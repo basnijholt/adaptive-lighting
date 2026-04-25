@@ -857,7 +857,8 @@ async def test_manual_control(
 
 async def test_sleep_mode_resets_manual_control_when_enabled(hass):
     """Toggling the sleep mode switch resets manual control when the opt-in
-    `reset_manual_control_on_sleep_mode_change` config flag is set."""
+    `reset_manual_control_on_sleep_mode_change` config flag is set.
+    """
     switch, _ = await setup_lights_and_switch(
         hass,
         {CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE: True},
