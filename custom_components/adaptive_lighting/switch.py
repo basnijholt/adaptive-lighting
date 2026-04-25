@@ -69,7 +69,6 @@ if [MAJOR_VERSION, MINOR_VERSION] < [2023, 9]:
     from homeassistant.helpers.entity import DeviceInfo
 else:
     from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.event import (
     EventStateChangedData,
     async_track_state_change_event,
