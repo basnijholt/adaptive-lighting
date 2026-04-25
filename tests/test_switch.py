@@ -742,8 +742,7 @@ async def test_manual_control(
     await turn_switch(True, switch.entity_id)
     assert not manual_control[ENTITY_LIGHT_1]
 
-    # Toggling the sleep-mode switch must NOT reset manual control in this fork
-    # (see commit 1e85134 — "Disable manual control reset on sleep mode change").
+    # Toggling the sleep-mode switch must NOT reset manual control
     await change_manual_control(True)
     assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
     await turn_switch(False, switch.sleep_mode_switch.entity_id)
