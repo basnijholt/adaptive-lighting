@@ -2557,8 +2557,7 @@ class AdaptiveLightingManager:
             new_on is not None
             and old_on is not None
             and not is_our_context(new_on.context)
-            and self.last_external_marking_context.get(entity_id)
-            != new_on.context.id
+            and self.last_external_marking_context.get(entity_id) != new_on.context.id
         ):
             switches = _switches_with_lights(self.hass, [entity_id])
             instant_changed = LightControlAttributes.NONE
