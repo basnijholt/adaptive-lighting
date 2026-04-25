@@ -1582,7 +1582,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def update_hue_run(self):
         """Function updating HUE scene."""
-        if self.hue_keyword is None:
+        if replace_none_str(self.hue_keyword) is None:
             return
 
         timer = self.manager.hue_scene_update_timers.get(self.hue_keyword)
