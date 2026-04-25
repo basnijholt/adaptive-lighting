@@ -114,6 +114,7 @@ from .const import (
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
+    CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
@@ -932,6 +933,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
+        self._reset_manual_control_on_sleep_mode_change = data[
+            CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE
+        ]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._intercept = data[CONF_INTERCEPT]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
@@ -1578,8 +1582,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._name,
             event,
         )
-        # Reset the manually controlled status when the "sleep mode" changes
-        self.manager.reset(*self.lights)
+        if self._reset_manual_control_on_sleep_mode_change:
+            # Opt-in: reset the manually controlled status when the sleep mode
+            # switch toggles. Disabled by default so manual control persists
+            # across sleep mode changes.
+            self.manager.reset(*self.lights)
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("sleep", parent=event.context),
             transition=self._sleep_transition,

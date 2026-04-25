@@ -243,6 +243,17 @@ DOCS[CONF_AUTORESET_CONTROL] = (
     "Set to 0 to disable. ⏲️"
 )
 
+(
+    CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+    DEFAULT_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+) = ("reset_manual_control_on_sleep_mode_change", False)
+DOCS[CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE] = (
+    "Reset the `manual_control` status of all lights whenever the sleep mode "
+    "switch is toggled. Defaults to `false`, so manual control is preserved "
+    "across sleep mode toggles. Set to `true` to clear manual control on every "
+    "sleep mode change. 😴"
+)
+
 CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
     "skip_redundant_commands",
     False,
@@ -394,6 +405,11 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON, bool),
+    (
+        CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+        DEFAULT_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+        bool,
+    ),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
