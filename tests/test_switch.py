@@ -735,13 +735,23 @@ async def test_manual_control(
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
 
-    # Check that toggling (sleep mode) switch resets manual control
-    for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
-        await change_manual_control(True)
-        assert manual_control[ENTITY_LIGHT_1]
-        await turn_switch(False, entity_id)
-        await turn_switch(True, entity_id)
-        assert not manual_control[ENTITY_LIGHT_1]
+    # Check that toggling the main switch resets manual control.
+    await change_manual_control(True)
+    assert manual_control[ENTITY_LIGHT_1]
+    await turn_switch(False, switch.entity_id)
+    await turn_switch(True, switch.entity_id)
+    assert not manual_control[ENTITY_LIGHT_1]
+
+    # Toggling the sleep-mode switch must NOT reset manual control in this fork
+    # (see commit 1e85134 — "Disable manual control reset on sleep mode change").
+    await change_manual_control(True)
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    await turn_switch(False, switch.sleep_mode_switch.entity_id)
+    await turn_switch(True, switch.sleep_mode_switch.entity_id)
+    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    # Reset manual control before continuing.
+    await change_manual_control(False)
+    assert not manual_control[ENTITY_LIGHT_1]
 
     # Check that manual control is still enabled if set while bulb is off.
     # Test issue #37
