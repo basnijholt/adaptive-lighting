@@ -36,6 +36,7 @@ Adaptive Lighting provides four switches (using "living_room" as an example comp
 - `switch.adaptive_lighting_sleep_mode_living_room`: Activate "sleep mode" 😴 and set custom sleep_brightness and sleep_color_temp.
 - `switch.adaptive_lighting_adapt_brightness_living_room`: Enable or disable brightness adaptation 🔆 for supported lights.
 - `switch.adaptive_lighting_adapt_color_living_room`: Enable or disable color adaptation 🌈 for supported lights.
+- Optional diagnostic status sensors per light to see when Adaptive Lighting is active, blocked, or overridden.
 <!-- SECTION:features:END -->
 
 <!-- SECTION:manual-control:START -->

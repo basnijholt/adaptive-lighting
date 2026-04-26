@@ -96,3 +96,20 @@ def get_friendly_name(hass: HomeAssistant, entity_id: str) -> str:
         attributes: dict[str, Any] = dict(getattr(state, "attributes", {}))
         return attributes.get("friendly_name", entity_id)
     return entity_id
+
+
+def expand_light_groups(hass: HomeAssistant, lights: list[str]) -> list[str]:
+    """Expand light groups into their individual light entity IDs."""
+    expanded: set[str] = set()
+    for light in lights:
+        state = hass.states.get(light)
+        if state is None:
+            expanded.add(light)
+        elif "entity_id" in state.attributes and not state.attributes.get(
+            "is_hue_group",
+            False,
+        ):
+            expanded.update(state.attributes["entity_id"])
+        else:
+            expanded.add(light)
+    return sorted(expanded)
