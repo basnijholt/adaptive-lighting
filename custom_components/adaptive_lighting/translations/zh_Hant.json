@@ -8,6 +8,13 @@
         "data": {
           "name": "名稱"
         }
+      },
+      "menu": {
+        "title": "建立或複製",
+        "description": "您想要建立新實例還是複製現有實例？",
+        "data": {
+          "action": "動作"
+        }
       }
     },
     "abort": {
@@ -57,7 +64,8 @@
           "skip_redundant_commands": "skip_redundant_commands: 跳過目標狀態已等於燈光已知狀態的適應指令。在某些情況下，可以減少網路流量並提高適應響應性。📉如果實體燈光狀態與 HA 的記錄狀態不同步，請停用此功能。",
           "intercept": "intercept: 攔截並適應 `light.turn_on` 呼叫，以實現即時的顏色和亮度適應。🏎️ 對於不支援使用顏色和亮度進行 `light.turn_on` 的燈光，請停用此功能。",
           "multi_light_intercept": "multi_light_intercept: 攔截和適應針對多個燈光的 `light.turn_on` 呼叫。➗⚠️ 這可能會將單個 `light.turn_on` 呼叫拆分為多個呼叫，例如當燈光位於不同的開關中時。需要啟用 `intercept`。",
-          "include_config_in_attributes": "include_config_in_attributes: 設定為 `true` 時，在 Home Assistant 中將所有選項顯示為開關的屬性。📝"
+          "include_config_in_attributes": "include_config_in_attributes: 設定為 `true` 時，在 Home Assistant 中將所有選項顯示為開關的屬性。📝",
+          "take_over_control_mode": "接管控制模式 (take_over_control_mode)"
         },
         "data_description": {
           "interval": "調整燈光的頻率，以秒為單位。🔄",
@@ -81,7 +89,8 @@
           "brightness_mode_time_light": "（如果 `brightness_mode='default'` 將被忽略）日出/日落之後/之前亮度逐漸增加/減少的持續時間，以秒為單位。📈📉。",
           "autoreset_control_seconds": "在若干秒後自動重設手動控制。設定為 0 以停用。⏲️",
           "send_split_delay": "對於不支援同時設定亮度和顏色的燈光，`separate_turn_on_commands` 之間的延遲時間（毫秒）。⏲️",
-          "adapt_delay": "燈光開啟和自適應照明套用更改之間的等待時間（秒）。可能會有助於避免閃爍。⏲️"
+          "adapt_delay": "燈光開啟和自適應照明套用更改之間的等待時間（秒）。可能會有助於避免閃爍。⏲️",
+          "take_over_control_mode": "當其他來源更改亮度或顏色時的調整暫停模式。`pause_all` 總是同時暫停亮度和顏色適應。`pause_changed` 僅暫停已更改屬性的適應並繼續適應未更改的屬性（例如：僅更改亮度時仍保持顏色適應）。"
         }
       }
     },
@@ -262,6 +271,10 @@
         "autoreset_control_seconds": {
           "description": "在若干秒後自動重設手動控制。設定為 0 以停用。⏲️",
           "name": "自動重設控制時間"
+        },
+        "take_over_control_mode": {
+          "name": "接管控制模式",
+          "description": "當其他來源更改亮度或顏色時的調整暫停模式。`pause_all` 總是同時暫停亮度和顏色適應。`pause_changed` 僅暫停已更改屬性的適應並繼續適應未更改的屬性。"
         }
       }
     }
