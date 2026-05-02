@@ -40,6 +40,7 @@ from .const import (
     DOMAIN,
     SIGNAL_STATUS_UPDATED,
     LightStatus,
+    LightStatusInfo,
 )
 from .helpers import expand_light_groups, get_friendly_name
 
@@ -76,6 +77,7 @@ async def async_setup_entry(
         return
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
     store = hass.data[DOMAIN].setdefault("status_sensors", {})
+    entry_lights = hass.data[DOMAIN].setdefault("status_sensor_entry_lights", {})
 
     lights = expand_light_groups(
         hass,
@@ -83,6 +85,8 @@ async def async_setup_entry(
     )
 
     ensure_status_sensors_enabled(hass, config_entry.entry_id)
+
+    entry_lights[config_entry.entry_id] = set(lights)
 
     new_entities: list[AdaptiveLightingStatusSensor] = []
     for light in lights:
@@ -98,6 +102,22 @@ async def async_setup_entry(
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload Adaptive Lighting status sensors."""
+    domain_data = hass.data.get(DOMAIN, {})
+    entry_lights: dict[str, set[str]] = domain_data.get(
+        "status_sensor_entry_lights", {}
+    )
+    my_lights = entry_lights.pop(config_entry.entry_id, set())
+
+    still_referenced: set[str] = set()
+    for other_lights in entry_lights.values():
+        still_referenced |= other_lights
+
+    store: dict[str, AdaptiveLightingStatusSensor] = domain_data.get(
+        "status_sensors", {}
+    )
+    for light in my_lights - still_referenced:
+        store.pop(light, None)
+
     return True
 
 
@@ -113,6 +133,12 @@ class AdaptiveLightingStatusSensor(SensorEntity):
         self._manager = manager
         self._light_entity_id = light_entity_id
         self._attr_unique_id = f"{DOMAIN}_status_{slugify(light_entity_id)}"
+        self._combined: LightStatusInfo | None = None
+
+    def _get_combined(self) -> LightStatusInfo:
+        if self._combined is None:
+            self._combined = self._manager.get_combined_status(self._light_entity_id)
+        return self._combined
 
     @property
     def name(self) -> str:
@@ -123,13 +149,13 @@ class AdaptiveLightingStatusSensor(SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the current combined status."""
-        combined = self._manager.get_combined_status(self._light_entity_id)
+        combined = self._get_combined()
         return combined.status if combined.status else LightStatus.INACTIVE
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return detailed status attributes."""
-        combined = self._manager.get_combined_status(self._light_entity_id)
+        combined = self._get_combined()
         statuses = self._manager.get_light_statuses(self._light_entity_id)
 
         profile_statuses: dict[str, Any] = {}
@@ -205,4 +231,5 @@ class AdaptiveLightingStatusSensor(SensorEntity):
     @callback
     def _handle_status_update(self, light_entity_id: str) -> None:
         if light_entity_id == self._light_entity_id:
+            self._combined = self._manager.get_combined_status(light_entity_id)
             self.async_write_ha_state()

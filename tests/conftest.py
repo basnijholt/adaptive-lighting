@@ -7,9 +7,9 @@ CORE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core"
 if CORE_PATH not in sys.path:
     sys.path.insert(0, CORE_PATH)
 
-from unittest.mock import patch
+from unittest.mock import patch  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
