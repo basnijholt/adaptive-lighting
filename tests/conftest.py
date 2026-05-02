@@ -1,9 +1,9 @@
 """Pytest configuration for adaptive-lighting tests."""
 
-import os
 import sys
+from pathlib import Path
 
-CORE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core"))
+CORE_PATH = str(Path(__file__).parent.parent / "core")
 if CORE_PATH not in sys.path:
     sys.path.insert(0, CORE_PATH)
 

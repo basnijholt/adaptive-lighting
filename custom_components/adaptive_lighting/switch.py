@@ -1435,7 +1435,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if LightControlAttributes.COLOR in data.attributes:
                 self.manager.adaptation_tasks_color[data.entity_id] = task
             await task
-            return True
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: Ongoing adaptation of %s cancelled, with AdaptationData: %s",
@@ -1444,8 +1443,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
             return False
+        else:
+            return True
 
-    async def _update_attrs_and_maybe_adapt_lights(
+    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
         self,
         *,
         context: Context,
