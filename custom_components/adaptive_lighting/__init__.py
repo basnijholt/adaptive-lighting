@@ -20,6 +20,8 @@ from .const import (
 )
 from .sensor import (
     async_unload_entry as _sensor_unload_entry,
+)
+from .sensor import (
     ensure_status_sensors_enabled,
 )
 from .switch import AdaptiveLightingManager, validate

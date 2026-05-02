@@ -1948,7 +1948,8 @@ class AdaptiveLightingManager:
         if not statuses:
             return LightStatusInfo(status=LightStatus.INACTIVE)
         winner = max(
-            statuses, key=lambda entry: STATUS_PRIORITY.get(str(entry.status), 0)
+            statuses,
+            key=lambda entry: STATUS_PRIORITY.get(str(entry.status), 0),
         )
         return LightStatusInfo(
             status=winner.status,

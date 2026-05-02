@@ -104,7 +104,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     """Unload Adaptive Lighting status sensors."""
     domain_data = hass.data.get(DOMAIN, {})
     entry_lights: dict[str, set[str]] = domain_data.get(
-        "status_sensor_entry_lights", {}
+        "status_sensor_entry_lights",
+        {},
     )
     my_lights = entry_lights.pop(config_entry.entry_id, set())
 
@@ -113,7 +114,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         still_referenced |= other_lights
 
     store: dict[str, AdaptiveLightingStatusSensor] = domain_data.get(
-        "status_sensors", {}
+        "status_sensors",
+        {},
     )
     for light in my_lights - still_referenced:
         store.pop(light, None)
