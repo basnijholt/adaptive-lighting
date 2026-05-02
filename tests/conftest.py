@@ -1,8 +1,15 @@
 """Pytest configuration for adaptive-lighting tests."""
 
-from unittest.mock import patch
+import sys
+from pathlib import Path
 
-import pytest
+CORE_PATH = str(Path(__file__).parent.parent / "core")
+if CORE_PATH not in sys.path:
+    sys.path.insert(0, CORE_PATH)
+
+from unittest.mock import patch  # noqa: E402
+
+import pytest  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
