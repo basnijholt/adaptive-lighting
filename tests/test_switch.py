@@ -35,6 +35,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
@@ -2384,6 +2385,70 @@ async def test_light_group(
         ]
         assert ":skpp:" in events[2].context.id
         assert len(events) == 3
+
+
+async def test_light_group_expand_disabled_off_to_on(hass):
+    """Regression test: off→on reactive adaptation works when expand_light_groups=False.
+
+    When expand_light_groups=False the switch stores the group entity in switch.lights.
+    _switches_with_lights must not expand the incoming state-change entity_id either,
+    otherwise the intersection is empty and the switch is never found, silently skipping
+    reactive adaptation.
+    """
+    await setup_lights(hass, with_group=True)
+    entity_ids = ["light.light_group"]
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: entity_ids,
+            CONF_EXPAND_LIGHT_GROUPS: False,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_INTERCEPT: False,  # disable interceptor so reactive path is exercised
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert switch.is_on
+    # With expand disabled, switch.lights should contain the group entity, not children
+    assert "light.light_group" in switch.lights
+    assert "light.light_4" not in switch.lights
+    assert "light.light_5" not in switch.lights
+
+    # Turn the group off first
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # Track adaptation calls triggered by the off→on event
+    adapted = []
+    original = switch._respond_to_off_to_on_event
+
+    async def track_adapt(entity_id, event):
+        adapted.append(entity_id)
+        return await original(entity_id, event)
+
+    switch._respond_to_off_to_on_event = track_adapt
+
+    # Turn the group back on from OFF — this fires a state_changed event for
+    # "light.light_group"; the reactive path must find the switch via this entity.
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+
+    assert "light.light_group" in adapted, (
+        "Switch was not found via _switches_with_lights for the group entity "
+        "when expand_light_groups=False — reactive off→on adaptation was skipped."
+    )
 
 
 @pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])
