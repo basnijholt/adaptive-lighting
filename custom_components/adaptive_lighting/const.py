@@ -272,6 +272,13 @@ DOCS[CONF_MULTI_LIGHT_INTERCEPT] = (
     "Requires `intercept` to be enabled."
 )
 
+CONF_EXPAND_LIGHT_GROUPS, DEFAULT_EXPAND_LIGHT_GROUPS = "expand_light_groups", True
+DOCS[CONF_EXPAND_LIGHT_GROUPS] = (
+    "Expand light groups to their individual member entities (`true`, default). "
+    "Set to `false` to send adaptation commands to the group entity directly "
+    "instead of its members."
+)
+
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
@@ -405,6 +412,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
+    (CONF_EXPAND_LIGHT_GROUPS, DEFAULT_EXPAND_LIGHT_GROUPS, bool),
 ]
 
 
