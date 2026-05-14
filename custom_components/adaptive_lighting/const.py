@@ -118,6 +118,28 @@ DOCS[CONF_SEPARATE_TURN_ON_COMMANDS] = (
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
 DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness percentage of lights in sleep mode. 😴"
 
+CONF_RGB_PRE_SLEEP_TIME, DEFAULT_RGB_PRE_SLEEP_TIME = "rgb_pre_sleep_time", 0
+DOCS[CONF_RGB_PRE_SLEEP_TIME] = (
+    "Duration in seconds after sleep mode is turned on during which lights use "
+    "RGB-only pre-sleep settings before full sleep settings take over. 🌈😴"
+)
+
+CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN, DEFAULT_RGB_PRE_SLEEP_BRIGHTNESS_MIN = (
+    "rgb_pre_sleep_brightness_min",
+    DEFAULT_MIN_BRIGHTNESS,
+)
+DOCS[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN] = (
+    "Minimum brightness percentage during RGB-only pre-sleep mode. 🌈💡"
+)
+
+CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX, DEFAULT_RGB_PRE_SLEEP_BRIGHTNESS_MAX = (
+    "rgb_pre_sleep_brightness_max",
+    DEFAULT_MAX_BRIGHTNESS,
+)
+DOCS[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX] = (
+    "Maximum brightness percentage during RGB-only pre-sleep mode. 🌈💡"
+)
+
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
 DOCS[CONF_SLEEP_COLOR_TEMP] = (
     "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is "
@@ -332,6 +354,21 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
     (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
     (
+        CONF_RGB_PRE_SLEEP_TIME,
+        DEFAULT_RGB_PRE_SLEEP_TIME,
+        int_between(0, 365 * 24 * 60 * 60),  # 1 year max
+    ),
+    (
+        CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN,
+        DEFAULT_RGB_PRE_SLEEP_BRIGHTNESS_MIN,
+        int_between(1, 100),
+    ),
+    (
+        CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX,
+        DEFAULT_RGB_PRE_SLEEP_BRIGHTNESS_MAX,
+        int_between(1, 100),
+    ),
+    (
         CONF_SLEEP_RGB_OR_COLOR_TEMP,
         DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,
         selector.SelectSelector(  # type: ignore[arg-type]
@@ -430,6 +467,7 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
+    CONF_RGB_PRE_SLEEP_TIME: (cv.time_period, timedelta_as_int),
 }
 
 

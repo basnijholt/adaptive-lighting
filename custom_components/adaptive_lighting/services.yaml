@@ -159,6 +159,24 @@ change_switch_settings:
       example: 1
       selector:
         text: null
+    rgb_pre_sleep_time:
+      description: Duration after sleep mode is turned on during which lights use RGB-only pre-sleep settings before full sleep settings take over. 🌈😴
+      required: false
+      example: 1800
+      selector:
+        text: null
+    rgb_pre_sleep_brightness_min:
+      description: Minimum brightness percentage during RGB-only pre-sleep mode. 🌈💡
+      required: false
+      example: 5
+      selector:
+        text: null
+    rgb_pre_sleep_brightness_max:
+      description: Maximum brightness percentage during RGB-only pre-sleep mode. 🌈💡
+      required: false
+      example: 25
+      selector:
+        text: null
     sleep_rgb_or_color_temp:
       description: Use either `"rgb_color"` or `"color_temp"` in sleep mode. 🌙
       required: false

@@ -41,6 +41,9 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_MIN_COLOR_TEMP,
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_PREFER_RGB_COLOR,
+    CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX,
+    CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN,
+    CONF_RGB_PRE_SLEEP_TIME,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
@@ -2236,6 +2239,76 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
     await switch._update_attrs_and_maybe_adapt_lights(context=context)
     assert switch._settings[ATTR_BRIGHTNESS_PCT] == DEFAULT_SLEEP_BRIGHTNESS
     assert switch._settings["rgb_color"] == DEFAULT_SLEEP_RGB_COLOR
+
+
+async def test_rgb_pre_sleep_mode_uses_rgb_with_scaled_brightness(hass):
+    """Test RGB-only pre-sleep mode before full sleep settings take over."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_RGB_PRE_SLEEP_TIME: 1800,
+            CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN: 5,
+            CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX: 25,
+            CONF_SLEEP_RGB_OR_COLOR_TEMP: "color_temp",
+        },
+    )
+    context = switch.create_context("test")
+    sleep_start = datetime.datetime(2020, 10, 17, 21, 20, tzinfo=dt_util.UTC)
+    now = datetime.datetime(2020, 10, 17, 21, 30, tzinfo=dt_util.UTC)
+
+    with (
+        patch(
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+            return_value=now,
+        ),
+        patch.object(switch, "_sleep_start", return_value=sleep_start),
+    ):
+        await switch.sleep_mode_switch.async_turn_on()
+        await switch._update_attrs_and_maybe_adapt_lights(context=context)
+        await hass.async_block_till_done()
+
+    brightness_pct = switch._settings[ATTR_BRIGHTNESS_PCT]
+    assert 5 <= brightness_pct <= 25
+    assert switch._settings["force_rgb_color"] is True
+    assert ATTR_RGB_COLOR in switch.manager.last_service_data[ENTITY_LIGHT_1]
+    assert (
+        ATTR_COLOR_TEMP_KELVIN not in switch.manager.last_service_data[ENTITY_LIGHT_1]
+    )
+
+
+async def test_rgb_pre_sleep_mode_keeps_color_temp_only_lights_working(hass):
+    """Test RGB-only pre-sleep mode falls back to color temp on non-RGB lights."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_RGB_PRE_SLEEP_TIME: 1800,
+            CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN: 5,
+            CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX: 25,
+            CONF_SLEEP_RGB_OR_COLOR_TEMP: "color_temp",
+        },
+    )
+    context = switch.create_context("test")
+    sleep_start = datetime.datetime(2020, 10, 17, 21, 20, tzinfo=dt_util.UTC)
+    now = datetime.datetime(2020, 10, 17, 21, 30, tzinfo=dt_util.UTC)
+
+    with (
+        patch(
+            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+            return_value=now,
+        ),
+        patch.object(switch, "_sleep_start", return_value=sleep_start),
+        patch(
+            "homeassistant.components.adaptive_lighting.switch._supported_features",
+            return_value={"brightness", "color_temp"},
+        ),
+    ):
+        await switch.sleep_mode_switch.async_turn_on()
+        await switch._update_attrs_and_maybe_adapt_lights(context=context)
+        await hass.async_block_till_done()
+
+    assert switch._settings["force_rgb_color"] is True
+    assert ATTR_COLOR_TEMP_KELVIN in switch.manager.last_service_data[ENTITY_LIGHT_1]
+    assert ATTR_RGB_COLOR not in switch.manager.last_service_data[ENTITY_LIGHT_1]
 
 
 def test_lerp_color_hsv():

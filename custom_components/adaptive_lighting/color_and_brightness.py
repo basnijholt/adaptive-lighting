@@ -215,6 +215,9 @@ class SunLightSettings:
     min_brightness: int
     min_color_temp: int
     sleep_brightness: int
+    rgb_pre_sleep_time: datetime.timedelta
+    rgb_pre_sleep_brightness_min: int
+    rgb_pre_sleep_brightness_max: int
     sleep_rgb_or_color_temp: Literal["color_temp", "rgb_color"]
     sleep_color_temp: int
     sleep_rgb_color: tuple[int, int, int]
@@ -325,6 +328,39 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
+    def _in_rgb_pre_sleep(
+        self,
+        dt: datetime.datetime,
+        is_sleep: bool,
+        sleep_start: datetime.datetime | None,
+    ) -> bool:
+        """Return whether RGB-only pre-sleep mode should be used."""
+        return (
+            is_sleep
+            and sleep_start is not None
+            and self.rgb_pre_sleep_time > datetime.timedelta()
+            and dt < sleep_start + self.rgb_pre_sleep_time
+        )
+
+    def _rgb_pre_sleep_brightness_pct(self, dt: datetime.datetime) -> float:
+        """Map the normal brightness curve onto the configured RGB pre-sleep range."""
+        brightness_pct = self.brightness_pct(dt, is_sleep=False)
+        assert brightness_pct is not None
+        if self.max_brightness == self.min_brightness:
+            return self.rgb_pre_sleep_brightness_max
+        scaled = lerp(
+            brightness_pct,
+            x1=self.min_brightness,
+            x2=self.max_brightness,
+            y1=self.rgb_pre_sleep_brightness_min,
+            y2=self.rgb_pre_sleep_brightness_max,
+        )
+        return clamp(
+            scaled,
+            self.rgb_pre_sleep_brightness_min,
+            self.rgb_pre_sleep_brightness_max,
+        )
+
     def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""
         if sun_position > 0:
@@ -344,14 +380,24 @@ class SunLightSettings:
         self,
         dt: datetime.datetime,
         is_sleep: bool,
+        sleep_start: datetime.datetime | None = None,
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
-        brightness_pct = self.brightness_pct(dt, is_sleep)
-        if is_sleep:
+        rgb_pre_sleep = self._in_rgb_pre_sleep(dt, is_sleep, sleep_start)
+        brightness_pct = (
+            self._rgb_pre_sleep_brightness_pct(dt)
+            if rgb_pre_sleep
+            else self.brightness_pct(dt, is_sleep)
+        )
+        if rgb_pre_sleep:
+            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            rgb_color = self.sleep_rgb_color
+            force_rgb_color = True
+        elif is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
         elif (
@@ -394,13 +440,14 @@ class SunLightSettings:
         self,
         is_sleep: bool,
         transition: float | None,
+        sleep_start: datetime.datetime | None = None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
         Calculating all values takes <0.5ms.
         """
         dt = utcnow() + timedelta(seconds=transition or 0)
-        return self.brightness_and_color(dt, is_sleep)
+        return self.brightness_and_color(dt, is_sleep, sleep_start)
 
 
 def find_a_b(x1: float, x2: float, y1: float, y2: float) -> tuple[float, float]:

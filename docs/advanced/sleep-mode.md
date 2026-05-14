@@ -29,6 +29,9 @@ Sleep mode is configured through the main Adaptive Lighting configuration. See t
 | Option | Default | Description |
 |--------|---------|-------------|
 | `sleep_brightness` | 1 | Brightness percentage in sleep mode |
+| `rgb_pre_sleep_time` | 0 | Seconds to stay in RGB-only pre-sleep mode after sleep mode turns on |
+| `rgb_pre_sleep_brightness_min` | 1 | Minimum brightness percentage during RGB-only pre-sleep mode |
+| `rgb_pre_sleep_brightness_max` | 100 | Maximum brightness percentage during RGB-only pre-sleep mode |
 | `sleep_rgb_or_color_temp` | `color_temp` | Use `rgb_color` or `color_temp` in sleep mode |
 | `sleep_color_temp` | 1000 | Color temperature in Kelvin for sleep mode |
 | `sleep_rgb_color` | `[255, 56, 0]` | RGB color for sleep mode |

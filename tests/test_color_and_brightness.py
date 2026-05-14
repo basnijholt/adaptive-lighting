@@ -7,6 +7,7 @@ from astral.location import Location
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
     SunEvent,
     SunEvents,
+    SunLightSettings,
 )
 
 # Create a mock astral_location object
@@ -207,3 +208,84 @@ def test_closest_event(tzinfo_and_location):
     event_name, ts = sun_events.closest_event(sunrise)
     assert event_name == SunEvent.SUNRISE
     assert ts == location.sunrise(sunrise.date()).timestamp()
+
+
+def test_rgb_pre_sleep_uses_rgb_color_and_scaled_brightness():
+    tzinfo = zoneinfo.ZoneInfo("UTC")
+    light_settings = SunLightSettings(
+        name="test",
+        astral_location=location,
+        adapt_until_sleep=False,
+        max_brightness=100,
+        max_color_temp=5500,
+        min_brightness=20,
+        min_color_temp=2000,
+        sleep_brightness=1,
+        rgb_pre_sleep_time=dt.timedelta(minutes=30),
+        rgb_pre_sleep_brightness_min=5,
+        rgb_pre_sleep_brightness_max=25,
+        sleep_rgb_or_color_temp="color_temp",
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=dt.time(6, 0),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=dt.time(18, 0),
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=15),
+        brightness_mode_time_light=dt.timedelta(hours=1),
+        brightness_mode="default",
+        timezone=tzinfo,
+    )
+    now = dt.datetime(2022, 1, 1, 21, 0, tzinfo=dt.UTC)
+    sleep_start = now - dt.timedelta(minutes=10)
+
+    normal = light_settings.brightness_and_color(now, is_sleep=False)
+    pre_sleep = light_settings.brightness_and_color(
+        now,
+        is_sleep=True,
+        sleep_start=sleep_start,
+    )
+    assert pre_sleep["rgb_color"] == (255, 56, 0)
+    assert pre_sleep["force_rgb_color"] is True
+    expected = 5 + ((normal["brightness_pct"] - 20) / (100 - 20)) * (25 - 5)
+    assert pre_sleep["brightness_pct"] == pytest.approx(expected)
+
+
+def test_rgb_pre_sleep_expires_into_sleep_mode():
+    tzinfo = zoneinfo.ZoneInfo("UTC")
+    light_settings = SunLightSettings(
+        name="test",
+        astral_location=location,
+        adapt_until_sleep=False,
+        max_brightness=100,
+        max_color_temp=5500,
+        min_brightness=1,
+        min_color_temp=2000,
+        sleep_brightness=3,
+        rgb_pre_sleep_time=dt.timedelta(minutes=30),
+        rgb_pre_sleep_brightness_min=10,
+        rgb_pre_sleep_brightness_max=20,
+        sleep_rgb_or_color_temp="rgb_color",
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=dt.time(6, 0),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=dt.time(18, 0),
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=15),
+        brightness_mode_time_light=dt.timedelta(hours=1),
+        brightness_mode="default",
+        timezone=tzinfo,
+    )
+    now = dt.datetime(2022, 1, 1, 21, 0, tzinfo=dt.UTC)
+    sleep_start = now - dt.timedelta(minutes=31)
+
+    sleep = light_settings.brightness_and_color(
+        now, is_sleep=True, sleep_start=sleep_start
+    )
+    assert sleep["brightness_pct"] == 3
+    assert sleep["force_rgb_color"] is False
