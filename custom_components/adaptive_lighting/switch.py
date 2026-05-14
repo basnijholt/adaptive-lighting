@@ -114,6 +114,9 @@ from .const import (
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
+    CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX,
+    CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN,
+    CONF_RGB_PRE_SLEEP_TIME,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
@@ -945,6 +948,19 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
+        if data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX] < data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN]:
+            _LOGGER.warning(
+                "%s: Config mismatch: `rgb_pre_sleep_brightness_max` is smaller than "
+                "`rgb_pre_sleep_brightness_min`. Adjusting config by swapping both values.",
+                self._name,
+            )
+            (
+                data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN],
+                data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX],
+            ) = (
+                data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX],
+                data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN],
+            )
 
         self._sun_light_settings = SunLightSettings(
             name=self._name,
@@ -955,6 +971,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             min_brightness=data[CONF_MIN_BRIGHTNESS],
             min_color_temp=data[CONF_MIN_COLOR_TEMP],
             sleep_brightness=data[CONF_SLEEP_BRIGHTNESS],
+            rgb_pre_sleep_time=data[CONF_RGB_PRE_SLEEP_TIME],
+            rgb_pre_sleep_brightness_min=data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN],
+            rgb_pre_sleep_brightness_max=data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX],
             sleep_color_temp=data[CONF_SLEEP_COLOR_TEMP],
             sleep_rgb_color=data[CONF_SLEEP_RGB_COLOR],
             sleep_rgb_or_color_temp=data[CONF_SLEEP_RGB_OR_COLOR_TEMP],
@@ -1003,6 +1022,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             name=self._name,
             entry_type=DeviceEntryType.SERVICE,
         )
+
+    def _sleep_start(self) -> datetime.datetime | None:
+        """Return when sleep mode was turned on, if active."""
+        if not self.sleep_mode_switch.is_on:
+            return None
+        state = self.hass.states.get(self.sleep_mode_switch.entity_id)
+        if state is None or state.state != STATE_ON:
+            return None
+        return state.last_changed.astimezone(UTC)
 
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
@@ -1224,6 +1252,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on,
             transition,
+            self._sleep_start(),
         )
 
         # Build service data.
@@ -1422,6 +1451,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._sun_light_settings.get_settings(
                 self.sleep_mode_switch.is_on,
                 transition,
+                self._sleep_start(),
             ),
         )
         self.async_write_ha_state()
