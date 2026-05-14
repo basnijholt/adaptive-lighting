@@ -948,7 +948,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
         location, _ = get_astral_location(self.hass)
-        if data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX] < data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN]:
+        if (
+            data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MAX]
+            < data[CONF_RGB_PRE_SLEEP_BRIGHTNESS_MIN]
+        ):
             _LOGGER.warning(
                 "%s: Config mismatch: `rgb_pre_sleep_brightness_max` is smaller than "
                 "`rgb_pre_sleep_brightness_min`. Adjusting config by swapping both values.",

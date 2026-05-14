@@ -284,6 +284,8 @@ def test_rgb_pre_sleep_expires_into_sleep_mode():
     now = dt.datetime(2022, 1, 1, 21, 0, tzinfo=dt.UTC)
     sleep_start = now - dt.timedelta(minutes=31)
 
-    sleep = light_settings.brightness_and_color(now, is_sleep=True, sleep_start=sleep_start)
+    sleep = light_settings.brightness_and_color(
+        now, is_sleep=True, sleep_start=sleep_start
+    )
     assert sleep["brightness_pct"] == 3
     assert sleep["force_rgb_color"] is False

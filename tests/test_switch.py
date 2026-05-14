@@ -2271,7 +2271,9 @@ async def test_rgb_pre_sleep_mode_uses_rgb_with_scaled_brightness(hass):
     assert 5 <= brightness_pct <= 25
     assert switch._settings["force_rgb_color"] is True
     assert ATTR_RGB_COLOR in switch.manager.last_service_data[ENTITY_LIGHT_1]
-    assert ATTR_COLOR_TEMP_KELVIN not in switch.manager.last_service_data[ENTITY_LIGHT_1]
+    assert (
+        ATTR_COLOR_TEMP_KELVIN not in switch.manager.last_service_data[ENTITY_LIGHT_1]
+    )
 
 
 async def test_rgb_pre_sleep_mode_keeps_color_temp_only_lights_working(hass):
