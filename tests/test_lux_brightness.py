@@ -10,6 +10,7 @@ from astral.location import Location
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
     SunLightSettings,
 )
+from homeassistant.components.adaptive_lighting.switch import AdaptiveSwitch
 
 # Create a mock astral_location object
 location = Location(LocationInfo())
@@ -185,51 +186,65 @@ class TestGetSettingsWithLux:
         assert result["brightness_pct"] == 55.0
 
 
+class _LuxBufferFixture:
+    """Minimal stand-in that binds the real AdaptiveSwitch smoothing methods.
+
+    `_add_lux_sample` / `_get_smoothed_lux` only touch `_lux_samples`,
+    `_lux_smoothing_samples`, and `_lux_smoothing_window` — no hass, no
+    config entry — so we can exercise the production code paths directly.
+    """
+
+    _add_lux_sample = AdaptiveSwitch._add_lux_sample
+    _get_smoothed_lux = AdaptiveSwitch._get_smoothed_lux
+
+    def __init__(self, smoothing_samples: int = 5, smoothing_window: int = 300):
+        self._lux_samples: deque[tuple[float, float]] = deque()
+        self._lux_smoothing_samples = smoothing_samples
+        self._lux_smoothing_window = smoothing_window
+
+
 class TestLuxSamplesBuffer:
-    """Test the lux samples smoothing buffer logic."""
+    """Test the AdaptiveSwitch lux smoothing buffer."""
 
     def test_smoothing_average(self):
-        """Test that smoothing returns the average of samples."""
-        samples: deque[tuple[float, float]] = deque()
-        now = time.time()
-        samples.append((now - 10, 100.0))
-        samples.append((now - 5, 200.0))
-        samples.append((now, 300.0))
-
-        window = 300  # 5 minutes
-        cutoff = now - window
-        valid_samples = [value for timestamp, value in samples if timestamp >= cutoff]
-        avg = sum(valid_samples) / len(valid_samples)
-        assert avg == 200.0  # (100 + 200 + 300) / 3
+        """Smoothed value is the mean of samples inside the window."""
+        sw = _LuxBufferFixture()
+        sw._add_lux_sample(100.0)
+        sw._add_lux_sample(200.0)
+        sw._add_lux_sample(300.0)
+        assert sw._get_smoothed_lux() == 200.0
 
     def test_smoothing_filters_old_samples(self):
-        """Test that samples outside the time window are excluded."""
-        samples: deque[tuple[float, float]] = deque()
+        """Samples older than the window are excluded from the average."""
+        sw = _LuxBufferFixture(smoothing_window=300)
         now = time.time()
-        samples.append((now - 400, 100.0))  # Outside 300s window
-        samples.append((now - 200, 200.0))  # Inside window
-        samples.append((now - 100, 300.0))  # Inside window
+        sw._lux_samples.append((now - 400, 100.0))  # outside 300s window
+        sw._lux_samples.append((now - 200, 200.0))  # inside
+        sw._lux_samples.append((now - 100, 300.0))  # inside
+        assert sw._get_smoothed_lux() == 250.0
 
-        window = 300
-        cutoff = now - window
-        valid_samples = [value for timestamp, value in samples if timestamp >= cutoff]
-        avg = sum(valid_samples) / len(valid_samples)
-        assert avg == 250.0  # (200 + 300) / 2
+    def test_empty_buffer_returns_none(self):
+        """An empty buffer yields None."""
+        sw = _LuxBufferFixture()
+        assert sw._get_smoothed_lux() is None
 
-    def test_empty_samples_returns_none(self):
-        """Test that empty samples returns None."""
-        samples: deque[tuple[float, float]] = deque()
-        assert len(samples) == 0
-        # In actual implementation, _get_smoothed_lux returns None when empty
+    def test_all_samples_expired_falls_back_to_most_recent(self):
+        """When every sample is outside the window, return the most recent value.
 
-    def test_all_samples_expired_returns_none(self):
-        """Test that when all samples are outside the window, None is returned."""
-        samples: deque[tuple[float, float]] = deque()
+        Intentional per _get_smoothed_lux docstring — a stale value is a more
+        useful signal mid-adaptation than None (which would force a silent
+        revert to the sun-based fallback).
+        """
+        sw = _LuxBufferFixture(smoothing_window=300)
         now = time.time()
-        samples.append((now - 400, 100.0))  # Outside 300s window
-        samples.append((now - 350, 200.0))  # Outside 300s window
+        sw._lux_samples.append((now - 400, 100.0))
+        sw._lux_samples.append((now - 350, 200.0))
+        assert sw._get_smoothed_lux() == 200.0  # most recent fallback
 
-        window = 300
-        cutoff = now - window
-        valid_samples = [value for timestamp, value in samples if timestamp >= cutoff]
-        assert len(valid_samples) == 0
+    def test_buffer_caps_at_smoothing_samples(self):
+        """The deque never exceeds _lux_smoothing_samples in length."""
+        sw = _LuxBufferFixture(smoothing_samples=3)
+        for value in (10.0, 20.0, 30.0, 40.0, 50.0):
+            sw._add_lux_sample(value)
+        assert len(sw._lux_samples) == 3
+        assert sw._get_smoothed_lux() == 40.0  # mean of 30, 40, 50
