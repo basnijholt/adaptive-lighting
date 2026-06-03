@@ -880,6 +880,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Lux smoothing: store historical lux readings with timestamps
         # Each entry is a tuple of (timestamp, lux_value)
         self._lux_history: deque[tuple[float, float]] = deque()
+        # Track the last seen lux state to avoid duplicate entries
+        self._last_lux_state: State | None = None
 
         # Set and unset tracker in async_turn_on and async_turn_off
         self.remove_listeners: list[CALLBACK_TYPE] = []
@@ -1168,18 +1170,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if samples <= 1:
             return raw_lux
 
-        # Add current reading to history with timestamp
-        now = time.time()
-        self._lux_history.append((now, raw_lux))
+        # Only add to history if the sensor state has actually changed
+        # This prevents duplicate entries when _get_lux_value() is called multiple times
+        # during the same sensor reading
+        if self._last_lux_state is None or lux_state.last_updated != self._last_lux_state.last_updated:
+            now = time.time()
+            self._lux_history.append((now, raw_lux))
+            self._last_lux_state = lux_state
 
-        # Remove readings outside the time window
-        window_start = now - window
-        while self._lux_history and self._lux_history[0][0] < window_start:
-            self._lux_history.popleft()
+            # Remove readings outside the time window
+            window_start = now - window
+            while self._lux_history and self._lux_history[0][0] < window_start:
+                self._lux_history.popleft()
 
-        # Limit to max number of samples
-        while len(self._lux_history) > samples:
-            self._lux_history.popleft()
+            # Limit to max number of samples
+            while len(self._lux_history) > samples:
+                self._lux_history.popleft()
 
         # Calculate moving average
         if not self._lux_history:
