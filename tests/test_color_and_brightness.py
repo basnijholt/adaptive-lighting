@@ -342,7 +342,7 @@ def test_lux_compensation_at_minimum(sun_light_settings_base):
     settings = replace(
         sun_light_settings_base,
         lux_sensor="sensor.illuminance",
-        lux_brightness_reduction_factor=1.0  # Full reduction,
+        lux_brightness_reduction_factor=1.0,  # Full reduction,
     )
 
     # At noon, expected lux is at max (10000)

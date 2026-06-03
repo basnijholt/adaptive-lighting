@@ -1173,7 +1173,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         # Only add to history if the sensor state has actually changed
         # This prevents duplicate entries when _get_lux_value() is called multiple times
         # during the same sensor reading
-        if self._last_lux_state is None or lux_state.last_updated != self._last_lux_state.last_updated:
+        if (
+            self._last_lux_state is None
+            or lux_state.last_updated != self._last_lux_state.last_updated
+        ):
             now = time.time()
             self._lux_history.append((now, raw_lux))
             self._last_lux_state = lux_state
