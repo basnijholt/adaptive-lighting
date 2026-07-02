@@ -2746,7 +2746,45 @@ class AdaptiveLightingManager:
         id_off_to_on = off_to_on_event.context.id
         return turn_on_event is not None and id_off_to_on == turn_on_event.context.id
 
-    async def just_turned_off(  # noqa: PLR0911
+    def _member_turn_on_explains_group_turn_on(
+        self,
+        entity_id: str,
+        on_to_off_event: Event[EventStateChangedData],
+        off_to_on_event: Event[EventStateChangedData],
+    ) -> bool:
+        """Check if a light group's 'off' → 'on' is caused by a member's 'light.turn_on'.
+
+        When a member of a light group is turned on while the group is off, the
+        group turns on as a side effect. Home Assistant may reuse the context of
+        an earlier 'light.turn_off' call for the group's state change (entities
+        keep their context for a few seconds), which makes the group's turn-on
+        look like a polling artifact of the turn-off.
+        See https://github.com/basnijholt/adaptive-lighting/issues/1378
+        """
+        state = self.hass.states.get(entity_id)
+        if state is None or not _is_light_group(state):
+            return False
+        members: list[str] = state.attributes[ATTR_ENTITY_ID]
+        for member in members:
+            member_turn_on = self.turn_on_event.get(member)
+            if (
+                member_turn_on is not None
+                and on_to_off_event.time_fired
+                < member_turn_on.time_fired
+                <= off_to_on_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "just_turned_off: Light group '%s' turned on because its member"
+                    " '%s' was turned on (context.id='%s'), so this is a legitimate"
+                    " turn-on, not a polling artifact.",
+                    entity_id,
+                    member,
+                    member_turn_on.context.id,
+                )
+                return True
+        return False
+
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2773,7 +2811,22 @@ class AdaptiveLightingManager:
             )
             return False
 
+        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
+            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
+            from_service = "light.toggle" if is_toggle else "light.turn_on"
+            _LOGGER.debug(
+                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
+                from_service,
+            )
+            return False
+
         if off_to_on_event.context.id == on_to_off_event.context.id:
+            if self._member_turn_on_explains_group_turn_on(
+                entity_id,
+                on_to_off_event,
+                off_to_on_event,
+            ):
+                return False
             _LOGGER.debug(
                 "just_turned_off: 'on' → 'off' state change has the same context.id as the"
                 " 'off' → 'on' state change for '%s'. This is probably a false positive.",
@@ -2788,15 +2841,6 @@ class AdaptiveLightingManager:
             transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
         else:
             transition = None
-
-        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
-            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
-            from_service = "light.toggle" if is_toggle else "light.turn_on"
-            _LOGGER.debug(
-                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
-                from_service,
-            )
-            return False
 
         if (
             turn_off_event is not None
