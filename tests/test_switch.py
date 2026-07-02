@@ -2551,6 +2551,88 @@ async def test_just_turned_off_same_automation_context(hass, cleanup):
     )
     assert await manager.just_turned_off(ENTITY_LIGHT_1)
 
+    # A stale turn_on *sharing the automation's context* but fired before the
+    # 'on' → 'off' state change (i.e., 'turn_on' → delay → 'turn_off' in one
+    # automation run) does not explain the 'off' → 'on' state change either:
+    # `turn_on_event` entries are never cleaned up, so without the time bounds
+    # this would defeat the polling-artifact detection.
+    manager.turn_on_event[ENTITY_LIGHT_1] = _turn_on_service_event(
+        [ENTITY_LIGHT_1],
+        now - 10,
+        automation_context,
+    )
+    assert await manager.just_turned_off(ENTITY_LIGHT_1)
+
+
+async def test_just_turned_off_group_context_reuse_end_to_end(hass, cleanup):
+    """Drive the issue #1378 scenario through the real event bus listeners.
+
+    Unlike `test_just_turned_off_group_context_reuse`, which calls
+    `just_turned_off` directly, this test fires the service and state-changed
+    events on the bus. Light groups are normally expanded out of
+    `manager.lights`, but they can remain tracked in real setups (e.g., when a
+    group is nested inside another configured group or is unavailable during
+    setup), which is the configuration under which issue #1378 was reported.
+    """
+    await setup_lights(hass, with_group=True)
+    _, switch = await setup_switch(hass, {CONF_LIGHTS: ["light.light_group"]})
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    group = "light.light_group"
+    member = "light.light_4"
+    assert member in manager.lights
+    # Simulate a setup in which the group entity itself remains tracked.
+    manager.lights.add(group)
+
+    turn_off_context = Context()
+    # The group was turned off...
+    hass.bus.async_fire(
+        EVENT_STATE_CHANGED,
+        {
+            "entity_id": group,
+            "old_state": State(group, STATE_ON),
+            "new_state": State(group, STATE_OFF),
+        },
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+    assert group in manager.on_to_off_event
+
+    # ...then an automation turned on a member light with a fresh context...
+    hass.bus.async_fire(
+        EVENT_CALL_SERVICE,
+        {
+            "domain": LIGHT_DOMAIN,
+            "service": SERVICE_TURN_ON,
+            "service_data": {ATTR_ENTITY_ID: [member]},
+        },
+        context=Context(),
+    )
+    await hass.async_block_till_done()
+    assert member in manager.turn_on_event
+
+    # ...which turned the group back on, but HA reused the old turn_off context.
+    with patch.object(
+        AdaptiveSwitch,
+        "_respond_to_off_to_on_event",
+        AsyncMock(),
+    ) as respond:
+        hass.bus.async_fire(
+            EVENT_STATE_CHANGED,
+            {
+                "entity_id": group,
+                "old_state": State(group, STATE_OFF),
+                "new_state": State(group, STATE_ON),
+            },
+            context=turn_off_context,
+        )
+        await hass.async_block_till_done()
+
+    # Adaptation must not have been cancelled as a polling artifact.
+    respond.assert_called_once()
+    assert respond.call_args[0][0] == group
+
 
 @pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])
 @pytest.mark.parametrize(("dark", "light"), ([900, 1800], [1800, 900], [1800, 1800]))

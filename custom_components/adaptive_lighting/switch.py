@@ -2811,16 +2811,29 @@ class AdaptiveLightingManager:
             )
             return False
 
-        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
-            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
-            from_service = "light.toggle" if is_toggle else "light.turn_on"
-            _LOGGER.debug(
-                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
-                from_service,
-            )
-            return False
-
         if off_to_on_event.context.id == on_to_off_event.context.id:
+            # Matching context IDs usually mean a polling artifact (HA briefly
+            # reports 'on' while the light is still turning off). However, the
+            # context is also reused when e.g. one automation turns the light
+            # off and later back on, or when an integration writes the state
+            # with the entity's cached context. Only treat the state change as
+            # a legitimate turn-on if a 'light.turn_on' call for this light (or
+            # for a member of this light group) fired between the two state
+            # changes.
+            turn_on_event = self.turn_on_event.get(entity_id)
+            if (
+                turn_on_event is not None
+                and on_to_off_event.time_fired
+                < turn_on_event.time_fired
+                <= off_to_on_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "just_turned_off: 'light.turn_on' was called for '%s' between its"
+                    " 'on' → 'off' and 'off' → 'on' state changes, so this is a"
+                    " legitimate turn-on, not a polling artifact.",
+                    entity_id,
+                )
+                return False
             if self._member_turn_on_explains_group_turn_on(
                 entity_id,
                 on_to_off_event,
@@ -2841,6 +2854,15 @@ class AdaptiveLightingManager:
             transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
         else:
             transition = None
+
+        if self._off_to_on_state_event_is_from_turn_on(entity_id, off_to_on_event):
+            is_toggle = off_to_on_event == self.toggle_event.get(entity_id)
+            from_service = "light.toggle" if is_toggle else "light.turn_on"
+            _LOGGER.debug(
+                "just_turned_off: State change 'off' → 'on' triggered by '%s'",
+                from_service,
+            )
+            return False
 
         if (
             turn_off_event is not None
