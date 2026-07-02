@@ -409,6 +409,11 @@ Expose only the group (not individual bulbs) in Home Assistant Dashboards and ex
 
 > :warning: **If you control lights individually, `manual_control` cannot behave correctly! If you need to control lights individually as well, use a [Home Assistant Light Group](https://www.home-assistant.io/integrations/group/).**
 
+When mixing group types, avoid nesting: do not add integration-level groups (e.g., Zigbee2MQTT groups) to a [Home Assistant Light Group](https://www.home-assistant.io/integrations/group/) that is managed by Adaptive Lighting, and do not nest Home Assistant Light Groups inside each other.
+Adaptive Lighting cannot expand an integration-level group into its member lights, and nested groups make it unpredictable which entity Adaptive Lighting tracks and adapts, which can prevent lights from being adapted at all (see [#1378](https://github.com/basnijholt/adaptive-lighting/issues/1378)).
+Instead, add the individual light entities or a single Zigbee group directly to the Adaptive Lighting configuration.
+Also note that bulbs turned on via a Zigbee group broadcast may briefly flash their last (cached) brightness and color before the adapted values arrive; this happens inside the bulbs and cannot be prevented by Home Assistant or Adaptive Lighting.
+
 #### :rainbow: Light Colors Not Matching
 
 Bulbs from different manufacturers or models may have varying color temperature specifications. For instance, if you have two Adaptive Lighting configurations—one with only Philips Hue White Ambiance bulbs and another with a mix of Philips Hue White Ambiance and Sengled bulbs—the Philips Hue bulbs may appear to have different color temperatures despite having identical settings.
