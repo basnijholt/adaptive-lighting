@@ -11,16 +11,14 @@ from dataclasses import dataclass
 from datetime import UTC, timedelta
 from enum import Enum
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import Any, Literal, cast
 
+import astral.sun
 from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
 )
-
-if TYPE_CHECKING:
-    import astral.location
 
 
 class SunEvent(str, Enum):
@@ -48,7 +46,7 @@ class SunEvents:
     """Track the state of the sun and associated light settings."""
 
     name: str
-    astral_location: astral.location.Location
+    astral_observer: astral.Observer
     sunrise_time: datetime.time | None
     min_sunrise_time: datetime.time | None
     max_sunrise_time: datetime.time | None
@@ -62,7 +60,7 @@ class SunEvents:
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
         sunrise = (
-            self.astral_location.sunrise(dt, local=False)
+            astral.sun.sunrise(self.astral_observer, dt)
             if self.sunrise_time is None
             else self._replace_time(dt, self.sunrise_time)
         ) + self.sunrise_offset
@@ -77,7 +75,7 @@ class SunEvents:
     def sunset(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunset time for the given datetime."""
         sunset = (
-            self.astral_location.sunset(dt, local=False)
+            astral.sun.sunset(self.astral_observer, dt)
             if self.sunset_time is None
             else self._replace_time(dt, self.sunset_time)
         ) + self.sunset_offset
@@ -113,8 +111,8 @@ class SunEvents:
             and self.min_sunset_time is None
             and self.max_sunset_time is None
         ):
-            solar_noon = self.astral_location.noon(dt, local=False)
-            solar_midnight = self.astral_location.midnight(dt, local=False)
+            solar_noon = astral.sun.noon(self.astral_observer, dt)
+            solar_midnight = astral.sun.midnight(self.astral_observer, dt)
             return solar_noon, solar_midnight
 
         if sunset is None:
@@ -208,7 +206,7 @@ class SunLightSettings:
     """Track the state of the sun and associated light settings."""
 
     name: str
-    astral_location: astral.location.Location
+    astral_observer: astral.Observer
     adapt_until_sleep: bool
     max_brightness: int
     max_color_temp: int
@@ -236,7 +234,7 @@ class SunLightSettings:
         """Return the SunEvents object."""
         return SunEvents(
             name=self.name,
-            astral_location=self.astral_location,
+            astral_observer=self.astral_observer,
             sunrise_time=self.sunrise_time,
             sunrise_offset=self.sunrise_offset,
             min_sunrise_time=self.min_sunrise_time,

@@ -66,7 +66,6 @@ from homeassistant.helpers.event import (
     async_track_time_interval,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -163,6 +162,19 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.helpers.typing import NoEventData, VolDictType
+
+try:
+    from homeassistant.helpers.sun import get_astral_observer
+except ImportError:  # `get_astral_observer` was added in HA 2026.7
+    from astral import Observer
+
+    def get_astral_observer(hass: HomeAssistant) -> Observer:
+        """Get an astral observer for the current HA configuration."""
+        return Observer(
+            hass.config.latitude,
+            hass.config.longitude,
+            hass.config.elevation,
+        )
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -944,11 +956,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
-        location, _ = get_astral_location(self.hass)
+        observer = get_astral_observer(self.hass)
 
         self._sun_light_settings = SunLightSettings(
             name=self._name,
-            astral_location=location,
+            astral_observer=observer,
             adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
