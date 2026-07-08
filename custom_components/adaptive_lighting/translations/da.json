@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Adaptiv Belysnings indstillinger",
-        "description": "Alle indstillinger tilhørende en Adaptiv Belysnings komponent. Indstillingernes navne svarer til YAML indstillingernes. Ingen indstillinger vises hvis du allerede har konfigureret den i YAML.",
+        "description": "Alle indstillinger tilhørende en Adaptiv Belysnings komponent. Indstillingernes navne svarer til YAML indstillingernes. Ingen indstillinger vises hvis du allerede har konfigureret den i YAML. Dokumentation: {docs_url} | Webapp: {webapp_url}",
         "data": {
           "lights": "lights: lyskilder",
           "initial_transition": "initial_transition: Hvor lang overgang når lyset går fra 'off' til 'on' eller når 'sleep_state' skiftes. (i sekunder)",
