@@ -9,7 +9,7 @@ from homeassistant.components.adaptive_lighting.color_and_brightness import (
     SunEvents,
 )
 
-# Create a mock astral_location object
+# Create a mock astral location object (its `.observer` is passed to `SunEvents`)
 location = Location(LocationInfo())
 
 LAT_LONG_TZS = [
@@ -40,7 +40,7 @@ def test_replace_time(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -61,7 +61,7 @@ def test_sunrise_without_offset(tzinfo_and_location):
 
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -79,7 +79,7 @@ def test_sun_position_no_fixed_sunset_and_sunrise(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -107,7 +107,7 @@ def test_sun_position_fixed_sunset_and_sunrise(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=dt.time(6, 0),
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -134,7 +134,7 @@ def test_noon_and_midnight(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -153,7 +153,7 @@ def test_sun_events(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -173,7 +173,7 @@ def test_prev_and_next_events(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,
@@ -193,7 +193,7 @@ def test_closest_event(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
         name="test",
-        astral_location=location,
+        astral_observer=location.observer,
         sunrise_time=None,
         min_sunrise_time=None,
         max_sunrise_time=None,

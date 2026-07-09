@@ -67,7 +67,6 @@ from homeassistant.helpers.event import (
     async_track_time_interval,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -169,6 +168,19 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.helpers.typing import NoEventData, VolDictType
+
+try:
+    from homeassistant.helpers.sun import get_astral_observer
+except ImportError:  # `get_astral_observer` was added in HA 2026.7
+    from astral import Observer
+
+    def get_astral_observer(hass: HomeAssistant) -> Observer:
+        """Get an astral observer for the current HA configuration."""
+        return Observer(
+            hass.config.latitude,
+            hass.config.longitude,
+            hass.config.elevation,
+        )
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -951,11 +963,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
-        location, _ = get_astral_location(self.hass)
+        observer = get_astral_observer(self.hass)
 
         self._sun_light_settings = SunLightSettings(
             name=self._name,
-            astral_location=location,
+            astral_observer=observer,
             adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
@@ -2902,7 +2914,45 @@ class AdaptiveLightingManager:
         id_off_to_on = off_to_on_event.context.id
         return turn_on_event is not None and id_off_to_on == turn_on_event.context.id
 
-    async def just_turned_off(  # noqa: PLR0911
+    def _member_turn_on_explains_group_turn_on(
+        self,
+        entity_id: str,
+        on_to_off_event: Event[EventStateChangedData],
+        off_to_on_event: Event[EventStateChangedData],
+    ) -> bool:
+        """Check if a light group's 'off' → 'on' is caused by a member's 'light.turn_on'.
+
+        When a member of a light group is turned on while the group is off, the
+        group turns on as a side effect. Home Assistant may reuse the context of
+        an earlier 'light.turn_off' call for the group's state change (entities
+        keep their context for a few seconds), which makes the group's turn-on
+        look like a polling artifact of the turn-off.
+        See https://github.com/basnijholt/adaptive-lighting/issues/1378
+        """
+        state = self.hass.states.get(entity_id)
+        if state is None or not _is_light_group(state):
+            return False
+        members: list[str] = state.attributes[ATTR_ENTITY_ID]
+        for member in members:
+            member_turn_on = self.turn_on_event.get(member)
+            if (
+                member_turn_on is not None
+                and on_to_off_event.time_fired
+                < member_turn_on.time_fired
+                <= off_to_on_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "just_turned_off: Light group '%s' turned on because its member"
+                    " '%s' was turned on (context.id='%s'), so this is a legitimate"
+                    " turn-on, not a polling artifact.",
+                    entity_id,
+                    member,
+                    member_turn_on.context.id,
+                )
+                return True
+        return False
+
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2930,6 +2980,34 @@ class AdaptiveLightingManager:
             return False
 
         if off_to_on_event.context.id == on_to_off_event.context.id:
+            # Matching context IDs usually mean a polling artifact (HA briefly
+            # reports 'on' while the light is still turning off). However, the
+            # context is also reused when e.g. one automation turns the light
+            # off and later back on, or when an integration writes the state
+            # with the entity's cached context. Only treat the state change as
+            # a legitimate turn-on if a 'light.turn_on' call for this light (or
+            # for a member of this light group) fired between the two state
+            # changes.
+            turn_on_event = self.turn_on_event.get(entity_id)
+            if (
+                turn_on_event is not None
+                and on_to_off_event.time_fired
+                < turn_on_event.time_fired
+                <= off_to_on_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "just_turned_off: 'light.turn_on' was called for '%s' between its"
+                    " 'on' → 'off' and 'off' → 'on' state changes, so this is a"
+                    " legitimate turn-on, not a polling artifact.",
+                    entity_id,
+                )
+                return False
+            if self._member_turn_on_explains_group_turn_on(
+                entity_id,
+                on_to_off_event,
+                off_to_on_event,
+            ):
+                return False
             _LOGGER.debug(
                 "just_turned_off: 'on' → 'off' state change has the same context.id as the"
                 " 'off' → 'on' state change for '%s'. This is probably a false positive.",

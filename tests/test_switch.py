@@ -97,6 +97,7 @@ except ImportError:
     # HA < 2025.8
     from homeassistant.components.template.light import LightTemplate
 
+from homeassistant.components.template import light as template_light
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
@@ -120,6 +121,10 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 
 from tests.common import MockConfigEntry
+
+# HA 2026.6 removed the legacy `light: platform: template` YAML format
+# (home-assistant/core#169615); use the modern `template:` format there.
+LEGACY_TEMPLATE_LIGHTS = hasattr(template_light, "PLATFORM_SCHEMA")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -200,37 +205,65 @@ async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitc
 async def setup_lights(hass: HomeAssistant, with_group: bool = False):
     """Set up 3 light entities using the 'template' platform."""
     n = 3 if not with_group else 5  # last 2 will be put in a group
-    template_lights = {
-        f"light_{i}": {
-            "unique_id": f"light_{i}",
-            "friendly_name": f"light_{i}",
-            "turn_on": None,
-            "turn_off": None,
-            "set_level": None,
-            "set_temperature": None,
-            "set_color": None,
-        }
-        for i in range(1, n + 1)
+
+    group_platform = {
+        "platform": "group",
+        "entities": ["light.light_4", "light.light_5"],
+        "name": "Light Group",
+        "unique_id": "light_group",
+        "all": "false",
     }
-    template_lights["light_3"]["supports_transition_template"] = True
-    platforms = [{"platform": "template", "lights": template_lights}]
 
-    if with_group:
-        platforms.append(
-            {
-                "platform": "group",
-                "entities": ["light.light_4", "light.light_5"],
-                "name": "Light Group",
-                "unique_id": "light_group",
-                "all": "false",
-            },
+    if LEGACY_TEMPLATE_LIGHTS:
+        template_lights = {
+            f"light_{i}": {
+                "unique_id": f"light_{i}",
+                "friendly_name": f"light_{i}",
+                "turn_on": None,
+                "turn_off": None,
+                "set_level": None,
+                "set_temperature": None,
+                "set_color": None,
+            }
+            for i in range(1, n + 1)
+        }
+        template_lights["light_3"]["supports_transition_template"] = True
+        platforms = [{"platform": "template", "lights": template_lights}]
+        if with_group:
+            platforms.append(group_platform)
+        await async_setup_component(
+            hass,
+            LIGHT_DOMAIN,
+            {LIGHT_DOMAIN: platforms},
         )
-
-    await async_setup_component(
-        hass,
-        LIGHT_DOMAIN,
-        {LIGHT_DOMAIN: platforms},
-    )
+    else:
+        if with_group:
+            # Setting up `template` below also sets up the `light` domain,
+            # after which `async_setup_component(hass, LIGHT_DOMAIN, ...)`
+            # would be a no-op, so the group platform must be set up first.
+            await async_setup_component(
+                hass,
+                LIGHT_DOMAIN,
+                {LIGHT_DOMAIN: [group_platform]},
+            )
+        modern_lights = [
+            {
+                "name": f"light_{i}",
+                "unique_id": f"light_{i}",
+                "turn_on": None,
+                "turn_off": None,
+                "set_level": None,
+                "set_temperature": None,
+                "set_hs": None,
+            }
+            for i in range(1, n + 1)
+        ]
+        modern_lights[2]["supports_transition"] = "{{ true }}"
+        await async_setup_component(
+            hass,
+            "template",
+            {"template": {"light": modern_lights}},
+        )
     await hass.async_block_till_done()
 
     if with_group:
@@ -2394,6 +2427,211 @@ async def test_light_group(
         ]
         assert ":skpp:" in events[2].context.id
         assert len(events) == 3
+
+
+def _state_changed_event(entity_id: str, ts: float, context: Context) -> Event:
+    return Event(
+        EVENT_STATE_CHANGED,
+        {"entity_id": entity_id},
+        time_fired_timestamp=ts,
+        context=context,
+    )
+
+
+def _turn_on_service_event(entity_ids: list[str], ts: float, context: Context) -> Event:
+    return Event(
+        EVENT_CALL_SERVICE,
+        {
+            "domain": LIGHT_DOMAIN,
+            "service": SERVICE_TURN_ON,
+            "service_data": {ATTR_ENTITY_ID: entity_ids},
+        },
+        time_fired_timestamp=ts,
+        context=context,
+    )
+
+
+async def test_just_turned_off_group_context_reuse(hass, cleanup):
+    """Group 'off' → 'on' with a reused 'turn_off' context must still adapt.
+
+    When a member of a light group is turned on (e.g., by a motion sensor
+    automation) while the group is off, the group turns on as a side effect,
+    but Home Assistant may reuse the context of the earlier 'turn_off' call
+    for the group's state change. `just_turned_off` used to treat this as a
+    polling artifact and cancel adaptation.
+
+    Regression test for https://github.com/basnijholt/adaptive-lighting/issues/1378
+    """
+    await setup_lights(hass, with_group=True)
+    _, switch = await setup_switch(hass, {CONF_LIGHTS: ["light.light_group"]})
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    group = "light.light_group"
+    member = "light.light_4"
+    now = dt_util.utcnow().timestamp()
+    turn_off_context = Context()
+
+    # The group was turned off 2 seconds ago...
+    manager.on_to_off_event[group] = _state_changed_event(
+        group,
+        now - 2,
+        turn_off_context,
+    )
+    # ...then an automation turned on a member light with a fresh context...
+    manager.turn_on_event[member] = _turn_on_service_event(
+        [member],
+        now - 0.5,
+        Context(),
+    )
+    # ...which turned the group back on, but HA reused the old turn_off context.
+    manager.off_to_on_event[group] = _state_changed_event(
+        group,
+        now,
+        turn_off_context,
+    )
+
+    # The member's turn_on explains the group's turn-on: adaptation must proceed.
+    assert not await manager.just_turned_off(group)
+
+    # A member turn_on from *before* the group was turned off does not explain
+    # the group's turn-on: this must still be treated as a polling artifact.
+    manager.turn_on_event[member] = _turn_on_service_event(
+        [member],
+        now - 10,
+        Context(),
+    )
+    assert await manager.just_turned_off(group)
+
+    # Without any member turn_on event, the matching context IDs must still be
+    # treated as a polling artifact.
+    del manager.turn_on_event[member]
+    assert await manager.just_turned_off(group)
+
+
+async def test_just_turned_off_same_automation_context(hass, cleanup):
+    """'turn_off' and 'turn_on' from one automation share a context.
+
+    An automation calling 'light.turn_off' and later 'light.turn_on' reuses
+    its own context for both service calls, so the 'on' → 'off' and
+    'off' → 'on' state changes have matching context IDs. The turn_on service
+    call must take precedence over the matching-context polling-artifact check.
+    """
+    await setup_lights(hass)
+    _, switch = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_1]})
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    now = dt_util.utcnow().timestamp()
+    automation_context = Context()
+
+    manager.on_to_off_event[ENTITY_LIGHT_1] = _state_changed_event(
+        ENTITY_LIGHT_1,
+        now - 2,
+        automation_context,
+    )
+    manager.turn_on_event[ENTITY_LIGHT_1] = _turn_on_service_event(
+        [ENTITY_LIGHT_1],
+        now - 0.5,
+        automation_context,
+    )
+    manager.off_to_on_event[ENTITY_LIGHT_1] = _state_changed_event(
+        ENTITY_LIGHT_1,
+        now,
+        automation_context,
+    )
+    assert not await manager.just_turned_off(ENTITY_LIGHT_1)
+
+    # A stale turn_on with an unrelated context does not explain the
+    # 'off' → 'on' state change: still a polling artifact.
+    manager.turn_on_event[ENTITY_LIGHT_1] = _turn_on_service_event(
+        [ENTITY_LIGHT_1],
+        now - 10,
+        Context(),
+    )
+    assert await manager.just_turned_off(ENTITY_LIGHT_1)
+
+    # A stale turn_on *sharing the automation's context* but fired before the
+    # 'on' → 'off' state change (i.e., 'turn_on' → delay → 'turn_off' in one
+    # automation run) does not explain the 'off' → 'on' state change either:
+    # `turn_on_event` entries are never cleaned up, so without the time bounds
+    # this would defeat the polling-artifact detection.
+    manager.turn_on_event[ENTITY_LIGHT_1] = _turn_on_service_event(
+        [ENTITY_LIGHT_1],
+        now - 10,
+        automation_context,
+    )
+    assert await manager.just_turned_off(ENTITY_LIGHT_1)
+
+
+async def test_just_turned_off_group_context_reuse_end_to_end(hass, cleanup):
+    """Drive the issue #1378 scenario through the real event bus listeners.
+
+    Unlike `test_just_turned_off_group_context_reuse`, which calls
+    `just_turned_off` directly, this test fires the service and state-changed
+    events on the bus. Light groups are normally expanded out of
+    `manager.lights`, but they can remain tracked in real setups (e.g., when a
+    group is nested inside another configured group or is unavailable during
+    setup), which is the configuration under which issue #1378 was reported.
+    """
+    await setup_lights(hass, with_group=True)
+    _, switch = await setup_switch(hass, {CONF_LIGHTS: ["light.light_group"]})
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    group = "light.light_group"
+    member = "light.light_4"
+    assert member in manager.lights
+    # Simulate a setup in which the group entity itself remains tracked.
+    manager.lights.add(group)
+
+    turn_off_context = Context()
+    # The group was turned off...
+    hass.bus.async_fire(
+        EVENT_STATE_CHANGED,
+        {
+            "entity_id": group,
+            "old_state": State(group, STATE_ON),
+            "new_state": State(group, STATE_OFF),
+        },
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+    assert group in manager.on_to_off_event
+
+    # ...then an automation turned on a member light with a fresh context...
+    hass.bus.async_fire(
+        EVENT_CALL_SERVICE,
+        {
+            "domain": LIGHT_DOMAIN,
+            "service": SERVICE_TURN_ON,
+            "service_data": {ATTR_ENTITY_ID: [member]},
+        },
+        context=Context(),
+    )
+    await hass.async_block_till_done()
+    assert member in manager.turn_on_event
+
+    # ...which turned the group back on, but HA reused the old turn_off context.
+    with patch.object(
+        AdaptiveSwitch,
+        "_respond_to_off_to_on_event",
+        AsyncMock(),
+    ) as respond:
+        hass.bus.async_fire(
+            EVENT_STATE_CHANGED,
+            {
+                "entity_id": group,
+                "old_state": State(group, STATE_OFF),
+                "new_state": State(group, STATE_ON),
+            },
+            context=turn_off_context,
+        )
+        await hass.async_block_till_done()
+
+    # Adaptation must not have been cancelled as a polling artifact.
+    respond.assert_called_once()
+    assert respond.call_args[0][0] == group
 
 
 @pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])

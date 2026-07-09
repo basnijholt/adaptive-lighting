@@ -7,6 +7,10 @@ deps = defaultdict(list)
 components, packages = [], []
 
 requirements = Path("core") / "requirements_test_all.txt"
+if not requirements.exists():
+    # Removed from HA core in 2026.8 (home-assistant/core#171530); the same
+    # per-integration annotations live in requirements_all.txt.
+    requirements = Path("core") / "requirements_all.txt"
 
 with requirements.open() as f:
     lines = f.readlines()

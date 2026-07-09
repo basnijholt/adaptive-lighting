@@ -12,9 +12,13 @@ uv pip install -r core/requirements_test.txt
 
 # HA 2026.4+ imports aiohasupervisor from tests/components/conftest.py
 # but pins it in requirements_test_all.txt instead of requirements_test.txt.
+# HA 2026.8+ removed requirements_test_all.txt (home-assistant/core#171530);
+# the pin lives in requirements_all.txt there.
 aiohasupervisor_req=""
 if [[ -f core/requirements_test_all.txt ]]; then
   aiohasupervisor_req="$(grep -m1 '^aiohasupervisor' core/requirements_test_all.txt || true)"
+elif [[ -f core/requirements_all.txt ]]; then
+  aiohasupervisor_req="$(grep -m1 '^aiohasupervisor' core/requirements_all.txt || true)"
 fi
 if [[ -n "${aiohasupervisor_req}" ]]; then
   uv pip install "${aiohasupervisor_req}"
