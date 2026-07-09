@@ -35,6 +35,11 @@ class SunEvent(str, Enum):
 _ORDER = (SunEvent.SUNRISE, SunEvent.NOON, SunEvent.SUNSET, SunEvent.MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
+# On polar days without a sunrise/sunset, synthetic sun events are placed this
+# far from solar noon (polar night) or solar midnight (midnight sun), giving a
+# 1-hour synthetic "day" or "night" so the adaptation cycle keeps working.
+_POLAR_SUN_EVENT_OFFSET = timedelta(minutes=30)
+
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
 
@@ -57,10 +62,48 @@ class SunEvents:
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
 
+    def _astral_sunrise_or_sunset(
+        self,
+        dt: datetime.date,
+        event: Literal[SunEvent.SUNRISE, SunEvent.SUNSET],
+    ) -> datetime.datetime:
+        """Return the astral sunrise/sunset, with a fallback for polar regions.
+
+        Above the polar circle the sun never crosses the horizon during polar
+        night and midnight sun, and `astral` raises a `ValueError` (see #1485).
+        On such days, synthesize a 1-hour "day" around solar noon (polar night)
+        or a 1-hour "night" around solar midnight (midnight sun), so the
+        adaptation cycle keeps working. The `(min/max)_(sunrise/sunset)_time`
+        options are applied on top of these synthetic times and can be used to
+        shape the resulting schedule.
+        """
+        astral_event = (
+            astral.sun.sunrise if event == SunEvent.SUNRISE else astral.sun.sunset
+        )
+        try:
+            return astral_event(self.astral_observer, dt)
+        except ValueError:
+            noon = astral.sun.noon(self.astral_observer, dt)
+            midnight = astral.sun.midnight(self.astral_observer, dt)
+            noon_elevation = astral.sun.elevation(self.astral_observer, noon)
+            midnight_elevation = astral.sun.elevation(self.astral_observer, midnight)
+            # The sum of the sun's highest and lowest elevation of the day is
+            # ≈2x the solar declination, so its sign robustly distinguishes
+            # midnight sun from polar night, even on the boundary days where
+            # one elevation hovers around the horizon.
+            if noon_elevation + midnight_elevation > 0:
+                # Midnight sun: the sun stays above the horizon all day.
+                if event == SunEvent.SUNRISE:
+                    return midnight + _POLAR_SUN_EVENT_OFFSET
+                return midnight + timedelta(hours=24) - _POLAR_SUN_EVENT_OFFSET
+            # Polar night: the sun stays below the horizon all day.
+            sign = -1 if event == SunEvent.SUNRISE else 1
+            return noon + sign * _POLAR_SUN_EVENT_OFFSET
+
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
         sunrise = (
-            astral.sun.sunrise(self.astral_observer, dt)
+            self._astral_sunrise_or_sunset(dt, SunEvent.SUNRISE)
             if self.sunrise_time is None
             else self._replace_time(dt, self.sunrise_time)
         ) + self.sunrise_offset
@@ -75,7 +118,7 @@ class SunEvents:
     def sunset(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunset time for the given datetime."""
         sunset = (
-            astral.sun.sunset(self.astral_observer, dt)
+            self._astral_sunrise_or_sunset(dt, SunEvent.SUNSET)
             if self.sunset_time is None
             else self._replace_time(dt, self.sunset_time)
         ) + self.sunset_offset
