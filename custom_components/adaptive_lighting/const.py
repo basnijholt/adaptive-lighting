@@ -297,6 +297,10 @@ DOCS[CONF_USE_DEFAULTS] = (
     'documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
 )
 
+CONF_HUE_KEYWORD, DEFAULT_HUE_KEYWORD = "hue_keyword", "None"
+DOCS[CONF_HUE_KEYWORD] = (
+    "Scenes witch contain this keyword will be updated on the HUE bridge"
+)
 TURNING_OFF_DELAY = 5
 
 DOCS_MANUAL_CONTROL = {
@@ -405,6 +409,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
+    (CONF_HUE_KEYWORD, NONE_STR, str),
 ]
 
 
@@ -473,6 +478,7 @@ def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+            vol.Optional(CONF_HUE_KEYWORD): cv.string,
         },
     )
 
