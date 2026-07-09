@@ -17,6 +17,9 @@ ICON_SLEEP = "mdi:sleep"
 
 DOMAIN = "adaptive_lighting"
 
+# Define NONE_STR early so it can be used as a default value
+NONE_STR = "None"
+
 
 class TakeOverControlMode(Enum):
     """Modes for pausing adaptation when control of a light is taken over externally."""
@@ -176,8 +179,9 @@ DOCS[CONF_MAX_SUNSET_TIME] = (
 
 CONF_BRIGHTNESS_MODE, DEFAULT_BRIGHTNESS_MODE = "brightness_mode", "default"
 DOCS[CONF_BRIGHTNESS_MODE] = (
-    "Brightness mode to use. Possible values are `default`, `linear`, and `tanh` "
-    "(uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈"
+    "Brightness mode to use. Possible values are `default`, `linear`, and `tanh`. "
+    "Both `linear` and `tanh` use `brightness_mode_time_dark` and `brightness_mode_time_light`. "
+    "Lux and weather adjustments are applied on top of the selected mode. 📈"
 )
 CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK = (
     "brightness_mode_time_dark",
@@ -194,6 +198,64 @@ CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT = (
 DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
     "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down "
     "the brightness after/before sunrise/sunset. 📈📉."
+)
+
+# Lux adjustment configuration
+CONF_LUX_SENSOR = "lux_sensor"
+DOCS[CONF_LUX_SENSOR] = (
+    "Entity ID of the illuminance sensor (optional, enables lux-based brightness adjustment). 💡"
+)
+
+CONF_LUX_MIN, DEFAULT_LUX_MIN = "lux_min", 0
+DOCS[CONF_LUX_MIN] = (
+    "Minimum lux value from the sensor (no brightness reduction applied). 🌞"
+)
+
+CONF_LUX_MAX, DEFAULT_LUX_MAX = "lux_max", 10000
+DOCS[CONF_LUX_MAX] = (
+    "Maximum lux value from the sensor (full brightness reduction applied). ☀️"
+)
+
+CONF_LUX_SMOOTHING_SAMPLES, DEFAULT_LUX_SMOOTHING_SAMPLES = "lux_smoothing_samples", 5
+DOCS[CONF_LUX_SMOOTHING_SAMPLES] = (
+    "Number of samples to use for smoothing lux readings (moving average). 📊"
+)
+
+CONF_LUX_SMOOTHING_WINDOW, DEFAULT_LUX_SMOOTHING_WINDOW = "lux_smoothing_window", 300
+DOCS[CONF_LUX_SMOOTHING_WINDOW] = "Time window in seconds for smoothing lux readings. ⏱️"
+
+CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR, DEFAULT_LUX_BRIGHTNESS_REDUCTION_FACTOR = (
+    "lux_brightness_reduction_factor",
+    0.5,
+)
+DOCS[CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR] = (
+    "Maximum brightness reduction factor (0-1) when lux is at minimum. "
+    "Linearly scales to 0 when lux is at maximum. 🌤️"
+)
+
+# Weather adjustment configuration
+CONF_WEATHER_ENTITY = "weather_entity"
+DOCS[CONF_WEATHER_ENTITY] = (
+    "Entity ID of the weather entity (optional, enables weather-based brightness adjustment). 🌦️"
+)
+
+CONF_BAD_WEATHER, DEFAULT_BAD_WEATHER = "bad_weather", [
+    "cloudy",
+    "pouring",
+    "hail",
+    "fog",
+    "rainy",
+    "snowy",
+    "snowy-rainy",
+]
+DOCS[CONF_BAD_WEATHER] = "List of weather conditions considered as bad weather. 🌧️"
+
+(
+    CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+    DEFAULT_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+) = ("weather_brightness_reduction_factor", 0.3)
+DOCS[CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR] = (
+    "Brightness reduction factor (0-1) applied during bad weather. ☁️"
 )
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
@@ -277,7 +339,6 @@ ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
 ATTR_ADAPTIVE_LIGHTING_MANAGER = "manager"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
-NONE_STR = "None"
 ATTR_ADAPT_COLOR = "adapt_color"
 DOCS[ATTR_ADAPT_COLOR] = "Whether to adapt the color on supporting lights. 🌈"
 ATTR_ADAPT_BRIGHTNESS = "adapt_brightness"
@@ -371,6 +432,23 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
+    (CONF_LUX_SENSOR, NONE_STR, str),
+    (CONF_LUX_MIN, DEFAULT_LUX_MIN, cv.positive_int),
+    (CONF_LUX_MAX, DEFAULT_LUX_MAX, cv.positive_int),
+    (CONF_LUX_SMOOTHING_SAMPLES, DEFAULT_LUX_SMOOTHING_SAMPLES, cv.positive_int),
+    (CONF_LUX_SMOOTHING_WINDOW, DEFAULT_LUX_SMOOTHING_WINDOW, cv.positive_int),
+    (
+        CONF_LUX_BRIGHTNESS_REDUCTION_FACTOR,
+        DEFAULT_LUX_BRIGHTNESS_REDUCTION_FACTOR,
+        vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
+    ),
+    (CONF_WEATHER_ENTITY, NONE_STR, str),
+    (CONF_BAD_WEATHER, DEFAULT_BAD_WEATHER, cv.ensure_list),
+    (
+        CONF_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+        DEFAULT_WEATHER_BRIGHTNESS_REDUCTION_FACTOR,
+        vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
+    ),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,
