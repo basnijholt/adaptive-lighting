@@ -116,7 +116,9 @@ DOCS[CONF_SEPARATE_TURN_ON_COMMANDS] = (
 )
 
 CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS = "sleep_brightness", 1
-DOCS[CONF_SLEEP_BRIGHTNESS] = "Brightness percentage of lights in sleep mode. 😴"
+DOCS[CONF_SLEEP_BRIGHTNESS] = (
+    "Brightness percentage of lights in sleep mode. Set to 0 to prevent lights from turning on. 😴"
+)
 
 CONF_SLEEP_COLOR_TEMP, DEFAULT_SLEEP_COLOR_TEMP = "sleep_color_temp", 1000
 DOCS[CONF_SLEEP_COLOR_TEMP] = (
@@ -330,7 +332,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP, int_between(1000, 10000)),
     (CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP, int_between(1000, 10000)),
     (CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR, bool),
-    (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(1, 100)),
+    (CONF_SLEEP_BRIGHTNESS, DEFAULT_SLEEP_BRIGHTNESS, int_between(0, 100)),
     (
         CONF_SLEEP_RGB_OR_COLOR_TEMP,
         DEFAULT_SLEEP_RGB_OR_COLOR_TEMP,

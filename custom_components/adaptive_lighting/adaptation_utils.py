@@ -98,7 +98,7 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
         split_data = {
             attribute: service_data[attribute]
             for attribute in attributes
-            if service_data.get(attribute)
+            if service_data.get(attribute) is not None
         }
         if split_data:
             service_datas.append(common_data | split_data)
