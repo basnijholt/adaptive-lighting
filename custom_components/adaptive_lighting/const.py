@@ -100,6 +100,17 @@ DOCS[CONF_ADAPT_ONLY_ON_BARE_TURN_ON] = (
     "Needs `take_over_control` enabled. 🕵️"
 )
 
+CONF_ADAPT_ONLY_ON_HA_TURN_ON, DEFAULT_ADAPT_ONLY_ON_HA_TURN_ON = (
+    "adapt_only_on_ha_turn_on",
+    False,
+)
+DOCS[CONF_ADAPT_ONLY_ON_HA_TURN_ON] = (
+    "When a light turns on from `off`, only adapt it if Home Assistant issued the "
+    "`light.turn_on`; lights turned on by a physical switch or an external scene "
+    "(e.g. Lutron) are left untouched. Unlike disabling `detect_non_ha_changes`, this "
+    "still detects manual changes to already-on lights. Needs `take_over_control` enabled. 🕵️"
+)
+
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
 DOCS[CONF_PREFER_RGB_COLOR] = (
     "Whether to prefer RGB color adjustment over "
@@ -394,6 +405,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON, bool),
+    (CONF_ADAPT_ONLY_ON_HA_TURN_ON, DEFAULT_ADAPT_ONLY_ON_HA_TURN_ON, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),

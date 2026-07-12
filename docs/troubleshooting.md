@@ -49,6 +49,8 @@ Addressing these issues will significantly improve your Home Assistant experienc
 In case lights are suddenly turning on by themselves, this is most likely due to the light incorrectly reporting an "on" state to Home Assistant, leading to an undesired Adaptive Lighting action.
 To prevent adapting in cases *where the state of the light is suddenly "on" and only adapt if there is an associated `light.turn_on` service call*, set `detect_non_ha_changes: false`.
 
+If turning a light on from *off* with a physical wall switch or a hub/manufacturer scene (e.g., Lutron, Caséta) makes Adaptive Lighting immediately override the brightness/color that source set — forcing you to set it a second time — and you still want to keep `detect_non_ha_changes: true` to catch manual changes to already-on lights, set `adapt_only_on_ha_turn_on: true`. Adaptive Lighting will then leave externally turned-on lights untouched (marking them `manual_control`) while continuing to adapt lights turned on through Home Assistant.
+
 #### :signal_strength: WiFi Networks
 
 Ensure your light bulbs have a strong WiFi connection. If the signal strength is less than -70dBm, the connection may be weak and prone to dropping messages.
