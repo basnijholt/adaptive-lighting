@@ -29,6 +29,7 @@ from homeassistant.components.adaptive_lighting.const import (
     ADAPT_COLOR_SWITCH,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
+    CONF_ADAPT_ONLY_ON_HA_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_BRIGHTNESS_MODE,
@@ -3077,6 +3078,97 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
         f"manually controlled - only lights that were already ON and then had "
         f"their brightness/color changed externally should be marked as such."
     )
+
+
+@pytest.mark.parametrize("adapt_only_on_ha_turn_on", [True, False])
+async def test_adapt_only_on_ha_turn_on(hass, adapt_only_on_ha_turn_on):
+    """Test `adapt_only_on_ha_turn_on` with `detect_non_ha_changes` enabled.
+
+    When a light turns on from OFF via an external source (a physical wall switch
+    or a hub/manufacturer scene like Lutron), Home Assistant sees the state change
+    but there is no matching `light.turn_on` call, so `from_turn_on` is False.
+
+    With `detect_non_ha_changes=True`, the reactive off->on handler would normally
+    adapt (and thus override) such an external turn-on. `adapt_only_on_ha_turn_on`
+    lets the user keep manual-change detection for already-on lights while still
+    leaving externally turned-on lights untouched:
+
+    - adapt_only_on_ha_turn_on=True:  mark manual, do NOT adapt (hands off).
+    - adapt_only_on_ha_turn_on=False: adapt as before (existing behavior).
+    """
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: True,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_ADAPT_ONLY_ON_HA_TURN_ON: adapt_only_on_ha_turn_on,
+        },
+    )
+    assert switch._detect_non_ha_changes
+    assert switch._adapt_only_on_ha_turn_on == adapt_only_on_ha_turn_on
+
+    # Start from a clean slate for the light.
+    switch.manager.manual_control.pop(ENTITY_LIGHT_1, None)
+    switch.manager.last_service_data.pop(ENTITY_LIGHT_1, None)
+    switch.manager.turn_on_event.pop(ENTITY_LIGHT_1, None)
+
+    # Simulate the light being turned on from OFF by an external source (e.g. a
+    # Lutron wall switch/scene): the state is 'on' but no `light.turn_on` was
+    # issued by HA, so the event carries a foreign context that does not match
+    # any tracked turn_on_event -> `from_turn_on` is False.
+    hass.states.async_set(
+        ENTITY_LIGHT_1,
+        STATE_ON,
+        {ATTR_BRIGHTNESS: 200, ATTR_SUPPORTED_FEATURES: 1},
+    )
+    await hass.async_block_till_done()
+
+    external_context = Context(id="lutron_external_turn_on")
+    assert not switch.manager._off_to_on_state_event_is_from_turn_on(
+        ENTITY_LIGHT_1,
+        Event(
+            EVENT_STATE_CHANGED,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+            context=external_context,
+        ),
+    )
+
+    event = Event(
+        EVENT_STATE_CHANGED,
+        {
+            ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+            "old_state": State(ENTITY_LIGHT_1, STATE_OFF),
+            "new_state": State(
+                ENTITY_LIGHT_1,
+                STATE_ON,
+                {ATTR_BRIGHTNESS: 200},
+                context=external_context,
+            ),
+        },
+        context=external_context,
+    )
+    await switch._respond_to_off_to_on_event(ENTITY_LIGHT_1, event)
+    await hass.async_block_till_done()
+
+    manual_control_attrs = switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    last_service_data = switch.manager.last_service_data.get(ENTITY_LIGHT_1)
+
+    if adapt_only_on_ha_turn_on:
+        # Hands off: mark manual and skip adaptation entirely.
+        assert manual_control_attrs, (
+            "With adapt_only_on_ha_turn_on=True, an external off->on turn-on should "
+            f"be marked as manually controlled, but got: {manual_control_attrs}."
+        )
+        assert last_service_data is None, (
+            "With adapt_only_on_ha_turn_on=True, Adaptive Lighting should not adapt "
+            f"an externally turned-on light, but last_service_data={last_service_data}."
+        )
+    else:
+        # Existing behavior: adapt the light (overriding the external brightness).
+        assert last_service_data is not None, (
+            "With adapt_only_on_ha_turn_on=False, Adaptive Lighting should still adapt "
+            "the light on an external off->on turn-on (existing behavior)."
+        )
 
 
 @pytest.mark.parametrize("intercept", [True, False])
