@@ -225,6 +225,10 @@ class SunLightSettings:
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
     brightness_mode: Literal["default", "linear", "tanh"] = "default"
+    color_temp_mode: Literal["default", "custom"] = "default"
+    sunset_color_temp: int = 2000
+    sunset_color_temp_delay: datetime.timedelta = datetime.timedelta()
+    sunset_color_temp_time: datetime.time | None = None
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
@@ -323,8 +327,18 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
-    def color_temp_kelvin(self, sun_position: float) -> int:
+    def color_temp_kelvin(
+        self,
+        dt: datetime.datetime,
+        sun_position: float,
+    ) -> int:
         """Calculate the color temperature in Kelvin."""
+        if self.color_temp_mode == "custom":
+            return self._color_temp_kelvin_custom(dt, sun_position)
+        return self._color_temp_kelvin_default(sun_position)
+
+    def _color_temp_kelvin_default(self, sun_position: float) -> int:
+        """Calculate the color temperature in Kelvin using the default curve."""
         if sun_position > 0:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * sun_position) + self.min_color_temp
@@ -337,6 +351,80 @@ class SunLightSettings:
             return 5 * round(ct / 5)  # round to nearest 5
         msg = "Should not happen"
         raise ValueError(msg)
+
+    def _sunset_color_temp_completion_ts(
+        self,
+        sunset_ts: float,
+        midnight_ts: float,
+    ) -> float:
+        """Return the timestamp at which the sunset color-temp curve reaches `min_color_temp`.
+
+        Determined by `sunset_color_temp_delay` (if set, takes priority) or
+        `sunset_color_temp_time` (an absolute clock time). If neither is set,
+        the curve completes immediately at sunset. The result is always
+        clamped to fall between sunset and the following solar midnight, so
+        that the color temperature never "jumps" at midnight.
+        """
+        delay_seconds = self.sunset_color_temp_delay.total_seconds()
+        if delay_seconds > 0:
+            completion_ts = sunset_ts + delay_seconds
+        elif self.sunset_color_temp_time is not None:
+            sunset_dt = datetime.datetime.fromtimestamp(sunset_ts, tz=UTC)
+            local_date = sunset_dt.astimezone(self.timezone).date()
+            completion_dt = datetime.datetime.combine(
+                local_date,
+                self.sunset_color_temp_time,
+                tzinfo=self.timezone,
+            ).astimezone(UTC)
+            completion_ts = completion_dt.timestamp()
+            if completion_ts <= sunset_ts:
+                completion_ts += timedelta(days=1).total_seconds()
+        else:
+            completion_ts = sunset_ts
+        return clamp(completion_ts, sunset_ts, midnight_ts)
+
+    def _color_temp_kelvin_custom(
+        self,
+        dt: datetime.datetime,
+        sun_position: float,
+    ) -> int:
+        """Calculate the color temperature in Kelvin using the custom sunset curve.
+
+        Reaches `sunset_color_temp` exactly at sunset (instead of
+        `min_color_temp`), holds/ramps from there down to `min_color_temp` by
+        `sunset_color_temp_delay`/`sunset_color_temp_time`, and stays at
+        `min_color_temp` for the rest of the night. Sunrise/daytime behavior
+        (other than the value reached exactly at sunset) is unchanged.
+        Note: `adapt_until_sleep` does not affect the color temperature while
+        this mode is active (it still applies to brightness).
+        """
+        if sun_position > 0:
+            event, _ = self.sun.closest_event(dt)
+            target = (
+                self.sunset_color_temp
+                if event == SunEvent.SUNSET
+                else self.min_color_temp
+            )
+            delta = self.max_color_temp - target
+            ct = (delta * sun_position) + target
+            return 5 * round(ct / 5)  # round to nearest 5
+        (prev_event, prev_ts), (_, next_ts) = self.sun.prev_and_next_events(dt)
+        if prev_event != SunEvent.SUNSET:
+            # We're past solar midnight, already fully warm from the evening before.
+            return 5 * round(self.min_color_temp / 5)
+        sunset_ts, midnight_ts = prev_ts, next_ts
+        completion_ts = self._sunset_color_temp_completion_ts(sunset_ts, midnight_ts)
+        target_ts = dt.timestamp()
+        if target_ts >= completion_ts:
+            return 5 * round(self.min_color_temp / 5)
+        ct = lerp(
+            target_ts,
+            x1=sunset_ts,
+            x2=completion_ts,
+            y1=self.sunset_color_temp,
+            y2=self.min_color_temp,
+        )
+        return 5 * round(ct / 5)  # round to nearest 5
 
     def brightness_and_color(
         self,
@@ -353,7 +441,8 @@ class SunLightSettings:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
         elif (
-            self.sleep_rgb_or_color_temp == "rgb_color"
+            self.color_temp_mode != "custom"
+            and self.sleep_rgb_or_color_temp == "rgb_color"
             and self.adapt_until_sleep
             and sun_position < 0
         ):
@@ -361,16 +450,18 @@ class SunLightSettings:
             # https://github.com/basnijholt/adaptive-lighting/issues/624
             # This will result in a perceptible jump in color at sunset and sunrise
             # because the `color_temperature_to_rgb` function is not 100% accurate.
+            # Not used in `color_temp_mode: custom`, which has its own sunset
+            # curve and does not honor `adapt_until_sleep` for color.
             min_color_rgb = color_temperature_to_rgb(self.min_color_temp)
             rgb_color = lerp_color_hsv(
                 min_color_rgb,
                 self.sleep_rgb_color,
                 sun_position,
             )
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(dt, sun_position)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(dt, sun_position)
             r, g, b = color_temperature_to_rgb(color_temp_kelvin)
             rgb_color = (round(r), round(g), round(b))
         # backwards compatibility for versions < 1.3.1 - see #403

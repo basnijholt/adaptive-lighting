@@ -95,6 +95,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COLOR_TEMP_MODE,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
@@ -123,6 +124,9 @@ from .const import (
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
+    CONF_SUNSET_COLOR_TEMP,
+    CONF_SUNSET_COLOR_TEMP_DELAY,
+    CONF_SUNSET_COLOR_TEMP_TIME,
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
     CONF_TAKE_OVER_CONTROL,
@@ -981,6 +985,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
+            color_temp_mode=data[CONF_COLOR_TEMP_MODE],
+            sunset_color_temp=data[CONF_SUNSET_COLOR_TEMP],
+            sunset_color_temp_delay=data[CONF_SUNSET_COLOR_TEMP_DELAY],
+            sunset_color_temp_time=data[CONF_SUNSET_COLOR_TEMP_TIME],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
         )
         _LOGGER.debug(
