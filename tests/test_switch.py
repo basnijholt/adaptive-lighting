@@ -1551,6 +1551,57 @@ async def test_async_update_at_interval_action(hass):
     await switch._async_update_at_interval_action()
 
 
+async def test_stagger_offset_deterministic_and_bounded(hass):
+    """Test '_stagger_offset' desynchronizes switches without changing the interval.
+
+    See https://github.com/basnijholt/adaptive-lighting/issues/939: when many
+    Adaptive Lighting switches share the same interval, they can all call
+    'light.turn_on' at the same moment, overloading (Zigbee) networks. Each
+    switch should get its own stable phase offset, bounded to the interval.
+    """
+    interval = datetime.timedelta(seconds=90)
+
+    _, switch_a = await setup_switch(hass, {CONF_NAME: "switch_a"})
+    _, switch_b = await setup_switch(hass, {CONF_NAME: "switch_b"})
+
+    # Stable/deterministic: repeated calls for the same switch return the same offset.
+    offset_a_1 = switch_a._stagger_offset(interval)
+    offset_a_2 = switch_a._stagger_offset(interval)
+    assert offset_a_1 == offset_a_2
+
+    # Different switches (different unique_id/name) get different phases.
+    offset_b = switch_b._stagger_offset(interval)
+    assert offset_a_1 != offset_b
+
+    # Bounded: the offset only ever shifts the phase, never exceeds the interval.
+    for offset in (offset_a_1, offset_b):
+        assert datetime.timedelta(0) <= offset < interval
+
+
+async def test_update_time_interval_listener_uses_stagger_offset(hass):
+    """Test that the interval listener defers its first tick using the stagger offset."""
+    switch_module = "homeassistant.components.adaptive_lighting.switch"
+    with (
+        patch(
+            f"{switch_module}.AdaptiveSwitch._stagger_offset",
+            return_value=datetime.timedelta(seconds=5),
+        ) as mock_offset,
+        patch(f"{switch_module}.async_call_later") as mock_call_later,
+        patch(f"{switch_module}.async_track_time_interval") as mock_track_interval,
+    ):
+        _, switch = await setup_switch(hass, {})
+        assert mock_offset.called
+        mock_call_later.assert_called_once()
+        assert mock_call_later.call_args.args[1] == 5
+        mock_track_interval.assert_not_called()
+
+        # Once the delayed call fires, the regular periodic listener is started.
+        delayed_action = mock_call_later.call_args.args[2]
+        delayed_action(dt_util.utcnow())
+        mock_track_interval.assert_called_once()
+        assert switch.remove_interval is mock_track_interval.return_value
+
+
 @pytest.mark.parametrize("separate_turn_on_commands", (True, False))
 async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     """Test 'separate_turn_on_commands' argument."""
