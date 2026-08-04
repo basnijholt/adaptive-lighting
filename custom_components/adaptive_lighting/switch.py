@@ -840,6 +840,8 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -991,9 +993,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         """Return the name of the device if any."""
-        return f"Adaptive Lighting: {self._name}"
+        # The main switch takes the device name "Adaptive Lighting: <name>"
+        return None
 
     @property
     def unique_id(self) -> str:
@@ -1012,7 +1015,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             identifiers={
                 (DOMAIN, self._name),
             },
-            name=self._name,
+            name=f"Adaptive Lighting: {self._name}",
             entry_type=DeviceEntryType.SERVICE,
         )
 
@@ -1624,6 +1627,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         which: str,
@@ -1645,8 +1650,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
     @property
     def name(self) -> str:
-        """Return the name of the device if any."""
-        return self._name
+        """Return the name of the entity within its device."""
+        return self._which
 
     @property
     def unique_id(self) -> str:
