@@ -3235,3 +3235,35 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
     assert (
         light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
+
+
+async def test_fresh_install_entity_ids(hass):
+    """Test the entity ids a new install gets with device-relative naming."""
+    _, switch = await setup_switch(hass, {})
+
+    assert switch.entity_id == ENTITY_SWITCH
+    assert switch.sleep_mode_switch.entity_id == ENTITY_SLEEP_MODE_SWITCH
+    assert switch.adapt_brightness_switch.entity_id == ENTITY_ADAPT_BRIGHTNESS_SWITCH
+    assert switch.adapt_color_switch.entity_id == ENTITY_ADAPT_COLOR_SWITCH
+
+
+async def test_existing_entity_ids_are_preserved(hass):
+    """Test an install predating this change keeps its entity ids.
+
+    The unique ids are unchanged, so the entity registry must keep the
+    classic `..._sleep_mode_<name>` id instead of renaming the entity.
+    """
+    classic_entity_id = f"{_SWITCH_FMT}_sleep_mode_{DEFAULT_NAME}"
+    assert classic_entity_id != ENTITY_SLEEP_MODE_SWITCH
+
+    registry = entity_registry.async_get(hass)
+    registry.async_get_or_create(
+        SWITCH_DOMAIN,
+        DOMAIN,
+        f"{DEFAULT_NAME}_sleep_mode",
+        suggested_object_id=classic_entity_id.split(".", 1)[1],
+    )
+
+    _, switch = await setup_switch(hass, {})
+
+    assert switch.sleep_mode_switch.entity_id == classic_entity_id
