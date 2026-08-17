@@ -16,7 +16,7 @@ from homeassistant.components.light import (
 from homeassistant.components.light import (
     DOMAIN as LIGHT_DOMAIN,
 )
-from homeassistant.const import CONF_NAME, EntityCategory
+from homeassistant.const import CONF_NAME, STATE_OFF, STATE_ON, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -67,6 +67,16 @@ async def _setup_lights(hass: HomeAssistant) -> None:
         {"group": {"test_group": {"entities": [ENTITY_LIGHT_1, ENTITY_LIGHT_2]}}},
     )
     await hass.async_block_till_done()
+    # Turn the lights on so `is_on` is true and the combined status reflects
+    # the active sources instead of defaulting to INACTIVE for an off light.
+    for light in (ENTITY_LIGHT_1, ENTITY_LIGHT_2):
+        hass.states.async_set(light, STATE_ON)
+    await hass.async_block_till_done()
+
+
+def _status_unique_id(profile_name: str, light: str) -> str:
+    """Return the unique_id of the status sensor for a profile and light."""
+    return f"{DOMAIN}_status_{slugify(profile_name)}_{slugify(light)}"
 
 
 async def test_diagnostic_status_sensors_created(hass: HomeAssistant) -> None:
@@ -98,7 +108,7 @@ async def test_diagnostic_status_sensors_created(hass: HomeAssistant) -> None:
     assert len(entries) == 2
 
     for light in (ENTITY_LIGHT_1, ENTITY_LIGHT_2):
-        unique_id = f"{DOMAIN}_status_{slugify(light)}"
+        unique_id = _status_unique_id(DEFAULT_NAME, light)
         reg_entry = next(entry for entry in entries if entry.unique_id == unique_id)
         assert reg_entry.entity_category is EntityCategory.DIAGNOSTIC
         state = hass.states.get(reg_entry.entity_id)
@@ -188,6 +198,32 @@ async def test_status_transitions(hass: HomeAssistant) -> None:
     state = hass.states.get(sensor_id)
     assert state is not None
     assert state.state == LightStatus.BLOCKED
+
+
+async def test_off_light_reports_inactive(hass: HomeAssistant) -> None:
+    """An off light must report INACTIVE even if sources still hold an active status."""
+    await _setup_lights(hass)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_NAME: DEFAULT_NAME,
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_ENABLE_DIAGNOSTIC_SENSORS: True,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    # Light is ON, so the combined status reflects the active source.
+    assert manager.get_combined_status(ENTITY_LIGHT_1).status == LightStatus.ACTIVE
+
+    # Turn the light off. The cached source status is still ACTIVE, but the
+    # combined status must collapse to INACTIVE because the light is off.
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF)
+    assert manager.get_combined_status(ENTITY_LIGHT_1).status == LightStatus.INACTIVE
 
 
 async def test_combined_status_priority(hass: HomeAssistant) -> None:
@@ -428,23 +464,31 @@ async def test_multi_profile_same_light(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
 
     ent_reg = entity_registry.async_get(hass)
-    unique_id = f"{DOMAIN}_status_{slugify(ENTITY_LIGHT_1)}"
-    sensor_id = ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
-    assert sensor_id is not None
+    # Each profile now owns its own status sensor for the shared light.
+    sensor1_id = ent_reg.async_get_entity_id(
+        "sensor",
+        DOMAIN,
+        _status_unique_id("profile1", ENTITY_LIGHT_1),
+    )
+    sensor2_id = ent_reg.async_get_entity_id(
+        "sensor",
+        DOMAIN,
+        _status_unique_id("profile2", ENTITY_LIGHT_1),
+    )
+    assert sensor1_id is not None
+    assert sensor2_id is not None
+    assert sensor1_id != sensor2_id
 
-    state = hass.states.get(sensor_id)
-    assert state is not None
-    profiles = state.attributes["status_profiles"]
-
-    # Both profiles should be present in status_profiles
+    # Both profiles should be present in status_profiles on each sensor.
     # The source is usually "switch.adaptive_lighting_<profile_name>"
-    source1 = "switch.profile1_adaptive_lighting_profile1"
-    source2 = "switch.profile2_adaptive_lighting_profile2"
-
-    assert source1 in profiles
-    assert source2 in profiles
-    # Check that the sensor ID is indeed the same for both entries (it should be since it's same light)
-    assert sensor_id == ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
+    source1 = "switch.adaptive_lighting_profile1"
+    source2 = "switch.adaptive_lighting_profile2"
+    for sensor_id in (sensor1_id, sensor2_id):
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        profiles = state.attributes["status_profiles"]
+        assert source1 in profiles
+        assert source2 in profiles
 
 
 async def test_sensor_toggling_enabled(hass: HomeAssistant) -> None:
@@ -464,7 +508,7 @@ async def test_sensor_toggling_enabled(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
 
     ent_reg = entity_registry.async_get(hass)
-    unique_id = f"{DOMAIN}_status_{slugify(ENTITY_LIGHT_1)}"
+    unique_id = _status_unique_id(DEFAULT_NAME, ENTITY_LIGHT_1)
 
     # Initially not created
     assert ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id) is None
@@ -513,12 +557,12 @@ async def test_sensor_light_removal(hass: HomeAssistant) -> None:
     sensor1_id = ent_reg.async_get_entity_id(
         "sensor",
         DOMAIN,
-        f"{DOMAIN}_status_{slugify(ENTITY_LIGHT_1)}",
+        _status_unique_id(DEFAULT_NAME, ENTITY_LIGHT_1),
     )
     sensor2_id = ent_reg.async_get_entity_id(
         "sensor",
         DOMAIN,
-        f"{DOMAIN}_status_{slugify(ENTITY_LIGHT_2)}",
+        _status_unique_id(DEFAULT_NAME, ENTITY_LIGHT_2),
     )
 
     assert sensor1_id is not None
@@ -692,7 +736,7 @@ async def test_sensor_survives_light_entity_missing(hass: HomeAssistant) -> None
     await hass.async_block_till_done()
 
     ent_reg = entity_registry.async_get(hass)
-    unique_id = f"{DOMAIN}_status_{slugify(nonexistent_light)}"
+    unique_id = _status_unique_id(DEFAULT_NAME, nonexistent_light)
     sensor_id = ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
     assert sensor_id is not None
 

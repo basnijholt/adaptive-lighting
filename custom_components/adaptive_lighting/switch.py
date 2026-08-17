@@ -1957,6 +1957,8 @@ class AdaptiveLightingManager:
 
     def get_combined_status(self, light: str) -> LightStatusInfo:
         """Return the combined status for a light across all sources."""
+        if not is_on(self.hass, light):
+            return LightStatusInfo(status=LightStatus.INACTIVE)
         statuses = list(self.get_light_statuses(light).values())
         if not statuses:
             return LightStatusInfo(status=LightStatus.INACTIVE)

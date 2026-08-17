@@ -19,9 +19,6 @@ from .const import (
     UNDO_UPDATE_LISTENER,
 )
 from .sensor import (
-    async_unload_entry as _sensor_unload_entry,
-)
-from .sensor import (
     ensure_status_sensors_enabled,
 )
 from .switch import AdaptiveLightingManager, validate
@@ -102,34 +99,19 @@ async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry) -
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_forward_entry_unload(
-        config_entry,
-        "switch",
-    )
-    unload_ok = unload_ok and await hass.config_entries.async_forward_entry_unload(
-        config_entry,
-        "sensor",
-    )
-    if not unload_ok:
-        return False
-
-    # HA's platform machinery does not call sensor.async_unload_entry, so we
-    # invoke it directly to keep the shared sensor store consistent.
-    await _sensor_unload_entry(hass, config_entry)
-
+    unload_ok = True
+    for platform in PLATFORMS:
+        unload_ok = unload_ok and await hass.config_entries.async_forward_entry_unload(
+            config_entry,
+            platform,
+        )
     data = hass.data[DOMAIN]
     data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()
-    data.pop(config_entry.entry_id)
+    if unload_ok:
+        data.pop(config_entry.entry_id)
 
-    _meta_keys = {
-        ATTR_ADAPTIVE_LIGHTING_MANAGER,
-        "status_sensors",
-        "status_sensor_entry_lights",
-    }
-    if ATTR_ADAPTIVE_LIGHTING_MANAGER in data and not (data.keys() - _meta_keys):
+    if len(data) == 1 and ATTR_ADAPTIVE_LIGHTING_MANAGER in data:
         # no more config_entries
-        data.pop("status_sensors", None)
-        data.pop("status_sensor_entry_lights", None)
         manager = data.pop(ATTR_ADAPTIVE_LIGHTING_MANAGER)
         manager.disable()
 

@@ -38,7 +38,9 @@ from .const import (
     ATTR_STATUS_TARGET,
     CONF_ENABLE_DIAGNOSTIC_SENSORS,
     CONF_LIGHTS,
+    CONF_NAME,
     DEFAULT_ENABLE_DIAGNOSTIC_SENSORS,
+    DEFAULT_NAME,
     DOMAIN,
     SIGNAL_STATUS_UPDATED,
     LightStatus,
@@ -57,7 +59,8 @@ def ensure_status_sensors_enabled(hass: HomeAssistant, entry_id: str) -> None:
         if (
             entry.domain == "sensor"
             and entry.platform == DOMAIN
-            and entry.entity_id.startswith("sensor.adaptive_lighting_status_")
+            and entry.unique_id is not None
+            and entry.unique_id.startswith(f"{DOMAIN}_status_")
             and entry.disabled_by is not None
             and entry.disabled_by != RegistryEntryDisabler.USER
         ):
@@ -78,8 +81,7 @@ async def async_setup_entry(
     ):
         return
     manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
-    store = hass.data[DOMAIN].setdefault("status_sensors", {})
-    entry_lights = hass.data[DOMAIN].setdefault("status_sensor_entry_lights", {})
+    profile_name = options.get(CONF_NAME, data.get(CONF_NAME, DEFAULT_NAME))
 
     lights = expand_light_groups(
         hass,
@@ -88,41 +90,12 @@ async def async_setup_entry(
 
     ensure_status_sensors_enabled(hass, config_entry.entry_id)
 
-    entry_lights[config_entry.entry_id] = set(lights)
-
-    new_entities: list[AdaptiveLightingStatusSensor] = []
-    for light in lights:
-        if light in store:
-            continue
-        sensor = AdaptiveLightingStatusSensor(hass, manager, light)
-        store[light] = sensor
-        new_entities.append(sensor)
-
+    new_entities = [
+        AdaptiveLightingStatusSensor(hass, manager, profile_name, light)
+        for light in lights
+    ]
     if new_entities:
         async_add_entities(new_entities)
-
-
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Unload Adaptive Lighting status sensors."""
-    domain_data = hass.data.get(DOMAIN, {})
-    entry_lights: dict[str, set[str]] = domain_data.get(
-        "status_sensor_entry_lights",
-        {},
-    )
-    my_lights = entry_lights.pop(config_entry.entry_id, set())
-
-    still_referenced: set[str] = set()
-    for other_lights in entry_lights.values():
-        still_referenced |= other_lights
-
-    store: dict[str, AdaptiveLightingStatusSensor] = domain_data.get(
-        "status_sensors",
-        {},
-    )
-    for light in my_lights - still_referenced:
-        store.pop(light, None)
-
-    return True
 
 
 class AdaptiveLightingStatusSensor(SensorEntity):
@@ -131,12 +104,21 @@ class AdaptiveLightingStatusSensor(SensorEntity):
     _attr_should_poll = False
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, hass: HomeAssistant, manager, light_entity_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        manager,
+        profile_name: str,
+        light_entity_id: str,
+    ) -> None:
         """Initialize the per-light status sensor."""
         self.hass = hass
         self._manager = manager
+        self._profile_name = profile_name
         self._light_entity_id = light_entity_id
-        self._attr_unique_id = f"{DOMAIN}_status_{slugify(light_entity_id)}"
+        self._attr_unique_id = (
+            f"{DOMAIN}_status_{slugify(profile_name)}_{slugify(light_entity_id)}"
+        )
         self._combined: LightStatusInfo | None = None
 
     def _get_combined(self) -> LightStatusInfo:
@@ -148,7 +130,7 @@ class AdaptiveLightingStatusSensor(SensorEntity):
     def name(self) -> str:
         """Return the sensor name."""
         light_name = get_friendly_name(self.hass, self._light_entity_id)
-        return f"Adaptive Lighting Status: {light_name}"
+        return f"Adaptive Lighting Status ({self._profile_name}): {light_name}"
 
     @property
     def native_value(self) -> str:
