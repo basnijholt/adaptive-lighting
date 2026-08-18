@@ -1043,6 +1043,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def async_will_remove_from_hass(self) -> None:
         """Remove the listeners upon removing the component."""
         self._remove_listeners()
+        if self.entity_id is not None:
+            self.manager.remove_switch_sources(self.entity_id)
 
     def _expand_light_groups(self, hass: HomeAssistant | None = None) -> None:
         hass = hass or self.hass
@@ -1950,6 +1952,22 @@ class AdaptiveLightingManager:
                 reason=reason,
                 last_error=last_error,
             )
+
+    def remove_switch_sources(self, switch_entity_id: str) -> None:
+        """Remove all cached status entries written by a switch.
+
+        Called when a switch is removed so that an unloaded profile cannot
+        keep contributing stale sources to the combined status of lights it
+        shared with other profiles.
+        """
+        for light in list(self.light_status):
+            status_by_source = self.light_status[light]
+            if switch_entity_id not in status_by_source:
+                continue
+            del status_by_source[switch_entity_id]
+            if not status_by_source:
+                del self.light_status[light]
+            async_dispatcher_send(self.hass, SIGNAL_STATUS_UPDATED, light)
 
     def get_light_statuses(self, light: str) -> dict[str, LightStatusInfo]:
         """Return per-source status information for a light."""

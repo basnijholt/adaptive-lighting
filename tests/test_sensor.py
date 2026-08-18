@@ -376,6 +376,70 @@ async def test_sensor_cleanup_on_unload(hass: HomeAssistant) -> None:
     assert hass.states.get(sensor_id).state == STATE_UNAVAILABLE
 
 
+async def test_stale_source_removed_on_profile_unload(hass: HomeAssistant) -> None:
+    """An unloaded profile must not keep contributing stale sources to a shared light."""
+    await _setup_lights(hass)
+
+    entry1 = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_NAME: "profile1",
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_ENABLE_DIAGNOSTIC_SENSORS: True,
+        },
+    )
+    entry1.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry1.entry_id)
+
+    entry2 = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_NAME: "profile2",
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_ENABLE_DIAGNOSTIC_SENSORS: True,
+        },
+    )
+    entry2.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry2.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    source1 = "switch.adaptive_lighting_profile1"
+    source2 = "switch.adaptive_lighting_profile2"
+
+    # Give profile1 a higher-priority status so it wins the aggregation.
+    manager.set_light_status(ENTITY_LIGHT_1, source1, LightStatus.ERROR)
+    await hass.async_block_till_done()
+
+    statuses = manager.get_light_statuses(ENTITY_LIGHT_1)
+    assert source1 in statuses
+    assert source2 in statuses
+    assert manager.get_combined_status(ENTITY_LIGHT_1).status == LightStatus.ERROR
+
+    # Unload profile1: its stale ERROR source must be pruned from the shared light.
+    assert await hass.config_entries.async_unload(entry1.entry_id)
+    await hass.async_block_till_done()
+
+    statuses = manager.get_light_statuses(ENTITY_LIGHT_1)
+    assert source1 not in statuses, "unloaded profile's source should be removed"
+    assert source2 in statuses
+    # Combined status must no longer reflect the unloaded profile's ERROR.
+    assert manager.get_combined_status(ENTITY_LIGHT_1).status == LightStatus.ACTIVE
+
+    # The remaining profile's sensor must also drop the stale source.
+    ent_reg = entity_registry.async_get(hass)
+    sensor2_id = ent_reg.async_get_entity_id(
+        "sensor",
+        DOMAIN,
+        _status_unique_id("profile2", ENTITY_LIGHT_1),
+    )
+    assert sensor2_id is not None
+    state = hass.states.get(sensor2_id)
+    assert state is not None
+    assert state.state == LightStatus.ACTIVE
+    assert source1 not in state.attributes["status_profiles"]
+
+
 async def test_enable_diagnostic_sensors_false(hass: HomeAssistant) -> None:
     """Test that no diagnostic sensors are created when disabled."""
     await _setup_lights(hass)
