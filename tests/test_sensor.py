@@ -1,5 +1,6 @@
 """Tests for Adaptive Lighting sensors."""
 
+import homeassistant.util.dt as dt_util
 from homeassistant.components.adaptive_lighting.const import (
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ENABLE_DIAGNOSTIC_SENSORS,
@@ -8,7 +9,9 @@ from homeassistant.components.adaptive_lighting.const import (
     DOMAIN,
     SIGNAL_STATUS_UPDATED,
     LightStatus,
+    LightStatusInfo,
 )
+from homeassistant.components.adaptive_lighting.switch import _switches_with_lights
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -438,6 +441,69 @@ async def test_stale_source_removed_on_profile_unload(hass: HomeAssistant) -> No
     assert state is not None
     assert state.state == LightStatus.ACTIVE
     assert source1 not in state.attributes["status_profiles"]
+
+
+async def test_off_light_updates_sensor_when_reset_is_deduplicated(
+    hass: HomeAssistant,
+) -> None:
+    """The sensor must go INACTIVE when its light turns off even if no status signal fires.
+
+    When a light turns off while the AL switch stays on, ``reset()`` re-writes the
+    source's ACTIVE/'manual_control_reset' status. If that exact (status, reason)
+    tuple is already cached, ``set_light_status`` dedups and does not send
+    SIGNAL_STATUS_UPDATED. The sensor must still update because it tracks its own
+    light's on/off transitions.
+    """
+    await _setup_lights(hass)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_NAME: DEFAULT_NAME,
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_ENABLE_DIAGNOSTIC_SENSORS: True,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    ent_reg = entity_registry.async_get(hass)
+    sensor_id = ent_reg.async_get_entity_id(
+        "sensor",
+        DOMAIN,
+        _status_unique_id(DEFAULT_NAME, ENTITY_LIGHT_1),
+    )
+    assert sensor_id is not None
+    state = hass.states.get(sensor_id)
+    assert state is not None
+    assert state.state == LightStatus.ACTIVE
+
+    # Seed the exact (ACTIVE, "manual_control_reset") status that reset() writes for
+    # each on switch controlling this light. With it already cached, the off-event's
+    # reset() call dedups and sends no SIGNAL_STATUS_UPDATED, so only the sensor's own
+    # light-state listener can update it.
+    switches = _switches_with_lights(hass, [ENTITY_LIGHT_1])
+    assert switches, "expected at least one switch controlling the light"
+    for switch in switches:
+        manager.light_status[ENTITY_LIGHT_1][switch.entity_id] = LightStatusInfo(
+            status=LightStatus.ACTIVE,
+            since=dt_util.utcnow(),
+            reason="manual_control_reset",
+            source=switch.entity_id,
+            last_error=None,
+        )
+
+    # Turn the light off. reset() re-writes the same (ACTIVE, manual_control_reset)
+    # status and dedups -> no signal. The sensor must still drop to INACTIVE via its
+    # own light-state listener.
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(sensor_id)
+    assert state is not None
+    assert state.state == LightStatus.INACTIVE
 
 
 async def test_enable_diagnostic_sensors_false(hass: HomeAssistant) -> None:
