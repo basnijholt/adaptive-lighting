@@ -565,8 +565,20 @@ def validate(
     if config_entry is not None:
         assert service_data is None
         assert defaults is None
-        data.update(config_entry.options)  # come from options flow
-        data.update(config_entry.data)  # all yaml settings come from data
+        if config_entry.source == SOURCE_IMPORT:
+            # YAML-configured entries: `data` is the authoritative YAML config
+            # and must win over any stray `options` from a prior UI setup.
+            data.update(config_entry.options)
+            data.update(config_entry.data)
+        else:
+            # UI-configured entries: settings are meant to live in `options`
+            # (see OptionsFlowHandler in config_flow.py). `data` here is
+            # either just the entry name, or - for entries created before
+            # data/options were split - a stale snapshot from initial setup.
+            # Applying it last would silently discard newer changes made
+            # through the options flow, so `options` must win instead.
+            data.update(config_entry.data)
+            data.update(config_entry.options)
     else:
         assert service_data is not None
         changed_settings = {
