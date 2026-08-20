@@ -228,7 +228,9 @@ _POLAR_WINTER_SOLSTICE = dt.date(2026, 12, 21)
 
 def _polar_sun_events():
     observer = astral.Observer(
-        latitude=_POLAR_LATITUDE, longitude=_POLAR_LONGITUDE, elevation=0
+        latitude=_POLAR_LATITUDE,
+        longitude=_POLAR_LONGITUDE,
+        elevation=0,
     )
     return SunEvents(
         name="test",
@@ -251,9 +253,11 @@ def test_polar_day_and_night_raise_in_astral_itself(polar_date):
     testing a fallback path that can no longer be reached.
     """
     observer = astral.Observer(
-        latitude=_POLAR_LATITUDE, longitude=_POLAR_LONGITUDE, elevation=0
+        latitude=_POLAR_LATITUDE,
+        longitude=_POLAR_LONGITUDE,
+        elevation=0,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Sun is always (above|below) the horizon"):
         astral.sun.sunrise(observer, polar_date)
 
 
@@ -261,7 +265,8 @@ def test_polar_day_and_night_raise_in_astral_itself(polar_date):
 def test_sunrise_and_sunset_do_not_raise_on_a_polar_date(polar_date):
     """The bug: `SunEvents.sunrise`/`sunset` used to propagate astral's
     ValueError uncaught, breaking the integration for the whole polar
-    day/night period every year for anyone above/below the polar circle."""
+    day/night period every year for anyone above/below the polar circle.
+    """
     sun_events = _polar_sun_events()
     sun_events.sunrise(polar_date)
     sun_events.sunset(polar_date)
@@ -273,7 +278,8 @@ def test_sun_events_stays_in_a_valid_order_on_a_polar_date(polar_date):
     (SUNRISE, NOON, SUNSET, MIDNIGHT) rotations `_validate_sun_event_order`
     requires -- `sun_events()` raises internally if they don't, so simply
     not raising here already proves this, but the explicit order is
-    asserted too since it's the more informative failure if it regresses."""
+    asserted too since it's the more informative failure if it regresses.
+    """
     sun_events = _polar_sun_events()
     dt_at_noon = dt.datetime.combine(polar_date, dt.time(12), tzinfo=dt.UTC)
     events = sun_events.sun_events(dt_at_noon)
@@ -285,7 +291,8 @@ def test_polar_day_sun_position_stays_close_to_full_daylight():
     """Midsummer at 69.6N: the sun position should read as strongly
     daylight all day, including at local midnight (the sun is still above
     the horizon then, just low -- unlike a normal day, where midnight is
-    the deepest point of night)."""
+    the deepest point of night).
+    """
     sun_events = _polar_sun_events()
     noon = dt.datetime.combine(_POLAR_SUMMER_SOLSTICE, dt.time(12), tzinfo=dt.UTC)
     midnight = dt.datetime.combine(_POLAR_SUMMER_SOLSTICE, dt.time(0), tzinfo=dt.UTC)
@@ -296,7 +303,8 @@ def test_polar_day_sun_position_stays_close_to_full_daylight():
 def test_polar_night_sun_position_stays_close_to_full_darkness():
     """The mirror case: midwinter at 69.6N never sees the sun, including
     at local noon (still below the horizon, just less deep than at
-    midnight -- unlike a normal day, where noon is the deepest daylight)."""
+    midnight -- unlike a normal day, where noon is the deepest daylight).
+    """
     sun_events = _polar_sun_events()
     noon = dt.datetime.combine(_POLAR_WINTER_SOLSTICE, dt.time(12), tzinfo=dt.UTC)
     midnight = dt.datetime.combine(_POLAR_WINTER_SOLSTICE, dt.time(0), tzinfo=dt.UTC)
@@ -308,9 +316,12 @@ def test_polar_fallback_still_respects_sunrise_and_sunset_offsets():
     """Offsets are applied after the astral call in the normal path;
     they must still apply after the polar fallback substitutes a value,
     or a user with an offset configured would see it silently ignored
-    only during the weeks it's needed most."""
+    only during the weeks it's needed most.
+    """
     observer = astral.Observer(
-        latitude=_POLAR_LATITUDE, longitude=_POLAR_LONGITUDE, elevation=0
+        latitude=_POLAR_LATITUDE,
+        longitude=_POLAR_LONGITUDE,
+        elevation=0,
     )
     plain = SunEvents(
         name="test",
