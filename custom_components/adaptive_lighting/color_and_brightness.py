@@ -528,5 +528,13 @@ def lerp(x: float, x1: float, x2: float, y1: float, y2: float) -> float:
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
-    """Clamp value between minimum and maximum."""
-    return max(minimum, min(value, maximum))
+    """Clamp value between minimum and maximum.
+
+    `minimum` is not assumed to be <= `maximum`: a user may intentionally
+    configure `min_brightness > max_brightness` (or the equivalent for color
+    temperature) for an inverted timescale (#1421). Sort the bounds first so
+    that case clamps against the real lower/upper bound instead of
+    collapsing to `minimum` for every input.
+    """
+    low, high = (minimum, maximum) if minimum <= maximum else (maximum, minimum)
+    return max(low, min(value, high))
