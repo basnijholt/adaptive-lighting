@@ -212,7 +212,12 @@ def test_closest_event(tzinfo_and_location):
 
 
 def _make_brightness_settings(
-    tzinfo, location, *, min_brightness, max_brightness, brightness_mode,
+    tzinfo,
+    location,
+    *,
+    min_brightness,
+    max_brightness,
+    brightness_mode,
 ):
     """Build a SunLightSettings with only the fields brightness_pct() needs."""
     return SunLightSettings(
