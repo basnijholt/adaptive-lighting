@@ -312,6 +312,44 @@ def test_polar_night_sun_position_stays_close_to_full_darkness():
     assert sun_events.sun_position(midnight) < -0.9
 
 
+def test_polar_fallback_clamps_a_large_offset_instead_of_crossing_the_anchor():
+    """Caught by an external reviewer (Greptile) after opening the PR, not
+    by the original design: the fallback placed a synthetic value only a
+    minute from its anchor, so *any* offset past a minute pushed it across
+    that anchor and reintroduced the exact ordering crash this PR fixes --
+    confirmed with a 5-minute offset before redesigning the clamp.
+
+    A large offset (bigger than the whole margin the clamp allows) has to
+    be absorbed at the boundary rather than crossing it.
+    """
+    observer = astral.Observer(
+        latitude=_POLAR_LATITUDE,
+        longitude=_POLAR_LONGITUDE,
+        elevation=0,
+    )
+    huge_offset = dt.timedelta(hours=20)
+    sun_events = SunEvents(
+        name="test",
+        astral_observer=observer,
+        sunrise_time=None,
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=None,
+        min_sunset_time=None,
+        max_sunset_time=None,
+        sunrise_offset=huge_offset,
+        sunset_offset=huge_offset,
+    )
+    dt_at_noon = dt.datetime.combine(
+        _POLAR_SUMMER_SOLSTICE,
+        dt.time(12),
+        tzinfo=dt.UTC,
+    )
+    events = sun_events.sun_events(dt_at_noon)  # must not raise
+    names = tuple(name for name, _ in sorted(events, key=lambda e: e[1]))
+    assert names in _ALLOWED_ORDERS
+
+
 def test_polar_fallback_still_respects_sunrise_and_sunset_offsets():
     """Offsets are applied after the astral call in the normal path;
     they must still apply after the polar fallback substitutes a value,

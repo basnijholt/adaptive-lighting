@@ -38,7 +38,29 @@ _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 # Width of the synthetic transition window substituted on a polar day/night,
 # when the real sunrise/sunset crossing astral would otherwise compute doesn't
 # exist for that date. See `SunEvents._polar_sunrise`/`_polar_sunset`.
-_POLAR_TRANSITION_WINDOW = timedelta(minutes=1)
+# How far from its anchor the synthetic value sits before any offset is
+# applied. An hour, not a minute: a configured offset moves the value
+# further toward or away from the anchor depending on its sign, and this
+# is the room available in the "toward" direction before the clamp below
+# starts absorbing it instead of applying it in full.
+_POLAR_TRANSITION_WINDOW = timedelta(hours=1)
+# Two *separate* concepts, previously conflated as the same one-minute
+# value -- which meant any configured offset bigger than a minute pushed
+# the synthetic value across the anchor it must not cross, right back into
+# the ordering crash this fallback exists to prevent (caught by Greptile
+# after opening the PR, reproduced with a 5-minute offset before fixing).
+#
+# `_POLAR_EPSILON` is how close the *final*, offset-adjusted value is
+# allowed to approach the anchor -- deliberately tiny, since its only job
+# is avoiding an exact tie (a zero-width segment divides by zero in
+# `sun_position`), not shaping normal behaviour.
+#
+# `_POLAR_MARGIN` is how far from the anchor the value may range in the
+# safe direction -- large, since noon and midnight are ~12h apart by
+# definition and this is the room a realistic offset (minutes to a few
+# hours) has to apply in full before the clamp starts absorbing it instead.
+_POLAR_EPSILON = timedelta(seconds=1)
+_POLAR_MARGIN = timedelta(hours=11)
 
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
@@ -71,7 +93,11 @@ class SunEvents:
         noon = astral.sun.noon(self.astral_observer, dt)
         return astral.sun.elevation(self.astral_observer, noon) > 0
 
-    def _polar_sunrise(self, dt: datetime.date) -> datetime.datetime:
+    def _polar_sunrise(
+        self,
+        dt: datetime.date,
+        offset: datetime.timedelta,
+    ) -> datetime.datetime:
         """Sunrise fallback for a date with no real sunrise/sunset crossing.
 
         `astral.sun.sunrise`/`sunset` raise `ValueError` above the polar
@@ -94,34 +120,61 @@ class SunEvents:
 
         Polar night: the mirror case brackets noon instead, since that's
         when a below-horizon sun comes closest to rising.
-        """
-        midnight = astral.sun.midnight(self.astral_observer, dt)
-        noon = astral.sun.noon(self.astral_observer, dt)
-        if self._is_always_day(dt):
-            return midnight + _POLAR_TRANSITION_WINDOW
-        return noon - _POLAR_TRANSITION_WINDOW
 
-    def _polar_sunset(self, dt: datetime.date) -> datetime.datetime:
+        `offset` (`sunrise_offset`, applied here rather than by the caller)
+        has to be clamped against the anchor it brackets: a synthetic value
+        placed only a minute from its anchor is trivially pushed past it, or
+        past the far anchor, by any offset larger than a minute -- ordinary
+        for a user-configured offset, not an extreme case -- which would
+        silently reintroduce the same crash this fallback exists to remove.
+        Clamping caps what an offset can do on a no-crossing date rather
+        than letting it invert the event order; there is no real crossing
+        for the offset to shift in the first place.
+        """
+        if self._is_always_day(dt):
+            midnight = astral.sun.midnight(self.astral_observer, dt)
+            candidate = midnight + _POLAR_TRANSITION_WINDOW + offset
+            return min(
+                max(candidate, midnight + _POLAR_EPSILON),
+                midnight + _POLAR_MARGIN,
+            )
+        noon = astral.sun.noon(self.astral_observer, dt)
+        candidate = noon - _POLAR_TRANSITION_WINDOW + offset
+        return min(max(candidate, noon - _POLAR_MARGIN), noon - _POLAR_EPSILON)
+
+    def _polar_sunset(
+        self,
+        dt: datetime.date,
+        offset: datetime.timedelta,
+    ) -> datetime.datetime:
         """Sunset fallback for a date with no real sunrise/sunset crossing.
 
-        See `_polar_sunrise` for why the value has to land exactly here.
+        See `_polar_sunrise` for why the value has to land exactly here, and
+        for why `offset` (`sunset_offset`) is clamped rather than applied
+        freely.
         """
-        midnight = astral.sun.midnight(self.astral_observer, dt)
-        noon = astral.sun.noon(self.astral_observer, dt)
         if self._is_always_day(dt):
-            return midnight - _POLAR_TRANSITION_WINDOW
-        return noon + _POLAR_TRANSITION_WINDOW
+            midnight = astral.sun.midnight(self.astral_observer, dt)
+            candidate = midnight - _POLAR_TRANSITION_WINDOW + offset
+            return min(
+                max(candidate, midnight - _POLAR_MARGIN),
+                midnight - _POLAR_EPSILON,
+            )
+        noon = astral.sun.noon(self.astral_observer, dt)
+        candidate = noon + _POLAR_TRANSITION_WINDOW + offset
+        return min(max(candidate, noon + _POLAR_EPSILON), noon + _POLAR_MARGIN)
 
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
         if self.sunrise_time is not None:
-            base = self._replace_time(dt, self.sunrise_time)
+            sunrise = self._replace_time(dt, self.sunrise_time) + self.sunrise_offset
         else:
             try:
-                base = astral.sun.sunrise(self.astral_observer, dt)
+                sunrise = (
+                    astral.sun.sunrise(self.astral_observer, dt) + self.sunrise_offset
+                )
             except ValueError:
-                base = self._polar_sunrise(dt)
-        sunrise = base + self.sunrise_offset
+                sunrise = self._polar_sunrise(dt, self.sunrise_offset)
         if self.min_sunrise_time is not None:
             min_sunrise = self._replace_time(dt, self.min_sunrise_time)
             sunrise = max(min_sunrise, sunrise)
@@ -133,13 +186,14 @@ class SunEvents:
     def sunset(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunset time for the given datetime."""
         if self.sunset_time is not None:
-            base = self._replace_time(dt, self.sunset_time)
+            sunset = self._replace_time(dt, self.sunset_time) + self.sunset_offset
         else:
             try:
-                base = astral.sun.sunset(self.astral_observer, dt)
+                sunset = (
+                    astral.sun.sunset(self.astral_observer, dt) + self.sunset_offset
+                )
             except ValueError:
-                base = self._polar_sunset(dt)
-        sunset = base + self.sunset_offset
+                sunset = self._polar_sunset(dt, self.sunset_offset)
         if self.min_sunset_time is not None:
             min_sunset = self._replace_time(dt, self.min_sunset_time)
             sunset = max(min_sunset, sunset)
