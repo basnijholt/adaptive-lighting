@@ -75,6 +75,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     is_our_context,
     is_our_context_id,
     short_hash,
+    validate,
 )
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -98,7 +99,7 @@ except ImportError:
     from homeassistant.components.template.light import LightTemplate
 
 from homeassistant.components.template import light as template_light
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import SOURCE_IMPORT, SOURCE_USER, ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_ENTITY_ID,
@@ -3235,3 +3236,43 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
     assert (
         light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
+
+
+def test_validate_ui_options_win_over_stale_data():
+    """A UI-configured entry's `options` (from the options flow) must win.
+
+    `data` for a `SOURCE_USER` entry either only holds the entry name, or -
+    for entries created before `data`/`options` were split - a stale
+    snapshot from initial setup. Either way, a later change made through
+    the options flow (stored in `options`) must not be silently discarded
+    by that stale/legacy `data`.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        source=SOURCE_USER,
+        data={CONF_NAME: DEFAULT_NAME, CONF_LIGHTS: ["light.a"]},
+        options={CONF_LIGHTS: ["light.a", "light.b"]},
+    )
+
+    result = validate(entry)
+
+    assert result[CONF_LIGHTS] == ["light.a", "light.b"]
+
+
+def test_validate_yaml_data_wins_over_stray_options():
+    """A YAML-imported entry's `data` must keep winning over `options`.
+
+    YAML configuration is the source of truth for a `SOURCE_IMPORT` entry,
+    so any leftover `options` (e.g. from a UI setup that predates the YAML
+    import) must not override it.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        source=SOURCE_IMPORT,
+        data={CONF_NAME: DEFAULT_NAME, CONF_LIGHTS: ["light.a"]},
+        options={CONF_LIGHTS: ["light.b"]},
+    )
+
+    result = validate(entry)
+
+    assert result[CONF_LIGHTS] == ["light.a"]
