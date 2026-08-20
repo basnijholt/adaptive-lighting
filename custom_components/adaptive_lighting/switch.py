@@ -2254,7 +2254,6 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlAttributes.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
@@ -2995,9 +2994,17 @@ class _AsyncSingleShotTimer:
 
     def cancel(self) -> None:
         """Cancel the timer."""
-        if self.task:
+        # Never cancel the task that is currently running our own callback, e.g.
+        # when the auto-reset callback calls manager.reset(), which cancels the
+        # timer it is running in. That used to silently cancel the rest of the
+        # callback (the re-adaptation), see issue #1233.
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:  # no running event loop
+            current_task = None
+        if self.task and self.task is not current_task:
             self.task.cancel()
-            self.callback = None
+        self.callback = None
 
     def remaining_time(self) -> float:
         """Return the remaining time before the timer expires."""

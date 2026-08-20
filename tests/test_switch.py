@@ -913,11 +913,27 @@ async def test_auto_reset_manual_control(hass):
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id] > 0
     )
     await update()
+    # The auto reset must also re-adapt the light right away, not only clear the
+    # flag. Collect the 'light.turn_on' calls made with the 'autoreset' context.
+    autoreset_calls: list[Event] = []
+
+    async def _on_call_service(event: Event) -> None:
+        if (
+            event.data.get("domain") == LIGHT_DOMAIN
+            and event.data.get("service") == SERVICE_TURN_ON
+            and is_our_context(event.context, "autoreset")
+        ):
+            autoreset_calls.append(event)
+
+    remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, _on_call_service)
     await asyncio.sleep(0.3)  # Should be enough time for auto reset
+    await hass.async_block_till_done()
+    remove_listener()
     assert not manual_control[light.entity_id], (light, manual_control)
     assert (
         light.entity_id not in switch.extra_state_attributes["autoreset_time_remaining"]
     )
+    assert autoreset_calls, "auto reset did not re-adapt the light"
 
     # Do a couple of quick changes and check that light is not reset
     for i in range(3):
