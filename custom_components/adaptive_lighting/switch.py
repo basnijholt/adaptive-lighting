@@ -2963,7 +2963,7 @@ class AdaptiveLightingManager:
 
 
 class _AsyncSingleShotTimer:
-    def __init__(self, delay: float, callback: Callable[[], None | Any]) -> None:
+    def __init__(self, delay: float, callback: Callable[[], Any | None]) -> None:
         """Initialize the timer."""
         self.delay = delay
         self.callback = callback
