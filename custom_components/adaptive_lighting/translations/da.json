@@ -8,6 +8,11 @@
         "data": {
           "name": "Navn"
         }
+      },
+      "menu": {
+        "data": {
+          "action": "Handling"
+        }
       }
     },
     "abort": {
