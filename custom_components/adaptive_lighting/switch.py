@@ -565,8 +565,20 @@ def validate(
     if config_entry is not None:
         assert service_data is None
         assert defaults is None
-        data.update(config_entry.options)  # come from options flow
-        data.update(config_entry.data)  # all yaml settings come from data
+        if config_entry.source == SOURCE_IMPORT:
+            # YAML-configured entries: `data` is the authoritative YAML config
+            # and must win over any stray `options` from a prior UI setup.
+            data.update(config_entry.options)
+            data.update(config_entry.data)
+        else:
+            # UI-configured entries: settings are meant to live in `options`
+            # (see OptionsFlowHandler in config_flow.py). `data` here is
+            # either just the entry name, or - for entries created before
+            # data/options were split - a stale snapshot from initial setup.
+            # Applying it last would silently discard newer changes made
+            # through the options flow, so `options` must win instead.
+            data.update(config_entry.data)
+            data.update(config_entry.options)
     else:
         assert service_data is not None
         changed_settings = {
@@ -840,6 +852,8 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -991,9 +1005,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         """Return the name of the device if any."""
-        return f"Adaptive Lighting: {self._name}"
+        # The main switch takes the device name "Adaptive Lighting: <name>"
+        return None
 
     @property
     def unique_id(self) -> str:
@@ -1012,7 +1027,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             identifiers={
                 (DOMAIN, self._name),
             },
-            name=self._name,
+            name=f"Adaptive Lighting: {self._name}",
             entry_type=DeviceEntryType.SERVICE,
         )
 
@@ -1135,6 +1150,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return extra_state_attributes
         extra_state_attributes["manual_control"] = [
             light for light in self.lights if self.manager.manual_control.get(light)
+        ]
+        extra_state_attributes["manual_control_brightness"] = [
+            light
+            for light in self.lights
+            if self.manager.manual_control.get(light, LightControlAttributes.NONE)
+            & LightControlAttributes.BRIGHTNESS
+        ]
+        extra_state_attributes["manual_control_color"] = [
+            light
+            for light in self.lights
+            if self.manager.manual_control.get(light, LightControlAttributes.NONE)
+            & LightControlAttributes.COLOR
         ]
         extra_state_attributes.update(self._settings)
         timers = self.manager.auto_reset_manual_control_timers
@@ -1624,6 +1651,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         which: str,
@@ -1645,8 +1674,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
     @property
     def name(self) -> str:
-        """Return the name of the device if any."""
-        return self._name
+        """Return the name of the entity within its device."""
+        return self._which
 
     @property
     def unique_id(self) -> str:
@@ -1830,25 +1859,12 @@ class AdaptiveLightingManager:
         self._context_cnt += 1
         return context
 
-    def _is_service_light(self, entity_id: str) -> bool:
-        """Return True for "service" lights excluded from area turn-on.
-
-        Home Assistant itself excludes entities with an `entity_category`
-        (config/diagnostic) from area/device/label service-call expansion
-        (see core commit "Exclude hidden entities from targets"), so a
-        `light.turn_on` targeting an area never reaches them. We mirror that
-        rule via the entity registry: a light with a category set is not
-        normal room lighting and must not be turned on by the intercept.
-
-        We read the category from the entity registry (authoritative) rather
-        than `state.attributes`, because registry-only attributes are not
-        always present on the recorded state.
-        """
-        ent_reg = entity_registry.async_get(self.hass)
-        entry = ent_reg.async_get(entity_id) if ent_reg is not None else None
-        if entry is None:
-            return False
-        return entry.entity_category is not None
+    def _is_excluded_from_area(self, entity_id: str) -> bool:
+        """Match Home Assistant's exclusions for indirect area targets."""
+        entry = entity_registry.async_get(self.hass).async_get(entity_id)
+        return entry is not None and (
+            entry.entity_category is not None or entry.hidden_by is not None
+        )
 
     def _separate_entity_ids(
         self,
@@ -1996,11 +2012,8 @@ class AdaptiveLightingManager:
             service_data,
         )
 
-        # The intercept below rewrites `call.data` to target only the managed
-        # lights (see `modify_service_data`), so HA's original `light.turn_on`
-        # handler will only turn on the managed lights. We therefore need a
-        # copy of the original service data to re-issue `turn_on` for the
-        # unmanaged (skipped) lights so they still come on.
+        # Because `_service_interceptor_turn_on_single_light_handler` modifies the
+        # original service data, we need to make a copy of it to use in the `skipped` call
         service_data_copy = deepcopy(service_data)
 
         entity_ids = self._get_entity_list(service_data)
@@ -2076,23 +2089,15 @@ class AdaptiveLightingManager:
                     transition=transition,
                 )
 
-        # Re-issue `light.turn_on` for the skipped (unmanaged) lights so they
-        # still come on. The intercept rewrote `call.data` to target only the
-        # managed lights (see `modify_service_data`), so HA's original handler
-        # only turns on the managed ones; the unmanaged normal lights must be
-        # turned on explicitly here.
-        #
-        # IMPORTANT: "service" lights (entities with an `entity_category`,
-        # e.g. the Home Assistant Voice LED ring) are excluded from this
-        # re-issue. Home Assistant itself excludes such entities from
-        # area/label expansion, so it deliberately leaves them off; AL must
-        # not turn them on either. They remain in `self.lights` (if managed)
-        # and are still adapted when on.
-        if skipped and has_intercepted:
+        # Call light.turn_on service for skipped entities
+        if skipped:
+            if not has_intercepted:
+                assert set(skipped) == set(entity_ids)
+                return  # The call will be intercepted with the original data
+            # Call light turn_on service for skipped entities
             context = self.create_context("skipped")
             _LOGGER.debug(
-                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` "
-                "with skipped='%s', service_data: '%s', context='%s'",
+                "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
                 service_data_copy,  # This is the original service data
                 context.id,
@@ -2105,10 +2110,6 @@ class AdaptiveLightingManager:
                 blocking=True,
                 context=context,
             )
-        # When `has_intercepted` is False there are no managed lights in this
-        # call, so `call.data` still carries the original area/label target and
-        # HA's own handler turns on the normal lights (and excludes service
-        # lights) — nothing to re-issue here.
 
     async def _service_interceptor_turn_on_single_light_handler(
         self,
@@ -2289,7 +2290,6 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlAttributes.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
@@ -2405,7 +2405,7 @@ class AdaptiveLightingManager:
                     entity_id
                     for entity_id in area_entity_ids
                     if entity_id.startswith(LIGHT_DOMAIN)
-                    and not self._is_service_light(entity_id)
+                    and not self._is_excluded_from_area(entity_id)
                 ]
                 entity_ids.extend(eids)
                 _LOGGER.debug(
@@ -3031,9 +3031,17 @@ class _AsyncSingleShotTimer:
 
     def cancel(self) -> None:
         """Cancel the timer."""
-        if self.task:
+        # Never cancel the task that is currently running our own callback, e.g.
+        # when the auto-reset callback calls manager.reset(), which cancels the
+        # timer it is running in. That used to silently cancel the rest of the
+        # callback (the re-adaptation), see issue #1233.
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:  # no running event loop
+            current_task = None
+        if self.task and self.task is not current_task:
             self.task.cancel()
-            self.callback = None
+        self.callback = None
 
     def remaining_time(self) -> float:
         """Return the remaining time before the timer expires."""
