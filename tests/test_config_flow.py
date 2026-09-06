@@ -1,5 +1,7 @@
 """Test Adaptive Lighting config flow."""
 
+import json
+
 import pytest
 import voluptuous as vol
 
@@ -137,8 +139,8 @@ async def test_options_schema_has_each_setting_once(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=DEFAULT_NAME,
-        data={CONF_NAME: DEFAULT_NAME},
-        options={},
+        data={CONF_NAME: DEFAULT_NAME, "interval": 120, "min_brightness": 7},
+        options={"min_brightness": 12},
     )
     entry.add_to_hass(hass)
 
@@ -151,11 +153,14 @@ async def test_options_schema_has_each_setting_once(hass):
     assert {key.schema for key in advanced.schema.schema} == set(
         DEFAULT_DATA,
     ) - BASIC_OPTIONS
+    assert _schema_defaults(result["data_schema"])["interval"] == 120
+    assert _schema_defaults(result["data_schema"])["min_brightness"] == 12
 
     serialized_schema = to_field_list(
         result["data_schema"],
         custom_serializer=cv.custom_serializer,
     )
+    json.dumps(serialized_schema)
     serialized_advanced = next(
         field for field in serialized_schema if field["name"] == "advanced"
     )

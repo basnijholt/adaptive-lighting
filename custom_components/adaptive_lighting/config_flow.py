@@ -143,6 +143,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Handle options flow with collapsible sections."""
         conf = self.config_entry
         data = validate(conf)
+        form_data = {**conf.data, **conf.options}
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(
                 step_id="init",
@@ -156,6 +157,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=flat_input)
             data.update(flat_input)
+            form_data.update(flat_input)
 
         # Validate that all configured lights still exist
         all_lights = set(self.hass.states.async_entity_ids("light"))
@@ -180,7 +182,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         basic_schema: dict[vol.Marker, Any] = {}
         advanced_schema: dict[vol.Marker, Any] = {}
         for name, default, validation in VALIDATION_TUPLES:
-            key = vol.Optional(name, default=data.get(name, default))
+            key = vol.Optional(name, default=form_data.get(name, default))
             schema = basic_schema if name in BASIC_OPTIONS else advanced_schema
             schema[key] = to_replace.get(name, validation)
 
