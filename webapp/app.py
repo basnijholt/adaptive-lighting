@@ -8,8 +8,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import shinyswatch
-from astral import LocationInfo
-from astral.location import Location
+from astral import Observer
 from homeassistant_util_color import color_temperature_to_rgb
 from shiny import App, render, ui
 
@@ -298,7 +297,6 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 
 def _kw(input):
-    location = Location(LocationInfo(timezone=dt.timezone.utc))
     return {
         "name": "Adaptive Lighting Simulator",
         "adapt_until_sleep": input.adapt_until_sleep(),
@@ -324,8 +322,8 @@ def _kw(input):
         "max_sunrise_time": None,
         "min_sunset_time": None,
         "max_sunset_time": None,
-        "astral_location": location,
-        "timezone": location.timezone,
+        "astral_observer": Observer(),
+        "timezone": dt.timezone.utc,
     }
 
 
