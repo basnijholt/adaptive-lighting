@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Options d'éclairage adaptatif",
-        "description": "Configurer un composant d'éclairage adaptatif. Les noms correspondent aux paramètres YAML. Si vous avez défini cette entrée en YAML, aucune option n'apparaît ici. Pour les graphiques interactifs qui montrent les effets des paramètres, visiter [cette application web](https://basnijholt.github.io/adaptive-lighting). Pour plus de détail, voir la [documentation](https://github.com/basnijholt/adaptive-lighting#readme)",
+        "description": "Configurer un composant d'éclairage adaptatif. Les noms correspondent aux paramètres YAML. Si vous avez défini cette entrée en YAML, aucune option n'apparaît ici. Pour les graphiques interactifs qui montrent les effets des paramètres, visiter [cette application web]({webapp_url}). Pour plus de détail, voir la [documentation]({docs_url})",
         "data": {
           "lights": "lights : Liste d'\"entity_ids\" de lumières à controller (peu être vide). 🌟",
           "initial_transition": "initial_transition : Transition (en secondes) lorsque l'état d'une lampe passe d'« éteinte » à « allumée ».",

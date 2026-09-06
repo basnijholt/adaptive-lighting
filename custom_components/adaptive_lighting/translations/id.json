@@ -179,7 +179,7 @@
           "include_config_in_attributes": "include_config_in_attributes: Tampilkan semua opsi sebagai atribut pada sakelar di Home Assistant ketika diatur ke `true`. 📝"
         },
         "title": "Opsi Pencahayaan Adaptif",
-        "description": "Konfigurasikan komponen Pencahayaan Adaptif. Nama opsi selaras dengan pengaturan YAML. Jika Anda telah menentukan entri ini di YAML, tidak ada opsi yang akan muncul di sini. Untuk grafik interaktif yang menunjukkan efek parameter, kunjungi [aplikasi web ini](https://basnijholt.github.io/adaptive-lighting). Untuk detail lebih lanjut, lihat [dokumentasi resmi](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Konfigurasikan komponen Pencahayaan Adaptif. Nama opsi selaras dengan pengaturan YAML. Jika Anda telah menentukan entri ini di YAML, tidak ada opsi yang akan muncul di sini. Untuk grafik interaktif yang menunjukkan efek parameter, kunjungi [aplikasi web ini]({webapp_url}). Untuk detail lebih lanjut, lihat [dokumentasi resmi]({docs_url})."
       }
     },
     "error": {

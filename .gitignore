@@ -136,7 +136,5 @@ dmypy.json
 config/*
 !config/configuration.yaml
 
-# Local directories
+# Home Assistant core
 core/
-oss-ai-manager/
-.DS_Store

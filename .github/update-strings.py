@@ -60,6 +60,9 @@ with en_fname.open() as f:
 en["config"]["step"]["user"] = strings["config"]["step"]["user"]
 en["options"]["step"]["init"]["data"] = data
 en["options"]["step"]["init"]["data_description"] = data_description
+en["options"]["step"]["init"]["description"] = strings["options"]["step"]["init"][
+    "description"
+]
 en["services"] = services_json
 
 with en_fname.open("w") as f:

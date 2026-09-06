@@ -10,7 +10,7 @@ from homeassistant.const import CONF_SOURCE
 from homeassistant.core import Event, HomeAssistant
 
 from .const import (
-    _DOMAIN_SCHEMA,
+    _DOMAIN_SCHEMA,  # pyright: ignore[reportPrivateUsage]
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_NAME,
     DOMAIN,

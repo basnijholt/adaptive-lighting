@@ -46,6 +46,8 @@ def _type_to_str(type_: Any) -> str:  # noqa: PLR0911
         return "bool"
     if isinstance(type_, vol.All):
         return _format_voluptuous_instance(type_)
+    if isinstance(type_, vol.Any):
+        return " or ".join(_type_to_str(t) for t in type_.validators)
     if isinstance(type_, vol.In):
         return f"one of `{type_.container}`"
     if isinstance(type_, selector.SelectSelector):

@@ -4,16 +4,26 @@ from unittest.mock import Mock
 
 import pytest
 from homeassistant.components.adaptive_lighting.adaptation_utils import (
+    LightControlAttributes,
     ServiceData,
     _create_service_call_data_iterator,
     _has_relevant_service_data_attributes,
     _remove_redundant_attributes,
     _split_service_call_data,
+    get_light_control_attributes,
+    has_brightness_attribute,
+    has_color_attribute,
+    has_effect_attribute,
+    manual_control_event_attribute_to_flags,
     prepare_adaptation_data,
 )
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
     ATTR_COLOR_TEMP_KELVIN,
+    ATTR_EFFECT,
+    ATTR_FLASH,
+    ATTR_HS_COLOR,
     ATTR_TRANSITION,
 )
 from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
@@ -85,14 +95,82 @@ async def test_split_service_call_data(input_data, expected_data_list):
         ),
         (
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
-            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 11}),
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 13}),
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 229}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 227}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 5495}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 5524}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 6500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 6494}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 5400}),
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_HS_COLOR: (30.0, 40.0)},
+            State("light.test", STATE_ON, {ATTR_HS_COLOR: (30.0, 40.0)}),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: None}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10},
         ),
     ],
     ids=[
         "pass all attributes on empty state",
         "remove attributes whose values equal the state",
         "keep attributes whose values differ from the state",
+        "remove brightness within quantization tolerance (0-99 device scale)",
+        "keep brightness outside quantization tolerance",
+        "remove color temp within one mired (round-converting integration)",
+        "remove color temp within one mired (floor-converting HA core helpers)",
+        "remove color temp within one mired (6500 K)",
+        "keep color temp more than one mired away",
+        "remove non-numeric attributes on exact equality",
+        "keep attribute when state value is None",
     ],
 )
 async def test_remove_redundant_attributes(
@@ -157,18 +235,18 @@ async def test_has_relevant_service_data_attributes(
             [],
         ),
         (
-            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11}],
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15}],
             True,
-            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11}],
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15}],
         ),
         (
             [
-                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11},
+                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15},
                 {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 22},
             ],
             True,
             [
-                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11},
+                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15},
                 {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 22},
             ],
         ),
@@ -182,6 +260,11 @@ async def test_has_relevant_service_data_attributes(
                 {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 22},
             ],
         ),
+        (
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11}],
+            True,
+            [],
+        ),
     ],
     ids=[
         "single item passed through without filtering",
@@ -191,6 +274,7 @@ async def test_has_relevant_service_data_attributes(
         "filter keeps item with relevant attribute that is different from state",
         "filter keeps two items with relevant attributes that are different from state",
         "filter removes item that equals state and keeps items that differs from state",
+        "filter removes item with relevant attribute within tolerance of the state",
     ],
 )
 async def test_create_service_call_data_iterator(
@@ -338,3 +422,135 @@ def fixture_hass_states_mock():
     hass = Mock()
     hass.states.get.return_value = Mock(attributes={ATTR_BRIGHTNESS: 10})
     return hass
+
+
+@pytest.mark.parametrize(
+    ("attribute", "expected_str", "has_any", "has_none", "has_all"),
+    [
+        (LightControlAttributes.NONE, "NONE", False, True, False),
+        (LightControlAttributes.BRIGHTNESS, "BRIGHTNESS", True, False, False),
+        (LightControlAttributes.COLOR, "COLOR", True, False, False),
+        (
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
+            "BRIGHTNESS|COLOR",
+            True,
+            False,
+            True,
+        ),
+        (
+            LightControlAttributes.ALL,
+            "BRIGHTNESS|COLOR",
+            True,
+            False,
+            True,
+        ),
+    ],
+)
+def test_light_control_attribute_flags(
+    attribute: LightControlAttributes,
+    expected_str: str,
+    has_any: bool,
+    has_none: bool,
+    has_all: bool,
+):
+    """Test helper methods and string conversion for the light attribute flag."""
+    assert str(attribute) == expected_str
+    assert attribute.has_any() is has_any
+    assert attribute.has_none() is has_none
+    assert attribute.has_all() is has_all
+
+
+@pytest.mark.parametrize(
+    ("manual_control_attribute", "expected_flag"),
+    [
+        (True, LightControlAttributes.ALL),
+        (False, LightControlAttributes.NONE),
+        ("brightness", LightControlAttributes.BRIGHTNESS),
+        ("color", LightControlAttributes.COLOR),
+        ("unsupported", LightControlAttributes.NONE),
+    ],
+)
+def test_manual_control_event_attribute_to_flags(
+    manual_control_attribute: bool | str,
+    expected_flag: LightControlAttributes,
+):
+    """Test mapping of manual control events to attribute flags."""
+    assert (
+        manual_control_event_attribute_to_flags(manual_control_attribute)
+        == expected_flag
+    )
+
+
+@pytest.mark.parametrize(
+    ("service_data", "expected"),
+    [
+        ({ATTR_BRIGHTNESS: 125}, True),
+        ({ATTR_BRIGHTNESS_PCT: 50}, True),
+        ({ATTR_BRIGHTNESS_PCT: 50, ATTR_COLOR_TEMP_KELVIN: 3500}, True),
+        ({ATTR_BRIGHTNESS_PCT: 50, "unknown": "foo"}, True),
+        ({ATTR_COLOR_TEMP_KELVIN: 3500}, False),
+        ({}, False),
+    ],
+)
+def test_has_brightness_attribute(service_data: ServiceData, expected: bool):
+    """Test detection of brightness attributes in service data."""
+    assert has_brightness_attribute(service_data) is expected
+
+
+@pytest.mark.parametrize(
+    ("service_data", "expected"),
+    [
+        ({ATTR_HS_COLOR: (10, 20)}, True),
+        ({ATTR_COLOR_TEMP_KELVIN: 5000}, True),
+        ({ATTR_COLOR_TEMP_KELVIN: 5000, ATTR_BRIGHTNESS: 125}, True),
+        ({ATTR_COLOR_TEMP_KELVIN: 5000, "unknown": "foo"}, True),
+        ({ATTR_BRIGHTNESS: 125}, False),
+        ({}, False),
+    ],
+)
+def test_has_color_attribute(service_data: ServiceData, expected: bool):
+    """Test detection of color attributes in service data."""
+    assert has_color_attribute(service_data) is expected
+
+
+@pytest.mark.parametrize(
+    ("service_data", "expected"),
+    [
+        ({ATTR_EFFECT: "colorloop"}, True),
+        ({ATTR_FLASH: "short"}, True),
+        ({ATTR_EFFECT: "colorloop", ATTR_FLASH: "short"}, True),
+        ({ATTR_EFFECT: "colorloop", "unknown": "foo"}, True),
+        ({}, False),
+    ],
+)
+def test_has_effect_attribute(service_data: ServiceData, expected: bool):
+    """Test detection of effect attributes in service data."""
+    assert has_effect_attribute(service_data) is expected
+
+
+@pytest.mark.parametrize(
+    ("service_data", "expected_flags"),
+    [
+        ({ATTR_BRIGHTNESS: 1}, LightControlAttributes.BRIGHTNESS),
+        ({ATTR_HS_COLOR: (1, 2)}, LightControlAttributes.COLOR),
+        (
+            {ATTR_BRIGHTNESS: 1, ATTR_HS_COLOR: (1, 2)},
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
+        ),
+        (
+            {ATTR_EFFECT: "colorloop"},
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
+        ),
+        (
+            {ATTR_FLASH: "short"},
+            LightControlAttributes.BRIGHTNESS | LightControlAttributes.COLOR,
+        ),
+        ({}, LightControlAttributes.NONE),
+    ],
+)
+def test_get_light_control_attributes(
+    service_data: ServiceData,
+    expected_flags: LightControlAttributes,
+):
+    """Test determination of light control attributes."""
+    assert get_light_control_attributes(service_data) == expected_flags
