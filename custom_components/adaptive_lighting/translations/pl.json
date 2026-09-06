@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Opcje adaptacyjnego oświetlenia",
-        "description": "Konfiguracja komponentu Adaptacyjnego oświetlenia. Nazwy opcji odpowiadają ustawieniom YAML. Żadne opcje nie są wyświetlane, jeśli są zdefiniowane w konfiguracji YAML. Aby zobaczyć interaktywne wykresy demonstrujące działanie parametrów odwiedź [tą aplikację webową](https://basnijholt.github.io/adaptive-lighting). Aby zobaczyć więcej szczegółów odwiedź [oficjalną dokumentację](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "description": "Konfiguracja komponentu Adaptacyjnego oświetlenia. Nazwy opcji odpowiadają ustawieniom YAML. Żadne opcje nie są wyświetlane, jeśli są zdefiniowane w konfiguracji YAML. Aby zobaczyć interaktywne wykresy demonstrujące działanie parametrów odwiedź [tą aplikację webową]({webapp_url}). Aby zobaczyć więcej szczegółów odwiedź [oficjalną dokumentację]({docs_url}).",
         "data": {
           "lights": "lights: Lista `entity_id`, które mają być kontrolowane (może być pusta). 🌟",
           "initial_transition": "initial_transition: When lights turn 'off' to 'on'. (sekund)",

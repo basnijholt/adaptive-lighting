@@ -1,6 +1,5 @@
 """Utility functions for HA core."""
 
-import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
@@ -81,8 +80,9 @@ def setup_service_call_interceptor(
                 "Error for call '%s' in service_func_proxy",
                 call.data,
             )
-
         # Call original service handler with processed data
+        import asyncio
+
         target = existing_service.job.target
         if asyncio.iscoroutinefunction(target):
             await target(call)

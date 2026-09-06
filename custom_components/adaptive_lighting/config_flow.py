@@ -20,6 +20,11 @@ from .switch import validate
 
 _LOGGER = logging.getLogger(__name__)
 
+OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS = {
+    "webapp_url": "https://basnijholt.github.io/adaptive-lighting",
+    "docs_url": "https://github.com/basnijholt/adaptive-lighting#readme",
+}
+
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Adaptive Lighting."""
@@ -127,7 +132,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         conf = self.config_entry
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
-            return self.async_show_form(step_id="init", data_schema=None)
+            return self.async_show_form(
+                step_id="init",
+                data_schema=None,
+                description_placeholders=OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS,
+            )
         errors: dict[str, str] = {}
         if user_input is not None:
             validate_options(user_input, errors)
@@ -164,4 +173,5 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(options_schema),
             errors=errors,
+            description_placeholders=OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS,
         )

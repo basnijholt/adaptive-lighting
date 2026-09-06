@@ -46,7 +46,7 @@
           "skip_redundant_commands": "skip_redundant_commands: Evitar mandar comandos de adaptación a luces cuyo estado ya sea el esperado. Reduce tráfico en la red y mejora la respuesta de la adaptación en ciertas situaciones. 📉Deshabilitar si el estado real de las luces se desincroniza con el estado registrado en Home Assistant.",
           "take_over_control": "take_over_control: Deshabilita Adaptive Lighting si otra fuente llama`light.turn_on` mientras las luces están encendidas y adaptándose. Cuidado, esto llama`homeassistant.update_entity` cada `interval`! 🔒"
         },
-        "description": "Configura un componente Adaptive Lighting. Los nombres de las opciones se asemejan a las disponibles en la configuración YAML. Si has definido esta entrada en YAML, no aparecerá ninguna opción aquí. Para gráficos interactivos que demuestran los efectos de los parámetros, visita [esta web app](https://basnijholt.github.io/adaptive-lighting). Para más detalles, ver la [documentación oficial](https://github.com/basnijholt/adaptive-lighting#readme)."
+        "description": "Configura un componente Adaptive Lighting. Los nombres de las opciones se asemejan a las disponibles en la configuración YAML. Si has definido esta entrada en YAML, no aparecerá ninguna opción aquí. Para gráficos interactivos que demuestran los efectos de los parámetros, visita [esta web app]({webapp_url}). Para más detalles, ver la [documentación oficial]({docs_url})."
       }
     },
     "error": {

@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Adaptieve verlichting instellingen",
-        "description": "Alle instellingen voor een Adaptieve verlichting component. De optienamen komen overeen met de YAML-instellingen. Er worden geen opties weergegeven als u het item `adaptive_lighting` hebt gedefinieerd in uw YAML-configuratie.\nVoor een demonstratie met interactieve grafieken, parameters en effecten, bezoek [deze web applicatie](https://basnijholt.github.io/adaptive-lighting). Voor verdere details, bekijk de [officiële documentatie](https://github.com/basnijholt/adaptive-lighting#readme).",
+        "description": "Alle instellingen voor een Adaptieve verlichting component. De optienamen komen overeen met de YAML-instellingen. Er worden geen opties weergegeven als u het item `adaptive_lighting` hebt gedefinieerd in uw YAML-configuratie.\nVoor een demonstratie met interactieve grafieken, parameters en effecten, bezoek [deze web applicatie]({webapp_url}). Voor verdere details, bekijk de [officiële documentatie]({docs_url}).",
         "data": {
           "lights": "Lampen: lijst van `light` entiteiten om te bedienen (kan leeg zijn). 🌟",
           "initial_transition": "initial_transition: Wanneer lichten van 'uit' naar 'aan' gaan. (seconden)",

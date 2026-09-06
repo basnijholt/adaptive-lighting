@@ -465,10 +465,7 @@ def apply_service_schema() -> vol.Schema:
         {
             vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
-            vol.Optional(
-                CONF_TRANSITION,
-                default=None,
-            ): vol.Any(VALID_TRANSITION, None),
+            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
             vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
@@ -480,7 +477,7 @@ def apply_service_schema() -> vol.Schema:
 def change_switch_settings_schema() -> vol.Schema:
     """Return the schema for the change_switch_settings service."""
     args: dict[vol.Marker, Any] = {
-        vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
+        vol.Required(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string,
     }
     # Modifying these after init isn't possible
