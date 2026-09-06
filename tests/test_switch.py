@@ -27,6 +27,8 @@ from homeassistant.components.adaptive_lighting.color_and_brightness import (
 from homeassistant.components.adaptive_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
+    ATTR_ADAPT_BRIGHTNESS,
+    ATTR_ADAPT_COLOR,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
@@ -1227,6 +1229,153 @@ async def test_unchanged_non_ha_change_preserves_manual_control_timeout(
             switch.manager.get_manual_control_attributes(light.entity_id)
             == LightControlAttributes.ALL
         )
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7200
+        )
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+@pytest.mark.parametrize(
+    "manual_attribute",
+    [LightControlAttributes.BRIGHTNESS, LightControlAttributes.COLOR],
+)
+async def test_apply_updates_non_ha_change_baseline(
+    hass,
+    freezer,
+    cleanup,
+    intercept,
+    mode,
+    manual_attribute,
+):
+    """An adaptive apply must become the baseline for later physical changes."""
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_AUTORESET_CONTROL: 7200,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INTERCEPT: intercept,
+        },
+    )
+    light = lights[0]
+    lights_by_entity = {item.entity_id: item for item in lights}
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test"),
+        force=True,
+        transition=0,
+    )
+    await hass.async_block_till_done()
+
+    adaptive_value = (
+        light.brightness
+        if manual_attribute == LightControlAttributes.BRIGHTNESS
+        else light.color_temp_kelvin
+    )
+    assert adaptive_value is not None
+    difference = 120 if manual_attribute == LightControlAttributes.BRIGHTNESS else 500
+    manual_value = (
+        adaptive_value - difference
+        if adaptive_value >= difference
+        else adaptive_value + difference
+    )
+
+    def set_physical_state(value=manual_value):
+        if manual_attribute == LightControlAttributes.BRIGHTNESS:
+            set_light_brightness(light, value)
+        else:
+            light._attr_color_temp_kelvin = value
+            if hasattr(light, "_temperature"):
+                light._temperature = color_temperature_kelvin_to_mired(value)
+
+    async def flush_physical_state(hass, entity_id):
+        lights_by_entity[entity_id].async_write_ha_state()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.async_update_entity",
+        new=AsyncMock(side_effect=flush_physical_state),
+    ):
+        set_physical_state()
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.manager.get_manual_control_attributes(light.entity_id)
+            == manual_attribute
+        )
+
+        direction = 1 if manual_value < adaptive_value else -1
+        small_change = (
+            15 if manual_attribute == LightControlAttributes.BRIGHTNESS else 60
+        )
+        freezer.tick(90)
+        set_physical_state(manual_value + direction * small_change)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7110
+        )
+
+        adapt_brightness = manual_attribute == LightControlAttributes.COLOR
+        adapt_color = manual_attribute == LightControlAttributes.BRIGHTNESS
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [light.entity_id],
+                ATTR_ADAPT_BRIGHTNESS: adapt_brightness,
+                ATTR_ADAPT_COLOR: adapt_color,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert (
+            switch.manager.get_manual_control_attributes(light.entity_id)
+            == manual_attribute
+        )
+
+        freezer.tick(90)
+        pre_apply_value = manual_value + direction * small_change * 2
+        set_physical_state(pre_apply_value)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7200
+        )
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [light.entity_id],
+                ATTR_ADAPT_BRIGHTNESS: not adapt_brightness,
+                ATTR_ADAPT_COLOR: not adapt_color,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        applied_value = (
+            light.brightness
+            if manual_attribute == LightControlAttributes.BRIGHTNESS
+            else light.color_temp_kelvin
+        )
+        assert applied_value != pre_apply_value
+
+        freezer.tick(90)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7110
+        )
+
+        set_physical_state(pre_apply_value)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
         assert (
             switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
             == 7200

@@ -1435,6 +1435,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data.context.id,
             )
             light = service_data[ATTR_ENTITY_ID]
+            self.manager.invalidate_manual_control_state(
+                light,
+                get_light_control_attributes(service_data),
+            )
             self.manager.last_service_data[light] = {
                 **self.manager.last_service_data.get(light, {}),
                 **service_data,
@@ -1802,6 +1806,10 @@ class AdaptiveLightingManager:
         self.last_service_data: dict[str, dict[str, Any]] = {}
         # Track physical states already detected as manual changes
         self.last_manual_control_state: dict[str, dict[str, Any]] = {}
+        self.last_manual_control_state_attributes: dict[
+            str,
+            LightControlAttributes,
+        ] = {}
         # Track ongoing split adaptations to be able to cancel them
         self.adaptation_tasks_brightness: dict[str, asyncio.Task[None]] = {}
         self.adaptation_tasks_color: dict[str, asyncio.Task[None]] = {}
@@ -2369,6 +2377,19 @@ class AdaptiveLightingManager:
         new = current | attributes
         self.set_manual_control_attributes(light, new)
 
+    def invalidate_manual_control_state(
+        self,
+        light: str,
+        attributes: LightControlAttributes,
+    ) -> None:
+        """Stop comparing adapted attributes with an older physical state."""
+        valid_attributes = self.last_manual_control_state_attributes.get(light)
+        if valid_attributes is None:
+            return
+        self.last_manual_control_state_attributes[light] = (
+            valid_attributes & ~attributes
+        )
+
     def get_adaption_control_attributes(
         self,
         switch: AdaptiveSwitch,
@@ -2448,6 +2469,7 @@ class AdaptiveLightingManager:
                 )
                 self.manual_control[light] = LightControlAttributes.NONE
                 self.last_manual_control_state.pop(light, None)
+                self.last_manual_control_state_attributes.pop(light, None)
                 if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
@@ -2800,6 +2822,13 @@ class AdaptiveLightingManager:
             context=context,
         )
         manual_control = self.get_manual_control_attributes(light)
+        manual_control_state_attributes = (
+            self.last_manual_control_state_attributes.get(
+                light,
+                LightControlAttributes.NONE,
+            )
+            & manual_control
+        )
         last_manual_control_state = self.last_manual_control_state.get(
             light,
             last_service_data,
@@ -2811,10 +2840,14 @@ class AdaptiveLightingManager:
             context=context,
         )
         changed_attributes = (
-            changed_since_adaptation & (LightControlAttributes.ALL ^ manual_control)
-        ) | (changed_since_manual_control & manual_control)
+            changed_since_adaptation
+            & (LightControlAttributes.ALL ^ manual_control_state_attributes)
+        ) | (changed_since_manual_control & manual_control_state_attributes)
         if changed_attributes:
             self.last_manual_control_state[light] = dict(refreshed_state.attributes)
+            self.last_manual_control_state_attributes[light] = (
+                manual_control_state_attributes | changed_attributes
+            )
             _LOGGER.debug(
                 "%s: State attributes %s of '%s' changed (%s) wrt 'last_service_data' (%s) (context.id=%s)",
                 switch._name,
