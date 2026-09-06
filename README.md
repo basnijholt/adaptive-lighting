@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-154-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-155-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -708,6 +708,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://hosted.weblate.org/user/posemartonis/"><img src="https://hosted.weblate.org/avatar/128/posemartonis.png?s=100" width="100px;" alt="Pose marto"/><br /><sub><b>Pose marto</b></sub></a><br /><a href="#translation-weblate-posemartonis" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://hosted.weblate.org/user/jf.cosse/"><img src="https://hosted.weblate.org/avatar/128/jf.cosse.png?s=100" width="100px;" alt="Jean-Francois Cosse"/><br /><sub><b>Jean-Francois Cosse</b></sub></a><br /><a href="#translation-weblate-jf.cosse" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/bisquit2003"><img src="https://avatars.githubusercontent.com/u/98059406?v=4?s=100" width="100px;" alt="bisquit2003"/><br /><sub><b>bisquit2003</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Abisquit2003" title="Bug reports">🐛</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chewth91"><img src="https://avatars.githubusercontent.com/u/29686018?v=4?s=100" width="100px;" alt="chewth91"/><br /><sub><b>chewth91</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Achewth91" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
   <tfoot>
