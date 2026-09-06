@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-160-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-161-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -717,6 +717,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://niklashaas.de"><img src="https://avatars.githubusercontent.com/u/1149047?v=4?s=100" width="100px;" alt="Niklas Haas"/><br /><sub><b>Niklas Haas</b></sub></a><br /><a href="#ideas-haasn" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/djurny"><img src="https://avatars.githubusercontent.com/u/950171?v=4?s=100" width="100px;" alt="Tom Urlings"/><br /><sub><b>Tom Urlings</b></sub></a><br /><a href="#ideas-djurny" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://anastay.dev"><img src="https://avatars.githubusercontent.com/u/45088785?v=4?s=100" width="100px;" alt="Benoit Anastay"/><br /><sub><b>Benoit Anastay</b></sub></a><br /><a href="#ideas-BenoitAnastay" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://isjustawesome.com"><img src="https://avatars.githubusercontent.com/u/689204?v=4?s=100" width="100px;" alt="Jeremy Gollehon"/><br /><sub><b>Jeremy Gollehon</b></sub></a><br /><a href="#ideas-GollyJer" title="Ideas, Planning, & Feedback">🤔</a></td>
     </tr>
   </tbody>
   <tfoot>
