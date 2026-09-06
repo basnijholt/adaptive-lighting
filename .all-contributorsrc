@@ -447,7 +447,8 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/189372?v=4",
       "profile": "http://protyposis.net",
       "contributions": [
-        "code"
+        "code",
+        "ideas"
       ]
     },
     {
@@ -1421,6 +1422,78 @@
       "profile": "https://github.com/rhtenhove",
       "contributions": [
         "code"
+      ]
+    },
+    {
+      "login": "mrbillpapas",
+      "name": "Bill Papas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45721000?v=4",
+      "profile": "https://github.com/mrbillpapas",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "haasn",
+      "name": "Niklas Haas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1149047?v=4",
+      "profile": "https://niklashaas.de",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "djurny",
+      "name": "Tom Urlings",
+      "avatar_url": "https://avatars.githubusercontent.com/u/950171?v=4",
+      "profile": "https://github.com/djurny",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "BenoitAnastay",
+      "name": "Benoit Anastay",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45088785?v=4",
+      "profile": "http://anastay.dev",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "GollyJer",
+      "name": "Jeremy Gollehon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/689204?v=4",
+      "profile": "https://isjustawesome.com",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "jrbergen",
+      "name": "jrbergen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6237646?v=4",
+      "profile": "https://github.com/jrbergen",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "b-rad15",
+      "name": "Bradley O'Connell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25830163?v=4",
+      "profile": "https://github.com/b-rad15",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "00schteven",
+      "name": "00schteven",
+      "avatar_url": "https://avatars.githubusercontent.com/u/76514745?v=4",
+      "profile": "https://github.com/00schteven",
+      "contributions": [
+        "ideas"
       ]
     }
   ],
