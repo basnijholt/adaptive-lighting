@@ -768,7 +768,7 @@ If lights stop adapting after you turn them on with a physical switch or a Zigbe
 
 To adapt these turn-ons while still detecting later manual changes, enable `detect_non_ha_changes` and leave `manual_control_on_external_turn_on` disabled. This requires the light integration to report its state reliably. If you want Adaptive Lighting to keep adapting regardless of manual changes, disable `take_over_control` along with the options that require it: `detect_non_ha_changes`, `adapt_only_on_bare_turn_on`, and `manual_control_on_external_turn_on`.
 
-This explains the physical-switch case in [#1056](https://github.com/basnijholt/adaptive-lighting/issues/1056), but not every report in that thread. If the light is not listed in `manual_control`, include diagnostics and debug logs from the failed turn-on when reporting it. Lights returning from `unavailable` after a power cut are a separate case from an `off` to `on` state change.
+This explains the physical-switch case in [#1056](https://github.com/basnijholt/adaptive-lighting/issues/1056), but not every report in that thread. If the light is not listed in `manual_control`, include diagnostics and debug logs from the failed turn-on when reporting it. When a light returns directly from `unavailable` to `on`, Adaptive Lighting uses the same turn-on policy and, if adaptation is allowed, applies `adapt_delay` and `initial_transition` even with `only_once`. Existing `manual_control` remains set because availability alone cannot distinguish a power cycle from a temporary connection loss.
 
 #### :bulb: Lights Not Responding or Turning On by Themselves
 

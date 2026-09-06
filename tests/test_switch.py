@@ -30,6 +30,7 @@ from homeassistant.components.adaptive_lighting.const import (
     ATTR_ADAPT_BRIGHTNESS,
     ATTR_ADAPT_COLOR,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
+    CONF_ADAPT_DELAY,
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
@@ -46,6 +47,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_MULTI_LIGHT_INTERCEPT,
+    CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     CONF_SEND_SPLIT_DELAY,
@@ -117,6 +119,8 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
     EntityCategory,
 )
 from homeassistant.core import Context, CoreState, Event, HomeAssistant, State
@@ -4974,6 +4978,326 @@ async def test_manual_control_on_external_turn_on_external_state_change(
     else:
         assert last_service_data is None
         assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+
+
+async def _recover_light_from_unavailable(hass, brightness=200):
+    """Publish the state sequence emitted when a powered-off bulb reconnects."""
+    attributes = dict(hass.states.get(ENTITY_LIGHT_1).attributes)
+    attributes[ATTR_BRIGHTNESS] = brightness
+    hass.states.async_set(
+        ENTITY_LIGHT_1,
+        STATE_UNAVAILABLE,
+        attributes,
+        context=Context(id="became_unavailable"),
+    )
+    await hass.async_block_till_done()
+    hass.states.async_set(
+        ENTITY_LIGHT_1,
+        STATE_ON,
+        attributes,
+        context=Context(id="recovered_on"),
+    )
+    await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize(
+    ("only_once", "take_over_control", "detect_non_ha_changes"),
+    [(False, True, True), (True, True, True), (False, False, False)],
+)
+async def test_unavailable_light_recovery_adapts_immediately(
+    hass,
+    only_once,
+    take_over_control,
+    detect_non_ha_changes,
+):
+    """A trusted unavailable-to-on recovery is an initial adaptation (#307)."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: take_over_control,
+            CONF_DETECT_NON_HA_CHANGES: detect_non_ha_changes,
+            CONF_ONLY_ONCE: only_once,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+
+    await _recover_light_from_unavailable(hass)
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 128
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.NONE
+    )
+
+
+@pytest.mark.parametrize(
+    ("detect_non_ha_changes", "external_turn_on_is_manual"),
+    [(False, False), (True, True)],
+)
+async def test_unavailable_light_recovery_respects_external_turn_on_policy(
+    hass,
+    detect_non_ha_changes,
+    external_turn_on_is_manual,
+):
+    """Recovery follows the same opt-in policy as an unmatched turn-on."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_DETECT_NON_HA_CHANGES: detect_non_ha_changes,
+            CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON: external_turn_on_is_manual,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+
+    await _recover_light_from_unavailable(hass)
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+
+
+async def test_unavailable_light_recovery_preserves_manual_control(hass):
+    """A reconnect does not discard existing manual-control intent."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    switch.manager.set_manual_control_attributes(ENTITY_LIGHT_1)
+
+    await _recover_light_from_unavailable(hass)
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+
+
+async def test_unavailable_light_recovery_adapts_non_manual_attributes(hass):
+    """PAUSE_CHANGED keeps manual brightness while adapting color."""
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL_MODE: TakeOverControlMode.PAUSE_CHANGED.value,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.BRIGHTNESS,
+    )
+    switch.manager.last_service_data.pop(ENTITY_LIGHT_1, None)
+    set_light_brightness(lights[0], 200)
+
+    await _recover_light_from_unavailable(hass)
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    service_data = switch.manager.last_service_data[ENTITY_LIGHT_1]
+    assert ATTR_BRIGHTNESS not in service_data
+    assert ATTR_COLOR_TEMP_KELVIN in service_data
+
+
+async def test_unavailable_light_recovery_ignores_disabled_profile(hass):
+    """A disabled profile does not act when one of its lights reconnects."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    await switch.async_turn_off()
+
+    await _recover_light_from_unavailable(hass)
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+
+
+async def test_unknown_to_on_does_not_trigger_recovery(hass):
+    """An unknown-to-on update remains outside unavailable recovery."""
+    await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    attributes = dict(hass.states.get(ENTITY_LIGHT_1).attributes)
+    attributes[ATTR_BRIGHTNESS] = 200
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_UNKNOWN, attributes)
+    await hass.async_block_till_done()
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, attributes)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+
+
+async def test_unavailable_light_is_skipped_by_interval(hass):
+    """Periodic updates do not send commands to unavailable lights."""
+    switch, _ = await setup_lights_and_switch(hass)
+    attributes = dict(hass.states.get(ENTITY_LIGHT_1).attributes)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_UNAVAILABLE, attributes)
+    await hass.async_block_till_done()
+    switch.manager.last_service_data.pop(ENTITY_LIGHT_1, None)
+
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("interval"),
+        lights=[ENTITY_LIGHT_1],
+    )
+
+    assert ENTITY_LIGHT_1 not in switch.manager.last_service_data
+
+
+@pytest.mark.parametrize(
+    ("turn_on_timestamp", "should_adapt"),
+    [(None, False), (1.0, False), (3.0, True)],
+)
+async def test_interval_respects_latest_turn_off_service(
+    hass,
+    turn_on_timestamp,
+    should_adapt,
+):
+    """Interval adaptation follows the latest tracked on/off service intent."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    manager = switch.manager
+    manager.last_service_data.pop(ENTITY_LIGHT_1, None)
+    manager.turn_off_event[ENTITY_LIGHT_1] = Event(
+        EVENT_CALL_SERVICE,
+        {},
+        time_fired_timestamp=2.0,
+    )
+    manager.turn_on_event.pop(ENTITY_LIGHT_1, None)
+    if turn_on_timestamp is not None:
+        manager.turn_on_event[ENTITY_LIGHT_1] = Event(
+            EVENT_CALL_SERVICE,
+            {},
+            time_fired_timestamp=turn_on_timestamp,
+        )
+
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("interval"),
+        lights=[ENTITY_LIGHT_1],
+    )
+
+    assert (ENTITY_LIGHT_1 in manager.last_service_data) is should_adapt
+
+
+async def test_unavailable_light_recovery_preserves_recent_turn_off(hass):
+    """A false on report does not override a newer explicit turn-off."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    switch.manager.turn_on_event.pop(ENTITY_LIGHT_1, None)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert ENTITY_LIGHT_1 not in switch.manager.turn_on_event
+
+    await _recover_light_from_unavailable(hass)
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+
+
+@pytest.mark.parametrize("cancel_reason", ["light_turn_off", "profile_disabled"])
+async def test_unavailable_light_recovery_cancelled_during_delay(
+    hass,
+    monkeypatch,
+    cancel_reason,
+):
+    """A changed off intent during recovery delay prevents adaptation."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_ADAPT_DELAY: 0.1234,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    attributes = dict(hass.states.get(ENTITY_LIGHT_1).attributes)
+    attributes[ATTR_BRIGHTNESS] = 200
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_UNAVAILABLE, attributes)
+    await hass.async_block_till_done()
+
+    entered_delay = asyncio.Event()
+    release_delay = asyncio.Event()
+    original_sleep = asyncio.sleep
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        if delay == 0.1234:
+            entered_delay.set()
+            await release_delay.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, attributes)
+    await entered_delay.wait()
+    if cancel_reason == "light_turn_off":
+        hass.bus.async_fire(
+            EVENT_CALL_SERVICE,
+            {
+                "domain": LIGHT_DOMAIN,
+                "service": SERVICE_TURN_OFF,
+                "service_data": {
+                    ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+                    ATTR_TRANSITION: 10,
+                },
+            },
+            context=Context(id="turn_off_during_recovery_delay"),
+        )
+        await original_sleep(0)
+        assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+        assert switch.manager.last_service_call_was_turn_off(ENTITY_LIGHT_1)
+    else:
+        await switch.async_turn_off()
+        assert not switch.is_on
+    release_delay.set()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
 
 
 @pytest.mark.parametrize("intercept", [True, False])

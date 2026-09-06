@@ -47,6 +47,7 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
+    STATE_UNAVAILABLE,
 )
 from homeassistant.core import (
     CALLBACK_TYPE,
@@ -1564,9 +1565,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     # being turned off in 'interval' update, see #726
                     not self._detect_non_ha_changes
                     and is_our_context(context, "interval")
-                    and (turn_on := self.manager.turn_on_event.get(light))
-                    and (turn_off := self.manager.turn_off_event.get(light))
-                    and turn_off.time_fired > turn_on.time_fired
+                    and self.manager.last_service_call_was_turn_off(light)
                 ):
                     _LOGGER.debug(
                         "%s: Light '%s' was turned just turned off, context.id='%s'",
@@ -1688,8 +1687,22 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
 
-        # Runtime settings may retire this profile's target while the event waits.
-        if entity_id not in self.lights:
+        # Runtime settings may disable the profile or retire its target while waiting.
+        if not self.is_on or entity_id not in self.lights:
+            return
+
+        old_state = event.data["old_state"]
+        if (
+            old_state is not None
+            and old_state.state == STATE_UNAVAILABLE
+            and not self._detect_non_ha_changes
+            and self.manager.last_service_call_was_turn_off(entity_id)
+        ):
+            _LOGGER.debug(
+                "%s: Skipping recovery of '%s' after a light.turn_off call",
+                self._name,
+                entity_id,
+            )
             return
 
         await self._update_attrs_and_maybe_adapt_lights(
@@ -2777,6 +2790,7 @@ class AdaptiveLightingManager:
             if old_state is not None and old_state.state == STATE_OFF
             else None
         )
+        old_unavailable = old_state is not None and old_state.state == STATE_UNAVAILABLE
         if new_on:
             _LOGGER.debug(
                 "Detected a '%s' 'state_changed' event: '%s' with context.id='%s'",
@@ -2836,11 +2850,14 @@ class AdaptiveLightingManager:
                 entity_id,
                 event.context.id,
             )
-        elif old_off and new_on:
-            # Tracks 'off' → 'on' state changes
+        elif (old_off or old_unavailable) and new_on:
+            # Treat a recovered light like one that was turned on, without
+            # treating the preceding loss of availability as a turn-off.
             self.off_to_on_event[entity_id] = event
+            old_state_name = STATE_OFF if old_off else STATE_UNAVAILABLE
             _LOGGER.debug(
-                "Detected an 'off' → 'on' event for '%s' with context.id='%s'",
+                "Detected an '%s' → 'on' event for '%s' with context.id='%s'",
+                old_state_name,
                 entity_id,
                 event.context.id,
             )
@@ -2858,7 +2875,7 @@ class AdaptiveLightingManager:
             self.reset(entity_id, reset_manual_control=False)
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
-                if await self.just_turned_off(entity_id):
+                if old_off and await self.just_turned_off(entity_id):
                     # Stop if a rapid 'off' → 'on' → 'off' happens.
                     _LOGGER.debug(
                         "Cancelling adjusting lights for %s",
@@ -2877,6 +2894,14 @@ class AdaptiveLightingManager:
                         entity_id,
                         event,
                     )
+
+    def last_service_call_was_turn_off(self, entity_id: str) -> bool:
+        """Return whether the most recent tracked service call turned a light off."""
+        turn_on = self.turn_on_event.get(entity_id)
+        turn_off = self.turn_off_event.get(entity_id)
+        return turn_off is not None and (
+            turn_on is None or turn_off.time_fired > turn_on.time_fired
+        )
 
     async def update_manually_controlled_from_event(
         self,
