@@ -5,7 +5,6 @@ import asyncio
 import contextlib
 import datetime
 import logging
-from collections import OrderedDict
 from copy import deepcopy
 from random import randint
 from typing import Any
@@ -90,17 +89,8 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-
-try:
-    # HA >= 2025.8
-    from homeassistant.components.template.light import (
-        StateLightEntity as LightTemplate,
-    )
-except ImportError:
-    # HA < 2025.8
-    from homeassistant.components.template.light import LightTemplate
-
 from homeassistant.components.template import light as template_light
+from homeassistant.components.template.light import StateLightEntity as LightTemplate
 from homeassistant.config_entries import SOURCE_IMPORT, SOURCE_USER, ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
@@ -116,7 +106,6 @@ from homeassistant.const import (
     STATE_ON,
     EntityCategory,
 )
-from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
@@ -125,6 +114,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.color import color_temperature_mired_to_kelvin
 
 from tests.common import MockConfigEntry
+from tests.common import mock_area_registry as mock_ha_area_registry
 
 # HA 2026.6 removed the legacy `light: platform: template` YAML format
 # (home-assistant/core#169615); use the modern `template:` format there.
@@ -1854,56 +1844,21 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     assert sleep_color_temp != color_temp
 
 
-# Vendored in this function as it was broken
-# https://github.com/home-assistant/core/pull/112150 (my PR and reported issue)
-# Then removed: https://github.com/home-assistant/core/pull/112172
-# Then re-added: https://github.com/home-assistant/core/pull/113453
-# This version is no longer the same as the one in HA because of the many changes
-# that have been made in 2024.
 def mock_area_registry(
     hass: HomeAssistant,
 ) -> ar.AreaRegistry:
     """Mock the Area Registry."""
-    registry = ar.AreaRegistry(hass)
-    registry._area_data = {}
-    area_kwargs = {
-        "name": "Test Area",
-        "normalized_name": "test-area",
-        "id": "test-area",
-        "picture": None,
-    }
-    year, month = (int(x) for x in ha_version.split(".")[:2])
-    dt = datetime.date(year, month, 1)
-    if dt >= datetime.date(2023, 1, 1):
-        area_kwargs["aliases"] = {}
-    if dt >= datetime.date(2024, 2, 1):
-        area_kwargs["icon"] = None
-    if dt >= datetime.date(2024, 3, 1):
-        area_kwargs["floor_id"] = "test-floor"
-    if dt >= datetime.date(2024, 11, 1):
-        area_kwargs.pop("normalized_name")
-    if dt >= datetime.date(2025, 2, 1):
-        area_kwargs["humidity_entity_id"] = None
-        area_kwargs["temperature_entity_id"] = None
-
-    # This mess... 🤯
-    if dt >= datetime.date(2024, 2, 1) and dt != datetime.date(2024, 4, 1):
-        # 2024.4 removed AreaRegistryItems and then added it back in 2024.5:
-        # https://github.com/home-assistant/core/pull/114777
-        registry.areas = ar.AreaRegistryItems()
-    elif dt == datetime.date(2024, 4, 1):
-        from homeassistant.helpers.normalized_name_base_registry import (
-            NormalizedNameBaseRegistryItems,
-        )
-
-        registry.areas = NormalizedNameBaseRegistryItems()
-    else:
-        registry.areas = OrderedDict()
-
-    area = ar.AreaEntry(**area_kwargs)
-    registry.areas[area.id] = area
-    hass.data[ar.DATA_REGISTRY] = registry
-    return registry
+    area = ar.AreaEntry(
+        aliases=set(),
+        floor_id="test-floor",
+        humidity_entity_id=None,
+        icon=None,
+        id="test-area",
+        name="Test Area",
+        picture=None,
+        temperature_entity_id=None,
+    )
+    return mock_ha_area_registry(hass, {area.id: area})
 
 
 async def test_light_switch_in_specific_area(hass):
