@@ -1431,6 +1431,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "haasn",
+      "name": "Niklas Haas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1149047?v=4",
+      "profile": "https://niklashaas.de",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
