@@ -8,17 +8,11 @@ Adaptive Lighting supports configuration through both YAML and the Home Assistan
 
 ## Basic Configuration
 
-The minimal configuration requires only adding the integration to your `configuration.yaml`:
-
-```yaml
-adaptive_lighting:
-```
-
-You can then configure everything through the UI at **Settings** → **Devices & Services** → **Adaptive Lighting** → **Configure**.
+The simplest setup uses the Home Assistant UI. Go to **Settings** → **Devices & Services** → **Add Integration** → **Adaptive Lighting**. No `adaptive_lighting:` entry is needed in `configuration.yaml`.
 
 ## YAML Configuration
 
-For YAML configuration, you can specify lights and options directly:
+Alternatively, you can specify lights and options in `configuration.yaml`:
 
 ```yaml
 adaptive_lighting:
