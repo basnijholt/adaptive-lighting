@@ -583,6 +583,16 @@ logger:
 ```
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
+
+For support, use Home Assistant's **Download diagnostics** action on the
+Adaptive Lighting config entry. The download is an on-demand snapshot of the
+profile's current switches and currently tracked light targets. It does not
+refresh group membership or predict targets a disabled profile would use after
+being enabled. It does not create live sensors; existing switch attributes
+remain the interface for automations.
+The reported last adaptation values are the shared manager's latest retained
+value for each attribute. They can come from different commands and do not
+represent one sent command or the current desired state.
 <!-- SECTION:troubleshooting-intro:END -->
 
 <!-- SECTION:common-problems:START -->
