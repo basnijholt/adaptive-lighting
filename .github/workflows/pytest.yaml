@@ -14,24 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - core-version: "2024.12.5"
-            python-version: "3.12"
-          - core-version: "2025.1.4"
-            python-version: "3.12"
-          - core-version: "2025.2.5"
-            python-version: "3.13"
-          - core-version: "2025.3.4"
-            python-version: "3.13"
-          - core-version: "2025.4.4"
-            python-version: "3.13"
-          - core-version: "2025.5.3"
-            python-version: "3.13"
-          - core-version: "2025.6.3"
-            python-version: "3.13"
-          - core-version: "2025.7.4"
-            python-version: "3.13"
-          - core-version: "2025.8.3"
-            python-version: "3.13"
           - core-version: "2025.9.4"
             python-version: "3.13"
           - core-version: "2025.10.4"
@@ -46,13 +28,23 @@ jobs:
             python-version: "3.13"
           - core-version: "2026.3.4"
             python-version: "3.14.2"
-          - core-version: "2026.4.3"
+          - core-version: "2026.4.4"
+            python-version: "3.14.2"
+          - core-version: "2026.5.4"
+            python-version: "3.14.2"
+          - core-version: "2026.6.4"
+            python-version: "3.14.2"
+          - core-version: "2026.7.4"
+            python-version: "3.14.2"
+          - core-version: "2026.8.3"
+            python-version: "3.14.2"
+          - core-version: "2026.9.1"
             python-version: "3.14.2"
           - core-version: "dev"
             python-version: "3.14.2"
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies
@@ -61,6 +53,7 @@ jobs:
           core-version: ${{ matrix.core-version }}
 
       - name: Run pytest
+        id: pytest
         timeout-minutes: 60
         run: |
           export PYTHONPATH=${PYTHONPATH}:${PWD}
@@ -72,7 +65,60 @@ jobs:
             --timeout=9 \
             --durations=10 \
             --cov=homeassistant.components.adaptive_lighting \
+            --cov-branch \
+            --cov-report=term-missing \
             --cov-report=xml \
+            --cov-report=json \
+            --cov-report=html \
             -o console_output_style=count \
             -p no:sugar \
             tests/components/adaptive_lighting
+
+      - name: Write coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CORE_VERSION: ${{ matrix.core-version }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
+          PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
+        run: |
+          {
+            echo "### Coverage: Home Assistant ${CORE_VERSION}, Python ${PYTHON_VERSION}"
+            echo
+            if [[ -f core/coverage.json ]]; then
+              echo "| Metric | Executed | Total | Coverage |"
+              echo "| --- | ---: | ---: | ---: |"
+              jq -r '
+                def percent(covered; total):
+                  if total == 0 then 100 else (covered / total * 10000 | round) / 100 end;
+                .totals
+                | "| Lines | \(.covered_lines) | \(.num_statements) | \(percent(.covered_lines; .num_statements))% |\n"
+                + "| Branches | \(.covered_branches) | \(.num_branches) | \(percent(.covered_branches; .num_branches))% |"
+              ' core/coverage.json
+            else
+              echo "Coverage JSON was not generated. See the pytest step for details."
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          if [[ ! -f core/coverage.json && "${PYTEST_OUTCOME}" == "success" ]]; then
+            exit 1
+          fi
+
+          if [[ "${CORE_VERSION}" != "dev" && "${PYTEST_OUTCOME}" == "success" ]]; then
+            echo "Required coverage: 89% lines and 80% branches." >> "${GITHUB_STEP_SUMMARY}"
+            if ! jq -e '.totals | .covered_lines * 100 >= .num_statements * 89
+              and .covered_branches * 100 >= .num_branches * 80' core/coverage.json > /dev/null; then
+              echo "::error::Coverage must be at least 89% lines and 80% branches."
+              exit 1
+            fi
+          fi
+
+      - name: Upload coverage reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: coverage-${{ matrix.core-version }}-py${{ matrix.python-version }}
+          path: |
+            core/coverage.xml
+            core/coverage.json
+            core/htmlcov/
+          if-no-files-found: warn

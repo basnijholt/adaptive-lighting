@@ -74,22 +74,21 @@ def generate_config_markdown_table() -> str:
     return df.to_markdown(index=False)
 
 
-def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
-    result: dict[str, tuple[Any, Any]] = {}
+def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[bool, Any]]:
+    result: dict[str, tuple[bool, Any]] = {}
     for key, value in schema.schema.items():
-        if isinstance(key, vol.Optional):
-            default_value = key.default
-            result[key.schema] = (default_value, value)
+        if isinstance(key, vol.Required | vol.Optional):
+            required = isinstance(key, vol.Required) and key.default == vol.UNDEFINED
+            result[key.schema] = (required, value)
     return result
 
 
 def _generate_service_markdown_table(
-    schema: dict[str, tuple[Any, Any]] | vol.Schema,
+    schema: vol.Schema,
     alternative_docs: dict[str, str] | None = None,
 ) -> str:
-    schema_dict = _schema_to_dict(schema) if isinstance(schema, vol.Schema) else schema
     rows: list[dict[str, str]] = []
-    for k, (default, type_) in schema_dict.items():
+    for k, (required, type_) in _schema_to_dict(schema).items():
         if alternative_docs is not None and k in alternative_docs:
             description = alternative_docs[k]
         else:
@@ -97,7 +96,7 @@ def _generate_service_markdown_table(
         row = {
             "Service data attribute": f"`{k}`",
             "Description": description,
-            "Required": "✅" if default == vol.UNDEFINED else "❌",
+            "Required": "✅" if required else "❌",
             "Type": _type_to_str(type_),
         }
         rows.append(row)

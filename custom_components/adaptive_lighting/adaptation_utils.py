@@ -45,6 +45,15 @@ BRIGHTNESS_ATTRS = {
     ATTR_BRIGHTNESS_STEP_PCT,
 }
 
+# Worst-case rounding error when Home Assistant's 0-255 brightness scale
+# round-trips through a device with coarser resolution (e.g., the 0-99 Z-Wave
+# Multilevel Switch scale). A light cannot report back a value more precise than
+# its own scale, so exact equality would never hold for such targets and
+# 'skip_redundant_commands' would keep sending them forever. The tolerance sits
+# far below the manual-control-detection threshold (BRIGHTNESS_CHANGE = 25), so
+# it cannot mask a genuine user change.
+BRIGHTNESS_TOLERANCE = 2
+
 ServiceData = dict[str, Any]
 
 
@@ -113,20 +122,46 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     return service_datas
 
 
+def _is_attribute_satisfied(key: str, value: Any, attributes: dict[str, Any]) -> bool:
+    """Whether the light's current state already satisfies this target value."""
+    if key not in attributes:
+        return False
+    current = attributes[key]
+    if not isinstance(current, (int, float)) or not isinstance(value, (int, float)):
+        return value == current
+    if key == ATTR_BRIGHTNESS:
+        return abs(value - current) <= BRIGHTNESS_TOLERANCE
+    if key == ATTR_COLOR_TEMP_KELVIN and value > 0 and current > 0:
+        # Compare in mired space: most integrations quantize color temperature
+        # to whole mireds, and the kelvin error of that quantization grows
+        # quadratically with kelvin (~21 K at 6500 K, ~50 K at 10000 K), so no
+        # fixed kelvin tolerance fits the whole range. The tolerance of one
+        # mired absorbs the difference between conversion schemes: HA core's
+        # helpers floor (e.g. 5500 K -> 181 mired -> 5524 K) while some
+        # integrations round (5500 K -> 182 mired -> 5495 K), and no exact
+        # equality converges for both. One mired is far below the ~5.5 mired
+        # just-noticeable difference for color temperature.
+        return abs(round(1_000_000 / value) - round(1_000_000 / current)) <= 1
+    return value == current
+
+
 def _remove_redundant_attributes(
     service_data: ServiceData,
     state: State,
 ) -> ServiceData:
-    """Filter service data by removing attributes that already equal the given state.
+    """Filter service data by removing attributes already satisfied by the state.
 
     Removes all attributes from service call data whose values are already present
-    in the target entity's state.
+    in the target entity's state. Quantized attributes (brightness, color temp) are
+    compared with a small tolerance: a light whose resolution is coarser than Home
+    Assistant's cannot report back the exact value it was given, so exact equality
+    would never hold and the attribute would never be filtered.
     """
     attributes: dict[str, Any] = dict(state.attributes)
     return {
         k: v
         for k, v in service_data.items()
-        if k not in attributes or v != attributes[k]
+        if not _is_attribute_satisfied(k, v, attributes)
     }
 
 
@@ -240,6 +275,7 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
     force: bool,
+    already_applied: LightControlAttributes = LightControlAttributes.NONE,
 ) -> AdaptationData:
     """Prepares a data object carrying all data required to execute an adaptation."""
     _LOGGER.debug(
@@ -257,6 +293,25 @@ def prepare_adaptation_data(
     else:
         sleep_time = split_delay
 
+    # Keep the original split timing, but omit attributes carried by an
+    # intercepted turn-on shared with other lights. Do this before state
+    # filtering: members can have different brightness/color already satisfied.
+    applied_attrs = (
+        BRIGHTNESS_ATTRS
+        if LightControlAttributes.BRIGHTNESS in already_applied
+        else set()
+    ) | (COLOR_ATTRS if LightControlAttributes.COLOR in already_applied else set())
+    if applied_attrs:
+        service_datas = [
+            {key: value for key, value in data.items() if key not in applied_attrs}
+            for data in service_datas
+        ]
+        service_datas = [
+            data
+            for data in service_datas
+            if _has_relevant_service_data_attributes(data)
+        ]
+
     service_data_iterator = _create_service_call_data_iterator(
         hass,
         service_datas,
@@ -271,8 +326,8 @@ def prepare_adaptation_data(
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
         force=force,
-        max_length=service_datas_length,
-        attributes=attributes,
+        max_length=len(service_datas),
+        attributes=attributes & ~already_applied,
     )
 
 

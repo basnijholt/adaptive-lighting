@@ -20,6 +20,20 @@ This feature is available when `take_over_control` is enabled.
 Additionally, enabling `detect_non_ha_changes` allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
 The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
 
+The Adaptive Lighting switch exposes these read-only attributes for its lights:
+
+- `manual_control`: lights with any attribute marked as manually controlled.
+- `manual_control_brightness`: lights with brightness marked as manually controlled.
+- `manual_control_color`: lights with color marked as manually controlled.
+
+These lists report manual-control flags. Actual adaptation also depends on `take_over_control_mode` and the brightness/color adaptation switches. For example, under the default `pause_all` mode, manually changing only brightness leaves `manual_control_color` empty while pausing both brightness and color adaptation. Under `pause_changed`, color can continue adapting.
+
+The attributes are absent when the Adaptive Lighting switch is off. Use a fallback when checking them in templates:
+
+```jinja
+{{ 'light.bedroom' in (state_attr('switch.adaptive_lighting_bedroom', 'manual_control_brightness') or []) }}
+```
+
 > ⚠️ **_Caution: Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable `detect_non_ha_changes` if you encounter such issues._**
 
 <!-- OUTPUT:END -->
@@ -100,11 +114,13 @@ adaptive_lighting:
 
 ### adapt_only_on_ha_turn_on
 
-When enabled, a light that turns on from `off` is only adapted if the turn-on came from a Home Assistant `light.turn_on` call. Lights turned on by an external source — a physical wall switch or a hub/manufacturer scene (such as a Lutron keypad or Pico scene) — are marked as manually controlled and left at whatever brightness/color that source set, instead of being immediately overridden by Adaptive Lighting.
+When enabled, a light that turns on from `off` is only adapted if the state-change context exactly matches the most recent Home Assistant `light.turn_on` context recorded for that light. An unmatched turn-on is marked as manually controlled and left at its reported brightness and color.
 
 This is the option to reach for when turning a light on with its local switch (or a native Lutron/Caséta scene) makes Adaptive Lighting override your brightness a moment later, forcing you to set it twice.
 
-Its advantage over simply disabling `detect_non_ha_changes` is that the two behaviors are decoupled: you can keep `detect_non_ha_changes: true` to catch manual dimming of lights that are *already on*, while still leaving *externally turned-on* lights untouched.
+Its advantage over simply disabling `detect_non_ha_changes` is that the two behaviors are decoupled: you can keep `detect_non_ha_changes: true` to catch manual dimming of lights that are *already on*, while leaving unmatched turn-ons untouched.
+
+Adaptive Lighting cannot identify every physical versus Home Assistant source. Some integrations replace or omit the service context when they publish device state. In that case, even a Home Assistant turn-on does not match and this option treats it as external.
 
 ```yaml
 adaptive_lighting:
@@ -113,7 +129,7 @@ adaptive_lighting:
       - light.living_room
     take_over_control: true
     detect_non_ha_changes: true      # still catch manual changes to already-on lights
-    adapt_only_on_ha_turn_on: true   # but don't override external off→on turn-ons
+    adapt_only_on_ha_turn_on: true   # leave unmatched off→on events unchanged
 ```
 
 ## Checking Manual Control Status

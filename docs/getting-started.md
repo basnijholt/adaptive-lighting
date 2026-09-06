@@ -8,7 +8,7 @@ This guide will help you install and configure Adaptive Lighting for the first t
 
 ## Prerequisites
 
-- [Home Assistant](https://www.home-assistant.io/) 2024.12.0 or newer
+- [Home Assistant](https://www.home-assistant.io/) 2025.9.0 or newer
 - [HACS](https://hacs.xyz/) (Home Assistant Community Store) installed
 
 ## Installation
@@ -34,39 +34,22 @@ Or use this button to open HACS directly:
 
 ## Configuration
 
-### Step 1: Add to configuration.yaml
-
-Add the following to your `configuration.yaml`:
-
-```yaml
-adaptive_lighting:
-```
-
-> [!NOTE]
-> This entry is required even if you plan to configure everything through the UI.
-
-### Step 2: Restart Home Assistant
-
-Restart Home Assistant for the changes to take effect.
-
-### Step 3: Add the Integration
-
-1. Go to **Settings** → **Devices & Services**
-2. Click **+ Add Integration**
-3. Search for "Adaptive Lighting"
-4. Follow the setup wizard to select your lights
-
-### Step 4: Configure Your Lights
-
-You can configure Adaptive Lighting in two ways:
+Choose one of two configuration methods:
 
 === "Via UI"
 
     1. Go to **Settings** → **Devices & Services**
-    2. Find Adaptive Lighting and click **Configure**
-    3. Adjust settings as needed
+    2. Click **+ Add Integration**
+    3. Search for "Adaptive Lighting"
+    4. Follow the setup wizard to name your Adaptive Lighting instance
+    5. Find Adaptive Lighting and click **Configure**
+    6. Select your lights and adjust the settings
+
+    No `adaptive_lighting:` entry is needed in `configuration.yaml`.
 
 === "Via YAML"
+
+    Instances configured through YAML must be edited in YAML.
 
     ```yaml
     adaptive_lighting:
@@ -80,7 +63,9 @@ You can configure Adaptive Lighting in two ways:
         max_color_temp: 5500
     ```
 
-## Basic Configuration Example
+    Restart Home Assistant after changing the YAML configuration.
+
+## Basic YAML Configuration Example
 
 Here's a simple configuration to get you started:
 

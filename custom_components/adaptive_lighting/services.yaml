@@ -64,13 +64,11 @@ set_manual_control:
         boolean: null
 change_switch_settings:
   description: Change any settings you'd like in the switch. All options here are the same as in the config flow.
+  target:
+    entity:
+      integration: adaptive_lighting
+      domain: switch
   fields:
-    entity_id:
-      description: Entity ID of the switch. 📝
-      required: true
-      selector:
-        entity:
-          domain: switch
     use_defaults:
       description: 'Sets the default values not specified in this service call. Options: "current" (default, retains current values), "factory" (resets to documented defaults), or "configuration" (reverts to switch config defaults). ⚙️'
       example: current
@@ -185,7 +183,7 @@ change_switch_settings:
       example: 0
       selector:
         number:
-          min: 0
+          min: -86400
           max: 86300
     sunrise_time:
       description: Set a fixed time (HH:MM:SS) for sunrise. 🌅
@@ -199,7 +197,7 @@ change_switch_settings:
       example: ''
       selector:
         number:
-          min: 0
+          min: -86400
           max: 86300
     sunset_time:
       description: Set a fixed time (HH:MM:SS) for sunset. 🌇
@@ -236,6 +234,12 @@ change_switch_settings:
           - pause_changed
     detect_non_ha_changes:
       description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.'
+      required: false
+      example: false
+      selector:
+        boolean: null
+    adapt_only_on_ha_turn_on:
+      description: Only adapt an `off` to `on` event when its context exactly matches the most recent Home Assistant `light.turn_on` context recorded for that light. Unmatched turn-ons are marked as manually controlled and left unchanged. This keeps `detect_non_ha_changes` available for lights that are already on. Some integrations do not preserve the service context in later state updates, so Adaptive Lighting cannot identify every physical versus Home Assistant turn-on source. Needs `take_over_control` enabled. 🕵️
       required: false
       example: false
       selector:

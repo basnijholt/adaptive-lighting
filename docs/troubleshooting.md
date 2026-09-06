@@ -49,7 +49,7 @@ Addressing these issues will significantly improve your Home Assistant experienc
 In case lights are suddenly turning on by themselves, this is most likely due to the light incorrectly reporting an "on" state to Home Assistant, leading to an undesired Adaptive Lighting action.
 To prevent adapting in cases *where the state of the light is suddenly "on" and only adapt if there is an associated `light.turn_on` service call*, set `detect_non_ha_changes: false`.
 
-If turning a light on from *off* with a physical wall switch or a hub/manufacturer scene (e.g., Lutron, Caséta) makes Adaptive Lighting immediately override the brightness/color that source set — forcing you to set it a second time — and you still want to keep `detect_non_ha_changes: true` to catch manual changes to already-on lights, set `adapt_only_on_ha_turn_on: true`. Adaptive Lighting will then leave externally turned-on lights untouched (marking them `manual_control`) while continuing to adapt lights turned on through Home Assistant.
+To keep detecting manual changes to lights that are already on while leaving unmatched `off` to `on` state events unchanged, enable `adapt_only_on_ha_turn_on`. Matching uses the exact context of the most recently recorded `light.turn_on` call. Some integrations replace or omit that context, so Adaptive Lighting cannot distinguish every physical versus Home Assistant turn-on source.
 
 #### :signal_strength: WiFi Networks
 
@@ -97,6 +97,8 @@ These lights are known to exhibit disadvantageous behaviour due to firmware bugs
 - Ikea Tradfri bulbs/drivers (and related Ikea smart light products)
   - Unsupported simultaneous transition of brightness and color: When receiving such a command, they switch the brightness instantly and only transition the color. To get smooth transitions of both brightness and color, enable `separate_turn_on_commands`.
   - Unresponsiveness during color transitions: No other commands are processed during an ongoing color transition, e.g., turn-off commands are ignored and lights stay on despite being reported as off to Home Assistant. The default config with long transitions thus results in long periods of unresponsiveness. To work around this, disable transitions by setting `transition` to `0`, and increase the adaptation frequency by setting `interval` to a short time, e.g., `15` seconds, to retain the impression of smooth continuous adaptations. Keeping the `initial_transition` is recommended for a smooth fade-in (lights are usually not turned off momentarily after being turned on, in which case a short period of unresponsiveness is tolerable).
+- [Lonsonho ZB-RGBCW](https://www.zigbee2mqtt.io/devices/ZB-RGBCW.html#lonsonho-zb-rgbcw)
+  - Some Zigbee2MQTT/eWeLight firmware combinations do not turn the bulb on when the initial `light.turn_on` call includes brightness or color, although later adjustments work. Disable `intercept` for affected bulbs.
 
 <!-- OUTPUT:END -->
 
