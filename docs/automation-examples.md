@@ -179,16 +179,39 @@ Keep a low configured `min_brightness` for late night and let an automation lowe
       below: 200
     - trigger: homeassistant
       event: start
+      id: startup
   actions:
-    - action: adaptive_lighting.change_switch_settings
-      data:
-        entity_id: switch.adaptive_lighting_living_room
-        max_brightness: >
-          {{ 30 if states('sensor.living_room_illuminance') | float(0) > 250 else 100 }}
+    - if:
+        - condition: trigger
+          id: startup
+      then:
+        - wait_template: >
+            {{ is_number(states('sensor.living_room_illuminance')) }}
+          timeout: "00:05:00"
+          continue_on_timeout: false
+    - choose:
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.living_room_illuminance
+              above: 300
+          sequence:
+            - action: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: switch.adaptive_lighting_living_room
+                max_brightness: 30
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.living_room_illuminance
+              below: 200
+          sequence:
+            - action: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: switch.adaptive_lighting_living_room
+                max_brightness: 100
   mode: restart
 ```
 
-The separate 200 and 300 lux triggers add hysteresis, while the 250 lux startup threshold chooses a value after a restart. Replace `30` and `100` with your desired daytime limit and normal maximum.
+The separate 200 and 300 lux thresholds add hysteresis. After a restart, the automation waits for a numeric sensor state before evaluating it. If the initial value is between the thresholds, Adaptive Lighting keeps its configured maximum. Replace `30` and `100` with your desired daytime limit and normal maximum.
 
 `min_brightness` and `max_brightness` are the solar-midnight and daytime endpoints of the brightness curve. Setting `min_brightness` higher than `max_brightness` is supported and creates an inverted curve that is brighter at night and dimmer during the day. If you only want a daytime limit, keep the reduced maximum at or above the configured minimum.
 
@@ -221,7 +244,7 @@ This requires Home Assistant to receive the button event. Adaptive Lighting does
 <details markdown="1">
 <summary>Use a fixed RGB stage before sleep mode.</summary>
 
-This script starts sleep mode with a fixed dim red color, waits 30 minutes, and then switches to the configured warm sleep color temperature.
+This script starts sleep mode with a fixed dim red color, waits 30 minutes, and then restores the configured Adaptive Lighting settings.
 
 ```yaml
 script:
@@ -242,12 +265,10 @@ script:
       - action: adaptive_lighting.change_switch_settings
         data:
           entity_id: switch.adaptive_lighting_bedroom
-          sleep_rgb_or_color_temp: color_temp
-          sleep_color_temp: 1000
-          sleep_brightness: 1
+          use_defaults: configuration
 ```
 
-The first stage uses a fixed brightness rather than following the normal brightness curve. A Home Assistant restart or script reload stops the delay; use separate time-triggered automations if the handoff must survive restarts.
+The first stage uses a fixed brightness rather than following the normal brightness curve. Restoring configuration defaults resets every runtime setting on this Adaptive Lighting switch, so restore only the sleep fields explicitly if other automations also change runtime settings. A Home Assistant restart or script reload stops the delay; use separate time-triggered automations if the handoff must survive restarts.
 
 </details>
 
