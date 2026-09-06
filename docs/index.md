@@ -46,19 +46,8 @@ Adaptive Lighting provides four switches (using "living_room" as an example comp
 ## Quick Start
 
 1. **Install via HACS**: Search for "Adaptive Lighting" in the [Home Assistant Community Store](https://hacs.xyz/)
-2. **Add to configuration**: Add `adaptive_lighting:` to your `configuration.yaml`
-3. **Configure**: Go to **Settings** → **Devices & Services** → **Add Integration** → **Adaptive Lighting**
-4. **Select your lights**: Choose which lights to control and enjoy automatic adaptation!
-
-```yaml
-# Minimal configuration.yaml entry
-adaptive_lighting:
-  lights:
-    - light.living_room
-```
-
-> [!TIP]
-> **Using the UI exclusively?** Even if you plan to configure everything through the UI, the `adaptive_lighting:` entry must still be present in your `configuration.yaml`.
+2. **Add the integration**: Go to **Settings** → **Devices & Services** → **Add Integration** → **Adaptive Lighting**, then name your instance
+3. **Configure**: Open Adaptive Lighting, click **Configure**, select your lights, and adjust the settings. No YAML entry is needed.
 
 [Get Started →](getting-started.md){ .md-button .md-button--primary }
 [View All Options →](configuration.md){ .md-button }
