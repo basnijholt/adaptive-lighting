@@ -2119,7 +2119,7 @@ class AdaptiveLightingManager:
 
             for eid in _entity_ids:
                 # Must add a new context otherwise _adapt_light will bail out
-                context = switch.create_context("intercept")
+                context = switch.create_context("intercept", parent=call.context)
                 self.clear_proactively_adapting(eid)
                 self.set_proactively_adapting(context.id, eid)
                 _LOGGER.debug(
@@ -2140,7 +2140,7 @@ class AdaptiveLightingManager:
                 assert set(skipped) == set(entity_ids)
                 return  # The call will be intercepted with the original data
             # Call light turn_on service for skipped entities
-            context = self.create_context("skipped")
+            context = self.create_context("skipped", parent=call.context)
             _LOGGER.debug(
                 "(5) _service_interceptor_turn_on_handler: calling `light.turn_on` with skipped='%s', service_data: '%s', context='%s'",
                 skipped,
@@ -2180,6 +2180,7 @@ class AdaptiveLightingManager:
         adaptation_data = await switch.prepare_adaptation_data(
             entity_ids[0],
             transition,
+            context=switch.create_context("adapt_lights", parent=call.context),
         )
         if adaptation_data is None:
             return

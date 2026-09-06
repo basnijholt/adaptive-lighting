@@ -15,6 +15,7 @@ import pytest
 import ulid_transform
 import voluptuous.error
 from flaky import flaky
+from homeassistant.auth.const import GROUP_ID_ADMIN
 from homeassistant.components.adaptive_lighting.adaptation_utils import (
     AdaptationData,
     LightControlAttributes,
@@ -2332,11 +2333,11 @@ async def test_service_calls_task_cancellation(hass):
 
 async def _turn_on_and_track_event_contexts(
     hass: HomeAssistant,
-    context_id: str,
+    context_id: str | Context,
     entity_id,
     return_full_events: bool = False,
 ):
-    context = Context(id=context_id)
+    context = context_id if isinstance(context_id, Context) else Context(id=context_id)
     event_context_ids = []
     events = []
 
@@ -2357,6 +2358,105 @@ async def _turn_on_and_track_event_contexts(
     if return_full_events:
         return events
     return event_context_ids
+
+
+async def _admin_context(hass: HomeAssistant, context_id: str) -> Context:
+    """Create a user-originated context accepted by entity service checks."""
+    user = await hass.auth.async_create_user(context_id, group_ids=[GROUP_ID_ADMIN])
+    return Context(
+        id=context_id,
+        parent_id="automation_origin",
+        user_id=user.id,
+    )
+
+
+async def test_apply_service_context_links_to_origin(hass):
+    """The apply service links its light call to the originating service call."""
+    switch, (_, _, light) = await setup_lights_and_switch(hass)
+    origin = await _admin_context(hass, "apply_origin")
+    events: list[Event] = []
+
+    async def listener(event: Event) -> None:
+        if (
+            event.data.get("domain") == LIGHT_DOMAIN
+            and event.data.get("service") == SERVICE_TURN_ON
+        ):
+            events.append(event)
+
+    remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, listener)
+    try:
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [light.entity_id],
+                CONF_TURN_ON_LIGHTS: True,
+            },
+            blocking=True,
+            context=origin,
+        )
+        await hass.async_block_till_done()
+    finally:
+        remove_listener()
+
+    assert len(events) == 1
+    assert events[0].context.parent_id == origin.id
+    assert events[0].context.user_id is None
+
+
+async def test_single_light_intercept_keeps_origin_context(hass):
+    """A directly intercepted call keeps the original context unchanged."""
+    await setup_lights_and_switch(hass, {CONF_INTERCEPT: True}, True)
+    origin = await _admin_context(hass, "single_intercept_origin")
+
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        origin,
+        ENTITY_LIGHT_3,
+        return_full_events=True,
+    )
+
+    assert len(events) == 1
+    assert events[0].context.id == origin.id
+    assert events[0].context.parent_id == origin.parent_id
+    assert events[0].context.user_id == origin.user_id
+
+
+async def test_multi_profile_intercept_context_links_to_origin(hass):
+    """A secondary profile adaptation links its new call to the origin."""
+    lights, _, _ = await setup_proactive_multiple_lights_two_switches(hass)
+    origin = await _admin_context(hass, "multi_profile_origin")
+
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        origin,
+        lights[:2],
+        return_full_events=True,
+    )
+    secondary_events = [event for event in events if ":ntrc:" in event.context.id]
+
+    assert len(secondary_events) == 1
+    assert secondary_events[0].context.parent_id == origin.id
+    assert secondary_events[0].context.user_id is None
+
+
+async def test_skipped_light_context_links_to_origin(hass):
+    """A split call for an unmanaged light links its new call to the origin."""
+    lights, _, _ = await setup_proactive_multiple_lights_two_switches(hass)
+    origin = await _admin_context(hass, "skipped_light_origin")
+
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        origin,
+        [lights[0], lights[2]],
+        return_full_events=True,
+    )
+    skipped_events = [event for event in events if ":skpp:" in event.context.id]
+
+    assert len(skipped_events) == 1
+    assert skipped_events[0].context.parent_id == origin.id
+    assert skipped_events[0].context.user_id is None
 
 
 def _mock_sun_light_settings(switch: AdaptiveSwitch, settings: dict[str, Any]):
@@ -2415,9 +2515,10 @@ async def test_proactive_adaptation_with_separate_commands(hass):
         },
     )
 
+    origin = await _admin_context(hass, "separate_commands_origin")
     events = await _turn_on_and_track_event_contexts(
         hass,
-        "test_context",
+        origin,
         ENTITY_LIGHT_3,
         return_full_events=True,
     )
@@ -2428,8 +2529,10 @@ async def test_proactive_adaptation_with_separate_commands(hass):
 
     # Expect two service calls
     assert len(event_context_ids) == 2, event_context_ids
-    assert event_context_ids[0] == "test_context"
+    assert event_context_ids[0] == origin.id
     assert is_our_context_id(event_context_ids[1])
+    assert events[1].context.parent_id == origin.id
+    assert events[1].context.user_id is None
 
     # Expect adapted light state
     state = hass.states.get(ENTITY_LIGHT_3)
