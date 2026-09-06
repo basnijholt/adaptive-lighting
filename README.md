@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-138-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-139-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -669,6 +669,10 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Esspel"><img src="https://avatars.githubusercontent.com/u/47383506?v=4?s=100" width="100px;" alt="Esspel"/><br /><sub><b>Esspel</b></sub></a><br /><a href="#translation-Esspel" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/cperuffo3"><img src="https://avatars.githubusercontent.com/u/87686305?v=4?s=100" width="100px;" alt="Corey Peruffo"/><br /><sub><b>Corey Peruffo</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=cperuffo3" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://badmotivator.io/"><img src="https://avatars.githubusercontent.com/u/1934074?v=4?s=100" width="100px;" alt="Samson Brock"/><br /><sub><b>Samson Brock</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=imwithsam" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Dennis-Dekker"><img src="https://avatars.githubusercontent.com/u/48018095?v=4?s=100" width="100px;" alt="Dennis Dekker"/><br /><sub><b>Dennis Dekker</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Dennis-Dekker" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/proscar87"><img src="https://avatars.githubusercontent.com/u/68169114?v=4?s=100" width="100px;" alt="proscar87"/><br /><sub><b>proscar87</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=proscar87" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://jaredj.xyz/"><img src="https://avatars.githubusercontent.com/u/10385335?v=4?s=100" width="100px;" alt="Jared Jensen"/><br /><sub><b>Jared Jensen</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=jaredjxyz" title="Code">💻</a></td>
     </tr>
   </tbody>
   <tfoot>
@@ -678,9 +682,6 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
           <a href="https://all-contributors.js.org/docs/en/bot/usage">Add your contributions</a>
         </img>
       </td>
-      <td align="center" valign="top" width="14.28%"><a href="http://badmotivator.io/"><img src="https://avatars.githubusercontent.com/u/1934074?v=4?s=100" width="100px;" alt="Samson Brock"/><br /><sub><b>Samson Brock</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=imwithsam" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Dennis-Dekker"><img src="https://avatars.githubusercontent.com/u/48018095?v=4?s=100" width="100px;" alt="Dennis Dekker"/><br /><sub><b>Dennis Dekker</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Dennis-Dekker" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/proscar87"><img src="https://avatars.githubusercontent.com/u/68169114?v=4?s=100" width="100px;" alt="proscar87"/><br /><sub><b>proscar87</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=proscar87" title="Code">💻</a></td>
     </tr>
   </tfoot>
 </table>
