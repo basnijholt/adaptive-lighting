@@ -1,0 +1,57 @@
+blueprint:
+  name: "Adaptive Lighting: scheduled profile"
+  description: >-
+    Apply fixed brightness and color temperature from a Schedule helper's
+    brightness_pct and color_temp_kelvin attributes. Uses step changes, not
+    interpolation. Missing attributes fall back to 1% and 2000 K. Outside an
+    active block, restores ALL configured profile settings. Use this only if
+    other automations do not also change runtime settings on this profile.
+    Reapplies the active block on Home Assistant startup. Updates settings
+    while the profile is off without enabling it; preserves manual control.
+  domain: automation
+  homeassistant:
+    min_version: "2025.9.0"
+  input:
+    adaptive_switch:
+      name: Adaptive Lighting profile
+      description: Select the main profile switch, not a sleep or adaptation switch.
+      selector:
+        entity:
+          filter:
+            domain: switch
+            integration: adaptive_lighting
+    schedule_entity:
+      name: Schedule helper
+      description: Add brightness_pct (1–100) and color_temp_kelvin to each block's Additional data.
+      selector:
+        entity:
+          filter:
+            domain: schedule
+
+mode: restart
+variables:
+  schedule_entity: !input schedule_entity
+triggers:
+  - trigger: state
+    entity_id: !input schedule_entity
+  - trigger: homeassistant
+    event: start
+actions:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input schedule_entity
+            state: "on"
+        sequence:
+          - action: adaptive_lighting.change_switch_settings
+            data:
+              entity_id: !input adaptive_switch
+              min_brightness: "{{ state_attr(schedule_entity, 'brightness_pct') | int(1) }}"
+              max_brightness: "{{ state_attr(schedule_entity, 'brightness_pct') | int(1) }}"
+              min_color_temp: "{{ state_attr(schedule_entity, 'color_temp_kelvin') | int(2000) }}"
+              max_color_temp: "{{ state_attr(schedule_entity, 'color_temp_kelvin') | int(2000) }}"
+    default:
+      - action: adaptive_lighting.change_switch_settings
+        data:
+          entity_id: !input adaptive_switch
+          use_defaults: configuration

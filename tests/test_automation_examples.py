@@ -35,6 +35,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_TRANSITION,
     DOMAIN,
 )
+from homeassistant.components.blueprint.models import Blueprint
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -56,6 +57,7 @@ from homeassistant.const import (
 from homeassistant.core import CoreState, Event, HomeAssistant, State, callback
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
+from homeassistant.util import yaml as yaml_util
 
 from tests.common import async_fire_time_changed
 
@@ -150,6 +152,53 @@ def _prepare_hass_startup(hass: HomeAssistant) -> None:
     hass.set_state(CoreState.not_running)
 
 
+def _blueprint_config(hass, tmp_path, filename, inputs, alias):
+    """Install an actual published blueprint for Home Assistant to load."""
+    relative_path = f"adaptive_lighting/{filename}"
+    hass.config.config_dir = str(tmp_path)
+    destination = tmp_path / "blueprints" / "automation" / relative_path
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(README.parent / "blueprints" / "automation" / filename, destination)
+    return {
+        "alias": alias,
+        "use_blueprint": {"path": relative_path, "input": inputs},
+    }
+
+
+@pytest.fixture(params=["yaml", "blueprint"])
+def published_automation(hass: HomeAssistant, tmp_path: Path, request):
+    """Use the published YAML or blueprint with the same behavioral assertions."""
+
+    def config(summary, filename, inputs):
+        yaml_config = _yaml_documents(summary)[-1]
+        if request.param == "yaml":
+            return yaml_config
+        return _blueprint_config(
+            hass,
+            tmp_path,
+            filename,
+            inputs,
+            yaml_config[0]["alias"],
+        )
+
+    return config
+
+
+@pytest.mark.parametrize(
+    "path",
+    sorted((README.parent / "blueprints" / "automation").glob("*.yaml")),
+    ids=lambda path: path.stem,
+)
+def test_published_blueprint_schema(path: Path) -> None:
+    """Validate every published blueprint with Home Assistant's own schema."""
+    blueprint = Blueprint(
+        yaml_util.load_yaml(str(path)),
+        expected_domain=automation.DOMAIN,
+        schema=automation.config.AUTOMATION_BLUEPRINT_SCHEMA,
+    )
+    assert blueprint.validate() is None
+
+
 @pytest.fixture(params=["yaml", "blueprint", "blueprint-custom-minimum"])
 def minimum_automation_config(hass: HomeAssistant, tmp_path: Path, request):
     """Run the same behavior checks against both published formats."""
@@ -157,14 +206,6 @@ def minimum_automation_config(hass: HomeAssistant, tmp_path: Path, request):
         return _yaml_documents(
             "Turn a light off when its adaptive brightness target reaches the minimum.",
         )[0]
-    relative_path = "adaptive_lighting/turn_off_at_minimum.yaml"
-    hass.config.config_dir = str(tmp_path)
-    destination = tmp_path / "blueprints" / "automation" / relative_path
-    destination.parent.mkdir(parents=True)
-    shutil.copyfile(
-        README.parent / "blueprints" / "automation" / "turn_off_at_minimum.yaml",
-        destination,
-    )
     inputs = {
         "adaptive_switch": "switch.adaptive_lighting_living_room",
         "brightness_switch": "switch.adaptive_lighting_living_room_adapt_brightness",
@@ -172,13 +213,13 @@ def minimum_automation_config(hass: HomeAssistant, tmp_path: Path, request):
     }
     if request.param == "blueprint-custom-minimum":
         inputs["minimum_pct"] = 10
-    return {
-        "alias": "Turn off at minimum",
-        "use_blueprint": {
-            "path": relative_path,
-            "input": inputs,
-        },
-    }
+    return _blueprint_config(
+        hass,
+        tmp_path,
+        "turn_off_at_minimum.yaml",
+        inputs,
+        "Turn off at minimum",
+    )
 
 
 @pytest.mark.parametrize("manual_control", [False, True])
@@ -340,10 +381,18 @@ async def test_minimum_brightness_ignores_missing_previous_target(
 
 async def test_schedule_profile_executes_blocks_and_restore(
     hass: HomeAssistant,
+    published_automation,
 ) -> None:
     """Catch ignored attribute changes, incomplete restore, or switch coupling."""
     summary = "Use a Schedule helper as a step-based custom lighting profile."
-    automation_config = _yaml_documents(summary)[-1]
+    automation_config = published_automation(
+        summary,
+        "schedule_profile.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_living_room",
+            "schedule_entity": "schedule.adaptive_lighting_profile",
+        },
+    )
     _, adaptive_switch = await setup_switch(
         hass,
         {
@@ -412,11 +461,21 @@ async def test_schedule_profile_executes_blocks_and_restore(
     assert adaptive_switch._sun_light_settings.max_color_temp == 2750
 
 
-async def test_schedule_profile_reapplies_at_startup(hass: HomeAssistant) -> None:
+async def test_schedule_profile_reapplies_at_startup(
+    hass: HomeAssistant,
+    published_automation,
+) -> None:
     """Verify startup applies the already-active schedule block."""
     _prepare_hass_startup(hass)
     summary = "Use a Schedule helper as a step-based custom lighting profile."
-    automation_config = _yaml_documents(summary)[-1]
+    automation_config = published_automation(
+        summary,
+        "schedule_profile.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_living_room",
+            "schedule_entity": "schedule.adaptive_lighting_profile",
+        },
+    )
     _, adaptive_switch = await setup_switch(hass, {CONF_NAME: "Living Room"})
     hass.states.async_set(
         "schedule.adaptive_lighting_profile",
@@ -433,12 +492,22 @@ async def test_schedule_profile_reapplies_at_startup(hass: HomeAssistant) -> Non
     assert adaptive_switch._sun_light_settings.max_color_temp == 2500
 
 
-async def test_lux_profile_executes_hysteresis(hass: HomeAssistant) -> None:
+async def test_lux_profile_executes_hysteresis(
+    hass: HomeAssistant,
+    published_automation,
+) -> None:
     """Catch missing threshold actions or changes inside the dead band."""
     summary = (
         "Reduce daytime brightness when an illuminance sensor detects strong daylight."
     )
-    automation_config = _yaml_documents(summary)[0]
+    automation_config = published_automation(
+        summary,
+        "daylight_limit.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_living_room",
+            "illuminance_sensor": "sensor.living_room_illuminance",
+        },
+    )
     _, adaptive_switch = await setup_switch(
         hass,
         {CONF_NAME: "Living Room", CONF_MAX_BRIGHTNESS: 80},
@@ -465,13 +534,21 @@ async def test_lux_profile_executes_hysteresis(hass: HomeAssistant) -> None:
 
 async def test_lux_profile_executes_unknown_recovery_at_startup(
     hass: HomeAssistant,
+    published_automation,
 ) -> None:
     """Catch a startup hang or failure to recover from an unknown sensor."""
     _prepare_hass_startup(hass)
     summary = (
         "Reduce daytime brightness when an illuminance sensor detects strong daylight."
     )
-    automation_config = _yaml_documents(summary)[0]
+    automation_config = published_automation(
+        summary,
+        "daylight_limit.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_living_room",
+            "illuminance_sensor": "sensor.living_room_illuminance",
+        },
+    )
     _, adaptive_switch = await setup_switch(
         hass,
         {CONF_NAME: "Living Room", CONF_MAX_BRIGHTNESS: 80},
@@ -492,6 +569,44 @@ async def test_lux_profile_executes_unknown_recovery_at_startup(
     hass.states.async_set("sensor.living_room_illuminance", "350")
     await hass.async_block_till_done()
     assert adaptive_switch._sun_light_settings.max_brightness == 30
+
+
+@pytest.mark.parametrize(("high_lux", "low_lux"), [(400, 250), (200, 300), (200, 200)])
+async def test_daylight_blueprint_custom_inputs(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    high_lux: int,
+    low_lux: int,
+) -> None:
+    """Use selected entities and limits; invalid threshold order must do nothing."""
+    config = _blueprint_config(
+        hass,
+        tmp_path,
+        "daylight_limit.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_office",
+            "illuminance_sensor": "sensor.office_illuminance",
+            "high_lux": high_lux,
+            "low_lux": low_lux,
+            "daylight_maximum": 20,
+            "normal_maximum": 70,
+        },
+        "Custom daylight",
+    )
+    _, adaptive_switch = await setup_switch(
+        hass,
+        {CONF_NAME: "Office", CONF_MAX_BRIGHTNESS: 80},
+    )
+    hass.states.async_set("sensor.office_illuminance", "300")
+    await _setup_automation(hass, config)
+    assert hass.states.get("automation.custom_daylight") is not None
+    valid_thresholds = high_lux > low_lux
+    for lux, expected in [(500, 20), (300, 20), (100, 70)]:
+        hass.states.async_set("sensor.office_illuminance", str(lux))
+        await hass.async_block_till_done()
+        assert adaptive_switch._sun_light_settings.max_brightness == (
+            expected if valid_thresholds else 80
+        )
 
 
 async def test_hue_script_applies_current_values_to_fresh_profile_targets(
@@ -766,13 +881,24 @@ async def test_autoreset_manual_control_uses_one_renewable_timer(
 
 async def test_sleep_toggle_uses_fresh_profile_entity_ids(
     hass: HomeAssistant,
+    published_automation,
 ) -> None:
     """Execute state triggers against fresh child entity IDs."""
     summary = (
         'Toggle multiple Adaptive Lighting switches to "sleep mode" using an '
         "<code>input_boolean.sleep_mode</code>."
     )
-    automation_config = _yaml_documents(summary)[0]
+    automation_config = published_automation(
+        summary,
+        "sleep_mode.yaml",
+        {
+            "sleep_helper": "input_boolean.sleep_mode",
+            "sleep_switches": [
+                "switch.adaptive_lighting_living_room_sleep_mode",
+                "switch.adaptive_lighting_bedroom_sleep_mode",
+            ],
+        },
+    )
     assert await async_setup_component(
         hass,
         "input_boolean",
@@ -815,6 +941,7 @@ async def test_sleep_toggle_uses_fresh_profile_entity_ids(
 
 async def test_sleep_toggle_applies_restored_state_at_startup(
     hass: HomeAssistant,
+    published_automation,
 ) -> None:
     """Verify startup applies the input boolean's restored state."""
     _prepare_hass_startup(hass)
@@ -822,13 +949,24 @@ async def test_sleep_toggle_applies_restored_state_at_startup(
         'Toggle multiple Adaptive Lighting switches to "sleep mode" using an '
         "<code>input_boolean.sleep_mode</code>."
     )
-    automation_config = _yaml_documents(summary)[0]
+    automation_config = published_automation(
+        summary,
+        "sleep_mode.yaml",
+        {
+            "sleep_helper": "input_boolean.sleep_mode",
+            "sleep_switches": [
+                "switch.adaptive_lighting_living_room_sleep_mode",
+                "switch.adaptive_lighting_bedroom_sleep_mode",
+            ],
+        },
+    )
     assert await async_setup_component(
         hass,
         "input_boolean",
         {"input_boolean": {"sleep_mode": {}}},
     )
     await setup_switch(hass, {CONF_NAME: "Living Room"})
+    await setup_switch(hass, {CONF_NAME: "Bedroom"})
     await hass.services.async_call(
         "input_boolean",
         SERVICE_TURN_ON,
