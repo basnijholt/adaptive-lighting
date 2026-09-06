@@ -78,6 +78,7 @@ from .adaptation_utils import (
     AdaptationData,
     LightControlAttributes,
     ServiceData,
+    _remove_brightness_increases,
     get_light_control_attributes,
     has_effect_attribute,
     manual_control_event_attribute_to_flags,
@@ -2222,6 +2223,27 @@ class AdaptiveLightingManager:
 
         # Update/adapt service call data
         first_service_data.pop(ATTR_ENTITY_ID, None)
+        brightness_blocked_entities: set[str] = set()
+        if (
+            switch._skip_brightness_increases
+            and len(entity_ids) > 1
+            and ATTR_BRIGHTNESS in first_service_data
+        ):
+            brightness_blocked_entities = {
+                entity_id
+                for entity_id in entity_ids
+                if (state := self.hass.states.get(entity_id)) is not None
+                and ATTR_BRIGHTNESS
+                not in _remove_brightness_increases(first_service_data, state)
+            }
+        if brightness_blocked_entities:
+            # A shared brightness must be valid for every target. Re-prepare all
+            # members individually when one reported ceiling rejects it, while
+            # retaining color in the intercepted multi-light call.
+            first_service_data.pop(ATTR_BRIGHTNESS)
+            if next_service_data := await adaptation_data.next_service_call_data():
+                next_service_data.pop(ATTR_ENTITY_ID, None)
+                first_service_data.update(next_service_data)
         # This is called as a preprocessing step by the schema validation of the original
         # service call and needs to be repeated here to also process the added adaptation data.
         # (A more generic alternative would be re-executing the validation, but that is more
@@ -2238,7 +2260,7 @@ class AdaptiveLightingManager:
         already_applied = get_light_control_attributes(first_service_data)
         for index, entity_id in enumerate(entity_ids):
             self.set_proactively_adapting(call.context.id, entity_id)
-            if index:
+            if index or brightness_blocked_entities:
                 # Each member needs its own remaining commands and cancellation.
                 # Consuming its first iterator item could discard a color command
                 # when only the shared brightness command has been applied.
@@ -2246,6 +2268,9 @@ class AdaptiveLightingManager:
                     entity_id,
                     transition,
                     context=switch.create_context("adapt_lights", parent=call.context),
+                    adapt_brightness=(
+                        False if entity_id in brightness_blocked_entities else None
+                    ),
                     already_applied=already_applied,
                 )
                 if adaptation_data is None or not adaptation_data.max_length:

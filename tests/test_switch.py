@@ -837,6 +837,204 @@ async def test_dim_only_allows_explicit_manual_brightness(hass):
     assert hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == 220
 
 
+async def _setup_dim_only_group_intercept(hass, split, skip_redundant):
+    """Set up an expanded light group with dim-only interception."""
+    lights = await setup_lights(hass, with_group=True)
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: ["light.light_group"],
+            CONF_INTERCEPT: True,
+            CONF_MULTI_LIGHT_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: split,
+            CONF_SKIP_REDUNDANT_COMMANDS: skip_redundant,
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+        },
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 50,
+            ATTR_COLOR_TEMP_KELVIN: 3000,
+            "force_rgb_color": False,
+        },
+    )
+    return switch, lights[-2:]
+
+
+async def _set_retained_off_brightnesses(hass, lights, brightnesses):
+    """Set retained brightness in both the entity and HA state."""
+    for light, brightness in zip(lights, brightnesses, strict=True):
+        set_light_brightness(light, brightness)
+        light.async_write_ha_state()
+        attributes = dict(hass.states.get(light.entity_id).attributes)
+        if brightness is None:
+            attributes.pop(ATTR_BRIGHTNESS, None)
+        else:
+            attributes[ATTR_BRIGHTNESS] = brightness
+        hass.states.async_set(light.entity_id, STATE_OFF, attributes)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize("split", [False, True])
+@pytest.mark.parametrize("skip_redundant", [False, True])
+@pytest.mark.parametrize("brightnesses", [(200, 77), (77, 200)])
+async def test_dim_only_multi_light_intercept_uses_each_member_ceiling(
+    hass,
+    split,
+    skip_redundant,
+    brightnesses,
+    cleanup,
+):
+    """A shared turn-on must not use one member's ceiling for another."""
+    switch, lights = await _setup_dim_only_group_intercept(
+        hass,
+        split,
+        skip_redundant,
+    )
+    await _set_retained_off_brightnesses(hass, lights, brightnesses)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    states = [hass.states.get(light.entity_id) for light in lights]
+    assert [state.attributes[ATTR_BRIGHTNESS] for state in states] == [
+        min(brightness, 128) for brightness in brightnesses
+    ]
+    assert all(
+        state.attributes[ATTR_COLOR_TEMP_KELVIN] == pytest.approx(3000, abs=5)
+        for state in states
+    )
+
+
+@pytest.mark.parametrize("split", [False, True])
+@pytest.mark.parametrize("brightnesses", [(None, 77), (77, None)])
+async def test_dim_only_multi_light_intercept_allows_missing_brightness(
+    hass,
+    split,
+    brightnesses,
+    cleanup,
+):
+    """A missing brightness allows its target without raising another member."""
+    switch, lights = await _setup_dim_only_group_intercept(hass, split, False)
+    await _set_retained_off_brightnesses(hass, lights, brightnesses)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    states = [hass.states.get(light.entity_id) for light in lights]
+    assert [state.attributes[ATTR_BRIGHTNESS] for state in states] == [
+        128 if brightness is None else brightness for brightness in brightnesses
+    ]
+    assert all(
+        state.attributes[ATTR_COLOR_TEMP_KELVIN] == pytest.approx(3000, abs=5)
+        for state in states
+    )
+
+
+@pytest.mark.parametrize("split", [False, True])
+async def test_dim_only_multi_light_intercept_shares_safe_brightness(
+    hass,
+    split,
+    cleanup,
+):
+    """An automatic target valid for every member remains on the shared call."""
+    members = ["light.light_4", "light.light_5"]
+    switch, lights = await _setup_dim_only_group_intercept(hass, split, False)
+    await _set_retained_off_brightnesses(hass, lights, (128, 200))
+
+    with (
+        patch.object(
+            lights[0],
+            "async_turn_on",
+            wraps=lights[0].async_turn_on,
+        ) as first_turn_on,
+        patch.object(
+            lights[1],
+            "async_turn_on",
+            wraps=lights[1].async_turn_on,
+        ) as second_turn_on,
+    ):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "light.light_group"},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    assert first_turn_on.call_args_list[0].kwargs[ATTR_BRIGHTNESS] == 128
+    assert second_turn_on.call_args_list[0].kwargs[ATTR_BRIGHTNESS] == 128
+    assert [
+        hass.states.get(member).attributes[ATTR_BRIGHTNESS] for member in members
+    ] == [128, 128]
+
+
+@pytest.mark.parametrize(
+    ("adapt_only_on_bare_turn_on", "expected_brightness"),
+    [(False, 51), (True, 220)],
+)
+async def test_dim_only_explicit_initial_brightness_follows_interception_policy(
+    hass,
+    adapt_only_on_bare_turn_on,
+    expected_brightness,
+    cleanup,
+):
+    """An explicit initial value follows the existing bare-turn-on policy."""
+    switch, (*_, light) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_3],
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_INTERCEPT: True,
+            CONF_ADAPT_ONLY_ON_BARE_TURN_ON: adapt_only_on_bare_turn_on,
+            CONF_TAKE_OVER_CONTROL: True,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_MIN_BRIGHTNESS: 20,
+            CONF_MAX_BRIGHTNESS: 20,
+        },
+        all_lights=True,
+    )
+    await _set_retained_off_brightnesses(hass, [light], [100])
+
+    with patch.object(
+        light,
+        "async_turn_on",
+        wraps=light.async_turn_on,
+    ) as turn_on:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 220},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    assert turn_on.call_args_list[0].kwargs[ATTR_BRIGHTNESS] == expected_brightness
+
+
 async def test_manager_not_tracking_untracked_lights(hass):
     """Test that lights that are not in a Adaptive Lighting switch aren't tracked."""
     switch, _ = await setup_lights_and_switch(hass)
