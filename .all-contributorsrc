@@ -1395,6 +1395,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "bisquit2003",
+      "name": "bisquit2003",
+      "avatar_url": "https://avatars.githubusercontent.com/u/98059406?v=4",
+      "profile": "https://github.com/bisquit2003",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
