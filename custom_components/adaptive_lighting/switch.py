@@ -115,6 +115,7 @@ from .const import (
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
+    CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
@@ -960,6 +961,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
         self._adapt_only_on_bare_turn_on = data[CONF_ADAPT_ONLY_ON_BARE_TURN_ON]
         self._auto_reset_manual_control_time = data[CONF_AUTORESET_CONTROL]
+        self._reset_manual_control_on_sleep_mode_change = data[
+            CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE
+        ]
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._intercept = data[CONF_INTERCEPT]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
@@ -1644,8 +1648,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._name,
             event,
         )
-        # Reset the manually controlled status when the "sleep mode" changes
-        self.manager.reset(*self.lights)
+        self.manager.reset(
+            *self.lights,
+            reset_manual_control=self._reset_manual_control_on_sleep_mode_change,
+        )
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("sleep", parent=event.context),
             transition=self._sleep_transition,
@@ -2319,6 +2325,18 @@ class AdaptiveLightingManager:
                 )
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
+        self._schedule_manual_control_state_update(light)
+
+    def _schedule_manual_control_state_update(self, *lights: str) -> None:
+        """Publish shared manual-control state on every affected switch."""
+        # State publication must not expand groups or change tracked lights.
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            entry_data = self.hass.data[DOMAIN].get(entry.entry_id)
+            if entry_data is None:
+                continue
+            switch = entry_data.get(SWITCH_DOMAIN)
+            if switch is not None and set(lights).intersection(switch.lights):
+                switch.async_schedule_update_ha_state()
 
     def add_manual_control_attributes(
         self,
@@ -2419,6 +2437,8 @@ class AdaptiveLightingManager:
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cancel_ongoing_adaptation_calls(light)
+        if reset_manual_control:
+            self._schedule_manual_control_state_update(*lights)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
         if ATTR_ENTITY_ID in service_data:
