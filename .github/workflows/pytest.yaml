@@ -52,7 +52,7 @@ jobs:
             python-version: "3.14.2"
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install Home Assistant
         uses: ./.github/workflows/install_dependencies

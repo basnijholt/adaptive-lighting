@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-134-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-144-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -48,6 +48,20 @@ This feature is available when `take_over_control` is enabled.
 Additionally, enabling `detect_non_ha_changes` allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
 The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
 
+The Adaptive Lighting switch exposes these read-only attributes for its lights:
+
+- `manual_control`: lights with any attribute marked as manually controlled.
+- `manual_control_brightness`: lights with brightness marked as manually controlled.
+- `manual_control_color`: lights with color marked as manually controlled.
+
+These lists report manual-control flags. Actual adaptation also depends on `take_over_control_mode` and the brightness/color adaptation switches. For example, under the default `pause_all` mode, manually changing only brightness leaves `manual_control_color` empty while pausing both brightness and color adaptation. Under `pause_changed`, color can continue adapting.
+
+The attributes are absent when the Adaptive Lighting switch is off. Use a fallback when checking them in templates:
+
+```jinja
+{{ 'light.bedroom' in (state_attr('switch.adaptive_lighting_bedroom', 'manual_control_brightness') or []) }}
+```
+
 > ⚠️ **_Caution: Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable `detect_non_ha_changes` if you encounter such issues._**
 <!-- SECTION:manual-control:END -->
 
@@ -93,7 +107,7 @@ adaptive_lighting:
   lights:
     - light.living_room_lights
 ```
-Note: If you plan to strictly use the UI, the `adaptive_lighting:` entry must still be added to the YAML.
+If you configure Adaptive Lighting through the UI, no `adaptive_lighting:` entry is needed in `configuration.yaml`. Instances configured through YAML must be edited in YAML.
 
 Transform your home's atmosphere with Adaptive Lighting 🏠, and experience the benefits of intelligent, sun-synchronized lighting today!
 
@@ -668,6 +682,18 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Esspel"><img src="https://avatars.githubusercontent.com/u/47383506?v=4?s=100" width="100px;" alt="Esspel"/><br /><sub><b>Esspel</b></sub></a><br /><a href="#translation-Esspel" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/cperuffo3"><img src="https://avatars.githubusercontent.com/u/87686305?v=4?s=100" width="100px;" alt="Corey Peruffo"/><br /><sub><b>Corey Peruffo</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=cperuffo3" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://badmotivator.io/"><img src="https://avatars.githubusercontent.com/u/1934074?v=4?s=100" width="100px;" alt="Samson Brock"/><br /><sub><b>Samson Brock</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=imwithsam" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Dennis-Dekker"><img src="https://avatars.githubusercontent.com/u/48018095?v=4?s=100" width="100px;" alt="Dennis Dekker"/><br /><sub><b>Dennis Dekker</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=Dennis-Dekker" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/proscar87"><img src="https://avatars.githubusercontent.com/u/68169114?v=4?s=100" width="100px;" alt="proscar87"/><br /><sub><b>proscar87</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=proscar87" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://jaredj.xyz/"><img src="https://avatars.githubusercontent.com/u/10385335?v=4?s=100" width="100px;" alt="Jared Jensen"/><br /><sub><b>Jared Jensen</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=jaredjxyz" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mueslo"><img src="https://avatars.githubusercontent.com/u/847751?v=4?s=100" width="100px;" alt="mueslo"/><br /><sub><b>mueslo</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=mueslo" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/marijneken"><img src="https://avatars.githubusercontent.com/u/928998?v=4?s=100" width="100px;" alt="Marijn Eken"/><br /><sub><b>Marijn Eken</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=marijneken" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kasiom"><img src="https://avatars.githubusercontent.com/u/2422245?v=4?s=100" width="100px;" alt="Milan K."/><br /><sub><b>Milan K.</b></sub></a><br /><a href="#translation-kasiom" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/callistoprime"><img src="https://avatars.githubusercontent.com/u/178052328?v=4?s=100" width="100px;" alt="Callisto"/><br /><sub><b>Callisto</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Acallistoprime" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/davidgeiger"><img src="https://avatars.githubusercontent.com/u/5699049?v=4?s=100" width="100px;" alt="David Geiger"/><br /><sub><b>David Geiger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Adavidgeiger" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
   <tfoot>
