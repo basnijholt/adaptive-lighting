@@ -295,6 +295,9 @@ def prepare_adaptation_data(
             for key in (ATTR_ENTITY_ID, ATTR_BRIGHTNESS, ATTR_TRANSITION)
             if key in service_data
         }
+        # The current state can retain brightness zero while the light is off.
+        # Keep this command available to intercept a new bare turn-on.
+        filter_by_state = False
     service_datas = _split_service_call_data(service_data) if split else [service_data]
 
     service_datas_length = len(service_datas)

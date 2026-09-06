@@ -484,6 +484,30 @@ async def test_prepare_zero_after_shared_brightness_was_applied(hass_states_mock
     assert data.attributes is LightControlAttributes.NONE
 
 
+async def test_prepare_zero_is_not_filtered_for_off_light(hass_states_mock):
+    """A retained zero remains available to intercept a bare turn-on."""
+    hass_states_mock.states.get.return_value = Mock(attributes={ATTR_BRIGHTNESS: 0})
+    data = prepare_adaptation_data(
+        hass_states_mock,
+        "light.test",
+        Context(id="test-id"),
+        1,
+        0.2,
+        {
+            ATTR_ENTITY_ID: "light.test",
+            ATTR_BRIGHTNESS: 0,
+            ATTR_COLOR_TEMP_KELVIN: 4000,
+        },
+        split=True,
+        filter_by_state=True,
+        force=False,
+    )
+
+    assert [item async for item in data.service_call_datas] == [
+        {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 0},
+    ]
+
+
 @pytest.fixture(name="hass_states_mock")
 def fixture_hass_states_mock():
     """Mocks a HA state machine which returns a mock state."""

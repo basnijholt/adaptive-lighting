@@ -5213,3 +5213,57 @@ async def test_zero_sleep_multi_light_intercept_has_no_follow_up(hass):
     ]
     assert payloads == [{ATTR_ENTITY_ID: managed}]
     assert all(hass.states.get(entity_id).state == STATE_OFF for entity_id in managed)
+
+
+@pytest.mark.parametrize("split", [False, True])
+@pytest.mark.parametrize("skip_redundant", [False, True])
+async def test_zero_sleep_intercepts_off_light_reporting_zero(
+    hass,
+    split,
+    skip_redundant,
+):
+    """A retained zero remains an off command during intercepted turn-on."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: split,
+            CONF_SKIP_REDUNDANT_COMMANDS: skip_redundant,
+            CONF_SLEEP_BRIGHTNESS: 0,
+        },
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: light.entity_id},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+        blocking=True,
+    )
+    await _finish_zero_sleep_adaptations(hass, switch)
+
+    attributes = dict(hass.states.get(light.entity_id).attributes)
+    attributes[ATTR_BRIGHTNESS] = 0
+    set_light_brightness(light, 0)
+    hass.states.async_set(light.entity_id, STATE_OFF, attributes)
+    await hass.async_block_till_done()
+
+    events = []
+    remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, events.append)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id},
+        blocking=True,
+    )
+    await _finish_zero_sleep_adaptations(hass, switch)
+    remove_listener()
+
+    assert _light_turn_on_payloads(events, light.entity_id) == [
+        {ATTR_ENTITY_ID: light.entity_id},
+    ]
+    assert hass.states.get(light.entity_id).state == STATE_OFF
