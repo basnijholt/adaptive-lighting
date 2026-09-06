@@ -114,7 +114,10 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
 from homeassistant.setup import async_setup_component
-from homeassistant.util.color import color_temperature_mired_to_kelvin
+from homeassistant.util.color import (
+    color_temperature_kelvin_to_mired,
+    color_temperature_mired_to_kelvin,
+)
 
 from tests.common import MockConfigEntry
 from tests.common import mock_area_registry as mock_ha_area_registry
@@ -1117,6 +1120,116 @@ async def test_interval_adaptation_preserves_manual_control_timeout(
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
         == 7200
     )
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+@pytest.mark.parametrize(
+    ("first_manual_attribute", "second_manual_attribute"),
+    [
+        (LightControlAttributes.BRIGHTNESS, LightControlAttributes.COLOR),
+        (LightControlAttributes.COLOR, LightControlAttributes.BRIGHTNESS),
+    ],
+)
+async def test_unchanged_non_ha_change_preserves_manual_control_timeout(
+    hass,
+    freezer,
+    cleanup,
+    intercept,
+    mode,
+    first_manual_attribute,
+    second_manual_attribute,
+):
+    """An unchanged physical state must not renew its manual-control timeout."""
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_AUTORESET_CONTROL: 7200,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INTERCEPT: intercept,
+        },
+    )
+    light = lights[0]
+    lights_by_entity = {item.entity_id: item for item in lights}
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test"),
+        force=True,
+        transition=0,
+    )
+    await hass.async_block_till_done()
+
+    adaptive_brightness = light.brightness
+    assert adaptive_brightness is not None
+    adaptive_color_temp = light.color_temp_kelvin
+    assert adaptive_color_temp is not None
+    manual_values = {
+        LightControlAttributes.BRIGHTNESS: (
+            adaptive_brightness - 120
+            if adaptive_brightness >= 120
+            else adaptive_brightness + 120
+        ),
+        LightControlAttributes.COLOR: (
+            adaptive_color_temp - 500
+            if adaptive_color_temp >= 2500
+            else adaptive_color_temp + 500
+        ),
+    }
+
+    def set_physical_state(attribute):
+        if attribute == LightControlAttributes.BRIGHTNESS:
+            set_light_brightness(light, manual_values[attribute])
+        else:
+            color_temp_kelvin = manual_values[attribute]
+            light._attr_color_temp_kelvin = color_temp_kelvin
+            if hasattr(light, "_temperature"):
+                light._temperature = color_temperature_kelvin_to_mired(
+                    color_temp_kelvin,
+                )
+
+    async def flush_physical_state(hass, entity_id):
+        lights_by_entity[entity_id].async_write_ha_state()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.async_update_entity",
+        new=AsyncMock(side_effect=flush_physical_state),
+    ):
+        set_physical_state(first_manual_attribute)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.manager.get_manual_control_attributes(light.entity_id)
+            == first_manual_attribute
+        )
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7200
+        )
+
+        freezer.tick(90)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.manager.get_manual_control_attributes(light.entity_id)
+            == first_manual_attribute
+        )
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7110
+        )
+
+        freezer.tick(90)
+        set_physical_state(second_manual_attribute)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert (
+            switch.manager.get_manual_control_attributes(light.entity_id)
+            == LightControlAttributes.ALL
+        )
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7200
+        )
 
 
 @pytest.mark.parametrize("mode", list(TakeOverControlMode))

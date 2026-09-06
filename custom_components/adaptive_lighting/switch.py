@@ -1800,6 +1800,8 @@ class AdaptiveLightingManager:
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
         self.last_service_data: dict[str, dict[str, Any]] = {}
+        # Track physical states already detected as manual changes
+        self.last_manual_control_state: dict[str, dict[str, Any]] = {}
         # Track ongoing split adaptations to be able to cancel them
         self.adaptation_tasks_brightness: dict[str, asyncio.Task[None]] = {}
         self.adaptation_tasks_color: dict[str, asyncio.Task[None]] = {}
@@ -2444,6 +2446,7 @@ class AdaptiveLightingManager:
                     light,
                 )
                 self.manual_control[light] = LightControlAttributes.NONE
+                self.last_manual_control_state.pop(light, None)
                 if timer := self.auto_reset_manual_control_timers.pop(light, None):
                     timer.cancel()
             self.our_last_state_on_change.pop(light, None)
@@ -2789,13 +2792,28 @@ class AdaptiveLightingManager:
         refreshed_state = self.hass.states.get(light)
         assert refreshed_state is not None
 
-        changed_attributes = _attributes_have_changed(
-            old_attributes=last_service_data,
+        changed_since_adaptation = _attributes_have_changed(
+            old_attributes=dict(last_service_data),
             new_attributes=refreshed_state.attributes,
             light=light,
             context=context,
         )
+        manual_control = self.get_manual_control_attributes(light)
+        last_manual_control_state = self.last_manual_control_state.get(
+            light,
+            last_service_data,
+        )
+        changed_since_manual_control = _attributes_have_changed(
+            old_attributes=dict(last_manual_control_state),
+            new_attributes=refreshed_state.attributes,
+            light=light,
+            context=context,
+        )
+        changed_attributes = (
+            changed_since_adaptation & (LightControlAttributes.ALL ^ manual_control)
+        ) | (changed_since_manual_control & manual_control)
         if changed_attributes:
+            self.last_manual_control_state[light] = dict(refreshed_state.attributes)
             _LOGGER.debug(
                 "%s: State attributes %s of '%s' changed (%s) wrt 'last_service_data' (%s) (context.id=%s)",
                 switch._name,
