@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-156-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-164-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -770,7 +770,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/firstof9"><img src="https://avatars.githubusercontent.com/u/1105672?v=4?s=100" width="100px;" alt="Chris"/><br /><sub><b>Chris</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=firstof9" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/raman325"><img src="https://avatars.githubusercontent.com/u/7243222?v=4?s=100" width="100px;" alt="Raman Gupta"/><br /><sub><b>Raman Gupta</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=raman325" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/igiannakas"><img src="https://avatars.githubusercontent.com/u/59056762?v=4?s=100" width="100px;" alt="igiannakas"/><br /><sub><b>igiannakas</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=igiannakas" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://protyposis.net"><img src="https://avatars.githubusercontent.com/u/189372?v=4?s=100" width="100px;" alt="Mario Guggenberger"/><br /><sub><b>Mario Guggenberger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=protyposis" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://protyposis.net"><img src="https://avatars.githubusercontent.com/u/189372?v=4?s=100" width="100px;" alt="Mario Guggenberger"/><br /><sub><b>Mario Guggenberger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=protyposis" title="Code">💻</a> <a href="#ideas-protyposis" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://ktibow.github.io/"><img src="https://avatars.githubusercontent.com/u/10727862?v=4?s=100" width="100px;" alt="Kendell R"/><br /><sub><b>Kendell R</b></sub></a><br /><a href="#design-KTibow" title="Design">🎨</a></td>
     </tr>
     <tr>
@@ -911,6 +911,16 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/chewth91"><img src="https://avatars.githubusercontent.com/u/29686018?v=4?s=100" width="100px;" alt="chewth91"/><br /><sub><b>chewth91</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Achewth91" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/rhtenhove"><img src="https://avatars.githubusercontent.com/u/10206967?v=4?s=100" width="100px;" alt="rhtenhove"/><br /><sub><b>rhtenhove</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=rhtenhove" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mrbillpapas"><img src="https://avatars.githubusercontent.com/u/45721000?v=4?s=100" width="100px;" alt="Bill Papas"/><br /><sub><b>Bill Papas</b></sub></a><br /><a href="#ideas-mrbillpapas" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://niklashaas.de"><img src="https://avatars.githubusercontent.com/u/1149047?v=4?s=100" width="100px;" alt="Niklas Haas"/><br /><sub><b>Niklas Haas</b></sub></a><br /><a href="#ideas-haasn" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/djurny"><img src="https://avatars.githubusercontent.com/u/950171?v=4?s=100" width="100px;" alt="Tom Urlings"/><br /><sub><b>Tom Urlings</b></sub></a><br /><a href="#ideas-djurny" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://anastay.dev"><img src="https://avatars.githubusercontent.com/u/45088785?v=4?s=100" width="100px;" alt="Benoit Anastay"/><br /><sub><b>Benoit Anastay</b></sub></a><br /><a href="#ideas-BenoitAnastay" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://isjustawesome.com"><img src="https://avatars.githubusercontent.com/u/689204?v=4?s=100" width="100px;" alt="Jeremy Gollehon"/><br /><sub><b>Jeremy Gollehon</b></sub></a><br /><a href="#ideas-GollyJer" title="Ideas, Planning, & Feedback">🤔</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jrbergen"><img src="https://avatars.githubusercontent.com/u/6237646?v=4?s=100" width="100px;" alt="jrbergen"/><br /><sub><b>jrbergen</b></sub></a><br /><a href="#ideas-jrbergen" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/b-rad15"><img src="https://avatars.githubusercontent.com/u/25830163?v=4?s=100" width="100px;" alt="Bradley O'Connell"/><br /><sub><b>Bradley O'Connell</b></sub></a><br /><a href="#ideas-b-rad15" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/00schteven"><img src="https://avatars.githubusercontent.com/u/76514745?v=4?s=100" width="100px;" alt="00schteven"/><br /><sub><b>00schteven</b></sub></a><br /><a href="#ideas-00schteven" title="Ideas, Planning, & Feedback">🤔</a></td>
     </tr>
   </tbody>
   <tfoot>
