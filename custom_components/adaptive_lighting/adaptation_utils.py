@@ -1,8 +1,10 @@
 """Utility functions for adaptation commands."""
+
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any, Literal
+from enum import IntFlag, auto
+from typing import Any
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -11,6 +13,8 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS_STEP_PCT,
     ATTR_COLOR_NAME,
     ATTR_COLOR_TEMP_KELVIN,
+    ATTR_EFFECT,
+    ATTR_FLASH,
     ATTR_HS_COLOR,
     ATTR_RGB_COLOR,
     ATTR_RGBW_COLOR,
@@ -41,7 +45,51 @@ BRIGHTNESS_ATTRS = {
     ATTR_BRIGHTNESS_STEP_PCT,
 }
 
+# Worst-case rounding error when Home Assistant's 0-255 brightness scale
+# round-trips through a device with coarser resolution (e.g., the 0-99 Z-Wave
+# Multilevel Switch scale). A light cannot report back a value more precise than
+# its own scale, so exact equality would never hold for such targets and
+# 'skip_redundant_commands' would keep sending them forever. The tolerance sits
+# far below the manual-control-detection threshold (BRIGHTNESS_CHANGE = 25), so
+# it cannot mask a genuine user change.
+BRIGHTNESS_TOLERANCE = 2
+
 ServiceData = dict[str, Any]
+
+
+class LightControlAttributes(IntFlag):
+    """Attributes of lights that the adaptation engine can control."""
+
+    NONE = 0
+    BRIGHTNESS = auto()
+    COLOR = auto()
+
+    ALL = BRIGHTNESS | COLOR
+
+    def __str__(self) -> str:
+        """Return a string representation of the attributes."""
+        if self == LightControlAttributes.NONE:
+            return "NONE"
+
+        return "|".join(
+            member.name
+            for member in type(self)
+            if member is not LightControlAttributes.NONE
+            and member in self
+            and member.name is not None
+        )
+
+    def has_any(self) -> bool:
+        """Determine whether any attribute is selected."""
+        return self != LightControlAttributes.NONE
+
+    def has_none(self) -> bool:
+        """Determine whether no attribute is selected."""
+        return self == LightControlAttributes.NONE
+
+    def has_all(self) -> bool:
+        """Determine whether all attributes are selected."""
+        return (self & LightControlAttributes.ALL) == LightControlAttributes.ALL
 
 
 def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
@@ -53,7 +101,7 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     common_data = {k: service_data[k] for k in common_attrs if k in service_data}
 
     attributes_split_sequence = [BRIGHTNESS_ATTRS, COLOR_ATTRS]
-    service_datas = []
+    service_datas: list[dict[str, Any]] = []
 
     for attributes in attributes_split_sequence:
         split_data = {
@@ -68,25 +116,52 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     if service_datas and (transition := service_data.get(ATTR_TRANSITION)) is not None:
         transition /= len(service_datas)
 
-        for service_data in service_datas:
-            service_data[ATTR_TRANSITION] = transition
+        for _service_data in service_datas:
+            _service_data[ATTR_TRANSITION] = transition
 
     return service_datas
+
+
+def _is_attribute_satisfied(key: str, value: Any, attributes: dict[str, Any]) -> bool:
+    """Whether the light's current state already satisfies this target value."""
+    if key not in attributes:
+        return False
+    current = attributes[key]
+    if not isinstance(current, (int, float)) or not isinstance(value, (int, float)):
+        return value == current
+    if key == ATTR_BRIGHTNESS:
+        return abs(value - current) <= BRIGHTNESS_TOLERANCE
+    if key == ATTR_COLOR_TEMP_KELVIN and value > 0 and current > 0:
+        # Compare in mired space: most integrations quantize color temperature
+        # to whole mireds, and the kelvin error of that quantization grows
+        # quadratically with kelvin (~21 K at 6500 K, ~50 K at 10000 K), so no
+        # fixed kelvin tolerance fits the whole range. The tolerance of one
+        # mired absorbs the difference between conversion schemes: HA core's
+        # helpers floor (e.g. 5500 K -> 181 mired -> 5524 K) while some
+        # integrations round (5500 K -> 182 mired -> 5495 K), and no exact
+        # equality converges for both. One mired is far below the ~5.5 mired
+        # just-noticeable difference for color temperature.
+        return abs(round(1_000_000 / value) - round(1_000_000 / current)) <= 1
+    return value == current
 
 
 def _remove_redundant_attributes(
     service_data: ServiceData,
     state: State,
 ) -> ServiceData:
-    """Filter service data by removing attributes that already equal the given state.
+    """Filter service data by removing attributes already satisfied by the state.
 
     Removes all attributes from service call data whose values are already present
-    in the target entity's state.
+    in the target entity's state. Quantized attributes (brightness, color temp) are
+    compared with a small tolerance: a light whose resolution is coarser than Home
+    Assistant's cannot report back the exact value it was given, so exact equality
+    would never hold and the attribute would never be filtered.
     """
+    attributes: dict[str, Any] = dict(state.attributes)
     return {
         k: v
         for k, v in service_data.items()
-        if k not in state.attributes or v != state.attributes[k]
+        if not _is_attribute_satisfied(k, v, attributes)
     }
 
 
@@ -105,7 +180,7 @@ async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
     filter_by_state: bool,
-) -> AsyncGenerator[ServiceData, None]:
+) -> AsyncGenerator[ServiceData]:
     """Enumerates and filters a list of service datas on the fly.
 
     If filtering is enabled, every service data is filtered by the current state of
@@ -140,10 +215,10 @@ class AdaptationData:
     entity_id: str
     context: Context
     sleep_time: float
-    service_call_datas: AsyncGenerator[ServiceData, None]
+    service_call_datas: AsyncGenerator[ServiceData]
     force: bool
     max_length: int
-    which: Literal["brightness", "color", "both"]
+    attributes: LightControlAttributes
     initial_sleep: bool = False
 
     async def next_service_call_data(self) -> ServiceData | None:
@@ -159,7 +234,7 @@ class AdaptationData:
             f"sleep_time={self.sleep_time}, "
             f"force={self.force}, "
             f"max_length={self.max_length}, "
-            f"which={self.which}, "
+            f"attributes={self.attributes}, "
             f"initial_sleep={self.initial_sleep}"
             ")"
         )
@@ -169,20 +244,25 @@ class NoColorOrBrightnessInServiceDataError(Exception):
     """Exception raised when no color or brightness attributes are found in service data."""
 
 
-def _identify_lighting_type(
+def _identify_light_control_attributes(
     service_data: ServiceData,
-) -> Literal["brightness", "color", "both"]:
+) -> LightControlAttributes:
     """Extract the 'which' attribute from the service data."""
     has_brightness = ATTR_BRIGHTNESS in service_data
     has_color = any(attr in service_data for attr in COLOR_ATTRS)
-    if has_brightness and has_color:
-        return "both"
+
+    parameters = LightControlAttributes.NONE
+
     if has_brightness:
-        return "brightness"
+        parameters |= LightControlAttributes.BRIGHTNESS
     if has_color:
-        return "color"
-    msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
-    raise NoColorOrBrightnessInServiceDataError(msg)
+        parameters |= LightControlAttributes.COLOR
+
+    if parameters == LightControlAttributes.NONE:
+        msg = f"Invalid service_data, no brightness or color attributes found: {service_data=}"
+        raise NoColorOrBrightnessInServiceDataError(msg)
+
+    return parameters
 
 
 def prepare_adaptation_data(
@@ -218,7 +298,7 @@ def prepare_adaptation_data(
         filter_by_state,
     )
 
-    lighting_type = _identify_lighting_type(service_data)
+    attributes = _identify_light_control_attributes(service_data)
 
     return AdaptationData(
         entity_id=entity_id,
@@ -227,5 +307,58 @@ def prepare_adaptation_data(
         service_call_datas=service_data_iterator,
         force=force,
         max_length=service_datas_length,
-        which=lighting_type,
+        attributes=attributes,
     )
+
+
+def manual_control_event_attribute_to_flags(
+    manual_control_attribute: bool | str,
+) -> LightControlAttributes:
+    """Convert manual control event data to light control attributes."""
+    if isinstance(manual_control_attribute, bool) and manual_control_attribute:
+        return LightControlAttributes.ALL
+    if manual_control_attribute == "brightness":
+        return LightControlAttributes.BRIGHTNESS
+    if manual_control_attribute == "color":
+        return LightControlAttributes.COLOR
+    return LightControlAttributes.NONE
+
+
+def has_brightness_attribute(
+    service_data: ServiceData,
+) -> bool:
+    """Determine whether the service data contains brightness attributes."""
+    return any(attr in BRIGHTNESS_ATTRS for attr in service_data)
+
+
+def has_color_attribute(
+    service_data: ServiceData,
+) -> bool:
+    """Determine whether the service data contains color attributes."""
+    return any(attr in COLOR_ATTRS for attr in service_data)
+
+
+def has_effect_attribute(
+    service_data: ServiceData,
+) -> bool:
+    """Determine whether the service data contains effect attributes."""
+    return ATTR_FLASH in service_data or ATTR_EFFECT in service_data
+
+
+def get_light_control_attributes(
+    service_data: ServiceData,
+) -> LightControlAttributes:
+    """Get the light control attributes affected by the service call data."""
+    parameters = LightControlAttributes.NONE
+
+    if has_brightness_attribute(service_data):
+        parameters |= LightControlAttributes.BRIGHTNESS
+
+    if has_color_attribute(service_data):
+        parameters |= LightControlAttributes.COLOR
+
+    if has_effect_attribute(service_data):
+        parameters |= LightControlAttributes.BRIGHTNESS
+        parameters |= LightControlAttributes.COLOR
+
+    return parameters

@@ -1,0 +1,269 @@
+{
+  "title": "Адаптивно осветление",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Изберете име за инстанцията на Адаптивно осветление",
+        "description": "Всяка инстанция може да съдържа множество лампи!",
+        "data": {
+          "name": "Име"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Това устройство е вече конфигурирано"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Настройки на Адаптивно осветление",
+        "description": "Конфигурирайте компонент за Адаптивно осветление. Имената на опциите съвпадат с настройките на YAML. Ако сте дефинирали този запис в YAML, няма да се появят опции тук. За интерактивни графики, които демонстрират ефектите на параметрите, посетете [това уеб приложение]({webapp_url}). За повече подробности, вижте [официалната документация]({docs_url}).",
+        "data": {
+          "lights": "lights: Списък от entity_ids на лампи за контрол (може да е празен). 🌟",
+          "interval": "интервал",
+          "transition": "преход",
+          "initial_transition": "начален преход",
+          "min_brightness": "min_brightness: Минимален процент на яркост. 💡",
+          "max_brightness": "max_brightness: Максимален процент на яркост. 💡",
+          "min_color_temp": "min_color_temp: Най-топла цветова температура в Келвини. 🔥",
+          "max_color_temp": "max_color_temp: Най-студена цветова температура в Келвини. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Дали да се предпочита RGB цветова корекция пред температура на светлината, когато е възможно. 🌈",
+          "sleep_brightness": "яркост при сън",
+          "sleep_rgb_or_color_temp": "RGB или цветова температура при сън",
+          "sleep_color_temp": "цветова температура при сън",
+          "sleep_rgb_color": "RGB цвят при сън",
+          "sleep_transition": "преход при сън",
+          "transition_until_sleep": "transition_until_sleep: Когато е активирано, Adaptive Lighting ще третира настройките за сън като минимум, преминавайки към тези стойности след залез. 🌙",
+          "sunrise_time": "време на изгрев",
+          "min_sunrise_time": "минимално време на изгрев",
+          "max_sunrise_time": "максимално време на изгрев",
+          "sunrise_offset": "отместване на изгрева",
+          "sunset_time": "време на залез",
+          "min_sunset_time": "минимално време на залез",
+          "max_sunset_time": "максимално време на залез",
+          "sunset_offset": "отместване на залеза",
+          "brightness_mode": "режим на яркост",
+          "brightness_mode_time_dark": "време на режим на яркост при тъмно",
+          "brightness_mode_time_light": "време на режим на яркост при светло",
+          "take_over_control": "take_over_control: Деактивира Adaptive Lighting, ако друг източник извика \"light.turn_on\", докато лампите са включени и се адаптират. Имайте предвид, че това извиква \"homeassistant.update_entity\" на всеки \"interval\"! 🔒",
+          "detect_non_ha_changes": "detect_non_ha_changes: Открива и спира адаптации за промени в състоянието, които не са \"light.turn_on\". Изисква \"take_over_control\" активиран. 🕵️ Внимание: ⚠️ Някои лампиможе лъжливо да указват 'включено' състояние, което може да доведе до неочаквано включване на лампите. Деактивирайте тази функция, ако се сблъскате с такива проблеми.",
+          "autoreset_control_seconds": "секунди за автоматично нулиране на контрола",
+          "only_once": "only_once: Адаптира лампите само когато са включени (\"true\") или продължава да ги адаптира (\"false\"). 🔄",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: При първоначално включване на лампите. Ако е зададено на \"true\", Адаптивно Осветление се адаптира само ако е извикано \"light.turn_on\" без указване на цвят или яркост. ❌🌈 Това например предотвратява адаптация при активиране на сцена. Ако е \"false\", Адаптивно Осветление се адаптира независимо от наличието на цвят или яркост в първоначалните \"service_data\". Изисква \"take_over_control\" активиран. 🕵️ ",
+          "separate_turn_on_commands": "separate_turn_on_commands: Използва отделни \"light.turn_on\" команди за цвят и яркост, необходими за някои типове светлини. 🔀",
+          "send_split_delay": "забавяне при изпращане на разделени",
+          "adapt_delay": "забавяне при адаптация",
+          "skip_redundant_commands": "skip_redundant_commands: Пропуска изпращането на команди за адаптация, чиято целева състояние вече е равно на известното състояние на светлината. Минимизира мрежовия трафик и подобрява отговорността на адаптацията в някои ситуации. 📉Деактивирайте, ако физическите състояния на лампите се разминават с записаното състояние на HA.",
+          "intercept": "intercept: Прихваща и адаптира \"light.turn_on\" повиквания, позволявайки моментална адаптация на цвета и яркостта. 🏎️ Деактивирайте за светлини, които не поддържат \"light.turn_on\" с цвят и яркост.",
+          "multi_light_intercept": "multi_light_intercept: Прихваща и адаптира \"light.turn_on\" повиквания, които целят множество светлини. ➗⚠️ Това може да доведе до разделяне на едно \"light.turn_on\" повикване на множество повиквания, например когато лампите са в различни превключватели. Изисква \"intercept\" да бъде активиран.",
+          "include_config_in_attributes": "include_config_in_attributes: Показва всички опции като атрибути на ключа в Home Assistant, когато е зададено на \"true\". 📝"
+        },
+        "data_description": {
+          "interval": "Честота за адаптиране на лампите, в секунди. 🔄",
+          "transition": "Продължителност на прехода, когато лампите се променят, в секунди. 🕑",
+          "initial_transition": "Продължителност на първия преход, когато лампите преминават от \"off\" на \"on\" в секунди. ⏲️",
+          "sleep_brightness": "Процент на яркостта на лампите в режим на сън. 😴",
+          "sleep_rgb_or_color_temp": "Използвайте или \"\"rgb_color\"\" или \"\"color_temp\"\" в режим на сън. 🌙",
+          "sleep_color_temp": "Цветова температура в режим на сън (използва се, когато \"sleep_rgb_or_color_temp\" е \"color_temp\") в Келвин. 😴",
+          "sleep_rgb_color": "RGB цвят в режим на сън (използва се, когато \"sleep_rgb_or_color_temp\" е \"rgb_color\"). 🌈",
+          "sleep_transition": "Продължителност на прехода, когато се превключва \"режим на сън\" в секунди. 😴",
+          "sunrise_time": "Задайте фиксирано време (HH:MM:SS) за изгрев. 🌅",
+          "min_sunrise_time": "Задайте най-ранното виртуално време за изгрев (HH:MM:SS), позволяващо по-късни изгреви. 🌅",
+          "max_sunrise_time": "Задайте най-късното виртуално време за изгрев (HH:MM:SS), позволяващо по-ранни изгреви. 🌅",
+          "sunrise_offset": "Регулирайте времето на изгрев с положителен или отрицателен отместване в секунди. ⏰",
+          "sunset_time": "Задайте фиксирано време (HH:MM:SS) за залез. 🌇",
+          "min_sunset_time": "Задайте най-ранното виртуално време за залез (HH:MM:SS), позволяващо по-късни залези. 🌇",
+          "max_sunset_time": "Задайте най-късното виртуално време за залез (HH:MM:SS), позволяващо по-ранни залези. 🌇",
+          "sunset_offset": "Регулирайте времето на залез с положителен или отрицателен отместване в секунди. ⏰",
+          "brightness_mode": "Режим на яркост за използване. Възможни стойности са \"default\", \"linear\" и \"tanh\" (използва \"brightness_mode_time_dark\" и \"brightness_mode_time_light\"). 📈",
+          "brightness_mode_time_dark": "(Игнорира се, ако \"brightness_mode='default'\") Продължителност в секунди за увеличаване/намаляване на яркостта преди/след изгрев/залез. 📈📉",
+          "brightness_mode_time_light": "(Игнорира се, ако \"brightness_mode='default'\") Продължителност в секунди за увеличаване/намаляване на яркостта след/преди изгрев/залез. 📈📉.",
+          "autoreset_control_seconds": "Автоматично нулиране на ръчния контрол след определен брой секунди. Задайте на 0 за деактивиране. ⏲️",
+          "send_split_delay": "Забавяне (ms) между \"separate_turn_on_commands\" за светлини, които не поддържат едновременна настройка на яркост и цвят. ⏲️",
+          "adapt_delay": "Време за изчакване (секунди) между включване на светлината и прилагане на промени от Адаптивно Осветление. Може да помогне за избягване на трептене. ⏲️"
+        }
+      }
+    },
+    "error": {
+      "option_error": "Невалидна опция",
+      "entity_missing": "Една или повече избрани entity-та на лампилипсват от Home Assistant"
+    }
+  },
+  "services": {
+    "apply": {
+      "name": "приложи",
+      "description": "Прилага текущите настройки за Адаптивно осветление към лампите",
+      "fields": {
+        "entity_id": {
+          "description": "entity_id на ключа с настройките за прилагане. 📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "Светлина (или списък от светлини), към които да се приложат настройките. 💡",
+          "name": "lights"
+        },
+        "transition": {
+          "description": "Продължителност на прехода, когато лампите се променят, в секунди. 🕑",
+          "name": "transition"
+        },
+        "adapt_brightness": {
+          "description": "Дали да се адаптира яркостта на светлината. 🌞",
+          "name": "adapt_brightness"
+        },
+        "adapt_color": {
+          "description": "Дали да се адаптира цветът на лампите, които го поддържат. 🌈",
+          "name": "adapt_color"
+        },
+        "prefer_rgb_color": {
+          "description": "Дали да се предпочита RGB цветова корекция пред температура на светлината, когато е възможно. 🌈",
+          "name": "prefer_rgb_color"
+        },
+        "turn_on_lights": {
+          "description": "Дали да се включат лампите, които в момента са изключени. 🔆",
+          "name": "turn_on_lights"
+        }
+      }
+    },
+    "set_manual_control": {
+      "name": "set_manual_control",
+      "description": "Маркирай дали дадена светлина е с 'ръчно контролиранe'.",
+      "fields": {
+        "entity_id": {
+          "description": "entity_id на ключа, в който да се маркира или демаркира светлината като ръчно контролирана. 📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "entity_id(та) на лампите, ако не са посочени, всички лампи в ключа се избират. 💡",
+          "name": "lights"
+        },
+        "manual_control": {
+          "description": "Дали да се добави (\"true\") или премахне (\"false\") светлината от списъка \"manual_control\". 🔒",
+          "name": "manual_control"
+        }
+      }
+    },
+    "change_switch_settings": {
+      "name": "change_switch_settings",
+      "description": "Променете всички настройки, които искате в ключа. Всички опции тук са същите като в потока на конфигурацията.",
+      "fields": {
+        "entity_id": {
+          "description": "Entity ID на ключа. 📝",
+          "name": "entity_id"
+        },
+        "use_defaults": {
+          "description": "Задава стойностите по подразбиране, които не са посочени в този обаждане на услугата. Опции: \"current\" (по подразбиране, запазва текущите стойности), \"factory\" (нулира до документирани стойности по подразбиране) или \"configuration\" (връща към стойностите по подразбиране на конфигурацията на превключвателя). ⚙️",
+          "name": "use_defaults"
+        },
+        "include_config_in_attributes": {
+          "description": "Показва всички опции като атрибути на ключа в Home Assistant, когато е зададено на \"true\". 📝",
+          "name": "include_config_in_attributes"
+        },
+        "turn_on_lights": {
+          "description": "Дали да се включат лампите, които в момента са изключени. 🔆",
+          "name": "turn_on_lights"
+        },
+        "initial_transition": {
+          "description": "Продължителност на първия преход, когато лампите преминават от 'изключено' на 'включено' в секунди. ⏲️",
+          "name": "initial_transition"
+        },
+        "sleep_transition": {
+          "description": "Продължителност на прехода, когато се превключва \"режим на сън\" в секунди. 😴",
+          "name": "sleep_transition"
+        },
+        "max_brightness": {
+          "description": "Максимален процент на яркост. 💡",
+          "name": "max_brightness"
+        },
+        "max_color_temp": {
+          "description": "Най-студена цветова температура в Келвини. ❄️",
+          "name": "max_color_temp"
+        },
+        "min_brightness": {
+          "description": "Минимален процент на яркост. 💡",
+          "name": "min_brightness"
+        },
+        "min_color_temp": {
+          "description": "Най-топла цветова температура в Келвини. 🔥",
+          "name": "min_color_temp"
+        },
+        "only_once": {
+          "description": "Адаптира лампите само когато са включени ('true') или продължава да ги адаптира ('false'). 🔄",
+          "name": "only_once"
+        },
+        "prefer_rgb_color": {
+          "description": "Дали да се предпочита RGB цветова корекция пред температура на светлината, когато е възможно. 🌈",
+          "name": "prefer_rgb_color"
+        },
+        "separate_turn_on_commands": {
+          "description": "Използвайте отделни light.turn_on повиквания за цвят и яркост, необходими за някои типове светлини. 🔀",
+          "name": "separate_turn_on_commands"
+        },
+        "send_split_delay": {
+          "description": "Забавяне (милисекунди) между \"separate_turn_on_commands\" за лампи, които не поддържат едновременна настройка на яркост и цвят. ⏲️",
+          "name": "send_split_delay"
+        },
+        "sleep_brightness": {
+          "description": "Процент на яркостта на лампите в режим на сън. 😴",
+          "name": "sleep_brightness"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Използвай \"rgb_color\" или \"color_temp\" в режим на сън. 🌙",
+          "name": "sleep_rgb_or_color_temp"
+        },
+        "sleep_rgb_color": {
+          "description": "RGB цвят в режим на сън (използва се, когато sleep_rgb_or_color_temp е \"rgb_color\"). 🌈",
+          "name": "sleep_rgb_color"
+        },
+        "sleep_color_temp": {
+          "description": "Цветова температура в режим на сън (използва се, когато sleep_rgb_or_color_temp е \"color_temp\") в Келвини. 😴",
+          "name": "sleep_color_temp"
+        },
+        "sunrise_offset": {
+          "description": "Коригирайте времето на изгрев с положително или отрицателно отместване в секунди. ⏰",
+          "name": "sunrise_offset"
+        },
+        "sunrise_time": {
+          "description": "Задайте фиксирано време (HH:MM:SS) за изгрев. 🌅",
+          "name": "sunrise_time"
+        },
+        "sunset_offset": {
+          "description": "Коригирайте времето на залез с положително или отрицателно отместване в секунди. ⏰",
+          "name": "sunset_offset"
+        },
+        "sunset_time": {
+          "description": "Задайте фиксирано време (HH:MM:SS) за залез. 🌇",
+          "name": "sunset_time"
+        },
+        "max_sunrise_time": {
+          "description": "Задайте най-късното виртуално време за изгрев (HH:MM:SS), което позволява по-ранни изгреви. 🌅",
+          "name": "max_sunrise_time"
+        },
+        "min_sunset_time": {
+          "description": "Задайте най-ранното виртуално време за изгрев (HH:MM:SS), което позволява по-ранни залези. 🌇",
+          "name": "min_sunset_time"
+        },
+        "take_over_control": {
+          "description": "Деактивирайте адаптивното осветление, ако друг източник извика 'light.turn_on', докато лампите са включени и се адаптират. Обърнете внимание, че това извиква homeassistant.update_entity на всеки interval! 🔒",
+          "name": "take_over_control"
+        },
+        "detect_non_ha_changes": {
+          "description": "Открива и спира адаптации за промени в състоянието, които не са 'light.turn_on'. Изисква активиран 'take_over_control'. 🕵️ Внимание: ⚠️ Някои лампи може лъжливо да указват състояние ‘включено’, което може да доведе до неочаквано включване на лампите. Деактивирайте тази функция, ако се сблъскате с такива проблеми.",
+          "name": "detect_non_ha_changes"
+        },
+        "transition": {
+          "description": "Продължителност на прехода, когато лампите се променят, в секунди. 🕑",
+          "name": "transition"
+        },
+        "adapt_delay": {
+          "description": "Време за изчакване (в секунди) между включването на светлината и прилагането на промените от адаптивното осветление. Може да помогне за избягване на премигване. ⏲️",
+          "name": "adapt_delay"
+        },
+        "autoreset_control_seconds": {
+          "description": "Автоматично нулиране на ръчното управление след определен брой секунди. Задайте на 0, за да деактивирате. ⏲️",
+          "name": "autoreset_control_seconds"
+        }
+      }
+    }
+  }
+}

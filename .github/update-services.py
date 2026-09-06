@@ -1,4 +1,5 @@
 """Creates a services.yaml file with the latest docs."""
+
 import sys
 from pathlib import Path
 
@@ -6,7 +7,7 @@ import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from custom_components.adaptive_lighting import const  # noqa: E402
+from custom_components.adaptive_lighting import const
 
 services_filename = Path("custom_components") / "adaptive_lighting" / "services.yaml"
 with open(services_filename) as f:  # noqa: PTH123

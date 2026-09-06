@@ -1,45 +1,41 @@
 # See tests/README.md for instructions on how to run the tests.
 
 # tl;dr:
-# Run the following command in the adaptive-lighting repo folder to run the tests:
-# docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
+# 1. Clone HA core into ./core: git clone --depth 1 https://github.com/home-assistant/core.git core
+# 2. Setup symlinks: ./scripts/setup-symlinks
+# 3. Run tests (mount entire repo, not individual dirs, or symlinks break):
+#    docker run -v $(pwd):/app basnijholt/adaptive-lighting:latest
 
 # Optionally build the image yourself with:
 # docker build -t basnijholt/adaptive-lighting:latest .
 
-FROM python:3.11-buster
+FROM ghcr.io/astral-sh/uv:debian
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    git \
-    build-essential libssl-dev libffi-dev python3-dev \
+# Install build dependencies for Python extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-dev \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone home-assistant/core
-RUN git clone --depth 1 https://github.com/home-assistant/core.git /core
-
-# Install home-assistant/core dependencies
-RUN pip3 install -r /core/requirements.txt --use-pep517 && \
-    pip3 install -r /core/requirements_test.txt --use-pep517 && \
-    pip3 install -e /core/ --use-pep517
+RUN git clone --depth 1 --branch dev https://github.com/home-assistant/core.git /core
 
 # Copy the Adaptive Lighting repository
 COPY . /app/
 
 # Setup symlinks in core
-RUN ln -s /app/tests /core/tests/components/adaptive_lighting && \
-    # For test_dependencies.py
-    ln -s /core /app/core
+RUN ln -s /core /app/core && /app/scripts/setup-symlinks
 
-# Install dependencies of components that Adaptive Lighting depends on
-RUN pip3 install $(python3 /app/test_dependencies.py) --use-pep517
+# Install home-assistant/core dependencies
+RUN mkdir -p /.venv
+ENV UV_PROJECT_ENVIRONMENT=/.venv UV_PYTHON=3.14.2 PATH="/.venv/bin:$PATH"
+RUN uv venv
+RUN /app/scripts/setup-dependencies
 
-WORKDIR /core
+WORKDIR /app/core
 
 # Make 'custom_components/adaptive_lighting' imports available to tests
-ENV PYTHONPATH="${PYTHONPATH}:/app"
-# Enable testing against HA clone (instead of pytest_homeassistant_custom_component)
-ENV HA_CLONE=true
+ENV PYTHONPATH="/app"
 
 ENTRYPOINT ["python3", \
     # Enable Python development mode
@@ -52,8 +48,8 @@ ENTRYPOINT ["python3", \
     "--timeout=9", \
     # Print the 10 slowest tests
     "--durations=10", \
-    # Measure code coverage for the 'homeassistant' package
-    "--cov=custom_components.adaptive_lighting", \
+    # Measure code coverage for the 'homeassistant.components.adaptive_lighting' component
+    "--cov=homeassistant.components.adaptive_lighting", \
     # Generate an XML report of the code coverage
     "--cov-report=xml", \
     # Generate an HTML report of the code coverage
