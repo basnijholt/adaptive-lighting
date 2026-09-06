@@ -37,11 +37,15 @@ _TARGET_ATTRIBUTES = (
 )
 
 
-def _last_sent_target(
+def _last_adaptation_values(
     manager: AdaptiveLightingManager,
     light: str,
 ) -> dict[str, Any] | None:
-    """Return allowlisted target attributes from the last adaptation command."""
+    """Return latest retained value for each allowlisted adaptation attribute.
+
+    Values may come from different commands because the manager merges partial
+    service data per attribute.
+    """
     service_data = manager.last_service_data.get(light)
     if service_data is None:
         return None
@@ -108,7 +112,10 @@ async def async_get_config_entry_diagnostics(
                 "color": bool(manual_control & LightControlAttributes.COLOR),
             },
             "global_manager_autoreset_seconds": _autoreset_seconds(manager, light),
-            "global_manager_last_sent_target": _last_sent_target(manager, light),
+            "global_manager_last_adaptation_values": _last_adaptation_values(
+                manager,
+                light,
+            ),
         }
 
     return {
