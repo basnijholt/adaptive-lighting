@@ -54,6 +54,7 @@ Also available as a [blueprint](https://github.com/basnijholt/adaptive-lighting/
 
 ```yaml
 - alias: "Adaptive lighting: toggle 'sleep mode'"
+  mode: restart
   trigger:
     - platform: state
       entity_id: input_boolean.sleep_mode
