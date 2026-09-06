@@ -38,6 +38,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
+    CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_PREFER_RGB_COLOR,
@@ -75,6 +76,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     is_our_context,
     is_our_context_id,
     short_hash,
+    validate,
 )
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -98,7 +100,7 @@ except ImportError:
     from homeassistant.components.template.light import LightTemplate
 
 from homeassistant.components.template import light as template_light
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import SOURCE_IMPORT, SOURCE_USER, ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_ENTITY_ID,
@@ -111,6 +113,7 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
+    EntityCategory,
 )
 from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
@@ -154,9 +157,9 @@ ENTITY_LIGHT_2 = "light.light_2"
 ENTITY_LIGHT_3 = "light.light_3"
 _SWITCH_FMT = f"{SWITCH_DOMAIN}.{DOMAIN}"
 ENTITY_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}"
-ENTITY_SLEEP_MODE_SWITCH = f"{_SWITCH_FMT}_sleep_mode_{DEFAULT_NAME}"
-ENTITY_ADAPT_BRIGHTNESS_SWITCH = f"{_SWITCH_FMT}_adapt_brightness_{DEFAULT_NAME}"
-ENTITY_ADAPT_COLOR_SWITCH = f"{_SWITCH_FMT}_adapt_color_{DEFAULT_NAME}"
+ENTITY_SLEEP_MODE_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}_sleep_mode"
+ENTITY_ADAPT_BRIGHTNESS_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}_adapt_brightness"
+ENTITY_ADAPT_COLOR_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}_adapt_color"
 
 ORIG_TIMEZONE = dt_util.DEFAULT_TIME_ZONE
 
@@ -737,10 +740,19 @@ async def test_manual_control(
     await turn_light(True, brightness=increased_brightness())
     # Check that ENTITY_LIGHT_1 is manually controlled
     assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    # Per-attribute state attributes should reflect this
+    state_attrs = hass.states.get(switch.entity_id).attributes
+    assert ENTITY_LIGHT_1 in state_attrs["manual_control"]
+    assert ENTITY_LIGHT_1 in state_attrs["manual_control_brightness"]
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control_color"]
     # Test adaptive_lighting.set_manual_control
     await change_manual_control(False)
     # Check that ENTITY_LIGHT_1 is not manually controlled
     assert not manual_control[ENTITY_LIGHT_1]
+    state_attrs = hass.states.get(switch.entity_id).attributes
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control"]
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control_brightness"]
+    assert ENTITY_LIGHT_1 not in state_attrs["manual_control_color"]
 
     # Check that toggling light off to on resets manual control
     await change_manual_control(True)
@@ -864,6 +876,9 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1]
     await change_manual_control(True)
     assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    state_attrs = hass.states.get(switch.entity_id).attributes
+    assert state_attrs["manual_control_brightness"] == [ENTITY_LIGHT_1]
+    assert state_attrs["manual_control_color"] == [ENTITY_LIGHT_1]
 
     # Check that manual control `False` unsets all attributes
     await change_manual_control(False)
@@ -874,6 +889,9 @@ async def test_manual_control(
     assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     await change_manual_control("color")
     assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.COLOR
+    state_attrs = hass.states.get(switch.entity_id).attributes
+    assert state_attrs["manual_control_brightness"] == []
+    assert state_attrs["manual_control_color"] == [ENTITY_LIGHT_1]
 
 
 @flaky(max_runs=3, min_passes=1)
@@ -913,11 +931,27 @@ async def test_auto_reset_manual_control(hass):
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id] > 0
     )
     await update()
+    # The auto reset must also re-adapt the light right away, not only clear the
+    # flag. Collect the 'light.turn_on' calls made with the 'autoreset' context.
+    autoreset_calls: list[Event] = []
+
+    async def _on_call_service(event: Event) -> None:
+        if (
+            event.data.get("domain") == LIGHT_DOMAIN
+            and event.data.get("service") == SERVICE_TURN_ON
+            and is_our_context(event.context, "autoreset")
+        ):
+            autoreset_calls.append(event)
+
+    remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, _on_call_service)
     await asyncio.sleep(0.3)  # Should be enough time for auto reset
+    await hass.async_block_till_done()
+    remove_listener()
     assert not manual_control[light.entity_id], (light, manual_control)
     assert (
         light.entity_id not in switch.extra_state_attributes["autoreset_time_remaining"]
     )
+    assert autoreset_calls, "auto reset did not re-adapt the light"
 
     # Do a couple of quick changes and check that light is not reset
     for i in range(3):
@@ -1075,7 +1109,7 @@ async def test_apply_service(hass):
     assert entity_id not in switch.lights
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return max(1, (light._attr_brightness + 100) % 255)
 
     def increased_color_temp():
         return max(
@@ -1267,7 +1301,11 @@ async def test_state_change_handlers(hass):
     4. Assert all possible problems that would result.
     Also tests significant changes.
     """
-    switch, (light, *_) = await setup_lights_and_switch(hass)
+    # Keep adaptive brightness distinct from the manual values 20, 40, and 50.
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {CONF_MIN_BRIGHTNESS: 50, CONF_MAX_BRIGHTNESS: 50},
+    )
     context = switch.create_context("test")  # needs to be passed to update method
 
     # [Config options]:
@@ -1552,54 +1590,88 @@ async def test_async_update_at_interval_action(hass):
 
 
 async def test_stagger_offset_deterministic_and_bounded(hass):
-    """Test '_stagger_offset' desynchronizes switches without changing the interval.
-
-    See https://github.com/basnijholt/adaptive-lighting/issues/939: when many
-    Adaptive Lighting switches share the same interval, they can all call
-    'light.turn_on' at the same moment, overloading (Zigbee) networks. Each
-    switch should get its own stable phase offset, bounded to the interval.
-    """
+    """Test switches get stable relative delays within the interval."""
     interval = datetime.timedelta(seconds=90)
 
     _, switch_a = await setup_switch(hass, {CONF_NAME: "switch_a"})
     _, switch_b = await setup_switch(hass, {CONF_NAME: "switch_b"})
 
-    # Stable/deterministic: repeated calls for the same switch return the same offset.
     offset_a_1 = switch_a._stagger_offset(interval)
     offset_a_2 = switch_a._stagger_offset(interval)
     assert offset_a_1 == offset_a_2
 
-    # Different switches (different unique_id/name) get different phases.
     offset_b = switch_b._stagger_offset(interval)
     assert offset_a_1 != offset_b
 
-    # Bounded: the offset only ever shifts the phase, never exceeds the interval.
     for offset in (offset_a_1, offset_b):
         assert datetime.timedelta(0) <= offset < interval
 
 
-async def test_update_time_interval_listener_uses_stagger_offset(hass):
-    """Test that the interval listener defers its first tick using the stagger offset."""
+async def test_disable_cancels_pending_stagger(hass):
+    """Test disabling the switch cancels delayed interval registration."""
     switch_module = "homeassistant.components.adaptive_lighting.switch"
     with (
         patch(
             f"{switch_module}.AdaptiveSwitch._stagger_offset",
-            return_value=datetime.timedelta(seconds=5),
+            return_value=datetime.timedelta(seconds=10),
         ) as mock_offset,
-        patch(f"{switch_module}.async_call_later") as mock_call_later,
-        patch(f"{switch_module}.async_track_time_interval") as mock_track_interval,
+        patch(
+            f"{switch_module}.async_track_time_interval",
+            return_value=lambda: None,
+        ) as mock_track_interval,
     ):
         _, switch = await setup_switch(hass, {})
-        assert mock_offset.called
-        mock_call_later.assert_called_once()
-        assert mock_call_later.call_args.args[1] == 5
-        mock_track_interval.assert_not_called()
+        mock_offset.return_value = datetime.timedelta(seconds=0.05)
+        switch._update_time_interval_listener()
+        await switch.async_turn_off()
+        await asyncio.sleep(0.1)
 
-        # Once the delayed call fires, the regular periodic listener is started.
-        delayed_action = mock_call_later.call_args.args[2]
-        delayed_action(dt_util.utcnow())
-        mock_track_interval.assert_called_once()
-        assert switch.remove_interval is mock_track_interval.return_value
+    mock_track_interval.assert_not_called()
+
+
+async def test_reconfigure_replaces_stagger_and_preserves_interval(hass):
+    """Test the replacement starts at offset + interval and keeps its cadence."""
+    calls: list[float] = []
+    two_calls = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    stagger = datetime.timedelta(seconds=0.2)
+
+    async def record_interval(_now=None):
+        calls.append(loop.time())
+        if len(calls) == 2:
+            two_calls.set()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.AdaptiveSwitch._stagger_offset",
+        return_value=datetime.timedelta(seconds=10),
+    ) as mock_offset:
+        _, switch = await setup_switch(hass, {})
+        switch._interval = datetime.timedelta(0)
+        mock_offset.return_value = stagger
+        effective_interval = (
+            switch._interval
+            + datetime.timedelta(milliseconds=switch._send_split_delay)
+            + datetime.timedelta(seconds=0.5)
+        )
+
+        with patch.object(
+            switch,
+            "_async_update_at_interval_action",
+            side_effect=record_interval,
+        ):
+            switch._update_time_interval_listener()
+            await asyncio.sleep(0.02)
+
+            replacement_started = loop.time()
+            switch._update_time_interval_listener()
+            await asyncio.wait_for(two_calls.wait(), timeout=2)
+            await switch.async_turn_off()
+
+    first_delay = calls[0] - replacement_started
+    interval_seconds = effective_interval.total_seconds()
+    expected_first_delay = interval_seconds + stagger.total_seconds()
+    assert expected_first_delay - 0.1 <= first_delay < expected_first_delay + 0.5
+    assert interval_seconds - 0.1 <= calls[1] - calls[0] < interval_seconds + 0.5
 
 
 @pytest.mark.parametrize("separate_turn_on_commands", (True, False))
@@ -1761,7 +1833,7 @@ async def test_change_switch_settings_service(hass):
     # Test changing to illegal max brightness
     with pytest.raises(
         voluptuous.error.MultipleInvalid,
-        match="value must be at most 100 for dictionary",
+        match="value must be at most 100",
     ):
         await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
 
@@ -3286,3 +3358,145 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
     assert (
         light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
+
+
+async def test_fresh_install_entity_ids(hass):
+    """Test the entity ids a new install gets with device-relative naming."""
+    _, switch = await setup_switch(hass, {})
+
+    assert switch.entity_id == ENTITY_SWITCH
+    assert switch.sleep_mode_switch.entity_id == ENTITY_SLEEP_MODE_SWITCH
+    assert switch.adapt_brightness_switch.entity_id == ENTITY_ADAPT_BRIGHTNESS_SWITCH
+    assert switch.adapt_color_switch.entity_id == ENTITY_ADAPT_COLOR_SWITCH
+
+
+async def test_existing_entity_ids_are_preserved(hass):
+    """Test an install predating this change keeps its entity ids.
+
+    The unique ids are unchanged, so the entity registry must keep the
+    classic `..._sleep_mode_<name>` id instead of renaming the entity.
+    """
+    classic_entity_id = f"{_SWITCH_FMT}_sleep_mode_{DEFAULT_NAME}"
+    assert classic_entity_id != ENTITY_SLEEP_MODE_SWITCH
+
+    registry = entity_registry.async_get(hass)
+    registry.async_get_or_create(
+        SWITCH_DOMAIN,
+        DOMAIN,
+        f"{DEFAULT_NAME}_sleep_mode",
+        suggested_object_id=classic_entity_id.split(".", 1)[1],
+    )
+
+    _, switch = await setup_switch(hass, {})
+
+    assert switch.sleep_mode_switch.entity_id == classic_entity_id
+
+
+def test_validate_ui_options_win_over_stale_data():
+    """A UI-configured entry's `options` (from the options flow) must win.
+
+    `data` for a `SOURCE_USER` entry either only holds the entry name, or -
+    for entries created before `data`/`options` were split - a stale
+    snapshot from initial setup. Either way, a later change made through
+    the options flow (stored in `options`) must not be silently discarded
+    by that stale/legacy `data`.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        source=SOURCE_USER,
+        data={CONF_NAME: DEFAULT_NAME, CONF_LIGHTS: ["light.a"]},
+        options={CONF_LIGHTS: ["light.a", "light.b"]},
+    )
+
+    result = validate(entry)
+
+    assert result[CONF_LIGHTS] == ["light.a", "light.b"]
+
+
+def test_validate_yaml_data_wins_over_stray_options():
+    """A YAML-imported entry's `data` must keep winning over `options`.
+
+    YAML configuration is the source of truth for a `SOURCE_IMPORT` entry,
+    so any leftover `options` (e.g. from a UI setup that predates the YAML
+    import) must not override it.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        source=SOURCE_IMPORT,
+        data={CONF_NAME: DEFAULT_NAME, CONF_LIGHTS: ["light.a"]},
+        options={CONF_LIGHTS: ["light.b"]},
+    )
+
+    result = validate(entry)
+
+    assert result[CONF_LIGHTS] == ["light.a"]
+
+
+@pytest.mark.parametrize("service", [SERVICE_TURN_ON, SERVICE_TOGGLE])
+@pytest.mark.parametrize("explicit", [False, True], ids=["area", "direct"])
+@pytest.mark.parametrize("managed", [False, True], ids=["unmanaged", "managed"])
+@pytest.mark.parametrize(
+    "registry_settings",
+    [
+        {},
+        {"entity_category": EntityCategory.CONFIG},
+        {"entity_category": EntityCategory.DIAGNOSTIC},
+        {"hidden_by": entity_registry.RegistryEntryHider.USER},
+    ],
+    ids=["normal", "config", "diagnostic", "hidden"],
+)
+async def test_intercept_preserves_area_target_exclusions(
+    hass: HomeAssistant,
+    service: str,
+    explicit: bool,
+    managed: bool,
+    registry_settings: dict[str, Any],
+):
+    """Area calls exclude hidden/categorized lights; direct calls honor them."""
+    await setup_lights(hass)
+    mock_area_registry(hass)
+    registry = entity_registry.async_get(hass)
+    lights = [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3]
+    for light in lights:
+        registry.async_update_entity(light, area_id="test-area")
+    registry.async_update_entity(ENTITY_LIGHT_3, **registry_settings)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: lights},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: (
+                [ENTITY_LIGHT_1, ENTITY_LIGHT_3] if managed else [ENTITY_LIGHT_1]
+            ),
+            CONF_INTERCEPT: True,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    assert all(hass.states.get(light).state == STATE_OFF for light in lights)
+
+    target = {ATTR_ENTITY_ID: lights} if explicit else {ATTR_AREA_ID: "test-area"}
+    await hass.services.async_call(LIGHT_DOMAIN, service, target, blocking=True)
+    await hass.async_block_till_done()
+
+    # Both normal lights turn on; only the managed one gets adaptive brightness.
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 128
+    assert hass.states.get(ENTITY_LIGHT_2).state == STATE_ON
+    assert hass.states.get(ENTITY_LIGHT_2).attributes.get(ATTR_BRIGHTNESS) != 128
+    target_state = hass.states.get(ENTITY_LIGHT_3)
+    if registry_settings and not explicit:
+        assert target_state.state == STATE_OFF
+    else:
+        assert target_state.state == STATE_ON
+        if managed:
+            assert target_state.attributes[ATTR_BRIGHTNESS] == 128
+        else:
+            assert target_state.attributes.get(ATTR_BRIGHTNESS) != 128
