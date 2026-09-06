@@ -17,7 +17,7 @@ runs:
       uses: actions/checkout@v7
       with:
         repository: ${{ github.repository }}
-        ref: ${{ github.ref }}
+        ref: ${{ github.sha }}
         persist-credentials: false
         fetch-depth: 0
     - name: Check out code from GitHub
