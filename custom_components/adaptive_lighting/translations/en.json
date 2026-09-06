@@ -157,10 +157,6 @@
       "name": "change_switch_settings",
       "description": "Change any settings you'd like in the switch. All options here are the same as in the config flow.",
       "fields": {
-        "entity_id": {
-          "description": "Entity ID of the switch. 📝",
-          "name": "entity_id"
-        },
         "use_defaults": {
           "description": "Sets the default values not specified in this service call. Options: \"current\" (default, retains current values), \"factory\" (resets to documented defaults), or \"configuration\" (reverts to switch config defaults). ⚙️",
           "name": "use_defaults"

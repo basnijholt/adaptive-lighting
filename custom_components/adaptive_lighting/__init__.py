@@ -7,8 +7,9 @@ from typing import Any
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-from homeassistant.const import CONF_SOURCE
+from homeassistant.const import CONF_SOURCE, Platform
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers import service
 
 from .const import (
     _DOMAIN_SCHEMA,  # pyright: ignore[reportPrivateUsage]
@@ -73,12 +74,19 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         schema=SET_MANUAL_CONTROL_SCHEMA,
     )
 
-    hass.services.async_register(
-        domain=DOMAIN,
-        service=SERVICE_CHANGE_SWITCH_SETTINGS,
-        service_func=partial(handle_change_switch_settings, hass),
-        schema=change_switch_settings_schema(),
-    )
+    if register_platform_service := getattr(
+        service,
+        "async_register_platform_entity_service",
+        None,
+    ):
+        register_platform_service(
+            hass,
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            entity_domain=Platform.SWITCH,
+            func=handle_change_switch_settings,
+            schema=change_switch_settings_schema(),
+        )
 
     if DOMAIN in config:
         for entry in config[DOMAIN]:

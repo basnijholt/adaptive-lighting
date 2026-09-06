@@ -58,7 +58,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import entity_platform, entity_registry, service
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
 from homeassistant.helpers.event import (
@@ -139,10 +139,12 @@ from .const import (
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
+    SERVICE_CHANGE_SWITCH_SETTINGS,
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     TakeOverControlMode,
+    change_switch_settings_schema,
     replace_none_str,
 )
 from .hass_utils import area_entities, setup_service_call_interceptor
@@ -371,42 +373,42 @@ def _switches_from_service_call(
 
 
 async def handle_change_switch_settings(
-    hass: HomeAssistant,
+    switch: AdaptiveSwitch | SimpleSwitch,
     service_call: ServiceCall,
 ) -> None:
     """Allows HASS to change config values via a service call."""
+    if not isinstance(switch, AdaptiveSwitch):
+        return
     data = service_call.data
-    switches = _switches_from_service_call(hass, service_call)
-    for switch in switches:
-        which = data.get(CONF_USE_DEFAULTS, "current")
-        if which == "current":  # use whatever we're already using.
-            defaults = switch._current_settings  # pylint: disable=protected-access
-        elif which == "factory":  # use actual defaults listed in the documentation
-            defaults = None
-        elif which == "configuration":
-            # use whatever's in the config flow or configuration.yaml
-            defaults = switch._config_backup
-        else:
-            defaults = None
+    which = data.get(CONF_USE_DEFAULTS, "current")
+    if which == "current":  # use whatever we're already using.
+        defaults = switch._current_settings  # pylint: disable=protected-access
+    elif which == "factory":  # use actual defaults listed in the documentation
+        defaults = None
+    elif which == "configuration":
+        # use whatever's in the config flow or configuration.yaml
+        defaults = switch._config_backup
+    else:
+        defaults = None
 
-        # deep copy the defaults so we don't modify the original dicts
-        switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
-        if switch.is_on:
-            switch._update_time_interval_listener()
+    # deep copy the defaults so we don't modify the original dicts
+    switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
+    if switch.is_on:
+        switch._update_time_interval_listener()
 
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
-            data,
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
+        data,
+    )
+
+    switch.manager.reset(*switch.lights, reset_manual_control=False)
+    if switch.is_on:
+        await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
+            context=switch.create_context("service", parent=service_call.context),
+            lights=switch.lights,
+            transition=switch.initial_transition,
+            force=True,
         )
-
-        switch.manager.reset(*switch.lights, reset_manual_control=False)
-        if switch.is_on:
-            await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
-                context=switch.create_context("service", parent=service_call.context),
-                lights=switch.lights,
-                transition=switch.initial_transition,
-                force=True,
-            )
 
 
 async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
@@ -550,6 +552,15 @@ async def async_setup_entry(
         [sleep_mode_switch, adapt_color_switch, adapt_brightness_switch, switch],
         update_before_add=True,
     )
+
+    if not hasattr(service, "async_register_platform_entity_service"):
+        platform = entity_platform.current_platform.get()
+        assert platform is not None
+        platform.async_register_entity_service(
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            change_switch_settings_schema(),
+            handle_change_switch_settings,
+        )
 
 
 def validate(
@@ -1844,9 +1855,12 @@ class AdaptiveLightingManager:
             )
 
     def disable(self) -> None:
-        """Disable the listener by removing all subscribed handlers."""
+        """Disable listeners and pending automatic manual-control resets."""
         for remove in self.listener_removers:
             remove()
+        for timer in self.auto_reset_manual_control_timers.values():
+            timer.cancel()
+        self.auto_reset_manual_control_timers.clear()
 
     def set_proactively_adapting(self, context_id: str, entity_id: str) -> None:
         """Declare the adaptation with context_id as proactively adapting,

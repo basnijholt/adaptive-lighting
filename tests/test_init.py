@@ -15,7 +15,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import service
 from homeassistant.setup import async_setup_component
 
 from tests.common import MockConfigEntry
@@ -72,10 +72,13 @@ async def test_services_survive_entry_unload_and_reload(hass):
         SERVICE_CHANGE_SWITCH_SETTINGS,
         SERVICE_SET_MANUAL_CONTROL,
     )
-    registered = {
-        name: hass.services.async_services()[adaptive_lighting.DOMAIN][name]
-        for name in service_names
-    }
+    services = hass.services.async_services()[adaptive_lighting.DOMAIN]
+    assert SERVICE_APPLY in services
+    assert SERVICE_SET_MANUAL_CONTROL in services
+    if hasattr(service, "async_register_platform_entity_service"):
+        assert SERVICE_CHANGE_SWITCH_SETTINGS in services
+    else:
+        assert SERVICE_CHANGE_SWITCH_SETTINGS not in services
 
     entry = MockConfigEntry(
         domain=adaptive_lighting.DOMAIN,
@@ -83,6 +86,10 @@ async def test_services_survive_entry_unload_and_reload(hass):
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
+    registered = {
+        name: hass.services.async_services()[adaptive_lighting.DOMAIN][name]
+        for name in service_names
+    }
     switch = hass.data[adaptive_lighting.DOMAIN][entry.entry_id][SWITCH_DOMAIN]
     assert await hass.config_entries.async_unload(entry.entry_id)
 
@@ -142,47 +149,14 @@ async def test_service_call_without_loaded_entry(hass):
         )
 
 
-async def test_change_switch_settings_rejects_invalid_targets(hass):
-    """Test global settings service rejects invalid or unloaded targets."""
+async def test_apply_rejects_unknown_light(hass):
+    """Test the apply service rejects an unknown light target."""
     entry = MockConfigEntry(
         domain=adaptive_lighting.DOMAIN,
         data={CONF_NAME: DEFAULT_NAME},
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
-
-    registry = entity_registry.async_get(hass)
-    unrelated = registry.async_get_or_create(
-        SWITCH_DOMAIN,
-        "test",
-        "unrelated",
-    )
-    pending_entry = MockConfigEntry(
-        domain=adaptive_lighting.DOMAIN,
-        data={CONF_NAME: "pending"},
-    )
-    pending_entry.add_to_hass(hass)
-    pending = registry.async_get_or_create(
-        SWITCH_DOMAIN,
-        adaptive_lighting.DOMAIN,
-        "pending",
-        config_entry=pending_entry,
-    )
-
-    targets = (
-        ("switch.does_not_exist", "not found in registry"),
-        (unrelated.entity_id, "not registered by Adaptive Lighting"),
-        (pending.entity_id, "is not loaded"),
-    )
-    for entity_id, message in targets:
-        with pytest.raises(ServiceValidationError, match=message):
-            await hass.services.async_call(
-                adaptive_lighting.DOMAIN,
-                SERVICE_CHANGE_SWITCH_SETTINGS,
-                {ATTR_ENTITY_ID: entity_id},
-                blocking=True,
-            )
-
     with pytest.raises(ServiceValidationError, match="not found in any switch"):
         await hass.services.async_call(
             adaptive_lighting.DOMAIN,
@@ -194,11 +168,16 @@ async def test_change_switch_settings_rejects_invalid_targets(hass):
 
 async def test_change_switch_settings_requires_entity_target(hass):
     """Test change_switch_settings rejects a missing entity target."""
-    assert await async_setup_component(hass, adaptive_lighting.DOMAIN, {})
+    entry = MockConfigEntry(
+        domain=adaptive_lighting.DOMAIN,
+        data={CONF_NAME: DEFAULT_NAME},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
 
     with pytest.raises(
         voluptuous.error.MultipleInvalid,
-        match=r"required key not provided.*entity_id",
+        match=r"must contain at least one of entity_id.*area_id",
     ):
         await hass.services.async_call(
             adaptive_lighting.DOMAIN,
