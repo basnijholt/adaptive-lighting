@@ -103,6 +103,15 @@ jobs:
             exit 1
           fi
 
+          if [[ "${CORE_VERSION}" != "dev" && "${PYTEST_OUTCOME}" == "success" ]]; then
+            echo "Required coverage: 89% lines and 80% branches." >> "${GITHUB_STEP_SUMMARY}"
+            if ! jq -e '.totals | .covered_lines * 100 >= .num_statements * 89
+              and .covered_branches * 100 >= .num_branches * 80' core/coverage.json > /dev/null; then
+              echo "::error::Coverage must be at least 89% lines and 80% branches."
+              exit 1
+            fi
+          fi
+
       - name: Upload coverage reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.1

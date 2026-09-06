@@ -5,7 +5,7 @@ Alternatively, you can use the provided Docker image to run the tests locally or
 
 ## Coverage reports
 
-Open a `pytest` workflow run in GitHub Actions to see line and branch coverage in each job's summary. Download its `coverage-<Home Assistant version>-py<Python version>` artifact for the XML and JSON reports and the browsable HTML report. After extracting it, open `htmlcov/index.html` to inspect missing lines and branches.
+Open a `pytest` workflow run in GitHub Actions to see line and branch coverage in each job's summary. Download its `coverage-<Home Assistant version>-py<Python version>` artifact for the XML and JSON reports and the browsable HTML report. After extracting it, open `htmlcov/index.html` to inspect missing lines and branches. Supported stable Home Assistant versions require at least 89% line coverage and 80% branch coverage. The `dev` job reports coverage without enforcing these floors.
 
 Coverage measures executed code, not whether assertions would catch a bug. Add tests for observable behavior: emitted light commands, final states, manual-control events, and timer expiry. The integration suite runs inside Home Assistant with simulated lights; it does not establish physical-device behavior. It also does not execute every documentation generator included in the package's coverage total.
 
