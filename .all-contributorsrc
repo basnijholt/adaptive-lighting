@@ -1224,6 +1224,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "Dennis-Dekker",
+      "name": "Dennis Dekker",
+      "avatar_url": "https://avatars.githubusercontent.com/u/48018095?v=4",
+      "profile": "https://github.com/Dennis-Dekker",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
