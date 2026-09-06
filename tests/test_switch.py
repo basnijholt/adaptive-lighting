@@ -1176,6 +1176,117 @@ async def test_mixed_turn_on_restarts_manual_control_timeout(
     )
 
 
+@pytest.mark.parametrize("intercept", [True, False])
+@pytest.mark.parametrize(
+    ("service_data", "brightness", "color"),
+    [
+        ({ATTR_BRIGHTNESS: 200}, True, False),
+        ({"brightness_step": 5}, True, False),
+        ({ATTR_COLOR_TEMP_KELVIN: 4000}, False, True),
+        ({ATTR_BRIGHTNESS: 200, ATTR_COLOR_TEMP_KELVIN: 4000}, True, True),
+    ],
+)
+async def test_manual_control_state_updates_without_adaptation(
+    hass,
+    intercept,
+    service_data,
+    brightness,
+    color,
+):
+    """Publish manual state on service changes and resets, without an interval tick."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_INTERCEPT: intercept,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id, **service_data},
+        blocking=True,
+        context=Context(),
+    )
+    await hass.async_block_till_done()
+    attrs = hass.states.get(switch.entity_id).attributes
+    assert attrs["manual_control"] == [light.entity_id]
+    assert attrs["manual_control_brightness"] == (
+        [light.entity_id] if brightness else []
+    )
+    assert attrs["manual_control_color"] == ([light.entity_id] if color else [])
+    assert len(events) == 1
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: light.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    attrs = hass.states.get(switch.entity_id).attributes
+    assert attrs["manual_control"] == []
+    assert attrs["manual_control_brightness"] == []
+    assert attrs["manual_control_color"] == []
+
+
+async def test_manual_control_state_updates_shared_switches(hass):
+    """Publish shared state on both profiles when one receives a service call."""
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+    _, other = await setup_switch(
+        hass,
+        {CONF_NAME: "other", CONF_LIGHTS: [light.entity_id]},
+    )
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [light.entity_id],
+            CONF_MANUAL_CONTROL: "brightness",
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    for profile in (switch, other):
+        attrs = hass.states.get(profile.entity_id).attributes
+        assert attrs["manual_control"] == [light.entity_id]
+        assert attrs["manual_control_brightness"] == [light.entity_id]
+        assert attrs["manual_control_color"] == []
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {ATTR_ENTITY_ID: other.entity_id, CONF_MANUAL_CONTROL: False},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    for profile in (switch, other):
+        attrs = hass.states.get(profile.entity_id).attributes
+        assert attrs["manual_control"] == []
+        assert attrs["manual_control_brightness"] == []
+        assert attrs["manual_control_color"] == []
+
+
+async def test_manual_control_state_ignores_incomplete_entries(hass):
+    """An entry awaiting platform setup must not break another profile's updates."""
+    switch, (light, *_) = await setup_lights_and_switch(hass)
+    pending = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: "pending"})
+    pending.add_to_hass(hass)
+    hass.data[DOMAIN][pending.entry_id] = {}
+
+    switch.manager.set_manual_control_attributes(light.entity_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(switch.entity_id).attributes["manual_control"] == [
+        light.entity_id,
+    ]
+
+
 async def test_adaptation_attribute_selection(hass):
     """Test the 'manual control' tracking."""
     switch, (light, *_) = await setup_lights_and_switch(hass)
