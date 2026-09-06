@@ -116,6 +116,8 @@ adaptive_lighting:
 
 When enabled, a light that turns on from `off` is only adapted if the state-change context exactly matches the most recent Home Assistant `light.turn_on` context recorded for that light. An unmatched turn-on is marked as manually controlled and left at its reported brightness and color.
 
+Manual-control flags are shared by profiles controlling the same light. Use the same turn-on policy on those profiles; mixed policies can allow an earlier profile to adapt before another marks the light manually controlled.
+
 This is the option to reach for when turning a light on with its local switch (or a native Lutron/Caséta scene) makes Adaptive Lighting override your brightness a moment later, forcing you to set it twice.
 
 Its advantage over simply disabling `detect_non_ha_changes` is that the two behaviors are decoupled: you can keep `detect_non_ha_changes: true` to catch manual dimming of lights that are *already on*, while leaving unmatched turn-ons untouched.
