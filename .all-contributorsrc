@@ -1523,6 +1523,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "tests",
+      "name": "tests",
+      "avatar_url": "https://avatars.githubusercontent.com/u/37722?v=4",
+      "profile": "https://github.com/tests",
+      "contributions": [
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
