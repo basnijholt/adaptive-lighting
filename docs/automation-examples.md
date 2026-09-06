@@ -56,6 +56,11 @@ Real-world automation examples showing how to integrate Adaptive Lighting with y
       - switch.adaptive_lighting_sleep_mode_bedroom
 ```
 
+</details>
+
+<details markdown="1">
+<summary>Set sunrise and sunset from an alarm.</summary>
+
 Set your sunrise and sunset time based on your alarm. The below script sets sunset_time exactly 12 hours after the custom sunrise time.
 
 ```yaml
@@ -106,6 +111,192 @@ iphone_carly_wakeup:
   icon: mdi:weather-sunset
   max: 10
 ```
+
+</details>
+
+<details markdown="1">
+<summary>Use a Schedule helper as a step-based custom lighting profile.</summary>
+
+Create a [Schedule helper](https://www.home-assistant.io/integrations/schedule/) named `Adaptive Lighting Profile`. Add time blocks with Additional data like this:
+
+```yaml
+brightness_pct: 20
+color_temp_kelvin: 2500
+```
+
+Use different values for each block. The automation below applies the active block whenever the schedule state or its attributes change. Setting both brightness limits and both color temperature limits to the same value keeps each block at its setpoint. Outside a block, the configured Adaptive Lighting settings are restored.
+
+```yaml
+- alias: "Adaptive lighting: apply scheduled profile"
+  triggers:
+    - trigger: state
+      entity_id: schedule.adaptive_lighting_profile
+    - trigger: homeassistant
+      event: start
+  actions:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: schedule.adaptive_lighting_profile
+              state: "on"
+          sequence:
+            - action: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: switch.adaptive_lighting_living_room
+                min_brightness: >
+                  {{ state_attr('schedule.adaptive_lighting_profile', 'brightness_pct') | int(1) }}
+                max_brightness: >
+                  {{ state_attr('schedule.adaptive_lighting_profile', 'brightness_pct') | int(1) }}
+                min_color_temp: >
+                  {{ state_attr('schedule.adaptive_lighting_profile', 'color_temp_kelvin') | int(2000) }}
+                max_color_temp: >
+                  {{ state_attr('schedule.adaptive_lighting_profile', 'color_temp_kelvin') | int(2000) }}
+      default:
+        - action: adaptive_lighting.change_switch_settings
+          data:
+            entity_id: switch.adaptive_lighting_living_room
+            use_defaults: configuration
+  mode: restart
+```
+
+This creates step changes at block boundaries. It does not interpolate between schedule points. Runtime settings also reset when Home Assistant restarts, so the startup trigger reapplies the active block. The default branch restores every configured setting; restore only the four fields explicitly if other automations also change runtime settings.
+
+</details>
+
+<details markdown="1">
+<summary>Reduce daytime brightness when an illuminance sensor detects strong daylight.</summary>
+
+Keep a low configured `min_brightness` for late night and let an automation lower `max_brightness` while the room has ample daylight. Use a sensor that is not significantly affected by the controlled lights to avoid a feedback loop.
+
+```yaml
+- alias: "Adaptive lighting: limit brightness in daylight"
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.living_room_illuminance
+      above: 300
+    - trigger: numeric_state
+      entity_id: sensor.living_room_illuminance
+      below: 200
+    - trigger: homeassistant
+      event: start
+  actions:
+    - action: adaptive_lighting.change_switch_settings
+      data:
+        entity_id: switch.adaptive_lighting_living_room
+        max_brightness: >
+          {{ 30 if states('sensor.living_room_illuminance') | float(0) > 250 else 100 }}
+  mode: restart
+```
+
+The separate 200 and 300 lux triggers add hysteresis, while the 250 lux startup threshold chooses a value after a restart. Replace `30` and `100` with your desired daytime limit and normal maximum.
+
+`min_brightness` and `max_brightness` are the solar-midnight and daytime endpoints of the brightness curve. Setting `min_brightness` higher than `max_brightness` is supported and creates an inverted curve that is brighter at night and dimmer during the day. If you only want a daytime limit, keep the reduced maximum at or above the configured minimum.
+
+</details>
+
+<details markdown="1">
+<summary>Turn on Hue-controlled lights with the current Adaptive Lighting values.</summary>
+
+For a Hue button exposed to Home Assistant, call this script from the button automation. It turns on the listed lights directly with the current Adaptive Lighting brightness and color.
+
+```yaml
+script:
+  living_room_adaptive_lighting:
+    alias: "Living room: adaptive lighting"
+    sequence:
+      - action: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_living_room
+          lights:
+            - light.living_room_ceiling
+            - light.living_room_table
+          turn_on_lights: true
+          transition: 0
+```
+
+This requires Home Assistant to receive the button event. Adaptive Lighting does not update scenes stored on the Hue Bridge, so scenes activated only inside Hue cannot use this script and retain Hue's operation when Home Assistant is unavailable.
+
+</details>
+
+<details markdown="1">
+<summary>Use a fixed RGB stage before sleep mode.</summary>
+
+This script starts sleep mode with a fixed dim red color, waits 30 minutes, and then switches to the configured warm sleep color temperature.
+
+```yaml
+script:
+  adaptive_lighting_bedtime:
+    alias: "Adaptive lighting: bedtime"
+    mode: restart
+    sequence:
+      - action: adaptive_lighting.change_switch_settings
+        data:
+          entity_id: switch.adaptive_lighting_bedroom
+          sleep_rgb_or_color_temp: rgb_color
+          sleep_rgb_color: [255, 56, 0]
+          sleep_brightness: 20
+      - action: switch.turn_on
+        target:
+          entity_id: switch.adaptive_lighting_sleep_mode_bedroom
+      - delay: "00:30:00"
+      - action: adaptive_lighting.change_switch_settings
+        data:
+          entity_id: switch.adaptive_lighting_bedroom
+          sleep_rgb_or_color_temp: color_temp
+          sleep_color_temp: 1000
+          sleep_brightness: 1
+```
+
+The first stage uses a fixed brightness rather than following the normal brightness curve. A Home Assistant restart or script reload stops the delay; use separate time-triggered automations if the handoff must survive restarts.
+
+</details>
+
+<details markdown="1">
+<summary>Run a fixed virtual day across midnight.</summary>
+
+Fixed virtual sunrise and sunset times can cross midnight. This configuration ramps an indoor garden from its minimum at 16:00 to its maximum at 22:00, then back to its minimum at 04:00.
+
+```yaml
+adaptive_lighting:
+  - name: "Indoor Garden"
+    lights:
+      - light.indoor_garden
+    sunrise_time: "16:00:00"
+    sunset_time: "04:00:00"
+    min_brightness: 10
+    max_brightness: 100
+    brightness_mode: linear
+    brightness_mode_time_dark: 0
+    brightness_mode_time_light: 21600  # 6 hours
+```
+
+Adaptive Lighting changes brightness and color while a light is on; it does not manage the light's power schedule. This separate automation turns the example light on and off:
+
+```yaml
+- alias: "Indoor garden: power schedule"
+  triggers:
+    - trigger: time
+      at: "16:00:00"
+      id: turn_on
+    - trigger: time
+      at: "04:00:00"
+      id: turn_off
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: turn_on
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id: light.indoor_garden
+      default:
+        - action: light.turn_off
+          target:
+            entity_id: light.indoor_garden
+```
+
+Use `min_sunrise_time`, `max_sunrise_time`, `min_sunset_time`, or `max_sunset_time` instead when you want to constrain astronomical sunrise or sunset to an earliest or latest time rather than replace it.
 
 </details>
 
