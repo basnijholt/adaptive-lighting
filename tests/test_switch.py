@@ -895,10 +895,11 @@ async def test_manual_control(
 
 
 @flaky(max_runs=3, min_passes=1)
-async def test_auto_reset_manual_control(hass):
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+async def test_auto_reset_manual_control(hass, mode):
     switch, (light, *_) = await setup_lights_and_switch(
         hass,
-        {CONF_AUTORESET_CONTROL: 0.1},
+        {CONF_AUTORESET_CONTROL: 0.1, CONF_TAKE_OVER_CONTROL_MODE: mode},
     )
     context = switch.create_context("test")  # needs to be passed to update method
     manual_control = switch.manager.manual_control
@@ -963,6 +964,141 @@ async def test_auto_reset_manual_control(hass):
     await update()
     await asyncio.sleep(0.3)  # Wait the auto reset time
     assert not manual_control[light.entity_id]
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+@pytest.mark.parametrize(
+    ("attribute", "value", "next_value", "manual_attributes"),
+    [
+        (ATTR_BRIGHTNESS, 10, 20, LightControlAttributes.BRIGHTNESS),
+        (ATTR_COLOR_TEMP_KELVIN, 2000, 2200, LightControlAttributes.COLOR),
+    ],
+)
+async def test_interval_adaptation_preserves_manual_control_timeout(
+    hass,
+    freezer,
+    cleanup,
+    intercept,
+    mode,
+    attribute,
+    value,
+    next_value,
+    manual_attributes,
+):
+    """Adaptation must not postpone auto reset; another manual change must."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_AUTORESET_CONTROL: 7200,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INTERCEPT: intercept,
+        },
+    )
+
+    async def change_manually(value):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id, attribute: value},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    for manual_value in (value, next_value):
+        # A new external change to the already-manual axis restarts the timer.
+        await change_manually(manual_value)
+        assert (
+            switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+            == 7200
+        )
+        for elapsed in (90, 180):
+            freezer.tick(90)
+            await switch._async_update_at_interval_action()
+            await hass.async_block_till_done()
+            assert (
+                switch.manager.get_manual_control_attributes(light.entity_id)
+                == manual_attributes
+            )
+            assert (
+                switch.extra_state_attributes["autoreset_time_remaining"][
+                    light.entity_id
+                ]
+                == 7200 - elapsed
+            )
+
+    # An external bare turn-on also keeps its existing timer restart behavior.
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert (
+        switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+        == 7200
+    )
+
+
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+@pytest.mark.parametrize("service_data", [{}, {ATTR_BRIGHTNESS: 20}])
+async def test_mixed_turn_on_restarts_manual_control_timeout(
+    hass,
+    freezer,
+    cleanup,
+    mode,
+    service_data,
+):
+    """A mixed-target request must renew manual control on its skipped light."""
+    switch, (manual_light, _, off_light) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_AUTORESET_CONTROL: 7200,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INTERCEPT: True,
+        },
+        all_lights=True,
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: manual_light.entity_id, ATTR_BRIGHTNESS: 10},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    freezer.tick(90)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: [manual_light.entity_id, off_light.entity_id],
+            **service_data,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # HA dispatches the original external event before interception. It renews
+    # manual control even though the skipped target is replayed in our context.
+    assert hass.states.is_state(off_light.entity_id, STATE_ON)
+    assert is_our_context(
+        switch.manager.turn_on_event[manual_light.entity_id].context,
+        "skipped",
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(manual_light.entity_id)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    assert (
+        switch.extra_state_attributes["autoreset_time_remaining"][
+            manual_light.entity_id
+        ]
+        == 7200
+    )
 
 
 async def test_adaptation_attribute_selection(hass):
