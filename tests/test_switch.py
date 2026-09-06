@@ -1727,7 +1727,7 @@ async def test_change_switch_settings_service(hass):
     # Test changing to illegal max brightness
     with pytest.raises(
         voluptuous.error.MultipleInvalid,
-        match="value must be at most 100 for dictionary",
+        match="value must be at most 100",
     ):
         await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
 
