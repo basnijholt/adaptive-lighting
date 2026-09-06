@@ -583,6 +583,11 @@ logger:
 ```
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
+
+For support, use Home Assistant's **Download diagnostics** action on the
+Adaptive Lighting config entry. The download is an on-demand snapshot of that
+profile's current switch and effective-light facts. It does not create live
+sensors; existing switch attributes remain the interface for automations.
 <!-- SECTION:troubleshooting-intro:END -->
 
 <!-- SECTION:common-problems:START -->
