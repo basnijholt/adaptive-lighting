@@ -4162,7 +4162,8 @@ async def test_multi_light_split_with_brightness_only_member(
     lights = await setup_lights(hass, with_group=True)
     members = ["light.light_4", "light.light_5"]
     light = lights[3 + brightness_only_member]
-    if LEGACY_TEMPLATE_LIGHTS:
+    # Legacy YAML support outlived the old entity storage fields.
+    if hasattr(light, "_supported_color_modes"):
         light._supported_color_modes = {ColorMode.BRIGHTNESS}
         light._color_mode = ColorMode.BRIGHTNESS
     else:
