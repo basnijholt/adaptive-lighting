@@ -67,7 +67,6 @@
           "sunset_time": "Definir um horário fixo (HH:MM:SS) para o pôr do sol. 🌇",
           "send_split_delay": "Delay (ms) entre `separate_turn_on_commands` para luzes que não suportam configuração de brilho e cor simultaneamente. ⏲️",
           "sleep_color_temp": "Temperatura de Cor no modo dormir (usado quando `sleep_rgb_or_color_temp` é `color_temp`) em Kelvin. 😴",
-          "sleep_rgb_color": "Cor RGB no modo dormir (usedo quando `sleep_rgb_or_color_temp` é \"rgb_color\"). 🌈",
           "sleep_rgb_or_color_temp": "Use `\"rgb_color\"` ou `\"color_temp\"` no modo dormir. 🌙",
           "adapt_delay": "Tempo de espera (segundos) entre a luz ligar e a aplicação das mudanças da iluminação adaptativa. Pode ajudar a evitar que a luz pisque. ⏲️",
           "brightness_mode": "Modo de brilho para usar. Possíveis valores são `default`, `linear`, and `tanh` (usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈",
@@ -127,23 +126,11 @@
         "sunset_time": {
           "description": "Definir um horário fixo (HH:MM:SS) para o pôr do sol. 🌇"
         },
-        "detect_non_ha_changes": {
-          "description": "Detecta e interrompe adaptações para mudanças de estado que não sejam `light.turn_on`. Precisa de `take_over_control` habilitado. 🕵️ Atenção: ⚠️ Algumas luzes podem indicar falsamente um estado 'ligado', o que pode resultar em luzes ligando inesperadamente. Desabilite este recurso se você encontrar algum problema."
-        },
-        "take_over_control": {
-          "description": "Desabilita Iluminação Adaptativa se outro recurso chamar `light.turn_on` enquanto as luzes estão acessas e sendo adaptadas. Perceba que isso chama `homeassistant.update_entity` a cada `interval`! 🔒"
-        },
         "max_color_temp": {
           "description": "Temperatura de cor mais fria em Kelvin. ❄️"
         },
         "sleep_color_temp": {
           "description": "Temperatura de Cor no modo dormir (usado quando `sleep_rgb_or_color_temp` é `color_temp`) em Kelvin. 😴"
-        },
-        "min_brightness": {
-          "description": "Porcentagem minima do brilho. 💡"
-        },
-        "sleep_rgb_color": {
-          "description": "Cor RGB no modo dormir (usedo quando `sleep_rgb_or_color_temp` é \"rgb_color\"). 🌈"
         },
         "sunrise_time": {
           "description": "Define um horário fixo (HH:MM:SS) para o nascer do sol. 🌅"
@@ -209,12 +196,6 @@
       "fields": {
         "lights": {
           "description": "entity_id(s) das luzes, se não especificadas, todas as luzes do interruptor são selecionadas. 💡"
-        },
-        "manual_control": {
-          "description": "Se deve adicionar (\"true\") ou remover (\"false\") a luz da  lista de controle manual (\"manual_control\"). 🔒"
-        },
-        "entity_id": {
-          "description": "A `entity_id` do interruptor que desmarca a luz como sendo `controlada manualmente`. 📝"
         }
       }
     }
