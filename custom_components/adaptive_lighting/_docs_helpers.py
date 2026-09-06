@@ -6,6 +6,7 @@ import voluptuous as vol
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_TRANSITION,
     DOCS,
     DOCS_APPLY,
     DOCS_MANUAL_CONTROL,
@@ -86,6 +87,7 @@ def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
 def _generate_service_markdown_table(
     schema: dict[str, tuple[Any, Any]] | vol.Schema,
     alternative_docs: dict[str, str] | None = None,
+    optional_without_default: frozenset[str] = frozenset(),
 ) -> str:
     schema_dict = _schema_to_dict(schema) if isinstance(schema, vol.Schema) else schema
     rows: list[dict[str, str]] = []
@@ -97,7 +99,11 @@ def _generate_service_markdown_table(
         row = {
             "Service data attribute": f"`{k}`",
             "Description": description,
-            "Required": "✅" if default == vol.UNDEFINED else "❌",
+            "Required": (
+                "✅"
+                if default == vol.UNDEFINED and k not in optional_without_default
+                else "❌"
+            ),
             "Type": _type_to_str(type_),
         }
         rows.append(row)
@@ -107,7 +113,11 @@ def _generate_service_markdown_table(
 
 
 def generate_apply_markdown_table() -> str:
-    return _generate_service_markdown_table(apply_service_schema(), DOCS_APPLY)
+    return _generate_service_markdown_table(
+        apply_service_schema(),
+        DOCS_APPLY,
+        optional_without_default=frozenset({CONF_TRANSITION}),
+    )
 
 
 def generate_set_manual_control_markdown_table() -> str:
