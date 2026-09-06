@@ -8,6 +8,10 @@
         "data": {
           "name": "Nom"
         }
+      },
+      "menu": {
+        "title": "Créer ou dupliquer",
+        "description": "Voulez-vous créer une nouvelle instance, ou dupliquer une existante ?"
       }
     },
     "abort": {
@@ -69,7 +73,8 @@
           "min_sunrise_time": "Définir l'heure virtuelle de lever du soleil la plus précoce (HH:MM:SS), permettant des levers de soleil tardifs. 🌅",
           "adapt_delay": "Temps d'attente (en secondes) entre l'allumage de la lumière et l'application des changements par l'Éclairage Adaptatif. Peut aider à éviter les scintillements. ⏲️",
           "max_sunset_time": "Définir l'heure virtuelle de coucher du soleil la plus tardive (HH:MM:SS), permettant des couchers de soleil plus précoces. 🌇",
-          "max_sunrise_time": "Définir l'heure virtuelle de lever du soleil la plus tardive (HH:MM:SS), permettant des levers de soleil plus tôt. 🌅"
+          "max_sunrise_time": "Définir l'heure virtuelle de lever du soleil la plus tardive (HH:MM:SS), permettant des levers de soleil plus tôt. 🌅",
+          "take_over_control_mode": "Le mode de pause de l'adaptation quand d'autres sources changent la luminosité et/ou la couleur des lumières. `pause_all` met toujours en pause à la fois l'adapatation de luminosité et de couleur. `pause_changed` met en pause seulement l'adaptation des attributs changés et continue l'adaptation des attributs inchangés, par exemple, continue l'adaptation de couleur quand seulement la luminosité est changée."
         }
       }
     },
@@ -167,6 +172,9 @@
         },
         "prefer_rgb_color": {
           "description": "Indique s'il faut privilégier l'ajustement de la couleur RGB plutôt que la température de couleur de la lumière lorsque c'est possible. 🌈"
+        },
+        "take_over_control_mode": {
+          "description": "Le mode de pause de l'adaptation quand d'autres sources changent la luminosité et/ou la couleur des lumières. `pause_all` met toujours en pause à la fois l'adapatation de luminosité et de couleur. `pause_changed` met en pause seulement l'adaptation des attributs changés et continue l'adaptation des attributs inchangés, par exemple, continue l'adaptation de couleur quand seulement la luminosité est changée."
         }
       },
       "description": "Changez les réglages que vous souhaitez dans le commutateur. Toutes les options ici sont les mêmes que dans le flow de configuration."

@@ -25,7 +25,8 @@
           "min_sunrise_time": "Defineix la sortida de sol virtual més primerenca (HH:MM:SS), tot permetent sortides de sol posteriors. 🌅",
           "max_sunrise_time": "Defineix la sortida de sol virtual més tardana (HH:MM:SS), tot permetent sortides de sol abans. 🌅",
           "max_sunset_time": "Defineix la sortida virtual de sol virtual més tardana (HH:MM:SS), tot permetent sortides de sol abans. 🌇",
-          "min_sunset_time": "Defineix la posta de sol virtual més primerenca (HH:MM:SS), tot permetent postes de sol més tard. 🌇"
+          "min_sunset_time": "Defineix la posta de sol virtual més primerenca (HH:MM:SS), tot permetent postes de sol més tard. 🌇",
+          "take_over_control_mode": "El mode de pausa de l'adaptació quan altres fonts canvien la brillantor i/o el color dels llums. `pause_all`pausa sempre l'adaptació tant de la brillantor com del color. `pause_changed` pausa l'adaptació de només els atributs canviats, i continua adaptant els atributs pendents, per exemple, continua l'adaptació del color quan només havia canviat la brillantor."
         },
         "title": "Opcions Il·luminació Adaptativa",
         "data": {
@@ -143,6 +144,9 @@
         },
         "min_sunset_time": {
           "description": "Defineix la posta de sol virtual més primerenca (HH:MM:SS), tot permetent postes de sol més tard. 🌇"
+        },
+        "take_over_control_mode": {
+          "description": "El mode de pausa de l'adaptació quan altres fonts canvien la brillantor i/o el color dels llums. `pause_all`pausa sempre l'adaptació tant de la brillantor com del color. `pause_changed` només pausa l'adaptació dels atributs canviats, i continua adaptant els atributs pendents, per exemple, continua l'adaptació del color quan només havia canviat la brillantor."
         }
       },
       "description": "Canvia les opcions de configuració que vulguis al commutador. Totes les opcions d'aquí són les mateixes que en el flux de configuració."
