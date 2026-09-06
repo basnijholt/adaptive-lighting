@@ -49,7 +49,7 @@ represent one sent command or the current desired state.
 
 If lights stop adapting after you turn them on with a physical switch or a Zigbee-bound remote, check the Adaptive Lighting switch's `manual_control` attribute. With `take_over_control: true` and `detect_non_ha_changes: false`, a turn-on without a matching Home Assistant `light.turn_on` call marks the light as manually controlled. Reloading clears that state, but the next physical turn-on can trigger it again.
 
-To adapt these turn-ons while still detecting later manual changes, enable `detect_non_ha_changes` and leave `manual_control_on_external_turn_on` disabled. This requires the light integration to report its state reliably. If you want Adaptive Lighting to keep adapting regardless of manual changes, disable `take_over_control` instead.
+To adapt these turn-ons while still detecting later manual changes, enable `detect_non_ha_changes` and leave `manual_control_on_external_turn_on` disabled. This requires the light integration to report its state reliably. If you want Adaptive Lighting to keep adapting regardless of manual changes, disable `take_over_control` along with the options that require it: `detect_non_ha_changes`, `adapt_only_on_bare_turn_on`, and `manual_control_on_external_turn_on`.
 
 This explains the physical-switch case in [#1056](https://github.com/basnijholt/adaptive-lighting/issues/1056), but not every report in that thread. If the light is not listed in `manual_control`, include diagnostics and debug logs from the failed turn-on when reporting it. Lights returning from `unavailable` after a power cut are a separate case from an `off` to `on` state change.
 
