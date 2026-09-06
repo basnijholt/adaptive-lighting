@@ -49,7 +49,7 @@ from homeassistant.const import (
     STATE_OFF,
     STATE_ON,
 )
-from homeassistant.core import Event, HomeAssistant, State, callback
+from homeassistant.core import CoreState, Event, HomeAssistant, State, callback
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 
@@ -141,6 +141,11 @@ def _state_waiter(
     return future, remove_listener
 
 
+def _prepare_hass_startup(hass: HomeAssistant) -> None:
+    """Reset the standard running test fixture to exercise a real HA start."""
+    hass.set_state(CoreState.not_running)
+
+
 async def test_schedule_profile_executes_blocks_and_restore(
     hass: HomeAssistant,
 ) -> None:
@@ -217,6 +222,7 @@ async def test_schedule_profile_executes_blocks_and_restore(
 
 async def test_schedule_profile_reapplies_at_startup(hass: HomeAssistant) -> None:
     """Verify startup applies the already-active schedule block."""
+    _prepare_hass_startup(hass)
     summary = "Use a Schedule helper as a step-based custom lighting profile."
     automation_config = _yaml_documents(summary)[-1]
     _, adaptive_switch = await setup_switch(hass, {CONF_NAME: "Living Room"})
@@ -269,6 +275,7 @@ async def test_lux_profile_executes_unknown_recovery_at_startup(
     hass: HomeAssistant,
 ) -> None:
     """Catch a startup hang or failure to recover from an unknown sensor."""
+    _prepare_hass_startup(hass)
     summary = (
         "Reduce daytime brightness when an illuminance sensor detects strong daylight."
     )
@@ -498,6 +505,7 @@ async def test_fixed_virtual_day_reconciles_power_at_startup(
     expected_state: str,
 ) -> None:
     """Catch a power schedule that misses a trigger while HA is offline."""
+    _prepare_hass_startup(hass)
     summary = "Run a fixed virtual day across midnight."
     _, automation_config = _yaml_documents(summary)
     await _setup_template_lights(hass, ["Indoor Garden"])
@@ -617,6 +625,7 @@ async def test_sleep_toggle_applies_restored_state_at_startup(
     hass: HomeAssistant,
 ) -> None:
     """Verify startup applies the input boolean's restored state."""
+    _prepare_hass_startup(hass)
     summary = (
         'Toggle multiple Adaptive Lighting switches to "sleep mode" using an '
         "<code>input_boolean.sleep_mode</code>."
