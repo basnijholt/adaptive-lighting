@@ -105,13 +105,11 @@ CONF_ADAPT_ONLY_ON_HA_TURN_ON, DEFAULT_ADAPT_ONLY_ON_HA_TURN_ON = (
     False,
 )
 DOCS[CONF_ADAPT_ONLY_ON_HA_TURN_ON] = (
-    "Only adapt an `off` to `on` event when its context exactly matches the most "
-    "recent Home Assistant `light.turn_on` context recorded for that light. Unmatched "
-    "turn-ons are marked as manually controlled and left unchanged. This keeps "
-    "`detect_non_ha_changes` available for lights that are already on. Some integrations "
-    "do not preserve the service context in later state updates, so Adaptive Lighting "
-    "cannot identify every physical versus Home Assistant turn-on source. Needs "
-    "`take_over_control` enabled. 🕵️"
+    "Only adapt an `off` to `on` event when its context exactly matches the latest "
+    "recorded Home Assistant `light.turn_on` context for that light. Unmatched turn-ons "
+    "are marked as manually controlled and left unchanged. This still allows "
+    "`detect_non_ha_changes` for lights that are already on. Needs `take_over_control` "
+    "enabled. 🕵️"
 )
 
 CONF_PREFER_RGB_COLOR, DEFAULT_PREFER_RGB_COLOR = "prefer_rgb_color", False
