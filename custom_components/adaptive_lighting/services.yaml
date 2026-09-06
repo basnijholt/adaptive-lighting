@@ -152,7 +152,7 @@ change_switch_settings:
       selector:
         boolean: null
     sleep_brightness:
-      description: Brightness percentage of lights in sleep mode. Set to 0 to prevent lights from turning on. 😴
+      description: Brightness percentage of lights in sleep mode. Set to 0 to turn lights off when brightness adaptation runs in sleep mode. 😴
       required: false
       example: 1
       selector:

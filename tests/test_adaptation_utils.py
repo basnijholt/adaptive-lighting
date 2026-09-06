@@ -109,6 +109,26 @@ async def test_split_service_call_data(input_data, expected_data_list):
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
         ),
         (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 0, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 1}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 0, ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 0, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 2}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 0, ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 1, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 0}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 1, ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 0, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 0}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
             {
                 ATTR_ENTITY_ID: "light.test",
                 ATTR_COLOR_TEMP_KELVIN: 5500,
@@ -165,6 +185,10 @@ async def test_split_service_call_data(input_data, expected_data_list):
         "keep attributes whose values differ from the state",
         "remove brightness within quantization tolerance (0-99 device scale)",
         "keep brightness outside quantization tolerance",
+        "keep zero target across power boundary from brightness one",
+        "keep zero target across power boundary from brightness two",
+        "keep positive target across power boundary from zero",
+        "remove zero target when brightness is already zero",
         "remove color temp within one mired (round-converting integration)",
         "remove color temp within one mired (floor-converting HA core helpers)",
         "remove color temp within one mired (6500 K)",
@@ -350,6 +374,24 @@ async def test_create_service_call_data_iterator(
         (
             {
                 ATTR_ENTITY_ID: "light.test",
+                ATTR_BRIGHTNESS: 0,
+                ATTR_COLOR_TEMP_KELVIN: 4000,
+                ATTR_TRANSITION: 10,
+            },
+            True,
+            False,
+            [
+                {
+                    ATTR_ENTITY_ID: "light.test",
+                    ATTR_BRIGHTNESS: 0,
+                    ATTR_TRANSITION: 10,
+                },
+            ],
+            1.2,
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
                 ATTR_BRIGHTNESS: 10,
                 ATTR_COLOR_TEMP_KELVIN: 4000,
             },
@@ -383,6 +425,7 @@ async def test_create_service_call_data_iterator(
     ids=[
         "service data passed through",
         "service data split",
+        "zero brightness is one terminal command",
         "service data filtered",
         "service data split and filtered",
     ],
@@ -414,6 +457,31 @@ async def test_prepare_adaptation_data(
     assert data.context.id == "test-id"
     assert data.sleep_time == sleep_time_expected
     assert generated_service_datas == service_datas_expected
+
+
+async def test_prepare_zero_after_shared_brightness_was_applied(hass_states_mock):
+    """A shared zero-brightness call leaves no per-light color follow-up."""
+    data = prepare_adaptation_data(
+        hass_states_mock,
+        "light.test",
+        Context(id="test-id"),
+        10,
+        0.2,
+        {
+            ATTR_ENTITY_ID: "light.test",
+            ATTR_BRIGHTNESS: 0,
+            ATTR_COLOR_TEMP_KELVIN: 4000,
+            ATTR_TRANSITION: 10,
+        },
+        split=True,
+        filter_by_state=False,
+        force=False,
+        already_applied=LightControlAttributes.BRIGHTNESS,
+    )
+
+    assert [item async for item in data.service_call_datas] == []
+    assert data.max_length == 0
+    assert data.attributes is LightControlAttributes.NONE
 
 
 @pytest.fixture(name="hass_states_mock")

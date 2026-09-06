@@ -130,6 +130,10 @@ def _is_attribute_satisfied(key: str, value: Any, attributes: dict[str, Any]) ->
     if not isinstance(current, (int, float)) or not isinstance(value, (int, float)):
         return value == current
     if key == ATTR_BRIGHTNESS:
+        # Zero is an off command, so it must not be treated as equivalent to a
+        # nearby nonzero brightness in either direction.
+        if value == 0 or current == 0:
+            return value == current
         return abs(value - current) <= BRIGHTNESS_TOLERANCE
     if key == ATTR_COLOR_TEMP_KELVIN and value > 0 and current > 0:
         # Compare in mired space: most integrations quantize color temperature
@@ -283,6 +287,14 @@ def prepare_adaptation_data(
         entity_id,
         service_data,
     )
+    if service_data.get(ATTR_BRIGHTNESS) == 0:
+        # Home Assistant treats brightness zero as turn-off. Make it terminal:
+        # color is meaningless while off and must not become a later turn-on.
+        service_data = {
+            key: service_data[key]
+            for key in (ATTR_ENTITY_ID, ATTR_BRIGHTNESS, ATTR_TRANSITION)
+            if key in service_data
+        }
     service_datas = _split_service_call_data(service_data) if split else [service_data]
 
     service_datas_length = len(service_datas)

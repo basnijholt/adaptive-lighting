@@ -40,7 +40,7 @@
         "data_description": {
           "interval": "Frequency to adapt the lights, in seconds. 🔄",
           "transition": "Duration of transition when lights change, in seconds. 🕑",
-          "sleep_brightness": "Brightness percentage of lights in sleep mode. 😴",
+          "sleep_brightness": "Brightness percentage of lights in sleep mode. Set to 0 to turn lights off when brightness adaptation runs in sleep mode. 😴",
           "sleep_color_temp": "Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴"
         },
         "sections": {
@@ -220,7 +220,7 @@
           "name": "send_split_delay"
         },
         "sleep_brightness": {
-          "description": "Brightness percentage of lights in sleep mode. 😴",
+          "description": "Brightness percentage of lights in sleep mode. Set to 0 to turn lights off when brightness adaptation runs in sleep mode. 😴",
           "name": "sleep_brightness"
         },
         "sleep_rgb_or_color_temp": {
