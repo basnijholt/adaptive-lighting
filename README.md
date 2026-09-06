@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-163-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-164-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -722,6 +722,7 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/jrbergen"><img src="https://avatars.githubusercontent.com/u/6237646?v=4?s=100" width="100px;" alt="jrbergen"/><br /><sub><b>jrbergen</b></sub></a><br /><a href="#ideas-jrbergen" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/b-rad15"><img src="https://avatars.githubusercontent.com/u/25830163?v=4?s=100" width="100px;" alt="Bradley O'Connell"/><br /><sub><b>Bradley O'Connell</b></sub></a><br /><a href="#ideas-b-rad15" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/00schteven"><img src="https://avatars.githubusercontent.com/u/76514745?v=4?s=100" width="100px;" alt="00schteven"/><br /><sub><b>00schteven</b></sub></a><br /><a href="#ideas-00schteven" title="Ideas, Planning, & Feedback">🤔</a></td>
     </tr>
   </tbody>
   <tfoot>
