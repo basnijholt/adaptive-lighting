@@ -1815,7 +1815,12 @@ async def test_separate_turn_on_commands(hass, separate_turn_on_commands):
     """Test 'separate_turn_on_commands' argument."""
     switch, (light, *_) = await setup_lights_and_switch(
         hass,
-        {CONF_SEPARATE_TURN_ON_COMMANDS: separate_turn_on_commands},
+        {
+            CONF_SEPARATE_TURN_ON_COMMANDS: separate_turn_on_commands,
+            # Keep normal brightness distinct from sleep mode at any time of day.
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
     )
     # We just turn sleep mode on and off which should change the
     # brightness and color. We don't test whether the number are exactly
