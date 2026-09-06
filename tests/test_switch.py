@@ -40,12 +40,14 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
+    CONF_MAX_COLOR_TEMP,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_PREFER_RGB_COLOR,
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     CONF_SEPARATE_TURN_ON_COMMANDS,
+    CONF_SKIP_BRIGHTNESS_INCREASES,
     CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
@@ -641,6 +643,198 @@ async def test_light_settings(hass):
     for state in light_states:
         assert state.attributes[ATTR_BRIGHTNESS] == 255
         assert_expected_color_temp(state)
+
+
+@pytest.mark.parametrize("separate", [False, True])
+@pytest.mark.parametrize("skip_redundant", [False, True])
+async def test_dim_only_apply_preserves_brightness_and_adapts_color(
+    hass,
+    separate,
+    skip_redundant,
+):
+    """The apply service must keep mixed color adaptation below the ceiling."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_SKIP_REDUNDANT_COMMANDS: skip_redundant,
+            CONF_SEPARATE_TURN_ON_COMMANDS: separate,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_MIN_BRIGHTNESS: 80,
+            CONF_MAX_BRIGHTNESS: 80,
+            CONF_MIN_COLOR_TEMP: 3000,
+            CONF_MAX_COLOR_TEMP: 3000,
+        },
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: light.entity_id,
+            ATTR_BRIGHTNESS: 100,
+            ATTR_COLOR_TEMP_KELVIN: 4000,
+        },
+        blocking=True,
+    )
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [light.entity_id],
+            ATTR_ADAPT_BRIGHTNESS: True,
+            ATTR_ADAPT_COLOR: True,
+            CONF_TRANSITION: 0,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(light.entity_id)
+    assert state.attributes[ATTR_BRIGHTNESS] == 100
+    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == pytest.approx(3000, abs=5)
+
+
+async def test_dim_only_allows_lower_automatic_brightness(hass):
+    """The apply service may still dim a light below its reported brightness."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_MIN_BRIGHTNESS: 20,
+            CONF_MAX_BRIGHTNESS: 20,
+        },
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 100},
+        blocking=True,
+    )
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [light.entity_id],
+            ATTR_ADAPT_BRIGHTNESS: True,
+            ATTR_ADAPT_COLOR: False,
+            CONF_TRANSITION: 0,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == 51
+
+
+async def test_dim_only_bare_turn_on_uses_retained_off_brightness(hass):
+    """A bare turn-on must treat retained OFF brightness as the ceiling."""
+    _, (*_, light) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_3],
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_INTERCEPT: True,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_MIN_BRIGHTNESS: 80,
+            CONF_MAX_BRIGHTNESS: 80,
+            CONF_MIN_COLOR_TEMP: 3000,
+            CONF_MAX_COLOR_TEMP: 3000,
+        },
+        all_lights=True,
+    )
+    state = hass.states.get(light.entity_id)
+    attributes = dict(state.attributes)
+    attributes[ATTR_BRIGHTNESS] = 100
+    hass.states.async_set(light.entity_id, STATE_OFF, attributes)
+
+    with patch.object(
+        light,
+        "async_turn_on",
+        wraps=light.async_turn_on,
+    ) as turn_on:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    service_data = turn_on.call_args_list[0].kwargs
+    assert ATTR_BRIGHTNESS not in service_data
+    assert service_data[ATTR_COLOR_TEMP_KELVIN] == 3000
+    assert hass.states.get(light.entity_id).attributes[
+        ATTR_COLOR_TEMP_KELVIN
+    ] == pytest.approx(3000, abs=5)
+
+
+async def test_dim_only_sleep_exit_does_not_restore_brightness(hass):
+    """Leaving sleep mode must keep the reported sleep brightness ceiling."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_MIN_BRIGHTNESS: 80,
+            CONF_MAX_BRIGHTNESS: 80,
+        },
+    )
+
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    sleep_brightness = hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS]
+    assert sleep_brightness == 3
+
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert (
+        hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == sleep_brightness
+    )
+
+
+async def test_dim_only_allows_explicit_manual_brightness(hass):
+    """A direct brightness request must remain able to brighten an on light."""
+    _, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SKIP_BRIGHTNESS_INCREASES: True,
+            CONF_INTERCEPT: True,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_MIN_BRIGHTNESS: 20,
+            CONF_MAX_BRIGHTNESS: 20,
+        },
+    )
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 220},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == 220
 
 
 async def test_manager_not_tracking_untracked_lights(hass):
@@ -2716,6 +2910,10 @@ async def test_change_switch_settings_service(hass):
         match="value must be at most 100",
     ):
         await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 5000})
+
+    assert not switch._skip_brightness_increases
+    await change_switch_settings(**{CONF_SKIP_BRIGHTNESS_INCREASES: True})
+    assert switch._skip_brightness_increases
 
     # Change CONF_MIN_COLOR_TEMP, the factory default is 2000, but setup_lights_and_switch
     # sets it to 2500

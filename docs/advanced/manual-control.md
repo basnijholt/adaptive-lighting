@@ -28,6 +28,10 @@ The Adaptive Lighting switch exposes these read-only attributes for its lights:
 
 These lists report manual-control flags. Actual adaptation also depends on `take_over_control_mode` and the brightness/color adaptation switches. For example, under the default `pause_all` mode, manually changing only brightness leaves `manual_control_color` empty while pausing both brightness and color adaptation. Under `pause_changed`, color can continue adapting.
 
+The `skip_brightness_increases` option provides a dim-only policy for automatic adaptation. Adaptive Lighting can lower brightness and continue adapting color, but it will not raise brightness above the light's reported numeric value. To keep adapting after direct or physical brightness changes, use `take_over_control: false` and `detect_non_ha_changes: false`; otherwise the existing `pause_all` or `pause_changed` manual-control policy can pause adaptation before this brightness ceiling is applied.
+
+This option does not store a brightness to restore later. A retained brightness reported while a light is off remains the ceiling on a bare turn-on, and leaving sleep mode does not necessarily restore the normal brighter target. Send a direct brightness request or disable `skip_brightness_increases` when you want to brighten the light. If the light reports no numeric brightness, Adaptive Lighting uses its calculated target.
+
 The attributes are absent when the Adaptive Lighting switch is off. Use a fallback when checking them in templates:
 
 ```jinja

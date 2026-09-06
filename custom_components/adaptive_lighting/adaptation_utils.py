@@ -169,11 +169,21 @@ def _remove_brightness_increases(
     service_data: ServiceData,
     state: State,
 ) -> ServiceData:
-    """Filter service data by removing brightness increases."""
+    """Filter brightness targets above the light's reported numeric value."""
+    current_brightness = state.attributes.get(ATTR_BRIGHTNESS)
+    if not isinstance(current_brightness, (int, float)) or isinstance(
+        current_brightness,
+        bool,
+    ):
+        return dict(service_data)
+
     return {
         k: v
         for k, v in service_data.items()
-        if k != ATTR_BRIGHTNESS or k not in state.attributes or v <= state.attributes[k]
+        if k != ATTR_BRIGHTNESS
+        or not isinstance(v, (int, float))
+        or isinstance(v, bool)
+        or v <= current_brightness
     }
 
 
@@ -192,7 +202,7 @@ async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
     filter_by_state: bool,
-    skip_brightness_increases: bool,
+    skip_brightness_increases: bool = False,
 ) -> AsyncGenerator[ServiceData]:
     """Enumerates and filters a list of service datas on the fly.
 
@@ -296,7 +306,7 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
     force: bool,
-    skip_brightness_increases: bool,
+    skip_brightness_increases: bool = False,
     already_applied: LightControlAttributes = LightControlAttributes.NONE,
 ) -> AdaptationData:
     """Prepares a data object carrying all data required to execute an adaptation."""

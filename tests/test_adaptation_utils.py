@@ -8,6 +8,7 @@ from homeassistant.components.adaptive_lighting.adaptation_utils import (
     ServiceData,
     _create_service_call_data_iterator,
     _has_relevant_service_data_attributes,
+    _remove_brightness_increases,
     _remove_redundant_attributes,
     _split_service_call_data,
     get_light_control_attributes,
@@ -26,7 +27,7 @@ from homeassistant.components.light import (
     ATTR_HS_COLOR,
     ATTR_TRANSITION,
 )
-from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
+from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON
 from homeassistant.core import Context, State
 
 
@@ -180,6 +181,51 @@ async def test_remove_redundant_attributes(
 ):
     """Test filtering of service data."""
     assert _remove_redundant_attributes(service_data, state) == service_data_expected
+
+
+@pytest.mark.parametrize(
+    ("target", "attributes", "state", "brightness_expected"),
+    [
+        (101, {ATTR_BRIGHTNESS: 100}, STATE_ON, False),
+        (100, {ATTR_BRIGHTNESS: 100}, STATE_ON, True),
+        (99, {ATTR_BRIGHTNESS: 100}, STATE_ON, True),
+        (101, {}, STATE_ON, True),
+        (101, {ATTR_BRIGHTNESS: None}, STATE_ON, True),
+        (101, {ATTR_BRIGHTNESS: "unknown"}, STATE_ON, True),
+        (101, {}, STATE_OFF, True),
+        (101, {ATTR_BRIGHTNESS: 100}, STATE_OFF, False),
+    ],
+    ids=[
+        "target above reported ceiling",
+        "target equal to reported ceiling",
+        "target below reported ceiling",
+        "missing reported brightness",
+        "none reported brightness",
+        "non-numeric reported brightness",
+        "off without retained brightness",
+        "off with retained brightness",
+    ],
+)
+def test_remove_brightness_increases_uses_reported_numeric_ceiling(
+    target,
+    attributes,
+    state,
+    brightness_expected,
+):
+    """Only a reported numeric brightness may cap an automatic target."""
+    service_data = {
+        ATTR_ENTITY_ID: "light.test",
+        ATTR_BRIGHTNESS: target,
+        ATTR_COLOR_TEMP_KELVIN: 3000,
+    }
+
+    filtered = _remove_brightness_increases(
+        service_data,
+        State("light.test", state, attributes),
+    )
+
+    assert (ATTR_BRIGHTNESS in filtered) is brightness_expected
+    assert filtered[ATTR_COLOR_TEMP_KELVIN] == 3000
 
 
 @pytest.mark.parametrize(

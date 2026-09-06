@@ -35,6 +35,8 @@ Sleep mode is configured through the main Adaptive Lighting configuration. See t
 | `sleep_transition` | 1 | Transition duration in seconds |
 | `transition_until_sleep` | false | Gradually transition to sleep settings after sunset |
 
+With `skip_brightness_increases` enabled, leaving sleep mode does not necessarily restore the normal brighter target. The light's reported sleep brightness remains the automatic ceiling because Adaptive Lighting does not store restoration state. Send a direct brightness request or disable `skip_brightness_increases` when you want to brighten the light.
+
 ## Automation Examples
 
 See [Automation Examples](../automation-examples.md) for sleep mode automation recipes, including:

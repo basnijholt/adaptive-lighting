@@ -268,10 +268,13 @@ CONF_SKIP_BRIGHTNESS_INCREASES, DEFAULT_SKIP_BRIGHTNESS_INCREASES = (
     False,
 )
 DOCS[CONF_SKIP_BRIGHTNESS_INCREASES] = (
-    "Skip sending adaptation commands when the target brightness "
-    "is greater than the current entity brightness. Will "
-    "result in lights which have been manually dimmed "
-    "not increasing in brightness."
+    "Prevent automatic adaptation from increasing brightness above the light's "
+    "reported numeric brightness, while still adapting to lower brightness targets "
+    "and adapting color. A retained brightness on an off light is also used as the "
+    "ceiling. If brightness is missing or non-numeric, the calculated target is used. "
+    "Bare turn-on and leaving sleep mode may therefore keep a light dim until you "
+    "request a brighter level directly or disable this option. This option does not "
+    "override manual-control pauses."
 )
 
 CONF_INTERCEPT, DEFAULT_INTERCEPT = "intercept", True
