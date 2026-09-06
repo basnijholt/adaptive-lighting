@@ -1891,9 +1891,10 @@ async def test_shared_profiles_track_manual_brightness(
         hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS]
         == expected_brightness
     )
-    assert [event.data[SWITCH_DOMAIN] for event in events] == [
+    # Independent profiles may publish their events in either order.
+    assert sorted(event.data[SWITCH_DOMAIN] for event in events) == sorted(
         profiles[name].entity_id for name in event_profiles
-    ]
+    )
     assert all(event.context == context for event in events)
     assert all(
         event.data[CONF_MANUAL_CONTROL] == LightControlAttributes.BRIGHTNESS
