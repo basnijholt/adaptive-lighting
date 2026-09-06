@@ -1042,6 +1042,65 @@ async def test_interval_adaptation_preserves_manual_control_timeout(
     )
 
 
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+@pytest.mark.parametrize("service_data", [{}, {ATTR_BRIGHTNESS: 20}])
+async def test_mixed_turn_on_restarts_manual_control_timeout(
+    hass,
+    freezer,
+    cleanup,
+    mode,
+    service_data,
+):
+    """A mixed-target request must renew manual control on its skipped light."""
+    switch, (manual_light, _, off_light) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_AUTORESET_CONTROL: 7200,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_INTERCEPT: True,
+        },
+        all_lights=True,
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: manual_light.entity_id, ATTR_BRIGHTNESS: 10},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    freezer.tick(90)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: [manual_light.entity_id, off_light.entity_id],
+            **service_data,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # HA dispatches the original external event before interception. It renews
+    # manual control even though the skipped target is replayed in our context.
+    assert hass.states.is_state(off_light.entity_id, STATE_ON)
+    assert is_our_context(
+        switch.manager.turn_on_event[manual_light.entity_id].context,
+        "skipped",
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(manual_light.entity_id)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    assert (
+        switch.extra_state_attributes["autoreset_time_remaining"][
+            manual_light.entity_id
+        ]
+        == 7200
+    )
+
+
 async def test_adaptation_attribute_selection(hass):
     """Test the 'manual control' tracking."""
     switch, (light, *_) = await setup_lights_and_switch(hass)
