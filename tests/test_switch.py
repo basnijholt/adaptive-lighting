@@ -95,6 +95,7 @@ from homeassistant.components.template.light import StateLightEntity as LightTem
 from homeassistant.config_entries import SOURCE_IMPORT, SOURCE_USER, ConfigEntryState
 from homeassistant.const import (
     ATTR_AREA_ID,
+    ATTR_DEVICE_ID,
     ATTR_ENTITY_ID,
     ATTR_SUPPORTED_FEATURES,
     CONF_LIGHTS,
@@ -108,6 +109,7 @@ from homeassistant.const import (
     EntityCategory,
 )
 from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -1488,6 +1490,54 @@ async def test_apply_service(hass):
     assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
+async def test_apply_service_uses_each_switch_transition(hass):
+    """Test global apply resolves omitted transition for each profile."""
+    await setup_lights(hass)
+    _, switch_1 = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "switch 1",
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_INITIAL_TRANSITION: 3,
+        },
+    )
+    _, switch_2 = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "switch 2",
+            CONF_LIGHTS: [ENTITY_LIGHT_2],
+            CONF_INITIAL_TRANSITION: 7,
+        },
+    )
+
+    with (
+        patch.object(switch_1, "_adapt_light", new=AsyncMock()) as adapt_1,
+        patch.object(switch_2, "_adapt_light", new=AsyncMock()) as adapt_2,
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {ATTR_ENTITY_ID: [switch_1.entity_id, switch_2.entity_id]},
+            blocking=True,
+        )
+        assert adapt_1.await_args.kwargs["transition"] == 3
+        assert adapt_2.await_args.kwargs["transition"] == 7
+
+        adapt_1.reset_mock()
+        adapt_2.reset_mock()
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: [switch_1.entity_id, switch_2.entity_id],
+                CONF_TRANSITION: 0,
+            },
+            blocking=True,
+        )
+        assert adapt_1.await_args.kwargs["transition"] == 0
+        assert adapt_2.await_args.kwargs["transition"] == 0
+
+
 async def test_switch_off_on_off(hass):
     """Test switch rapid off_on_off."""
 
@@ -1837,10 +1887,16 @@ def test_is_our_context():
 
 async def test_unload_switch(hass):
     """Test removing Adaptive Lighting."""
-    entry, _ = await setup_switch(hass, {})
+    entry, switch = await setup_switch(hass, {})
+    switch.manager.set_auto_reset_manual_control_times([ENTITY_LIGHT_1], 60)
+    switch.manager.set_manual_control_attributes(ENTITY_LIGHT_1)
+    timer = switch.manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1]
+    assert timer.is_running()
+
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert DOMAIN not in hass.data
+    assert not timer.is_running()
 
 
 @pytest.mark.parametrize("state", [STATE_ON, STATE_OFF, None])
@@ -2150,6 +2206,81 @@ async def test_change_switch_settings_service(hass):
     # testing with "configuration" should revert back to 2500
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
+
+
+@pytest.mark.parametrize("target", ["entity", "area", "device", "all"])
+async def test_change_switch_settings_entity_targets(hass, device_registry, target):
+    """Test settings changes through Home Assistant entity targets."""
+    _, switch = await setup_switch(hass, {})
+    mock_area_registry(hass)
+    registry_entry = entity_registry.async_get(hass).async_get(switch.entity_id)
+    assert registry_entry is not None
+    assert registry_entry.device_id is not None
+    device_registry.async_update_device(
+        registry_entry.device_id,
+        area_id="test-area",
+    )
+    service_data = {
+        "entity": {ATTR_ENTITY_ID: switch.entity_id},
+        "area": {ATTR_AREA_ID: "test-area"},
+        "device": {ATTR_DEVICE_ID: registry_entry.device_id},
+        "all": {ATTR_ENTITY_ID: "all"},
+    }[target]
+
+    with patch.object(
+        switch,
+        "_set_changeable_settings",
+        wraps=switch._set_changeable_settings,
+    ) as set_settings:
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {**service_data, CONF_MAX_BRIGHTNESS: 50},
+            blocking=True,
+        )
+
+    set_settings.assert_called_once()
+    assert switch._sun_light_settings.max_brightness == 50
+
+
+async def test_change_switch_settings_ignores_unknown_entity(hass):
+    """Test an unknown entity target does not change a loaded profile."""
+    _, switch = await setup_switch(hass, {})
+
+    with patch.object(switch, "_set_changeable_settings") as set_settings:
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: "switch.does_not_exist",
+                CONF_MAX_BRIGHTNESS: 50,
+            },
+            blocking=True,
+        )
+
+    set_settings.assert_not_called()
+
+
+async def test_change_switch_settings_checks_entity_permissions(
+    hass,
+    hass_read_only_user,
+):
+    """Test settings changes require permission to control the target entity."""
+    _, switch = await setup_switch(hass, {})
+
+    with pytest.raises(Unauthorized):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_MAX_BRIGHTNESS: 50,
+            },
+            blocking=True,
+            context=Context(user_id=hass_read_only_user.id),
+        )
+
+    assert switch._sun_light_settings.max_brightness == DEFAULT_MAX_BRIGHTNESS
 
 
 async def test_cancellable_service_calls_task(hass):

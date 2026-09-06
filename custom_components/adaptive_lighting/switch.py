@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
-import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -58,7 +57,8 @@ from homeassistant.core import (
     State,
     callback,
 )
-from homeassistant.helpers import entity_platform, entity_registry
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import entity_platform, entity_registry, service
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
 from homeassistant.helpers.event import (
@@ -139,15 +139,12 @@ from .const import (
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
-    SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
-    SERVICE_SET_MANUAL_CONTROL,
-    SET_MANUAL_CONTROL_SCHEMA,
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
     VALIDATION_TUPLES,
     TakeOverControlMode,
-    apply_service_schema,
+    change_switch_settings_schema,
     replace_none_str,
 )
 from .hass_utils import area_entities, setup_service_call_interceptor
@@ -164,7 +161,7 @@ if TYPE_CHECKING:
 
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
-    from homeassistant.helpers.typing import NoEventData, VolDictType
+    from homeassistant.helpers.typing import NoEventData
 
 try:
     from homeassistant.helpers.sun import get_astral_observer
@@ -243,16 +240,22 @@ def _switches_with_lights(
 ) -> AdaptiveSwitches:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
-    data = hass.data[DOMAIN]
-    switches: AdaptiveSwitches = []
+    data = hass.data.get(DOMAIN, {})
+    loaded_switches: AdaptiveSwitches = []
+    for config in config_entries:
+        entry = data.get(config.entry_id)
+        if not isinstance(entry, dict) or SWITCH_DOMAIN not in entry:
+            continue
+        loaded_switches.append(entry[SWITCH_DOMAIN])
+
+    if not loaded_switches:
+        return []
+
     all_check_lights = (
         _expand_light_groups(hass, lights) if expand_light_groups else set(lights)
     )
-    for config in config_entries:
-        entry = data.get(config.entry_id)
-        if entry is None:  # entry might be disabled and therefore missing
-            continue
-        switch = data[config.entry_id][SWITCH_DOMAIN]
+    switches: AdaptiveSwitches = []
+    for switch in loaded_switches:
         switch._expand_light_groups(hass=hass)
         # Check if any of the lights are in the switch's lights
         if set(switch.lights) & set(all_check_lights):
@@ -299,7 +302,7 @@ def _switches_from_service_call(
     service_call: ServiceCall,
 ) -> AdaptiveSwitches:
     data = service_call.data
-    lights = data[CONF_LIGHTS]
+    lights = data.get(CONF_LIGHTS)
     switch_entity_ids: list[str] | None = data.get("entity_id")
 
     if not lights and not switch_entity_ids:
@@ -310,7 +313,12 @@ def _switches_from_service_call(
             " use case. Currently, you must pass either an adaptive-lighting switch or"
             " the lights to an `adaptive_lighting` service call."
         )
-        raise ValueError(msg)
+        raise ServiceValidationError(msg)
+
+    domain_data = hass.data.get(DOMAIN)
+    if not domain_data:
+        msg = "adaptive-lighting: No Adaptive Lighting config entries are loaded."
+        raise ServiceValidationError(msg)
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
@@ -318,32 +326,59 @@ def _switches_from_service_call(
                 "adaptive-lighting: Cannot pass multiple switches with lights argument."
                 f" Invalid service data received: {service_call.data}"
             )
-            raise ValueError(msg)
+            raise ServiceValidationError(msg)
         switches: AdaptiveSwitches = []
+        config_ids: set[str] = set()
         ent_reg = entity_registry.async_get(hass)
         for entity_id in switch_entity_ids:
             ent_entry = ent_reg.async_get(entity_id)
-            assert ent_entry is not None
+            if ent_entry is None:
+                msg = f"adaptive-lighting: Entity '{entity_id}' not found in registry."
+                raise ServiceValidationError(msg)
+            if ent_entry.platform != DOMAIN:
+                msg = (
+                    f"adaptive-lighting: Entity '{entity_id}' is not registered by"
+                    " Adaptive Lighting."
+                )
+                raise ServiceValidationError(msg)
             config_id = ent_entry.config_entry_id
-            switches.append(hass.data[DOMAIN][config_id][SWITCH_DOMAIN])
+            config_data = domain_data.get(config_id) if config_id else None
+            if (
+                config_id is None
+                or not isinstance(config_data, dict)
+                or SWITCH_DOMAIN not in config_data
+            ):
+                msg = (
+                    f"adaptive-lighting: Adaptive Lighting entry for entity '{entity_id}'"
+                    " is not loaded."
+                )
+                raise ServiceValidationError(msg)
+            if config_id not in config_ids:
+                switches.append(config_data[SWITCH_DOMAIN])
+                config_ids.add(config_id)
         return switches
 
     if lights:
-        switch = _switch_with_lights(hass, lights)
+        try:
+            switch = _switch_with_lights(hass, lights)
+        except NoSwitchFoundError as err:
+            raise ServiceValidationError(str(err)) from err
         return [switch]
 
     msg = (
         "adaptive-lighting: Incorrect data provided in service call."
         f" Entities not found in the integration. Service data: {service_call.data}"
     )
-    raise ValueError(msg)
+    raise ServiceValidationError(msg)
 
 
 async def handle_change_switch_settings(
-    switch: AdaptiveSwitch,
+    switch: AdaptiveSwitch | SimpleSwitch,
     service_call: ServiceCall,
 ) -> None:
     """Allows HASS to change config values via a service call."""
+    if not isinstance(switch, AdaptiveSwitch):
+        return
     data = service_call.data
     which = data.get(CONF_USE_DEFAULTS, "current")
     if which == "current":  # use whatever we're already using.
@@ -376,7 +411,79 @@ async def handle_change_switch_settings(
         )
 
 
-async def async_setup_entry(  # noqa: PLR0915
+async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
+    """Handle the entity service apply."""
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.apply' service with '%s'",
+        data,
+    )
+    switches = _switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        all_lights = switch.lights if not lights else _expand_light_groups(hass, lights)
+        switch.manager.lights.update(all_lights)
+        for light in all_lights:
+            if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
+                context = switch.create_context(
+                    "service",
+                    parent=service_call.context,
+                )
+                transition = data.get(CONF_TRANSITION)
+                if transition is None:
+                    transition = switch.initial_transition
+                await switch._adapt_light(  # pylint: disable=protected-access
+                    light,
+                    context=context,
+                    transition=transition,
+                    adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
+                    adapt_color=data[ATTR_ADAPT_COLOR],
+                    prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
+                    force=True,
+                )
+
+
+async def handle_set_manual_control_service(
+    hass: HomeAssistant,
+    service_call: ServiceCall,
+) -> None:
+    """Set or unset lights as manually controlled."""
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.set_manual_control' service with '%s'",
+        data,
+    )
+    switches = _switches_from_service_call(hass, service_call)
+    lights = data[CONF_LIGHTS]
+    for switch in switches:
+        all_lights = switch.lights if not lights else _expand_light_groups(hass, lights)
+        manual_attributes = manual_control_event_attribute_to_flags(
+            data[CONF_MANUAL_CONTROL],
+        )
+
+        if manual_attributes:
+            for light in all_lights:
+                switch.manager.set_manual_control_attributes(
+                    light,
+                    manual_attributes,
+                )
+                switch.fire_manual_control_event(light, service_call.context)
+        else:
+            switch.manager.reset(*all_lights)
+            if switch.is_on:
+                context = switch.create_context(
+                    "service",
+                    parent=service_call.context,
+                )
+                await switch._update_attrs_and_maybe_adapt_lights(  # pylint: disable=protected-access
+                    context=context,
+                    lights=all_lights,
+                    transition=switch.initial_transition,
+                    force=True,
+                )
+
+
+async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
@@ -446,112 +553,14 @@ async def async_setup_entry(  # noqa: PLR0915
         update_before_add=True,
     )
 
-    @callback
-    async def handle_apply(service_call: ServiceCall) -> None:
-        """Handle the entity service apply."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.apply' service with '%s'",
-            data,
+    if not hasattr(service, "async_register_platform_entity_service"):
+        platform = entity_platform.current_platform.get()
+        assert platform is not None
+        platform.async_register_entity_service(
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            change_switch_settings_schema(),
+            handle_change_switch_settings,
         )
-        switches = _switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch.lights
-            else:
-                all_lights = _expand_light_groups(hass, lights)
-            switch.manager.lights.update(all_lights)
-            for light in all_lights:
-                if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
-                    context = switch.create_context(
-                        "service",
-                        parent=service_call.context,
-                    )
-                    await switch._adapt_light(  # pylint: disable=protected-access
-                        light,
-                        context=context,
-                        transition=data[CONF_TRANSITION],
-                        adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
-                        adapt_color=data[ATTR_ADAPT_COLOR],
-                        prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
-                        force=True,
-                    )
-
-    @callback
-    async def handle_set_manual_control(service_call: ServiceCall) -> None:
-        """Set or unset lights as 'manually controlled'."""
-        data = service_call.data
-        _LOGGER.debug(
-            "Called 'adaptive_lighting.set_manual_control' service with '%s'",
-            data,
-        )
-        switches = _switches_from_service_call(hass, service_call)
-        lights = data[CONF_LIGHTS]
-        for switch in switches:
-            if not lights:
-                all_lights = switch.lights
-            else:
-                all_lights = _expand_light_groups(hass, lights)
-
-            manual_attributes = manual_control_event_attribute_to_flags(
-                service_call.data[CONF_MANUAL_CONTROL],
-            )
-
-            if manual_attributes:
-                for light in all_lights:
-                    switch.manager.set_manual_control_attributes(
-                        light,
-                        manual_attributes,
-                    )
-                    switch.fire_manual_control_event(
-                        light,
-                        service_call.context,
-                    )
-            else:
-                switch.manager.reset(*all_lights)
-                if switch.is_on:
-                    context = switch.create_context(
-                        "service",
-                        parent=service_call.context,
-                    )
-                    # pylint: disable=protected-access
-                    await switch._update_attrs_and_maybe_adapt_lights(
-                        context=context,
-                        lights=all_lights,
-                        transition=switch.initial_transition,
-                        force=True,
-                    )
-
-    # Register `apply` service
-    hass.services.async_register(
-        domain=DOMAIN,
-        service=SERVICE_APPLY,
-        service_func=handle_apply,
-        schema=apply_service_schema(switch.initial_transition),
-    )
-
-    # Register `set_manual_control` service
-    hass.services.async_register(
-        domain=DOMAIN,
-        service=SERVICE_SET_MANUAL_CONTROL,
-        service_func=handle_set_manual_control,
-        schema=SET_MANUAL_CONTROL_SCHEMA,
-    )
-
-    args: VolDictType = {vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string}
-    # Modifying these after init isn't possible
-    skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
-    for k, _, valid in VALIDATION_TUPLES:
-        if k not in skip:
-            args[vol.Optional(k)] = valid
-    platform = entity_platform.current_platform.get()
-    assert platform is not None
-    platform.async_register_entity_service(
-        SERVICE_CHANGE_SWITCH_SETTINGS,
-        args,
-        handle_change_switch_settings,
-    )
 
 
 def validate(
@@ -1846,9 +1855,12 @@ class AdaptiveLightingManager:
             )
 
     def disable(self) -> None:
-        """Disable the listener by removing all subscribed handlers."""
+        """Disable listeners and pending automatic manual-control resets."""
         for remove in self.listener_removers:
             remove()
+        for timer in self.auto_reset_manual_control_timers.values():
+            timer.cancel()
+        self.auto_reset_manual_control_timers.clear()
 
     def set_proactively_adapting(self, context_id: str, entity_id: str) -> None:
         """Declare the adaptation with context_id as proactively adapting,
