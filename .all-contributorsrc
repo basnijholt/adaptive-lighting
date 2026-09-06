@@ -1422,6 +1422,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "mrbillpapas",
+      "name": "Bill Papas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45721000?v=4",
+      "profile": "https://github.com/mrbillpapas",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
