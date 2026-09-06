@@ -155,7 +155,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             validate_options(flat_input, errors)
             if not errors:
                 return self.async_create_entry(title="", data=flat_input)
-            data = flat_input
+            data.update(flat_input)
 
         # Validate that all configured lights still exist
         all_lights = set(self.hass.states.async_entity_ids("light"))

@@ -1,5 +1,6 @@
 """Test Adaptive Lighting config flow."""
 
+import pytest
 import voluptuous as vol
 
 try:
@@ -165,7 +166,8 @@ async def test_options_schema_has_each_setting_once(hass):
     ) - BASIC_OPTIONS
 
 
-async def test_incorrect_options(hass):
+@pytest.mark.parametrize("lights", [[], ["light.missing"]])
+async def test_incorrect_options(hass, lights):
     """Test updating incorrect options in advanced section."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -183,7 +185,7 @@ async def test_incorrect_options(hass):
     advanced_data = ADVANCED_DATA.copy()
     advanced_data[CONF_SUNRISE_TIME] = "yolo"
     advanced_data[CONF_SUNSET_TIME] = "yolo"
-    basic_data = {**BASIC_DATA, "min_brightness": 12}
+    basic_data = {**BASIC_DATA, "min_brightness": 12, "lights": lights}
     user_input = {
         **basic_data,
         "advanced": advanced_data,
@@ -194,7 +196,11 @@ async def test_incorrect_options(hass):
     )
     # Should show form with errors
     assert result["type"] == FlowResultType.FORM
-    assert result["errors"] == {"base": "option_error"}
+    expected_errors = {"base": "option_error"}
+    if lights:
+        expected_errors["lights"] = "entity_missing"
+    assert result["errors"] == expected_errors
+    assert _schema_defaults(result["data_schema"])["lights"] == lights
     assert _schema_defaults(result["data_schema"])["min_brightness"] == 12
     assert (
         _schema_defaults(_advanced_section(result).schema)[CONF_SUNRISE_TIME] == "yolo"
