@@ -1697,8 +1697,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if (
             old_state is not None
             and old_state.state == STATE_UNAVAILABLE
-            and not self._detect_non_ha_changes
-            and self.manager.last_service_call_was_turn_off(entity_id)
+            and self.manager.last_service_call_was_turn_off(
+                entity_id,
+                after=event if self._detect_non_ha_changes else None,
+            )
         ):
             _LOGGER.debug(
                 "%s: Skipping recovery of '%s' after a light.turn_off call",
@@ -2856,7 +2858,10 @@ class AdaptiveLightingManager:
             self.reset(entity_id, reset_manual_control=False)
             lock = self.turn_off_locks.setdefault(entity_id, asyncio.Lock())
             async with lock:
-                if old_off and await self.just_turned_off(entity_id):
+                if (
+                    old_unavailable
+                    and self._off_to_on_event_is_during_turn_off(entity_id, event)
+                ) or (old_off and await self.just_turned_off(entity_id)):
                     # Stop if a rapid 'off' → 'on' → 'off' happens.
                     _LOGGER.debug(
                         "Cancelling adjusting lights for %s",
@@ -2876,12 +2881,19 @@ class AdaptiveLightingManager:
                         event,
                     )
 
-    def last_service_call_was_turn_off(self, entity_id: str) -> bool:
+    def last_service_call_was_turn_off(
+        self,
+        entity_id: str,
+        *,
+        after: Event | None = None,
+    ) -> bool:
         """Return whether the most recent tracked service call turned a light off."""
         turn_on = self.turn_on_event.get(entity_id)
         turn_off = self.turn_off_event.get(entity_id)
-        return turn_off is not None and (
-            turn_on is None or turn_off.time_fired > turn_on.time_fired
+        return (
+            turn_off is not None
+            and (turn_on is None or turn_off.time_fired > turn_on.time_fired)
+            and (after is None or turn_off.time_fired > after.time_fired)
         )
 
     async def update_manually_controlled_from_event(

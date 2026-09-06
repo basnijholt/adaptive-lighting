@@ -5435,18 +5435,82 @@ async def test_unavailable_light_recovery_preserves_recent_turn_off(hass):
     assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
 
 
-@pytest.mark.parametrize("cancel_reason", ["light_turn_off", "profile_disabled"])
+@pytest.mark.parametrize(("elapsed", "should_adapt"), [(0, False), (11, True)])
+async def test_unavailable_recovery_respects_fresh_turn_off_window(
+    hass,
+    freezer,
+    elapsed,
+    should_adapt,
+):
+    """Recovery must not reverse an active fade, but adapts after it expires."""
+    await setup_lights_and_switch(
+        hass,
+        {
+            CONF_TAKE_OVER_CONTROL: True,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    turn_off_context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_TRANSITION: 10},
+        blocking=True,
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+
+    attributes = dict(hass.states.get(ENTITY_LIGHT_1).attributes)
+    attributes[ATTR_BRIGHTNESS] = 200
+    hass.states.async_set(
+        ENTITY_LIGHT_1,
+        STATE_UNAVAILABLE,
+        attributes,
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+    freezer.tick(elapsed)
+
+    calls = _track_adaptive_light_calls(hass)
+    hass.states.async_set(
+        ENTITY_LIGHT_1,
+        STATE_ON,
+        attributes,
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+
+    if should_adapt:
+        assert calls[-1][ATTR_BRIGHTNESS] == 128
+    else:
+        assert not calls
+
+
+@pytest.mark.parametrize(
+    ("cancel_reason", "detect_non_ha_changes", "expected_brightness"),
+    [
+        ("light_turn_off", False, 200),
+        ("light_turn_off", True, 200),
+        ("turn_off_then_turn_on", True, 128),
+        ("profile_disabled", False, 200),
+    ],
+)
 async def test_unavailable_light_recovery_cancelled_during_delay(
     hass,
     monkeypatch,
     cancel_reason,
+    detect_non_ha_changes,
+    expected_brightness,
 ):
     """A changed off intent during recovery delay prevents adaptation."""
     switch, _ = await setup_lights_and_switch(
         hass,
         {
             CONF_TAKE_OVER_CONTROL: False,
-            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_DETECT_NON_HA_CHANGES: detect_non_ha_changes,
             CONF_ADAPT_DELAY: 0.1234,
             CONF_INITIAL_TRANSITION: 0,
             CONF_MIN_BRIGHTNESS: 50,
@@ -5472,7 +5536,7 @@ async def test_unavailable_light_recovery_cancelled_during_delay(
     monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
     hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, attributes)
     await entered_delay.wait()
-    if cancel_reason == "light_turn_off":
+    if cancel_reason in ("light_turn_off", "turn_off_then_turn_on"):
         hass.bus.async_fire(
             EVENT_CALL_SERVICE,
             {
@@ -5488,13 +5552,30 @@ async def test_unavailable_light_recovery_cancelled_during_delay(
         await original_sleep(0)
         assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
         assert switch.manager.last_service_call_was_turn_off(ENTITY_LIGHT_1)
+        if cancel_reason == "turn_off_then_turn_on":
+            hass.bus.async_fire(
+                EVENT_CALL_SERVICE,
+                {
+                    "domain": LIGHT_DOMAIN,
+                    "service": SERVICE_TURN_ON,
+                    "service_data": {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+                },
+                context=Context(id="turn_on_during_recovery_delay"),
+            )
+            await original_sleep(0)
+            assert not switch.manager.last_service_call_was_turn_off(
+                ENTITY_LIGHT_1,
+            )
     else:
         await switch.async_turn_off()
         assert not switch.is_on
     release_delay.set()
     await hass.async_block_till_done()
 
-    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 200
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS]
+        == expected_brightness
+    )
 
 
 @pytest.mark.parametrize("intercept", [True, False])
