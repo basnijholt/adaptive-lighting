@@ -565,8 +565,20 @@ def validate(
     if config_entry is not None:
         assert service_data is None
         assert defaults is None
-        data.update(config_entry.options)  # come from options flow
-        data.update(config_entry.data)  # all yaml settings come from data
+        if config_entry.source == SOURCE_IMPORT:
+            # YAML-configured entries: `data` is the authoritative YAML config
+            # and must win over any stray `options` from a prior UI setup.
+            data.update(config_entry.options)
+            data.update(config_entry.data)
+        else:
+            # UI-configured entries: settings are meant to live in `options`
+            # (see OptionsFlowHandler in config_flow.py). `data` here is
+            # either just the entry name, or - for entries created before
+            # data/options were split - a stale snapshot from initial setup.
+            # Applying it last would silently discard newer changes made
+            # through the options flow, so `options` must win instead.
+            data.update(config_entry.data)
+            data.update(config_entry.options)
     else:
         assert service_data is not None
         changed_settings = {
@@ -2254,7 +2266,6 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlAttributes.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
@@ -2995,9 +3006,17 @@ class _AsyncSingleShotTimer:
 
     def cancel(self) -> None:
         """Cancel the timer."""
-        if self.task:
+        # Never cancel the task that is currently running our own callback, e.g.
+        # when the auto-reset callback calls manager.reset(), which cancels the
+        # timer it is running in. That used to silently cancel the rest of the
+        # callback (the re-adaptation), see issue #1233.
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:  # no running event loop
+            current_task = None
+        if self.task and self.task is not current_task:
             self.task.cancel()
-            self.callback = None
+        self.callback = None
 
     def remaining_time(self) -> float:
         """Return the remaining time before the timer expires."""
