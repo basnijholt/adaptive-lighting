@@ -6,7 +6,6 @@ import voluptuous as vol
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_TRANSITION,
     DOCS,
     DOCS_APPLY,
     DOCS_MANUAL_CONTROL,
@@ -75,23 +74,21 @@ def generate_config_markdown_table() -> str:
     return df.to_markdown(index=False)
 
 
-def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[Any, Any]]:
-    result: dict[str, tuple[Any, Any]] = {}
+def _schema_to_dict(schema: vol.Schema) -> dict[str, tuple[bool, Any]]:
+    result: dict[str, tuple[bool, Any]] = {}
     for key, value in schema.schema.items():
-        if isinstance(key, vol.Optional):
-            default_value = key.default
-            result[key.schema] = (default_value, value)
+        if isinstance(key, vol.Required | vol.Optional):
+            required = isinstance(key, vol.Required) and key.default == vol.UNDEFINED
+            result[key.schema] = (required, value)
     return result
 
 
 def _generate_service_markdown_table(
-    schema: dict[str, tuple[Any, Any]] | vol.Schema,
+    schema: vol.Schema,
     alternative_docs: dict[str, str] | None = None,
-    optional_without_default: frozenset[str] = frozenset(),
 ) -> str:
-    schema_dict = _schema_to_dict(schema) if isinstance(schema, vol.Schema) else schema
     rows: list[dict[str, str]] = []
-    for k, (default, type_) in schema_dict.items():
+    for k, (required, type_) in _schema_to_dict(schema).items():
         if alternative_docs is not None and k in alternative_docs:
             description = alternative_docs[k]
         else:
@@ -99,11 +96,7 @@ def _generate_service_markdown_table(
         row = {
             "Service data attribute": f"`{k}`",
             "Description": description,
-            "Required": (
-                "✅"
-                if default == vol.UNDEFINED and k not in optional_without_default
-                else "❌"
-            ),
+            "Required": "✅" if required else "❌",
             "Type": _type_to_str(type_),
         }
         rows.append(row)
@@ -113,11 +106,7 @@ def _generate_service_markdown_table(
 
 
 def generate_apply_markdown_table() -> str:
-    return _generate_service_markdown_table(
-        apply_service_schema(),
-        DOCS_APPLY,
-        optional_without_default=frozenset({CONF_TRANSITION}),
-    )
+    return _generate_service_markdown_table(apply_service_schema(), DOCS_APPLY)
 
 
 def generate_set_manual_control_markdown_table() -> str:
