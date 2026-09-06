@@ -1224,6 +1224,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "cperuffo3",
+      "name": "Corey Peruffo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/87686305?v=4",
+      "profile": "https://github.com/cperuffo3",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
