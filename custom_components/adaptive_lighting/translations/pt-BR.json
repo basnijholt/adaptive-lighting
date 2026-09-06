@@ -65,13 +65,9 @@
           "sunset_offset": "Ajusta o horário do pôr do sol com um deslocamento positivo ou negativo em segundos. ⏰",
           "sunrise_offset": "Ajusta o horário do nascer do sol com um deslocamento positivo ou negativo em segundos. ⏰",
           "sunset_time": "Definir um horário fixo (HH:MM:SS) para o pôr do sol. 🌇",
-          "send_split_delay": "Delay (ms) entre `separate_turn_on_commands` para luzes que não suportam configuração de brilho e cor simultaneamente. ⏲️",
           "sleep_color_temp": "Temperatura de Cor no modo dormir (usado quando `sleep_rgb_or_color_temp` é `color_temp`) em Kelvin. 😴",
           "sleep_rgb_or_color_temp": "Use `\"rgb_color\"` ou `\"color_temp\"` no modo dormir. 🌙",
           "adapt_delay": "Tempo de espera (segundos) entre a luz ligar e a aplicação das mudanças da iluminação adaptativa. Pode ajudar a evitar que a luz pisque. ⏲️",
-          "brightness_mode": "Modo de brilho para usar. Possíveis valores são `default`, `linear`, and `tanh` (usa `brightness_mode_time_dark` e `brightness_mode_time_light`). 📈",
-          "brightness_mode_time_dark": "(Ignorado se 'brightness_mode='default'') A duração em segundos para aumentar ou diminuir o brilho antes/depois do nascer/pôr do sol. 📈📉",
-          "brightness_mode_time_light": "(Ignorado se 'brightness_mode='default'') A duração em segundos para aumentar ou diminuir o brilho depois/antes do nascer e pôr do sol. 📈📉.",
           "min_sunrise_time": "Defina o horário virtual mais cedo do nascer do sol (HH:MM:SS), permitindo nasceres do sol mais tarde. 🌅",
           "max_sunrise_time": "Defina o horário virtual mais recente do nascer do sol (HH:MM:SS), permitindo nasceres do sol mais cedo. 🌅",
           "max_sunset_time": "Defina o horário virtual mais recente do pôr do sol (HH:MM:SS), permitindo pores do sol mais cedo. 🌇",
@@ -93,9 +89,6 @@
         "entity_id": {
           "description": "ID da entidade do switch. 📝"
         },
-        "send_split_delay": {
-          "description": "Delay (ms) entre `separate_turn_on_commands` para luzes que não suportam configuração de brilho e cor simultaneamente. ⏲️"
-        },
         "max_brightness": {
           "description": "Porcentagem máxima do brilho. 💡"
         },
@@ -107,9 +100,6 @@
         },
         "sleep_brightness": {
           "description": "Porcentagem do brilho das luzes no modo dormir. 😴"
-        },
-        "prefer_rgb_color": {
-          "description": "Se preferir ajuste de cor RGB ao invés da cor da temperatura da luz caso possível. 🌈"
         },
         "turn_on_lights": {
           "description": "Se deve ligar as luzes que estão atualmente desligadas. 🔆"
@@ -141,14 +131,8 @@
         "sleep_rgb_or_color_temp": {
           "description": "Use `\"rgb_color\"` ou `\"color_temp\"` no modo dormir. 🌙"
         },
-        "min_color_temp": {
-          "description": "Cor de temperatura mais quente em Kelvin. 🔥"
-        },
         "adapt_delay": {
           "description": "Tempo de espera (segundos) entre a luz ligar e a aplicação das mudanças da iluminação adaptativa. Pode ajudar a evitar que a luz pisque. ⏲️"
-        },
-        "only_once": {
-          "description": "Adapta luzes apenas quando elas estão ligadas (`true`) ou continua as adaptando (`false`). 🔄"
         },
         "separate_turn_on_commands": {
           "description": "Usa chamada separada de `light.turn_on` para cor e brilho, necessário para alguns tipos de luz. 🔀"
@@ -175,9 +159,6 @@
         },
         "transition": {
           "description": "Duração da transição, em segundos, quando as luzes mudam. 🕑"
-        },
-        "prefer_rgb_color": {
-          "description": "Se preferir ajuste de cor RGB ao invés da cor da temperatura da luz caso possível. 🌈"
         },
         "entity_id": {
           "description": "O 'entity_id' do interruptor com as configurações para aplicar. 📝"
