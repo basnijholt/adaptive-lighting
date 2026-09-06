@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import hashlib
 import logging
 import zoneinfo
 from copy import deepcopy
@@ -62,11 +63,11 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
 from homeassistant.helpers.event import (
     EventStateChangedData,
+    async_call_later,
     async_track_state_change_event,
     async_track_time_interval,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.sun import get_astral_location
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -164,6 +165,19 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.helpers.typing import NoEventData, VolDictType
+
+try:
+    from homeassistant.helpers.sun import get_astral_observer
+except ImportError:  # `get_astral_observer` was added in HA 2026.7
+    from astral import Observer
+
+    def get_astral_observer(hass: HomeAssistant) -> Observer:
+        """Get an astral observer for the current HA configuration."""
+        return Observer(
+            hass.config.latitude,
+            hass.config.longitude,
+            hass.config.elevation,
+        )
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -554,8 +568,20 @@ def validate(
     if config_entry is not None:
         assert service_data is None
         assert defaults is None
-        data.update(config_entry.options)  # come from options flow
-        data.update(config_entry.data)  # all yaml settings come from data
+        if config_entry.source == SOURCE_IMPORT:
+            # YAML-configured entries: `data` is the authoritative YAML config
+            # and must win over any stray `options` from a prior UI setup.
+            data.update(config_entry.options)
+            data.update(config_entry.data)
+        else:
+            # UI-configured entries: settings are meant to live in `options`
+            # (see OptionsFlowHandler in config_flow.py). `data` here is
+            # either just the entry name, or - for entries created before
+            # data/options were split - a stale snapshot from initial setup.
+            # Applying it last would silently discard newer changes made
+            # through the options flow, so `options` must win instead.
+            data.update(config_entry.data)
+            data.update(config_entry.options)
     else:
         assert service_data is not None
         changed_settings = {
@@ -829,6 +855,8 @@ def _attributes_have_changed(
 class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -948,11 +976,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             self._multi_light_intercept = False
         self._expand_light_groups()  # updates manual control timers
-        location, _ = get_astral_location(self.hass)
+        observer = get_astral_observer(self.hass)
 
         self._sun_light_settings = SunLightSettings(
             name=self._name,
-            astral_location=location,
+            astral_observer=observer,
             adapt_until_sleep=data[CONF_ADAPT_UNTIL_SLEEP],
             max_brightness=data[CONF_MAX_BRIGHTNESS],
             max_color_temp=data[CONF_MAX_COLOR_TEMP],
@@ -983,9 +1011,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         )
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         """Return the name of the device if any."""
-        return f"Adaptive Lighting: {self._name}"
+        # The main switch takes the device name "Adaptive Lighting: <name>"
+        return None
 
     @property
     def unique_id(self) -> str:
@@ -1004,7 +1033,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             identifiers={
                 (DOMAIN, self._name),
             },
-            name=self._name,
+            name=f"Adaptive Lighting: {self._name}",
             entry_type=DeviceEntryType.SERVICE,
         )
 
@@ -1058,6 +1087,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self.remove_listeners.append(remove_sleep)
         self._expand_light_groups()
 
+    def _stagger_offset(self, adaptation_interval: timedelta) -> timedelta:
+        """Return a stable relative delay to spread periodic updates.
+
+        Hashing the switch ID gives a best-effort spread without configuration.
+        It does not delay the immediate turn-on adaptation or guarantee a minimum
+        gap between switches.
+        """
+        digest = hashlib.sha256(self.unique_id.encode()).digest()
+        fraction = int.from_bytes(digest[:8], byteorder="big") / 2**64
+        return adaptation_interval * fraction
+
     def _update_time_interval_listener(self) -> None:
         """Create or recreate the adaptation interval listener.
 
@@ -1078,11 +1118,25 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             + timedelta(seconds=processing_overhead_time)
         )
 
-        self.remove_interval = async_track_time_interval(
-            self.hass,
-            action=self._async_update_at_interval_action,
-            interval=adaptation_interval,
-        )
+        @callback
+        def _start_periodic_listener(_now: datetime.datetime | None = None) -> None:
+            self.remove_interval = async_track_time_interval(
+                self.hass,
+                action=self._async_update_at_interval_action,
+                interval=adaptation_interval,
+            )
+
+        # Register after the offset. The first periodic tick is at offset +
+        # interval, then subsequent ticks keep the configured interval.
+        offset = self._stagger_offset(adaptation_interval)
+        if offset > timedelta(0):
+            self.remove_interval = async_call_later(
+                self.hass,
+                offset.total_seconds(),
+                _start_periodic_listener,
+            )
+        else:
+            _start_periodic_listener()
 
     def _call_on_remove_callbacks(self) -> None:
         """Call callbacks registered by async_on_remove."""
@@ -1127,6 +1181,18 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return extra_state_attributes
         extra_state_attributes["manual_control"] = [
             light for light in self.lights if self.manager.manual_control.get(light)
+        ]
+        extra_state_attributes["manual_control_brightness"] = [
+            light
+            for light in self.lights
+            if self.manager.manual_control.get(light, LightControlAttributes.NONE)
+            & LightControlAttributes.BRIGHTNESS
+        ]
+        extra_state_attributes["manual_control_color"] = [
+            light
+            for light in self.lights
+            if self.manager.manual_control.get(light, LightControlAttributes.NONE)
+            & LightControlAttributes.COLOR
         ]
         extra_state_attributes.update(self._settings)
         timers = self.manager.auto_reset_manual_control_timers
@@ -1619,6 +1685,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 class SimpleSwitch(SwitchEntity, RestoreEntity):
     """Representation of a Adaptive Lighting switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         which: str,
@@ -1640,8 +1708,8 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
 
     @property
     def name(self) -> str:
-        """Return the name of the device if any."""
-        return self._name
+        """Return the name of the entity within its device."""
+        return self._which
 
     @property
     def unique_id(self) -> str:
@@ -1824,6 +1892,13 @@ class AdaptiveLightingManager:
         context = create_context("manager", which, self._context_cnt, parent=parent)
         self._context_cnt += 1
         return context
+
+    def _is_excluded_from_area(self, entity_id: str) -> bool:
+        """Match Home Assistant's exclusions for indirect area targets."""
+        entry = entity_registry.async_get(self.hass).async_get(entity_id)
+        return entry is not None and (
+            entry.entity_category is not None or entry.hidden_by is not None
+        )
 
     def _separate_entity_ids(
         self,
@@ -2249,7 +2324,6 @@ class AdaptiveLightingManager:
                     transition=switch.initial_transition,
                     force=True,
                 )
-            assert self.manual_control[light] == LightControlAttributes.NONE
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
 
@@ -2365,6 +2439,7 @@ class AdaptiveLightingManager:
                     entity_id
                     for entity_id in area_entity_ids
                     if entity_id.startswith(LIGHT_DOMAIN)
+                    and not self._is_excluded_from_area(entity_id)
                 ]
                 entity_ids.extend(eids)
                 _LOGGER.debug(
@@ -2429,9 +2504,11 @@ class AdaptiveLightingManager:
             if (
                 timer is not None
                 and timer.is_running()
+                and not is_our_context(event.context)
+                and not self.is_proactively_adapting(event.context.id)
                 and event.time_fired > timer.start_time  # type: ignore[operator]
             ):
-                # Restart the auto reset timer
+                # Only external turn-ons extend manual control, not our adaptations.
                 timer.start()
 
         if service == SERVICE_TURN_OFF:
@@ -2741,7 +2818,45 @@ class AdaptiveLightingManager:
         id_off_to_on = off_to_on_event.context.id
         return turn_on_event is not None and id_off_to_on == turn_on_event.context.id
 
-    async def just_turned_off(  # noqa: PLR0911
+    def _member_turn_on_explains_group_turn_on(
+        self,
+        entity_id: str,
+        on_to_off_event: Event[EventStateChangedData],
+        off_to_on_event: Event[EventStateChangedData],
+    ) -> bool:
+        """Check if a light group's 'off' → 'on' is caused by a member's 'light.turn_on'.
+
+        When a member of a light group is turned on while the group is off, the
+        group turns on as a side effect. Home Assistant may reuse the context of
+        an earlier 'light.turn_off' call for the group's state change (entities
+        keep their context for a few seconds), which makes the group's turn-on
+        look like a polling artifact of the turn-off.
+        See https://github.com/basnijholt/adaptive-lighting/issues/1378
+        """
+        state = self.hass.states.get(entity_id)
+        if state is None or not _is_light_group(state):
+            return False
+        members: list[str] = state.attributes[ATTR_ENTITY_ID]
+        for member in members:
+            member_turn_on = self.turn_on_event.get(member)
+            if (
+                member_turn_on is not None
+                and on_to_off_event.time_fired
+                < member_turn_on.time_fired
+                <= off_to_on_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "just_turned_off: Light group '%s' turned on because its member"
+                    " '%s' was turned on (context.id='%s'), so this is a legitimate"
+                    " turn-on, not a polling artifact.",
+                    entity_id,
+                    member,
+                    member_turn_on.context.id,
+                )
+                return True
+        return False
+
+    async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
         entity_id: str,
     ) -> bool:
@@ -2769,6 +2884,34 @@ class AdaptiveLightingManager:
             return False
 
         if off_to_on_event.context.id == on_to_off_event.context.id:
+            # Matching context IDs usually mean a polling artifact (HA briefly
+            # reports 'on' while the light is still turning off). However, the
+            # context is also reused when e.g. one automation turns the light
+            # off and later back on, or when an integration writes the state
+            # with the entity's cached context. Only treat the state change as
+            # a legitimate turn-on if a 'light.turn_on' call for this light (or
+            # for a member of this light group) fired between the two state
+            # changes.
+            turn_on_event = self.turn_on_event.get(entity_id)
+            if (
+                turn_on_event is not None
+                and on_to_off_event.time_fired
+                < turn_on_event.time_fired
+                <= off_to_on_event.time_fired
+            ):
+                _LOGGER.debug(
+                    "just_turned_off: 'light.turn_on' was called for '%s' between its"
+                    " 'on' → 'off' and 'off' → 'on' state changes, so this is a"
+                    " legitimate turn-on, not a polling artifact.",
+                    entity_id,
+                )
+                return False
+            if self._member_turn_on_explains_group_turn_on(
+                entity_id,
+                on_to_off_event,
+                off_to_on_event,
+            ):
+                return False
             _LOGGER.debug(
                 "just_turned_off: 'on' → 'off' state change has the same context.id as the"
                 " 'off' → 'on' state change for '%s'. This is probably a false positive.",
@@ -2892,7 +3035,7 @@ class AdaptiveLightingManager:
 
 
 class _AsyncSingleShotTimer:
-    def __init__(self, delay: float, callback: Callable[[], None | Any]) -> None:
+    def __init__(self, delay: float, callback: Callable[[], Any | None]) -> None:
         """Initialize the timer."""
         self.delay = delay
         self.callback = callback
@@ -2924,9 +3067,17 @@ class _AsyncSingleShotTimer:
 
     def cancel(self) -> None:
         """Cancel the timer."""
-        if self.task:
+        # Never cancel the task that is currently running our own callback, e.g.
+        # when the auto-reset callback calls manager.reset(), which cancels the
+        # timer it is running in. That used to silently cancel the rest of the
+        # callback (the re-adaptation), see issue #1233.
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:  # no running event loop
+            current_task = None
+        if self.task and self.task is not current_task:
             self.task.cancel()
-            self.callback = None
+        self.callback = None
 
     def remaining_time(self) -> float:
         """Return the remaining time before the timer expires."""

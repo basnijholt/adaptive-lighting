@@ -28,7 +28,7 @@ def get_ha_core_versions() -> list[str]:
     # Paginate through all tags to ensure we get older versions too
     while True:
         url = f"https://api.github.com/repos/home-assistant/core/tags?per_page=100&page={page}"
-        with urllib.request.urlopen(url) as response:  # noqa: S310
+        with urllib.request.urlopen(url) as response:
             tags = json.loads(response.read().decode())
 
         if not tags:
