@@ -185,7 +185,7 @@ change_switch_settings:
       example: 0
       selector:
         number:
-          min: 0
+          min: -86400
           max: 86300
     sunrise_time:
       description: Set a fixed time (HH:MM:SS) for sunrise. 🌅
@@ -199,7 +199,7 @@ change_switch_settings:
       example: ''
       selector:
         number:
-          min: 0
+          min: -86400
           max: 86300
     sunset_time:
       description: Set a fixed time (HH:MM:SS) for sunset. 🌇
