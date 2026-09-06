@@ -272,12 +272,13 @@ Replace every entity ID below with the IDs from your Home Assistant instance. Fr
 
 Blocks that begin with `- alias` are entries for `automations.yaml`. Blocks with a top-level `script:` or `adaptive_lighting:` key are complete `configuration.yaml` examples. If your configuration uses `script: !include scripts.yaml`, omit that outer key and place its contents in `scripts.yaml`.
 
-Four examples also have blueprints with selectors, so you can configure them without editing YAML:
+Five examples also have blueprints with selectors, so you can configure them without editing YAML:
 
 | Blueprint | Purpose |
 | --- | --- |
 | [Sleep mode](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/sleep_mode.yaml) | Synchronize several profiles with one sleep-mode helper. |
 | [Minimum brightness](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/turn_off_at_minimum.yaml) | Turn one light off when its target crosses down to the minimum. |
+| [Pause at minimum](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/manual_control_at_minimum.yaml) | Pause brightness through manual control, using its existing reset behavior. |
 | [Schedule profile](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/schedule_profile.yaml) | Apply brightness and color temperature from Schedule helper blocks. |
 | [Daylight limit](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/daylight_limit.yaml) | Lower maximum brightness in strong daylight. |
 
@@ -376,6 +377,95 @@ The comparison uses the same rounded 0–255 brightness as an adaptation command
 ```
 
 This runs once when a valid target crosses down into the minimum range. It skips lights currently marked as manually controlled, does not repeatedly turn them off while the target remains low, and does not turn them back on later. Startup or re-enabling the profile while already at the minimum is not a new crossing. Sleep mode can also cause a crossing if its brightness is at or below the chosen minimum. Changing sleep mode clears manual control by default; set `reset_manual_control_on_sleep_mode_change: false` if you want to preserve it. For a bedtime-only policy, trigger directly on the sleep-mode switch changing to `on` instead.
+
+</details>
+
+<details markdown="1">
+<summary>Pause brightness at the minimum using manual control.</summary>
+
+Use the [blueprint](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/manual_control_at_minimum.yaml) to mark an individual light's brightness as manually controlled when the calculated target reaches its minimum. The light stays on and the adaptation switches stay enabled. Set `take_over_control_mode: pause_changed` on the profile to keep adapting color; the default `pause_all` pauses both attributes.
+
+Select the profile, its adapt-brightness switch, and a light managed by it. Match the minimum percentage to the profile's `min_brightness`. This YAML example assumes `min_brightness: 1`; change `minimum_pct` and the entity IDs to match your setup.
+
+```yaml
+- alias: "Adaptive lighting: pause brightness at minimum"
+  mode: single
+  variables:
+    minimum_pct: 1
+    minimum: "{{ (minimum_pct * 255 / 100) | round(0) }}"
+  triggers:
+    - trigger: state
+      entity_id: switch.adaptive_lighting_living_room
+      attribute: brightness_pct
+  conditions:
+    - condition: state
+      entity_id:
+        - switch.adaptive_lighting_living_room
+        - switch.adaptive_lighting_living_room_adapt_brightness
+      state: "on"
+    - condition: template
+      value_template: >-
+        {% set before = trigger.from_state.attributes.get('brightness_pct')
+                        if trigger.from_state else none %}
+        {% set after = trigger.to_state.attributes.get('brightness_pct')
+                       if trigger.to_state else none %}
+        {{ is_number(before) and is_number(after)
+           and (before | float * 255 / 100) | round(0) > minimum
+           and (after | float * 255 / 100) | round(0) <= minimum }}
+    - condition: state
+      entity_id: light.living_room
+      state: "on"
+    - condition: template
+      value_template: >-
+        {{ 'light.living_room' not in
+           (state_attr('switch.adaptive_lighting_living_room', 'manual_control_brightness') or []) }}
+  actions:
+    - variables:
+        light_session: "{{ states.light.living_room.last_changed.isoformat() }}"
+        profile_session: "{{ states.switch.adaptive_lighting_living_room.last_changed.isoformat() }}"
+        brightness_session: "{{ states.switch.adaptive_lighting_living_room_adapt_brightness.last_changed.isoformat() }}"
+    - wait_template: >-
+        {% set target = state_attr('switch.adaptive_lighting_living_room', 'brightness_pct') %}
+        {{ not is_state('light.living_room', 'on')
+           or not is_state('switch.adaptive_lighting_living_room', 'on')
+           or not is_state('switch.adaptive_lighting_living_room_adapt_brightness', 'on')
+           or states.light.living_room.last_changed.isoformat() != light_session
+           or states.switch.adaptive_lighting_living_room.last_changed.isoformat() != profile_session
+           or states.switch.adaptive_lighting_living_room_adapt_brightness.last_changed.isoformat() != brightness_session
+           or not is_number(target) or (target | float * 255 / 100) | round(0) > minimum
+           or 'light.living_room' in
+               (state_attr('switch.adaptive_lighting_living_room', 'manual_control_brightness') or [])
+           or (state_attr('light.living_room', 'brightness') | float(256)) <= minimum }}
+      timeout: "00:05:00"
+      continue_on_timeout: false
+    - condition: template
+      value_template: >-
+        {% set target = state_attr('switch.adaptive_lighting_living_room', 'brightness_pct') %}
+        {{ is_state('light.living_room', 'on')
+           and is_state('switch.adaptive_lighting_living_room', 'on')
+           and is_state('switch.adaptive_lighting_living_room_adapt_brightness', 'on')
+           and states.light.living_room.last_changed.isoformat() == light_session
+           and states.switch.adaptive_lighting_living_room.last_changed.isoformat() == profile_session
+           and states.switch.adaptive_lighting_living_room_adapt_brightness.last_changed.isoformat() == brightness_session
+           and is_number(target) and (target | float * 255 / 100) | round(0) <= minimum
+           and (state_attr('light.living_room', 'brightness') | float(256)) <= minimum
+           and 'light.living_room' not in
+               (state_attr('switch.adaptive_lighting_living_room', 'manual_control_brightness') or []) }}
+    - action: adaptive_lighting.set_manual_control
+      data:
+        entity_id: switch.adaptive_lighting_living_room
+        lights: light.living_room
+        manual_control: >-
+          {{ true if 'light.living_room' in
+             (state_attr('switch.adaptive_lighting_living_room', 'manual_control_color') or [])
+             else 'brightness' }}
+```
+
+The comparison uses the rounded 0–255 target, so it does not depend on sampling an exact floating-point minimum. It waits up to five minutes for the light to report that minimum before marking manual control, so the final dimming command can complete. Reported brightness does not prove physical fade completion. If the light, profile, or adapt-brightness switch is toggled, the target rises, brightness is marked manually controlled elsewhere, or brightness never reaches the minimum, the attempt is abandoned. Lights that cannot report the configured minimum will not be paused. Existing manual color flags are preserved, and lights whose brightness is already manually controlled are left alone. Manual-control state is shared for lights managed by multiple profiles, so their existing takeover policies still apply.
+
+The usual resets apply: turning the light off, the configured `autoreset_control_seconds` timeout, clearing manual control through its service, and existing profile/sleep-switch reset behavior. After a reset, normal adaptation can increase brightness again. This runs once per downward crossing; resetting while the target remains at its minimum does not immediately mark the light again. Startup at the minimum is not a crossing either.
+
+This pauses further dimming as well as brightening. To pause brightness immediately after a brightness change made through Home Assistant, use `take_over_control_mode: pause_changed` with `take_over_control: true`; that needs no additional automation.
 
 </details>
 

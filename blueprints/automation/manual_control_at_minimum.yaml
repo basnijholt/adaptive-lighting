@@ -1,0 +1,123 @@
+blueprint:
+  name: "Adaptive Lighting: pause brightness at minimum"
+  description: >-
+    Mark one light's brightness as manually controlled when its calculated
+    brightness target crosses down to the configured minimum. Set the profile's
+    take_over_control_mode to pause_changed to keep adapting color; pause_all
+    pauses both. Existing manual color control is preserved. Uses the normal
+    manual-control resets, including turning the light off and any configured
+    autoreset_control_seconds timeout. Runs once per downward crossing, so a
+    reset while the target remains low does not immediately pause it again.
+    Waits up to five minutes for reported brightness to reach the rounded
+    0–255 minimum before pausing. This does not prove physical fade completion. Does not
+    change power or adaptation switches. Select an individual light managed by
+    the profile. Shared profiles retain their usual manual-control behavior.
+  domain: automation
+  homeassistant:
+    min_version: "2025.9.0"
+  input:
+    adaptive_switch:
+      name: Adaptive Lighting profile
+      description: Select the main Adaptive Lighting switch, not a sleep or adaptation switch.
+      selector:
+        entity:
+          filter:
+            domain: switch
+            integration: adaptive_lighting
+    brightness_switch:
+      name: Adapt brightness switch
+      description: Select the adapt brightness switch belonging to the same profile.
+      selector:
+        entity:
+          filter:
+            domain: switch
+            integration: adaptive_lighting
+    light_entity:
+      name: Light
+      description: Select one light managed by this profile. Create an automation for each light.
+      selector:
+        entity:
+          filter:
+            domain: light
+    minimum_pct:
+      name: Minimum brightness
+      description: Match the profile's min_brightness setting. Update this if that setting changes.
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+          mode: box
+
+mode: single
+variables:
+  adaptive_switch: !input adaptive_switch
+  light_entity: !input light_entity
+  minimum_pct: !input minimum_pct
+  minimum: "{{ (minimum_pct * 255 / 100) | round(0) }}"
+  brightness_switch: !input brightness_switch
+triggers:
+  - trigger: state
+    entity_id: !input adaptive_switch
+    attribute: brightness_pct
+conditions:
+  - condition: state
+    entity_id: !input adaptive_switch
+    state: "on"
+  - condition: state
+    entity_id: !input brightness_switch
+    state: "on"
+  - condition: template
+    value_template: >-
+      {% set before = trigger.from_state.attributes.get('brightness_pct')
+                      if trigger.from_state else none %}
+      {% set after = trigger.to_state.attributes.get('brightness_pct')
+                     if trigger.to_state else none %}
+      {{ is_number(before) and is_number(after)
+         and (before | float * 255 / 100) | round(0) > minimum
+         and (after | float * 255 / 100) | round(0) <= minimum }}
+  - condition: state
+    entity_id: !input light_entity
+    state: "on"
+  - condition: template
+    value_template: >-
+      {{ light_entity not in (state_attr(adaptive_switch, 'manual_control_brightness') or []) }}
+actions:
+  - variables:
+      light_session: "{{ states[light_entity].last_changed.isoformat() }}"
+      profile_session: "{{ states[adaptive_switch].last_changed.isoformat() }}"
+      brightness_session: "{{ states[brightness_switch].last_changed.isoformat() }}"
+  - wait_template: >-
+      {% set target = state_attr(adaptive_switch, 'brightness_pct') %}
+      {{ not is_state(light_entity, 'on') or not is_state(adaptive_switch, 'on')
+         or not is_state(brightness_switch, 'on')
+         or states[light_entity].last_changed.isoformat() != light_session
+         or states[adaptive_switch].last_changed.isoformat() != profile_session
+         or states[brightness_switch].last_changed.isoformat() != brightness_session
+         or not is_number(target) or (target | float * 255 / 100) | round(0) > minimum
+         or light_entity in (state_attr(adaptive_switch, 'manual_control_brightness') or [])
+         or (state_attr(light_entity, 'brightness') | float(256)) <= minimum }}
+    timeout: "00:05:00"
+    continue_on_timeout: false
+  - condition: template
+    value_template: >-
+      {% set target = state_attr(adaptive_switch, 'brightness_pct') %}
+      {{ is_state(light_entity, 'on') and is_state(adaptive_switch, 'on')
+         and is_state(brightness_switch, 'on')
+         and states[light_entity].last_changed.isoformat() == light_session
+         and states[adaptive_switch].last_changed.isoformat() == profile_session
+         and states[brightness_switch].last_changed.isoformat() == brightness_session
+         and is_number(target) and (target | float * 255 / 100) | round(0) <= minimum
+         and (state_attr(light_entity, 'brightness') | float(256)) <= minimum
+         and light_entity not in
+             (state_attr(adaptive_switch, 'manual_control_brightness') or []) }}
+  - action: adaptive_lighting.set_manual_control
+    data:
+      entity_id: !input adaptive_switch
+      lights: !input light_entity
+      manual_control: >-
+        {{ true if light_entity in
+           (state_attr(adaptive_switch, 'manual_control_color') or [])
+           else 'brightness' }}

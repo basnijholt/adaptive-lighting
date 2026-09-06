@@ -17,6 +17,7 @@ from homeassistant.components.adaptive_lighting.adaptation_utils import (
     LightControlAttributes,
 )
 from homeassistant.components.adaptive_lighting.const import (
+    CONF_AUTORESET_CONTROL,
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
@@ -32,6 +33,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
+    CONF_TAKE_OVER_CONTROL_MODE,
     CONF_TRANSITION,
     DOMAIN,
 )
@@ -377,6 +379,302 @@ async def test_minimum_brightness_ignores_missing_previous_target(
     hass.states.async_set(adaptive_switch.entity_id, STATE_ON, attributes)
     await hass.async_block_till_done()
     assert hass.states.get("light.living_room").state == STATE_ON
+
+
+@pytest.mark.parametrize("previous_manual", [None, "color", "brightness"])
+@patch(
+    "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+    new=dt_util.utcnow,
+)
+async def test_minimum_manual_control_lifecycle(
+    hass: HomeAssistant,
+    freezer,
+    published_automation,
+    previous_manual: str | None,
+) -> None:
+    """Pause at the calculated floor, preserve other flags, and reset on off/on."""
+    freezer.move_to(datetime(2026, 9, 6, 18, 58, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    config = published_automation(
+        "Pause brightness at the minimum using manual control.",
+        "manual_control_at_minimum.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_living_room",
+            "brightness_switch": "switch.adaptive_lighting_living_room_adapt_brightness",
+            "light_entity": "light.living_room",
+        },
+    )
+    await _setup_template_lights(hass, ["Living Room"])
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.living_room", ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    _, profile = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "Living Room",
+            CONF_LIGHTS: ["light.living_room"],
+            CONF_MIN_BRIGHTNESS: 1,
+            CONF_MAX_BRIGHTNESS: 100,
+            CONF_MIN_COLOR_TEMP: 3000,
+            CONF_MAX_COLOR_TEMP: 3000,
+            CONF_BRIGHTNESS_MODE: "linear",
+            CONF_BRIGHTNESS_MODE_TIME_DARK: timedelta(hours=1),
+            CONF_BRIGHTNESS_MODE_TIME_LIGHT: timedelta(hours=1),
+            CONF_SUNRISE_TIME: "06:00:00",
+            CONF_SUNSET_TIME: "18:00:00",
+            CONF_TRANSITION: 0,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TAKE_OVER_CONTROL_MODE: "pause_changed",
+        },
+    )
+    if previous_manual:
+        await hass.services.async_call(
+            DOMAIN,
+            "set_manual_control",
+            {ATTR_ENTITY_ID: profile.entity_id, "manual_control": previous_manual},
+            blocking=True,
+        )
+    await _setup_automation(hass, config)
+    manual_calls = []
+
+    @callback
+    def record_manual_call(event: Event) -> None:
+        if (
+            event.data["domain"] == DOMAIN
+            and event.data["service"] == "set_manual_control"
+        ):
+            manual_calls.append(event.data["service_data"])
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, record_manual_call)
+    freezer.move_to(datetime(2026, 9, 6, 18, 59, 50, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    await profile._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    flags = profile.manager.get_manual_control_attributes("light.living_room")
+    assert LightControlAttributes.BRIGHTNESS in flags
+    assert (LightControlAttributes.COLOR in flags) is (previous_manual == "color")
+    assert len(manual_calls) == (0 if previous_manual == "brightness" else 1)
+    paused_brightness = hass.states.get("light.living_room").attributes[ATTR_BRIGHTNESS]
+    assert profile.is_on
+    assert profile.adapt_brightness_switch.is_on
+    if previous_manual != "brightness":
+        assert paused_brightness == 3
+
+    freezer.move_to(datetime(2026, 9, 6, 19, 1, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    await profile._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert len(manual_calls) == (0 if previous_manual == "brightness" else 1)
+    await hass.services.async_call(
+        DOMAIN,
+        "change_switch_settings",
+        {
+            ATTR_ENTITY_ID: profile.entity_id,
+            CONF_MIN_BRIGHTNESS: 100,
+            CONF_MAX_BRIGHTNESS: 100,
+            CONF_MIN_COLOR_TEMP: 5000,
+            CONF_MAX_COLOR_TEMP: 5000,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    state = hass.states.get("light.living_room")
+    assert state.state == STATE_ON
+    assert state.attributes[ATTR_BRIGHTNESS] == paused_brightness
+    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == pytest.approx(
+        3000 if previous_manual == "color" else 5000,
+        abs=5,
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: "light.living_room"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert not profile.manager.get_manual_control_attributes("light.living_room")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.living_room"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get("light.living_room").attributes[ATTR_BRIGHTNESS] == 255
+
+    # Another crossing can pause again, but clearing it at the floor must stick.
+    await hass.services.async_call(
+        DOMAIN,
+        "change_switch_settings",
+        {
+            ATTR_ENTITY_ID: profile.entity_id,
+            CONF_MIN_BRIGHTNESS: 1,
+            CONF_MAX_BRIGHTNESS: 1,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert profile.manager.get_manual_control_attributes("light.living_room")
+    await hass.services.async_call(
+        DOMAIN,
+        "set_manual_control",
+        {ATTR_ENTITY_ID: profile.entity_id, "manual_control": False},
+        blocking=True,
+    )
+    await profile._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert not profile.manager.get_manual_control_attributes("light.living_room")
+
+    if previous_manual is None:
+        await hass.services.async_call(
+            DOMAIN,
+            "change_switch_settings",
+            {
+                ATTR_ENTITY_ID: profile.entity_id,
+                CONF_MIN_BRIGHTNESS: 50,
+                CONF_MAX_BRIGHTNESS: 50,
+                CONF_AUTORESET_CONTROL: 1,
+            },
+            blocking=True,
+        )
+        await hass.services.async_call(
+            DOMAIN,
+            "change_switch_settings",
+            {
+                ATTR_ENTITY_ID: profile.entity_id,
+                CONF_MIN_BRIGHTNESS: 1,
+                CONF_MAX_BRIGHTNESS: 1,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert profile.manager.get_manual_control_attributes("light.living_room")
+        cleared, remove_listener = _state_waiter(
+            hass,
+            profile.entity_id,
+            lambda state: state.attributes.get("manual_control_brightness") == [],
+        )
+        freezer.tick(timedelta(seconds=1))
+        async_fire_time_changed(hass, dt_util.utcnow())
+        await asyncio.wait_for(cleared, timeout=2)
+        remove_listener()
+        await hass.async_block_till_done()
+        assert not profile.manager.get_manual_control_attributes("light.living_room")
+
+
+@pytest.mark.parametrize(
+    "abort_entity",
+    [
+        "light.living_room",
+        "switch.adaptive_lighting_living_room",
+        "switch.adaptive_lighting_living_room_adapt_brightness",
+    ],
+)
+async def test_minimum_manual_control_aborts_when_disabled(
+    hass: HomeAssistant,
+    published_automation,
+    abort_entity: str,
+) -> None:
+    """Abandon a pending wait immediately when the light or profile is disabled."""
+    config = published_automation(
+        "Pause brightness at the minimum using manual control.",
+        "manual_control_at_minimum.yaml",
+        {
+            "adaptive_switch": "switch.adaptive_lighting_living_room",
+            "brightness_switch": "switch.adaptive_lighting_living_room_adapt_brightness",
+            "light_entity": "light.living_room",
+        },
+    )
+    await _setup_template_lights(hass, ["Living Room"])
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.living_room", ATTR_BRIGHTNESS: 128},
+        blocking=True,
+    )
+    _, profile = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "Living Room",
+            CONF_LIGHTS: ["light.living_room"],
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_TAKE_OVER_CONTROL_MODE: "pause_changed",
+        },
+    )
+    await _setup_automation(hass, config)
+    waiting, remove_listener = _state_waiter(
+        hass,
+        "automation.adaptive_lighting_pause_brightness_at_minimum",
+        lambda state: state.attributes.get("current") == 1,
+    )
+    state = hass.states.get(profile.entity_id)
+    hass.states.async_set(
+        profile.entity_id,
+        STATE_ON,
+        {**state.attributes, "brightness_pct": 1},
+    )
+    await asyncio.wait_for(waiting, timeout=1)
+    remove_listener()
+    assert not profile.manager.get_manual_control_attributes("light.living_room")
+    stopped, remove_stopped = _state_waiter(
+        hass,
+        "automation.adaptive_lighting_pause_brightness_at_minimum",
+        lambda state: state.attributes.get("current") == 0,
+    )
+    await hass.services.async_call(
+        abort_entity.split(".", maxsplit=1)[0],
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: abort_entity},
+        blocking=True,
+    )
+    try:
+        await asyncio.wait_for(stopped, timeout=1)
+    finally:
+        remove_stopped()
+        if stopped.cancelled():
+            await hass.services.async_call(
+                automation.DOMAIN,
+                SERVICE_TURN_OFF,
+                {
+                    ATTR_ENTITY_ID: "automation.adaptive_lighting_pause_brightness_at_minimum",
+                },
+                blocking=True,
+            )
+    await hass.async_block_till_done()
+    assert not profile.manager.get_manual_control_attributes("light.living_room")
+    assert (
+        hass.states.get(
+            "automation.adaptive_lighting_pause_brightness_at_minimum",
+        ).attributes["current"]
+        == 0
+    )
+
+    await hass.services.async_call(
+        abort_entity.split(".", maxsplit=1)[0],
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: abort_entity},
+        blocking=True,
+    )
+    await profile._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    await hass.services.async_call(
+        DOMAIN,
+        "change_switch_settings",
+        {
+            ATTR_ENTITY_ID: profile.entity_id,
+            CONF_MIN_BRIGHTNESS: 1,
+            CONF_MAX_BRIGHTNESS: 1,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert (
+        profile.manager.get_manual_control_attributes("light.living_room")
+        == LightControlAttributes.BRIGHTNESS
+    )
 
 
 async def test_schedule_profile_executes_blocks_and_restore(
