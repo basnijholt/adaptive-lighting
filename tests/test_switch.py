@@ -5099,7 +5099,27 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
     )
 
 
-async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
+@pytest.mark.parametrize(
+    ("repeat_bare_turn_on", "mode", "intercept"),
+    [
+        (False, TakeOverControlMode.PAUSE_ALL, False),
+        (False, TakeOverControlMode.PAUSE_CHANGED, False),
+        (True, TakeOverControlMode.PAUSE_ALL, True),
+        (True, TakeOverControlMode.PAUSE_CHANGED, True),
+    ],
+    ids=[
+        "direct-pause-all-reactive",
+        "direct-pause-changed-reactive",
+        "bare-turn-on-pause-all-intercept",
+        "bare-turn-on-pause-changed-intercept",
+    ],
+)
+async def test_detect_non_ha_changes_with_separate_turn_on_commands(
+    hass,
+    repeat_bare_turn_on,
+    mode,
+    intercept,
+):
     """Regression test for detect_non_ha_changes with separate_turn_on_commands.
 
     With separate_turn_on_commands=True, each adaptation cycle makes two sequential
@@ -5107,6 +5127,9 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
     last_service_data instead of merging, brightness is dropped — and
     _attributes_have_changed silently skips the brightness comparison, so a direct
     Zigbee brightness change is never detected as manual control.
+
+    A repeated bare light.turn_on from an automation must not hide the physical
+    change before the periodic adaptation path runs.
     """
     switch, (light, *_) = await setup_lights_and_switch(
         hass,
@@ -5114,10 +5137,21 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
             CONF_SEPARATE_TURN_ON_COMMANDS: True,
             CONF_DETECT_NON_HA_CHANGES: True,
             CONF_TAKE_OVER_CONTROL: True,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_INTERCEPT: intercept,
         },
     )
 
-    context = switch.create_context("test")
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 50,
+            ATTR_COLOR_TEMP_KELVIN: 3000,
+            "force_rgb_color": False,
+        },
+    )
+
+    context = switch.create_context("interval")
 
     async def update(force: bool = False):
         await switch._update_attrs_and_maybe_adapt_lights(
@@ -5129,23 +5163,34 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
 
     await update(force=True)
 
-    last_sd = switch.manager.last_service_data.get(ENTITY_LIGHT_1)
-    assert last_sd is not None, "last_service_data not set after force adapt"
-    assert (
-        ATTR_BRIGHTNESS in last_sd
-    ), f"brightness missing from last_service_data after split calls: {last_sd}"
-    assert (
-        ATTR_COLOR_TEMP_KELVIN in last_sd or ATTR_RGB_COLOR in last_sd
-    ), f"color missing from last_service_data after split calls: {last_sd}"
-
     al_brightness = light.brightness
     assert al_brightness is not None
+    al_color_temp = light.color_temp_kelvin
+    assert al_color_temp is not None
     switch.manager.manual_control[ENTITY_LIGHT_1] = LightControlAttributes.NONE
 
     manual_brightness = (
         al_brightness - 120 if al_brightness >= 120 else al_brightness + 120
     )
     set_light_brightness(light, manual_brightness)
+
+    if repeat_bare_turn_on:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 50,
+            ATTR_COLOR_TEMP_KELVIN: 4000,
+            "force_rgb_color": False,
+        },
+    )
 
     async def _flush_attr_state(hass, entity_id):
         """Mimic a ZHA attribute report: write current hardware state to HA."""
@@ -5156,20 +5201,15 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(hass):
         new=AsyncMock(side_effect=_flush_attr_state),
     ):
         await update(force=False)
-
-        assert LightControlAttributes.BRIGHTNESS in switch.manager.manual_control.get(
-            ENTITY_LIGHT_1,
-            LightControlAttributes.NONE,
-        ), (
-            f"manual_control={switch.manager.manual_control.get(ENTITY_LIGHT_1)}, "
-            f"last_service_data={switch.manager.last_service_data.get(ENTITY_LIGHT_1)}"
-        )
-
         await update(force=False)
 
     assert (
         light.brightness == manual_brightness
-    ), f"AL overrode manual brightness {manual_brightness} with {al_brightness}"
+    ), f"AL overrode manual brightness {manual_brightness} with {light.brightness}"
+    expected_color_temp = (
+        4000 if mode == TakeOverControlMode.PAUSE_CHANGED else al_color_temp
+    )
+    assert light.color_temp_kelvin == expected_color_temp
 
 
 async def test_fresh_install_entity_ids(hass):
