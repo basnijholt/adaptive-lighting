@@ -18,15 +18,15 @@ Blocks that begin with `- alias` are entries for `automations.yaml`. Blocks with
 
 Five examples also have blueprints with selectors, so you can configure them without editing YAML:
 
-| Blueprint | Purpose |
-| --- | --- |
-| [Sleep mode](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/sleep_mode.yaml) | Synchronize several profiles with one sleep-mode helper. |
-| [Minimum brightness](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/turn_off_at_minimum.yaml) | Turn one light off when its target crosses down to the minimum. |
-| [Pause at minimum](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/manual_control_at_minimum.yaml) | Pause brightness through manual control, using its existing reset behavior. |
-| [Schedule profile](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/schedule_profile.yaml) | Apply brightness and color temperature from Schedule helper blocks. |
-| [Daylight limit](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/daylight_limit.yaml) | Lower maximum brightness in strong daylight. |
+| Blueprint | Purpose | Import |
+| --- | --- | --- |
+| [Sleep mode](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/sleep_mode.yaml) | Synchronize several profiles with one sleep-mode helper. | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbasnijholt%2Fadaptive-lighting%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsleep_mode.yaml) |
+| [Minimum brightness](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/turn_off_at_minimum.yaml) | Turn one light off when its target crosses down to the minimum. | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbasnijholt%2Fadaptive-lighting%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fturn_off_at_minimum.yaml) |
+| [Pause at minimum](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/manual_control_at_minimum.yaml) | Pause brightness through manual control, using its existing reset behavior. | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbasnijholt%2Fadaptive-lighting%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fmanual_control_at_minimum.yaml) |
+| [Schedule profile](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/schedule_profile.yaml) | Apply brightness and color temperature from Schedule helper blocks. | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbasnijholt%2Fadaptive-lighting%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fschedule_profile.yaml) |
+| [Daylight limit](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/daylight_limit.yaml) | Lower maximum brightness in strong daylight. | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbasnijholt%2Fadaptive-lighting%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fdaylight_limit.yaml) |
 
-Copy a blueprint's link into **Settings → Automations & scenes → Blueprints → Import Blueprint**, then create an automation from it. Read the matching example below for setup and behavior. Each blueprint is tested through Home Assistant alongside its YAML example. The built-in manual-control timeout needs no automation; the scripts below remain useful as actions in your own automations.
+Click a blueprint's import badge, confirm the import in Home Assistant, then create an automation and select your entities. You can also copy its source link into **Settings → Automations & scenes → Blueprints → Import Blueprint**. Read the matching example below for setup and behavior. Each blueprint is tested through Home Assistant alongside its YAML example. The built-in manual-control timeout needs no automation; the scripts below remain useful as actions in your own automations.
 
 `change_switch_settings` updates a profile while its main switch is off, but lights are adapted only while that switch is on. It preserves manual-control flags, so manually controlled lights remain paused.
 
