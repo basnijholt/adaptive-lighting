@@ -1278,6 +1278,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "callistoprime",
+      "name": "Callisto",
+      "avatar_url": "https://avatars.githubusercontent.com/u/178052328?v=4",
+      "profile": "https://github.com/callistoprime",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
