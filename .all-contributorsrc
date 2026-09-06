@@ -1495,6 +1495,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "Mariuss811",
+      "name": "Wosten",
+      "avatar_url": "https://avatars.githubusercontent.com/u/54115696?v=4",
+      "profile": "https://github.com/Mariuss811",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
