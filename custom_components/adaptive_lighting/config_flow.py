@@ -4,10 +4,9 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
@@ -26,6 +25,7 @@ OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS = {
     "webapp_url": "https://basnijholt.github.io/adaptive-lighting",
     "docs_url": "https://github.com/basnijholt/adaptive-lighting#readme",
 }
+ADVANCED_OPTIONS_SECTION = "advanced"
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -133,7 +133,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Flatten section input by merging nested 'advanced' dict into top level."""
         flat_input: dict[str, Any] = {}
         for key, value in user_input.items():
-            if key == "advanced" and isinstance(value, dict):
+            if key == ADVANCED_OPTIONS_SECTION and isinstance(value, dict):
                 flat_input.update(value)
             else:
                 flat_input[key] = value
@@ -155,6 +155,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             validate_options(flat_input, errors)
             if not errors:
                 return self.async_create_entry(title="", data=flat_input)
+            data = flat_input
 
         # Validate that all configured lights still exist
         all_lights = set(self.hass.states.async_entity_ids("light"))
@@ -176,26 +177,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ),
         }
 
-        # Build basic options schema (always visible)
-        basic_schema: dict[vol.Optional, Any] = {}
+        basic_schema: dict[vol.Marker, Any] = {}
+        advanced_schema: dict[vol.Marker, Any] = {}
         for name, default, validation in VALIDATION_TUPLES:
-            if name in BASIC_OPTIONS:
-                key = vol.Optional(name, default=conf.options.get(name, default))
-                basic_schema[key] = to_replace.get(name, validation)
+            key = vol.Optional(name, default=data.get(name, default))
+            schema = basic_schema if name in BASIC_OPTIONS else advanced_schema
+            schema[key] = to_replace.get(name, validation)
 
-        # Build advanced options schema (collapsed by default)
-        advanced_schema: dict[vol.Optional, Any] = {}
-        for name, default, validation in VALIDATION_TUPLES:
-            if name not in BASIC_OPTIONS:
-                key = vol.Optional(name, default=conf.options.get(name, default))
-                advanced_schema[key] = to_replace.get(name, validation)
-
-        # Combine: basic fields + collapsed advanced section
         full_schema = {
             **basic_schema,
-            vol.Required("advanced"): section(
+            vol.Required(ADVANCED_OPTIONS_SECTION): data_entry_flow.section(
                 vol.Schema(advanced_schema),
-                {"collapsed": True},
+                data_entry_flow.SectionConfig(collapsed=True),
             ),
         }
 
