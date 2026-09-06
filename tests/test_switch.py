@@ -1092,7 +1092,7 @@ async def test_apply_service(hass):
     assert entity_id not in switch.lights
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return max(1, (light._attr_brightness + 100) % 255)
 
     def increased_color_temp():
         return max(
