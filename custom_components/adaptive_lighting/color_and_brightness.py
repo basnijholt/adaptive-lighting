@@ -39,6 +39,7 @@ _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 # far from solar noon (polar night) or solar midnight (midnight sun), giving a
 # 1-hour synthetic "day" or "night" so the adaptation cycle keeps working.
 _POLAR_SUN_EVENT_OFFSET = timedelta(minutes=30)
+_POLAR_SUN_EVENT_EPSILON = timedelta(seconds=1)
 
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
@@ -66,6 +67,7 @@ class SunEvents:
         self,
         dt: datetime.date,
         event: Literal[SunEvent.SUNRISE, SunEvent.SUNSET],
+        offset: datetime.timedelta,
     ) -> datetime.datetime:
         """Return the astral sunrise/sunset, with a fallback for polar regions.
 
@@ -75,16 +77,22 @@ class SunEvents:
         or a 1-hour "night" around solar midnight (midnight sun), so the
         adaptation cycle keeps working. The `(min/max)_(sunrise/sunset)_time`
         options are applied on top of these synthetic times and can be used to
-        shape the resulting schedule.
+        shape the resulting schedule. Configured offsets are limited to the
+        surrounding solar midnight/noon interval so they cannot invert the
+        required event order.
         """
         astral_event = (
             astral.sun.sunrise if event == SunEvent.SUNRISE else astral.sun.sunset
         )
         try:
-            return astral_event(self.astral_observer, dt)
+            return astral_event(self.astral_observer, dt) + offset
         except ValueError:
             noon = astral.sun.noon(self.astral_observer, dt)
             midnight = astral.sun.midnight(self.astral_observer, dt)
+            next_midnight = astral.sun.midnight(
+                self.astral_observer,
+                dt + timedelta(days=1),
+            )
             noon_elevation = astral.sun.elevation(self.astral_observer, noon)
             midnight_elevation = astral.sun.elevation(self.astral_observer, midnight)
             # The sum of the sun's highest and lowest elevation of the day is
@@ -93,20 +101,35 @@ class SunEvents:
             # one elevation hovers around the horizon.
             if noon_elevation + midnight_elevation > 0:
                 # Midnight sun: the sun stays above the horizon all day.
-                if event == SunEvent.SUNRISE:
-                    return midnight + _POLAR_SUN_EVENT_OFFSET
-                return midnight + timedelta(hours=24) - _POLAR_SUN_EVENT_OFFSET
-            # Polar night: the sun stays below the horizon all day.
-            sign = -1 if event == SunEvent.SUNRISE else 1
-            return noon + sign * _POLAR_SUN_EVENT_OFFSET
+                synthetic = (
+                    midnight + _POLAR_SUN_EVENT_OFFSET
+                    if event == SunEvent.SUNRISE
+                    else next_midnight - _POLAR_SUN_EVENT_OFFSET
+                )
+            else:
+                # Polar night: the sun stays below the horizon all day.
+                sign = -1 if event == SunEvent.SUNRISE else 1
+                synthetic = noon + sign * _POLAR_SUN_EVENT_OFFSET
+
+            lower, upper = (
+                (midnight, noon) if event == SunEvent.SUNRISE else (noon, next_midnight)
+            )
+            return min(
+                max(synthetic + offset, lower + _POLAR_SUN_EVENT_EPSILON),
+                upper - _POLAR_SUN_EVENT_EPSILON,
+            )
 
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
         sunrise = (
-            self._astral_sunrise_or_sunset(dt, SunEvent.SUNRISE)
+            self._astral_sunrise_or_sunset(
+                dt,
+                SunEvent.SUNRISE,
+                self.sunrise_offset,
+            )
             if self.sunrise_time is None
-            else self._replace_time(dt, self.sunrise_time)
-        ) + self.sunrise_offset
+            else self._replace_time(dt, self.sunrise_time) + self.sunrise_offset
+        )
         if self.min_sunrise_time is not None:
             min_sunrise = self._replace_time(dt, self.min_sunrise_time)
             sunrise = max(min_sunrise, sunrise)
@@ -118,10 +141,14 @@ class SunEvents:
     def sunset(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunset time for the given datetime."""
         sunset = (
-            self._astral_sunrise_or_sunset(dt, SunEvent.SUNSET)
+            self._astral_sunrise_or_sunset(
+                dt,
+                SunEvent.SUNSET,
+                self.sunset_offset,
+            )
             if self.sunset_time is None
-            else self._replace_time(dt, self.sunset_time)
-        ) + self.sunset_offset
+            else self._replace_time(dt, self.sunset_time) + self.sunset_offset
+        )
         if self.min_sunset_time is not None:
             min_sunset = self._replace_time(dt, self.min_sunset_time)
             sunset = max(min_sunset, sunset)

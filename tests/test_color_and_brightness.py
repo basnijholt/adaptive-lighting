@@ -224,19 +224,28 @@ TROMSO = Location(
 )
 POLAR_NIGHT_DATE = dt.date(2026, 1, 7)
 MIDNIGHT_SUN_DATE = dt.date(2026, 7, 7)
+MCMURDO = Location(
+    LocationInfo(
+        name="McMurdo Station",
+        region="Antarctica",
+        timezone="Antarctica/McMurdo",
+        latitude=-77.8419,
+        longitude=166.6863,
+    ),
+)
 
 
-def _tromso_sun_events(**kwargs):
+def _polar_sun_events(location=TROMSO, **kwargs):
     defaults = {
         "name": "test",
-        "astral_observer": TROMSO.observer,
+        "astral_observer": location.observer,
         "sunrise_time": None,
         "min_sunrise_time": None,
         "max_sunrise_time": None,
         "sunset_time": None,
         "min_sunset_time": None,
         "max_sunset_time": None,
-        "timezone": zoneinfo.ZoneInfo("Europe/Oslo"),
+        "timezone": zoneinfo.ZoneInfo(location.timezone),
     }
     return SunEvents(**{**defaults, **kwargs})
 
@@ -245,7 +254,7 @@ def test_polar_night_synthesizes_short_day():
     # `astral` cannot compute sunrise/sunset (the sun never rises), see #1485
     with pytest.raises(ValueError):  # noqa: PT011
         astral.sun.sunrise(TROMSO.observer, POLAR_NIGHT_DATE)
-    sun_events = _tromso_sun_events()
+    sun_events = _polar_sun_events()
     noon = astral.sun.noon(TROMSO.observer, POLAR_NIGHT_DATE)
     assert sun_events.sunrise(POLAR_NIGHT_DATE) == noon - _POLAR_SUN_EVENT_OFFSET
     assert sun_events.sunset(POLAR_NIGHT_DATE) == noon + _POLAR_SUN_EVENT_OFFSET
@@ -255,13 +264,34 @@ def test_midnight_sun_synthesizes_short_night():
     # `astral` cannot compute sunrise/sunset (the sun never sets), see #1485
     with pytest.raises(ValueError):  # noqa: PT011
         astral.sun.sunset(TROMSO.observer, MIDNIGHT_SUN_DATE)
-    sun_events = _tromso_sun_events()
+    sun_events = _polar_sun_events()
     midnight = astral.sun.midnight(TROMSO.observer, MIDNIGHT_SUN_DATE)
+    next_midnight = astral.sun.midnight(
+        TROMSO.observer,
+        MIDNIGHT_SUN_DATE + dt.timedelta(days=1),
+    )
     assert sun_events.sunrise(MIDNIGHT_SUN_DATE) == midnight + _POLAR_SUN_EVENT_OFFSET
     assert (
-        sun_events.sunset(MIDNIGHT_SUN_DATE)
-        == midnight + dt.timedelta(hours=24) - _POLAR_SUN_EVENT_OFFSET
+        sun_events.sunset(MIDNIGHT_SUN_DATE) == next_midnight - _POLAR_SUN_EVENT_OFFSET
     )
+
+
+@pytest.mark.parametrize(
+    ("date", "midnight_sun"),
+    [(dt.date(2026, 1, 7), True), (dt.date(2026, 7, 7), False)],
+)
+def test_polar_fallback_handles_southern_hemisphere(date, midnight_sun):
+    sun_events = _polar_sun_events(MCMURDO)
+    noon = astral.sun.noon(MCMURDO.observer, date)
+    midnight = astral.sun.midnight(MCMURDO.observer, date)
+    next_midnight = astral.sun.midnight(MCMURDO.observer, date + dt.timedelta(days=1))
+
+    if midnight_sun:
+        assert sun_events.sunrise(date) == midnight + _POLAR_SUN_EVENT_OFFSET
+        assert sun_events.sunset(date) == next_midnight - _POLAR_SUN_EVENT_OFFSET
+    else:
+        assert sun_events.sunrise(date) == noon - _POLAR_SUN_EVENT_OFFSET
+        assert sun_events.sunset(date) == noon + _POLAR_SUN_EVENT_OFFSET
 
 
 def test_boundary_day_with_real_sunrise_and_synthetic_sunset():
@@ -273,14 +303,14 @@ def test_boundary_day_with_real_sunrise_and_synthetic_sunset():
     astral.sun.sunrise(TROMSO.observer, date)  # does not raise
     with pytest.raises(ValueError):  # noqa: PT011
         astral.sun.sunset(TROMSO.observer, date)
-    sun_events = _tromso_sun_events()
+    sun_events = _polar_sun_events()
     day_length = sun_events.sunset(date) - sun_events.sunrise(date)
     assert day_length > dt.timedelta(hours=22)
 
 
 @pytest.mark.parametrize("date", [POLAR_NIGHT_DATE, MIDNIGHT_SUN_DATE])
 def test_sun_position_on_polar_days(date):
-    sun_events = _tromso_sun_events()
+    sun_events = _polar_sun_events()
     datetime = dt.datetime(date.year, date.month, date.day, tzinfo=dt.timezone.utc)
     noon, midnight = sun_events.noon_and_midnight(datetime)
     assert sun_events.sun_position(noon) == 1
@@ -292,7 +322,7 @@ def test_sun_position_on_polar_days(date):
 def test_polar_night_min_max_times_shape_the_synthetic_day():
     # The (min/max)_(sunrise/sunset)_time options apply on top of the
     # synthetic sun events, so users can still shape their schedule.
-    sun_events = _tromso_sun_events(
+    sun_events = _polar_sun_events(
         max_sunrise_time=dt.time(9, 0),
         min_sunset_time=dt.time(17, 0),
         timezone=dt.timezone.utc,
@@ -303,10 +333,56 @@ def test_polar_night_min_max_times_shape_the_synthetic_day():
     assert sun_events.sunset(POLAR_NIGHT_DATE) == expected_sunset
 
 
+@pytest.mark.parametrize("date", [POLAR_NIGHT_DATE, MIDNIGHT_SUN_DATE])
+@pytest.mark.parametrize(
+    ("sunrise_offset", "sunset_offset"),
+    [
+        (dt.timedelta(hours=-20), dt.timedelta(hours=-20)),
+        (dt.timedelta(hours=-20), dt.timedelta(hours=20)),
+        (dt.timedelta(hours=20), dt.timedelta(hours=-20)),
+        (dt.timedelta(hours=20), dt.timedelta(hours=20)),
+    ],
+)
+def test_polar_offsets_cannot_invert_event_order(
+    date,
+    sunrise_offset,
+    sunset_offset,
+):
+    sun_events = _polar_sun_events(
+        sunrise_offset=sunrise_offset,
+        sunset_offset=sunset_offset,
+    )
+
+    events = dict(
+        sun_events.sun_events(dt.datetime.combine(date, dt.time(), tzinfo=dt.UTC)),
+    )
+    midnight = dt.datetime.fromtimestamp(events[SunEvent.MIDNIGHT], tz=dt.UTC)
+    next_midnight = astral.sun.midnight(TROMSO.observer, date + dt.timedelta(days=1))
+    noon = dt.datetime.fromtimestamp(events[SunEvent.NOON], tz=dt.UTC)
+    sunrise = dt.datetime.fromtimestamp(events[SunEvent.SUNRISE], tz=dt.UTC)
+    sunset = dt.datetime.fromtimestamp(events[SunEvent.SUNSET], tz=dt.UTC)
+
+    assert midnight < sunrise < noon < sunset < next_midnight
+
+
+def test_polar_fallback_applies_offsets_within_solar_anchors():
+    offset = dt.timedelta(minutes=15)
+    plain = _polar_sun_events()
+    shifted = _polar_sun_events(
+        sunrise_offset=offset,
+        sunset_offset=offset,
+    )
+
+    assert (
+        shifted.sunrise(MIDNIGHT_SUN_DATE) - plain.sunrise(MIDNIGHT_SUN_DATE) == offset
+    )
+    assert shifted.sunset(MIDNIGHT_SUN_DATE) - plain.sunset(MIDNIGHT_SUN_DATE) == offset
+
+
 def test_sun_position_all_year_in_polar_region():
     # Covers the transitions into and out of polar night and midnight sun;
     # `sun_position` internally validates the order of the sun events.
-    sun_events = _tromso_sun_events()
+    sun_events = _polar_sun_events()
     datetime = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
     end = dt.datetime(2027, 1, 1, tzinfo=dt.timezone.utc)
     while datetime < end:
