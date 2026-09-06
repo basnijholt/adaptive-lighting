@@ -1278,6 +1278,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "davidgeiger",
+      "name": "David Geiger",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5699049?v=4",
+      "profile": "https://github.com/davidgeiger",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
