@@ -48,6 +48,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
+    CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
@@ -113,7 +114,7 @@ from homeassistant.const import (
     STATE_ON,
     EntityCategory,
 )
-from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.core import Context, CoreState, Event, HomeAssistant, State
 from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
@@ -894,6 +895,135 @@ async def test_manual_control(
     state_attrs = hass.states.get(switch.entity_id).attributes
     assert state_attrs["manual_control_brightness"] == []
     assert state_attrs["manual_control_color"] == [ENTITY_LIGHT_1]
+
+
+async def test_sleep_mode_does_not_emit_manual_control_event(hass):
+    """Sleep adaptation is internal; only an external change emits manual control."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_INTERCEPT: True,
+            CONF_SLEEP_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    events = []
+    remove_listener = hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    for service, brightness in [(SERVICE_TURN_ON, 3), (SERVICE_TURN_OFF, 128)]:
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            service,
+            {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == brightness
+        assert hass.states.get(switch.entity_id).attributes["manual_control"] == []
+        assert events == []
+
+    # Positive control: the same live listener must see a real manual change.
+    context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 77},
+        context=context,
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    remove_listener()
+    assert len(events) == 1
+    assert events[0].context == context
+    assert events[0].data == {
+        ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+        SWITCH_DOMAIN: switch.entity_id,
+        CONF_MANUAL_CONTROL: LightControlAttributes.BRIGHTNESS,
+    }
+
+
+async def test_reload_cancels_old_manual_reset_and_keeps_service_tracking(hass):
+    """An unloaded timer must not re-adapt the replacement profile's light."""
+    await setup_lights(hass)
+    entry, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_AUTORESET_CONTROL: 60,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    old_timer = switch.manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1]
+    assert old_timer.is_running()
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert not old_timer.is_running()
+    new_switch = hass.data[DOMAIN][entry.entry_id][SWITCH_DOMAIN]
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 128
+
+    events = []
+    remove_listener = hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 99},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    remove_listener()
+    assert len(events) == 1
+    assert events[0].data[SWITCH_DOMAIN] == new_switch.entity_id
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 99
+    assert hass.states.get(new_switch.entity_id).attributes[
+        "manual_control_brightness"
+    ] == [ENTITY_LIGHT_1]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_manual_control_expiry_does_not_adapt_disabled_profile(hass):
+    """Expiry clears ownership without sending light commands for a disabled profile."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_AUTORESET_CONTROL: 1},
+    )
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: switch.entity_id},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_MANUAL_CONTROL: True},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+    light_before = hass.states.get(ENTITY_LIGHT_1)
+    calls = []
+    remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, calls.append)
+    timer = switch.manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1]
+    await timer.task
+    await hass.async_block_till_done()
+    remove_listener()
+    assert not timer.is_running()
+    assert hass.states.get(switch.entity_id).state == STATE_OFF
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+    assert hass.states.get(ENTITY_LIGHT_1) == light_before
+    assert not [event for event in calls if event.data["domain"] == LIGHT_DOMAIN]
 
 
 @pytest.mark.parametrize("reset_on_sleep", [None, True, False])
@@ -3301,6 +3431,57 @@ async def test_expand_light_groups_waits_for_group_state(hass):
     hass.states.async_set(group, STATE_ON, {ATTR_ENTITY_ID: members})
 
     assert _expand_light_groups(hass, [group]) == members
+
+
+async def test_group_created_during_startup_tracks_manual_member_changes(hass):
+    """A profile loaded before its group must track members once HA starts."""
+    hass.set_state(CoreState.not_running)
+    await setup_lights(hass)
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: ["light.light_group"],
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    group_entry = MockConfigEntry(
+        domain="group",
+        title="Light Group",
+        data={},
+        options={"group_type": "light", "entities": [ENTITY_LIGHT_2, ENTITY_LIGHT_3]},
+    )
+    group_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(group_entry.entry_id)
+    await hass.async_start()
+    await hass.async_block_till_done()
+
+    # Target the member directly. A still-unexpanded group would miss this call.
+    member = ENTITY_LIGHT_3
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: member},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(member).attributes[ATTR_BRIGHTNESS] == 128
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: member, ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert hass.states.get(member).attributes[ATTR_BRIGHTNESS] == 77
+    assert hass.states.get(switch.entity_id).attributes[
+        "manual_control_brightness"
+    ] == [member]
 
 
 @pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])
