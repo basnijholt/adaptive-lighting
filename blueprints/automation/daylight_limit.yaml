@@ -1,0 +1,112 @@
+blueprint:
+  name: "Adaptive Lighting: limit brightness in daylight"
+  description: >-
+    Lower a profile's maximum brightness in strong daylight and restore the
+    chosen normal maximum when daylight falls. Separate lux thresholds prevent
+    repeated changes near a single threshold. Use a sensor not significantly
+    affected by the controlled lights. Keep the daylight maximum at or above
+    the profile's minimum unless you want an inverted brightness curve.
+    Startup waits up to five minutes for a numeric sensor reading; a reading
+    between the thresholds leaves the configured maximum unchanged.
+  domain: automation
+  homeassistant:
+    min_version: "2025.9.0"
+  input:
+    adaptive_switch:
+      name: Adaptive Lighting profile
+      description: Select the main profile switch, not a sleep or adaptation switch.
+      selector:
+        entity:
+          filter:
+            domain: switch
+            integration: adaptive_lighting
+    illuminance_sensor:
+      name: Illuminance sensor
+      selector:
+        entity:
+          filter:
+            domain: sensor
+            device_class: illuminance
+    high_lux:
+      name: Strong daylight threshold
+      description: Must be greater than the low daylight threshold.
+      default: 300
+      selector:
+        number:
+          min: 0
+          max: 200000
+          mode: box
+          unit_of_measurement: lx
+    low_lux:
+      name: Low daylight threshold
+      default: 200
+      selector:
+        number:
+          min: 0
+          max: 200000
+          mode: box
+          unit_of_measurement: lx
+    daylight_maximum:
+      name: Maximum brightness in strong daylight
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+          unit_of_measurement: "%"
+    normal_maximum:
+      name: Normal maximum brightness
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+          unit_of_measurement: "%"
+
+mode: restart
+variables:
+  illuminance_sensor: !input illuminance_sensor
+  high_lux: !input high_lux
+  low_lux: !input low_lux
+triggers:
+  - trigger: numeric_state
+    entity_id: !input illuminance_sensor
+    above: !input high_lux
+  - trigger: numeric_state
+    entity_id: !input illuminance_sensor
+    below: !input low_lux
+  - trigger: homeassistant
+    event: start
+    id: startup
+conditions:
+  - condition: template
+    value_template: "{{ high_lux > low_lux }}"
+actions:
+  - if:
+      - condition: trigger
+        id: startup
+    then:
+      - wait_template: "{{ is_number(states(illuminance_sensor)) }}"
+        timeout: "00:05:00"
+        continue_on_timeout: false
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input illuminance_sensor
+            above: !input high_lux
+        sequence:
+          - action: adaptive_lighting.change_switch_settings
+            data:
+              entity_id: !input adaptive_switch
+              max_brightness: !input daylight_maximum
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input illuminance_sensor
+            below: !input low_lux
+        sequence:
+          - action: adaptive_lighting.change_switch_settings
+            data:
+              entity_id: !input adaptive_switch
+              max_brightness: !input normal_maximum

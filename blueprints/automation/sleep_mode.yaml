@@ -1,0 +1,41 @@
+blueprint:
+  name: "Adaptive Lighting: synchronize sleep mode"
+  description: >-
+    Keep the selected Adaptive Lighting sleep-mode switches in sync with an
+    input boolean, including its restored state at Home Assistant startup.
+    Unknown or unavailable helper states are ignored. Select only sleep-mode
+    switches, not the main profile or adaptation switches.
+  domain: automation
+  homeassistant:
+    min_version: "2025.9.0"
+  input:
+    sleep_helper:
+      name: Sleep-mode helper
+      selector:
+        entity:
+          filter:
+            domain: input_boolean
+    sleep_switches:
+      name: Adaptive Lighting sleep-mode switches
+      selector:
+        entity:
+          multiple: true
+          filter:
+            domain: switch
+            integration: adaptive_lighting
+
+triggers:
+  - trigger: state
+    entity_id: !input sleep_helper
+  - trigger: homeassistant
+    event: start
+variables:
+  sleep_helper: !input sleep_helper
+  sleep_mode: "{{ states(sleep_helper) }}"
+conditions:
+  - condition: template
+    value_template: "{{ sleep_mode in ['on', 'off'] }}"
+actions:
+  - action: "switch.turn_{{ sleep_mode }}"
+    target:
+      entity_id: !input sleep_switches
