@@ -1224,6 +1224,96 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "cperuffo3",
+      "name": "Corey Peruffo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/87686305?v=4",
+      "profile": "https://github.com/cperuffo3",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "imwithsam",
+      "name": "Samson Brock",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1934074?v=4",
+      "profile": "http://badmotivator.io/",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Dennis-Dekker",
+      "name": "Dennis Dekker",
+      "avatar_url": "https://avatars.githubusercontent.com/u/48018095?v=4",
+      "profile": "https://github.com/Dennis-Dekker",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "proscar87",
+      "name": "proscar87",
+      "avatar_url": "https://avatars.githubusercontent.com/u/68169114?v=4",
+      "profile": "https://github.com/proscar87",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "jaredjxyz",
+      "name": "Jared Jensen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10385335?v=4",
+      "profile": "http://jaredj.xyz/",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "mueslo",
+      "name": "mueslo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/847751?v=4",
+      "profile": "https://github.com/mueslo",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "marijneken",
+      "name": "Marijn Eken",
+      "avatar_url": "https://avatars.githubusercontent.com/u/928998?v=4",
+      "profile": "https://github.com/marijneken",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "kasiom",
+      "name": "Milan K.",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2422245?v=4",
+      "profile": "https://github.com/kasiom",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "callistoprime",
+      "name": "Callisto",
+      "avatar_url": "https://avatars.githubusercontent.com/u/178052328?v=4",
+      "profile": "https://github.com/callistoprime",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "davidgeiger",
+      "name": "David Geiger",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5699049?v=4",
+      "profile": "https://github.com/davidgeiger",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
