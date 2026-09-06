@@ -46,6 +46,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_PREFER_RGB_COLOR,
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     CONF_SEPARATE_TURN_ON_COMMANDS,
+    CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
     CONF_SUNRISE_TIME,
@@ -90,6 +91,7 @@ from homeassistant.components.light import (
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
     SERVICE_TURN_OFF,
+    ColorMode,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -4301,3 +4303,351 @@ async def test_intercept_preserves_area_target_exclusions(
             assert target_state.attributes[ATTR_BRIGHTNESS] == 128
         else:
             assert target_state.attributes.get(ATTR_BRIGHTNESS) != 128
+
+
+@pytest.mark.parametrize("split", [False, True])
+@pytest.mark.parametrize("target_group", [False, True])
+@pytest.mark.parametrize("skip_redundant", [False, True])
+async def test_multi_light_intercept_adapts_every_member(
+    hass,
+    split,
+    target_group,
+    skip_redundant,
+    cleanup,
+):
+    """Each member receives brightness and color, including split follow-up calls."""
+    lights = await setup_lights(hass, with_group=True)
+    # The second member already has target brightness; its color still needs work.
+    set_light_brightness(lights[4], 171)
+    lights[4].async_write_ha_state()
+    members = ["light.light_4", "light.light_5"]
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: members,
+            CONF_INTERCEPT: True,
+            CONF_MULTI_LIGHT_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: split,
+            CONF_SKIP_REDUNDANT_COMMANDS: skip_redundant,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        "multi_light_split",
+        "light.light_group" if target_group else members,
+        return_full_events=True,
+    )
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    if split:
+        color_targets = {
+            event.data["service_data"][ATTR_ENTITY_ID]
+            for event in events
+            if ATTR_COLOR_TEMP_KELVIN in event.data["service_data"]
+        }
+        assert color_targets == set(members)
+    for entity_id in members:
+        state = hass.states.get(entity_id)
+        assert state.state == STATE_ON
+        assert state.attributes[ATTR_BRIGHTNESS] == 171
+        assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
+
+
+@pytest.mark.parametrize("physical_off", [False, True])
+async def test_split_command_stays_off_after_turn_off(hass, physical_off):
+    """An actual OFF between brightness and color cancels the pending command."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {CONF_INTERCEPT: True, CONF_SEPARATE_TURN_ON_COMMANDS: True},
+        all_lights=True,
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        "split_then_off",
+        ENTITY_LIGHT_3,
+        return_full_events=True,
+    )
+    assert len(events) == 1
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_ON
+    if physical_off:
+        # Device reports may retain the context of the preceding turn-on.
+        state = hass.states.get(ENTITY_LIGHT_3)
+        hass.states.async_set(
+            ENTITY_LIGHT_3,
+            STATE_OFF,
+            state.attributes,
+            context=Context(id="split_then_off"),
+        )
+    else:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    turn_on_events = [
+        event for event in events if event.data["service"] == SERVICE_TURN_ON
+    ]
+    assert len(turn_on_events) == 1
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+
+
+@pytest.mark.parametrize("brightness_only_member", [0, 1])
+async def test_multi_light_split_with_brightness_only_member(
+    hass,
+    brightness_only_member,
+    cleanup,
+):
+    """A brightness-only member must not consume another member's color command."""
+    lights = await setup_lights(hass, with_group=True)
+    members = ["light.light_4", "light.light_5"]
+    light = lights[3 + brightness_only_member]
+    # Legacy YAML support outlived the old entity storage fields.
+    if hasattr(light, "_supported_color_modes"):
+        light._supported_color_modes = {ColorMode.BRIGHTNESS}
+        light._color_mode = ColorMode.BRIGHTNESS
+    else:
+        light._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+        light._attr_color_mode = ColorMode.BRIGHTNESS
+    light.async_write_ha_state()
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: members,
+            CONF_INTERCEPT: True,
+            CONF_MULTI_LIGHT_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+    events = await _turn_on_and_track_event_contexts(
+        hass,
+        "mixed_split",
+        members,
+        return_full_events=True,
+    )
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+    color_targets = [
+        event.data["service_data"][ATTR_ENTITY_ID]
+        for event in events
+        if ATTR_COLOR_TEMP_KELVIN in event.data["service_data"]
+    ]
+    assert color_targets == [members[1 - brightness_only_member]]
+    for entity_id in members:
+        state = hass.states.get(entity_id)
+        assert state.state == STATE_ON
+        assert state.attributes[ATTR_BRIGHTNESS] == 171
+    assert (
+        hass.states.get(members[1 - brightness_only_member]).attributes[
+            ATTR_COLOR_TEMP_KELVIN
+        ]
+        == 3448
+    )
+
+
+@pytest.mark.parametrize("off_member", [0, 1])
+@pytest.mark.parametrize("physical_off", [False, True])
+async def test_multi_light_split_cancels_only_member_turned_off(
+    hass,
+    off_member,
+    physical_off,
+    cleanup,
+):
+    """An OFF member stays off while the other finishes its color adaptation."""
+    await setup_lights(hass, with_group=True)
+    members = ["light.light_4", "light.light_5"]
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: members,
+            CONF_INTERCEPT: True,
+            CONF_MULTI_LIGHT_INTERCEPT: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+    resume = asyncio.Event()
+    original_execute = switch._execute_adaptation_calls
+
+    async def wait_before_followup(data):
+        await resume.wait()
+        await original_execute(data)
+
+    with patch.object(switch, "_execute_adaptation_calls", new=wait_before_followup):
+        events = await _turn_on_and_track_event_contexts(
+            hass,
+            "member_off",
+            members,
+            return_full_events=True,
+        )
+        off_entity = members[off_member]
+        state = hass.states.get(off_entity)
+        assert state.state == STATE_ON
+        if physical_off:
+            hass.states.async_set(
+                off_entity,
+                STATE_OFF,
+                state.attributes,
+                context=Context(id="member_off"),
+            )
+        else:
+            await hass.services.async_call(
+                LIGHT_DOMAIN,
+                SERVICE_TURN_OFF,
+                {ATTR_ENTITY_ID: off_entity},
+                blocking=True,
+            )
+        await hass.async_block_till_done()
+        resume.set()
+        await asyncio.gather(*switch.manager.adaptation_tasks)
+        await hass.async_block_till_done()
+
+    color_targets = [
+        event.data["service_data"][ATTR_ENTITY_ID]
+        for event in events
+        if ATTR_COLOR_TEMP_KELVIN in event.data["service_data"]
+    ]
+    assert color_targets == [members[1 - off_member]]
+    assert hass.states.get(off_entity).state == STATE_OFF
+    other_state = hass.states.get(members[1 - off_member])
+    assert other_state.state == STATE_ON
+    assert other_state.attributes[ATTR_BRIGHTNESS] == 171
+    assert other_state.attributes[ATTR_COLOR_TEMP_KELVIN] == 3448
+
+
+@pytest.mark.parametrize(
+    "off_action",
+    [SERVICE_TURN_OFF, SERVICE_TOGGLE, "physical", "transition"],
+)
+async def test_forced_split_apply_stays_off(hass, off_action, cleanup):
+    """Even forced apply must cancel its remaining color command after OFF."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {CONF_INTERCEPT: True, CONF_SEPARATE_TURN_ON_COMMANDS: True},
+        all_lights=True,
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+    events = []
+    light_on = asyncio.Event()
+    waiting_for_color = asyncio.Event()
+    resume = asyncio.Event()
+    calls_read = 0
+    original_next = AdaptationData.next_service_call_data
+
+    async def next_with_color_barrier(data):
+        nonlocal calls_read
+        calls_read += 1
+        if calls_read == 2:
+            waiting_for_color.set()
+            await resume.wait()
+        return await original_next(data)
+
+    async def track_service(event):
+        if event.data["domain"] == LIGHT_DOMAIN:
+            events.append(event)
+
+    async def track_state(event):
+        if (
+            event.data[ATTR_ENTITY_ID] == ENTITY_LIGHT_3
+            and event.data["new_state"] is not None
+            and event.data["new_state"].state == STATE_ON
+        ):
+            light_on.set()
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, track_service)
+    hass.bus.async_listen(EVENT_STATE_CHANGED, track_state)
+    with patch.object(
+        AdaptationData,
+        "next_service_call_data",
+        new=next_with_color_barrier,
+    ):
+        applying = asyncio.create_task(
+            hass.services.async_call(
+                DOMAIN,
+                SERVICE_APPLY,
+                {
+                    ATTR_ENTITY_ID: switch.entity_id,
+                    CONF_LIGHTS: [ENTITY_LIGHT_3],
+                    CONF_TURN_ON_LIGHTS: True,
+                },
+                blocking=True,
+            ),
+        )
+        await asyncio.wait_for(waiting_for_color.wait(), timeout=1)
+        await asyncio.wait_for(light_on.wait(), timeout=1)
+        if off_action == "physical":
+            state = hass.states.get(ENTITY_LIGHT_3)
+            hass.states.async_set(
+                ENTITY_LIGHT_3,
+                STATE_OFF,
+                state.attributes,
+                context=state.context,
+            )
+        else:
+            service_data = {ATTR_ENTITY_ID: ENTITY_LIGHT_3}
+            if off_action == "transition":
+                service_data[ATTR_TRANSITION] = 1
+            await hass.services.async_call(
+                LIGHT_DOMAIN,
+                SERVICE_TURN_OFF if off_action == "transition" else off_action,
+                service_data,
+                blocking=True,
+            )
+        await hass.async_block_till_done()
+        resume.set()
+        await applying
+        await hass.async_block_till_done()
+
+    turn_on_events = [
+        event for event in events if event.data["service"] == SERVICE_TURN_ON
+    ]
+    assert len(turn_on_events) == 1
+    assert ATTR_BRIGHTNESS in turn_on_events[0].data["service_data"]
+    assert ATTR_COLOR_TEMP_KELVIN not in turn_on_events[0].data["service_data"]
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF

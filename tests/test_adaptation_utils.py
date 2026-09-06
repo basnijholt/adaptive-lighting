@@ -554,3 +554,50 @@ def test_get_light_control_attributes(
 ):
     """Test determination of light control attributes."""
     assert get_light_control_attributes(service_data) == expected_flags
+
+
+@pytest.mark.parametrize(
+    ("already_applied", "expected"),
+    [
+        (
+            LightControlAttributes.BRIGHTNESS,
+            [
+                {
+                    ATTR_ENTITY_ID: "light.test",
+                    ATTR_COLOR_TEMP_KELVIN: 3448,
+                    ATTR_TRANSITION: 1,
+                },
+            ],
+        ),
+        (
+            LightControlAttributes.COLOR,
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 171, ATTR_TRANSITION: 1}],
+        ),
+        (LightControlAttributes.ALL, []),
+    ],
+)
+async def test_remaining_split_commands_preserve_transition(
+    hass,
+    already_applied,
+    expected,
+):
+    """Removing the shared command must not redistribute its transition time."""
+    data = prepare_adaptation_data(
+        hass,
+        "light.test",
+        Context(),
+        transition=2,
+        split_delay=0.1,
+        service_data={
+            ATTR_ENTITY_ID: "light.test",
+            ATTR_BRIGHTNESS: 171,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            ATTR_TRANSITION: 2,
+        },
+        split=True,
+        filter_by_state=False,
+        force=False,
+        already_applied=already_applied,
+    )
+    assert [command async for command in data.service_call_datas] == expected
+    assert data.sleep_time == 1.1

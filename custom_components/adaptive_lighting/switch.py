@@ -1272,6 +1272,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         prefer_rgb_color: bool | None = None,
         force: bool = False,
         context: Context | None = None,
+        already_applied: LightControlAttributes = LightControlAttributes.NONE,
     ) -> AdaptationData | None:
         """Prepare `AdaptationData` for adapting a light."""
         adaptation_attributes = self.manager.get_adaption_control_attributes(
@@ -1365,6 +1366,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             split=self._separate_turn_on_commands,
             filter_by_state=self._skip_redundant_commands,
             force=force,
+            already_applied=already_applied,
         )
 
     async def _adapt_light(
@@ -2216,18 +2218,31 @@ class AdaptiveLightingManager:
         # We cannot know here whether there is another call to follow (since the
         # state can change until the next call), so we just schedule it and let
         # it sort out by itself.
-        for entity_id in entity_ids:
+        already_applied = get_light_control_attributes(first_service_data)
+        for index, entity_id in enumerate(entity_ids):
             self.set_proactively_adapting(call.context.id, entity_id)
+            if index:
+                # Each member needs its own remaining commands and cancellation.
+                # Consuming its first iterator item could discard a color command
+                # when only the shared brightness command has been applied.
+                adaptation_data = await switch.prepare_adaptation_data(
+                    entity_id,
+                    transition,
+                    context=switch.create_context("adapt_lights", parent=call.context),
+                    already_applied=already_applied,
+                )
+                if adaptation_data is None or not adaptation_data.max_length:
+                    continue
             self.set_proactively_adapting(adaptation_data.context.id, entity_id)
-        adaptation_data.initial_sleep = True
+            adaptation_data.initial_sleep = True
 
-        # Don't await to avoid blocking the service call.
-        # Assign to a variable only to await in tests.
-        self.adaptation_tasks.add(
-            asyncio.create_task(
-                switch.execute_cancellable_adaptation_calls(adaptation_data),
-            ),
-        )
+            # Don't await to avoid blocking the service call.
+            # Assign to a variable only to await in tests.
+            self.adaptation_tasks.add(
+                asyncio.create_task(
+                    switch.execute_cancellable_adaptation_calls(adaptation_data),
+                ),
+            )
         # Remove tasks that are done
         if done_tasks := [t for t in self.adaptation_tasks if t.done()]:
             self.adaptation_tasks.difference_update(done_tasks)
