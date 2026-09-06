@@ -265,28 +265,24 @@ The following keys are disallowed:
 <!-- SECTION:automation-examples:START -->
 ## :robot: Automation examples
 
+Replace every entity ID below with the IDs from your Home Assistant instance. Fresh Adaptive Lighting profiles use child IDs such as `switch.adaptive_lighting_living_room_sleep_mode`; profiles created before the device-based entity change may retain older IDs.
+
+Blocks that begin with `- alias` are entries for `automations.yaml`. Blocks with a top-level `script:` key are complete `configuration.yaml` examples. If your configuration uses `script: !include scripts.yaml`, omit that outer key and place its contents in `scripts.yaml`.
+
 <details markdown="1">
-<summary>Reset the <code>manual_control</code> status of a light after an hour.</summary>
+<summary>Automatically reset manual control after one hour.</summary>
+
+Use the built-in timeout so every new manual change renews a single timer for that light:
 
 ```yaml
-- alias: "Adaptive lighting: reset manual_control after 1 hour"
-  mode: parallel
-  trigger:
-    platform: event
-    event_type: adaptive_lighting.manual_control
-  variables:
-    light: "{{ trigger.event.data.entity_id }}"
-    switch: "{{ trigger.event.data.switch }}"
-  action:
-    - delay: "01:00:00"
-    - condition: template
-      value_template: "{{ light in state_attr(switch, 'manual_control') }}"
-    - service: adaptive_lighting.set_manual_control
-      data:
-        entity_id: "{{ switch }}"
-        lights: "{{ light }}"
-        manual_control: false
+adaptive_lighting:
+  - name: "Living Room"
+    lights:
+      - light.living_room
+    autoreset_control_seconds: 3600
 ```
+
+This is a top-level `configuration.yaml` example. The timer clears manual control and immediately readapts a light when both it and the Adaptive Lighting switch are on.
 
 </details>
 
@@ -299,14 +295,18 @@ The following keys are disallowed:
     - platform: state
       entity_id: input_boolean.sleep_mode
     - platform: homeassistant
-      event: start  # in case the states aren't properly restored
+      event: start  # apply the helper's restored state
   variables:
     sleep_mode: "{{ states('input_boolean.sleep_mode') }}"
-  action:
-    service: "switch.turn_{{ sleep_mode }}"
-    entity_id:
-      - switch.adaptive_lighting_sleep_mode_living_room
-      - switch.adaptive_lighting_sleep_mode_bedroom
+  conditions:
+    - condition: template
+      value_template: "{{ sleep_mode in ['on', 'off'] }}"
+  actions:
+    - action: "switch.turn_{{ sleep_mode }}"
+      target:
+        entity_id:
+          - switch.adaptive_lighting_living_room_sleep_mode
+          - switch.adaptive_lighting_bedroom_sleep_mode
 ```
 
 </details>
@@ -314,55 +314,22 @@ The following keys are disallowed:
 <details markdown="1">
 <summary>Set sunrise and sunset from an alarm.</summary>
 
-Set your sunrise and sunset time based on your alarm. The below script sets sunset_time exactly 12 hours after the custom sunrise time.
+Call this script from your alarm automation. It sets one Adaptive Lighting profile's sunrise to the current time and its sunset to 12 hours later on the local clock.
 
 ```yaml
-iphone_carly_wakeup:
-  alias: iPhone Carly Wakeup
-  sequence:
-    - condition: state
-      entity_id: input_boolean.carly_iphone_wakeup
-      state: "off"
-    - service: input_datetime.set_datetime
-      target:
-        entity_id: input_datetime.carly_iphone_wakeup
-      data:
-        time: '{{ now().strftime("%H:%M:%S") }}'
-    - service: input_boolean.turn_on
-      target:
-        entity_id: input_boolean.carly_iphone_wakeup
-    - repeat:
-        count: >
-          {{ (states.switch
-              | map(attribute="entity_id")
-              | select(">","switch.adaptive_lighting_al_")
-              | select("<", "switch.adaptive_lighting_al_z")
-              | join(",")
-             ).split(",") | length }}
-        sequence:
-          - service: adaptive_lighting.change_switch_settings
-            data:
-              entity_id: switch.adaptive_lighting_al_den_ceilingfan_lights
-              sunrise_time: '{{ now().strftime("%H:%M:%S") }}'
-              sunset_time: >
-                {{ (as_timestamp(now()) + 12*60*60) | timestamp_custom("%H:%M:%S") }}
-    - service: script.turn_on
-      target:
-        entity_id: script.run_wakeup_routine
-    - service: input_boolean.turn_off
-      target:
-        entity_id:
-          - input_boolean.carly_iphone_winddown
-          - input_boolean.carly_iphone_bedtime
-    - service: input_datetime.set_datetime
-      target:
-        entity_id: input_datetime.wakeup_time
-      data:
-        time: '{{ now().strftime("%H:%M:%S") }}'
-    - service: script.adaptive_lighting_disable_sleep_mode
-  mode: queued
-  icon: mdi:weather-sunset
-  max: 10
+script:
+  set_adaptive_lighting_alarm_times:
+    alias: "Adaptive lighting: set times from alarm"
+    variables:
+      alarm_time: '{{ now().strftime("%H:%M:%S") }}'
+    sequence:
+      - action: adaptive_lighting.change_switch_settings
+        data:
+          entity_id: switch.adaptive_lighting_alarm_lights
+          sunrise_time: "{{ alarm_time }}"
+          sunset_time: >
+            {{ (strptime(alarm_time, "%H:%M:%S") + timedelta(hours=12))
+               .strftime("%H:%M:%S") }}
 ```
 
 </details>
@@ -413,6 +380,8 @@ Use different values for each block. The automation below applies the active blo
 ```
 
 This creates step changes at block boundaries. It does not interpolate between schedule points. Runtime settings also reset when Home Assistant restarts, so the startup trigger reapplies the active block. The default branch restores every configured setting; restore only the four fields explicitly if other automations also change runtime settings.
+
+The service updates the profile even while its main switch is off, but the profile adapts lights only while that switch is on. Changing settings does not clear manual control, so a manually controlled light remains paused.
 
 </details>
 
@@ -490,14 +459,16 @@ script:
           transition: 0
 ```
 
-This requires Home Assistant to receive the button event. Adaptive Lighting does not update scenes stored on the Hue Bridge, so scenes activated only inside Hue cannot use this script and retain Hue's operation when Home Assistant is unavailable.
+This requires Home Assistant to receive the button event. The one-shot `apply` call works while the main Adaptive Lighting switch is off, turns on the listed lights, and applies values even if a light is marked as manually controlled. It leaves the profile switch and manual-control state unchanged.
+
+Adaptive Lighting does not update scenes stored on the Hue Bridge, so scenes activated only inside Hue cannot use this script and retain Hue's operation when Home Assistant is unavailable.
 
 </details>
 
 <details markdown="1">
 <summary>Use a fixed RGB stage before sleep mode.</summary>
 
-This script starts sleep mode with a fixed dim red color, waits 30 minutes, and then restores the configured Adaptive Lighting settings.
+This script starts sleep mode with a fixed dim red color, waits 30 minutes, and then restores the configured Adaptive Lighting settings. The main profile switch and the light must already be on.
 
 ```yaml
 script:
@@ -513,7 +484,7 @@ script:
           sleep_brightness: 20
       - action: switch.turn_on
         target:
-          entity_id: switch.adaptive_lighting_sleep_mode_bedroom
+          entity_id: switch.adaptive_lighting_bedroom_sleep_mode
       - delay: "00:30:00"
       - action: adaptive_lighting.change_switch_settings
         data:
@@ -521,7 +492,9 @@ script:
           use_defaults: configuration
 ```
 
-The first stage uses a fixed brightness rather than following the normal brightness curve. Restoring configuration defaults resets every runtime setting on this Adaptive Lighting switch, so restore only the sleep fields explicitly if other automations also change runtime settings. A Home Assistant restart or script reload stops the delay; use separate time-triggered automations if the handoff must survive restarts.
+The light must support RGB color. The first stage uses a fixed brightness rather than following the normal brightness curve. When sleep mode changes from off to on, the default `reset_manual_control_on_sleep_mode_change: true` returns manually controlled lights to Adaptive Lighting control so they receive the stage. If you disable that option, manually controlled lights remain paused. Restoring configuration defaults resets every runtime setting on this Adaptive Lighting switch, so restore only the sleep fields explicitly if other automations also change runtime settings.
+
+Stopping this script or reloading scripts during the delay prevents the final action, leaving the runtime overrides active. To recover, call `adaptive_lighting.change_switch_settings` for the profile with `use_defaults: configuration`. A Home Assistant restart reloads the configured settings.
 
 </details>
 
@@ -555,11 +528,24 @@ Adaptive Lighting changes brightness and color while a light is on; it does not 
     - trigger: time
       at: "04:00:00"
       id: turn_off
+    - trigger: homeassistant
+      event: start
+      id: startup
   actions:
     - choose:
         - conditions:
             - condition: trigger
               id: turn_on
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id: light.indoor_garden
+        - conditions:
+            - condition: trigger
+              id: startup
+            - condition: time
+              after: "16:00:00"
+              before: "04:00:00"
           sequence:
             - action: light.turn_on
               target:
