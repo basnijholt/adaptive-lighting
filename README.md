@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-144-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-155-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -659,6 +659,8 @@ These lights are known to exhibit disadvantageous behaviour due to firmware bugs
 - Ikea Tradfri bulbs/drivers (and related Ikea smart light products)
   - Unsupported simultaneous transition of brightness and color: When receiving such a command, they switch the brightness instantly and only transition the color. To get smooth transitions of both brightness and color, enable `separate_turn_on_commands`.
   - Unresponsiveness during color transitions: No other commands are processed during an ongoing color transition, e.g., turn-off commands are ignored and lights stay on despite being reported as off to Home Assistant. The default config with long transitions thus results in long periods of unresponsiveness. To work around this, disable transitions by setting `transition` to `0`, and increase the adaptation frequency by setting `interval` to a short time, e.g., `15` seconds, to retain the impression of smooth continuous adaptations. Keeping the `initial_transition` is recommended for a smooth fade-in (lights are usually not turned off momentarily after being turned on, in which case a short period of unresponsiveness is tolerable).
+- [Lonsonho ZB-RGBCW](https://www.zigbee2mqtt.io/devices/ZB-RGBCW.html#lonsonho-zb-rgbcw)
+  - Some Zigbee2MQTT/eWeLight firmware combinations do not turn the bulb on when the initial `light.turn_on` call includes brightness or color, although later adjustments work. Disable `intercept` for affected bulbs.
 <!-- SECTION:common-problems:END -->
 
 <!-- SECTION:graphs:START -->
@@ -906,6 +908,21 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/kasiom"><img src="https://avatars.githubusercontent.com/u/2422245?v=4?s=100" width="100px;" alt="Milan K."/><br /><sub><b>Milan K.</b></sub></a><br /><a href="#translation-kasiom" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/callistoprime"><img src="https://avatars.githubusercontent.com/u/178052328?v=4?s=100" width="100px;" alt="Callisto"/><br /><sub><b>Callisto</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Acallistoprime" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/davidgeiger"><img src="https://avatars.githubusercontent.com/u/5699049?v=4?s=100" width="100px;" alt="David Geiger"/><br /><sub><b>David Geiger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Adavidgeiger" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/MSL-DA"><img src="https://avatars.githubusercontent.com/u/134940586?v=4?s=100" width="100px;" alt="Jan"/><br /><sub><b>Jan</b></sub></a><br /><a href="#translation-MSL-DA" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/frankysan"><img src="https://avatars.githubusercontent.com/u/6353605?v=4?s=100" width="100px;" alt="frankysan"/><br /><sub><b>frankysan</b></sub></a><br /><a href="#translation-frankysan" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://belkinfahri.com"><img src="https://avatars.githubusercontent.com/u/3419659?v=4?s=100" width="100px;" alt="Belkin"/><br /><sub><b>Belkin</b></sub></a><br /><a href="#translation-belkin" title="Translation">🌍</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/LukTyn"><img src="https://avatars.githubusercontent.com/u/1812796?v=4?s=100" width="100px;" alt="LukTyn"/><br /><sub><b>LukTyn</b></sub></a><br /><a href="#translation-LukTyn" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/rutgerkra"><img src="https://avatars.githubusercontent.com/u/7963187?v=4?s=100" width="100px;" alt="rutgerkra"/><br /><sub><b>rutgerkra</b></sub></a><br /><a href="#translation-rutgerkra" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/sergeybelozorov"><img src="https://avatars.githubusercontent.com/u/94930734?v=4?s=100" width="100px;" alt="sergeybelozorov"/><br /><sub><b>sergeybelozorov</b></sub></a><br /><a href="#translation-sergeybelozorov" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://hosted.weblate.org/user/Lamster/"><img src="https://hosted.weblate.org/avatar/128/Lamster.png?s=100" width="100px;" alt="Allan Himidi-Rattenborg"/><br /><sub><b>Allan Himidi-Rattenborg</b></sub></a><br /><a href="#translation-weblate-Lamster" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://hosted.weblate.org/user/posemartonis/"><img src="https://hosted.weblate.org/avatar/128/posemartonis.png?s=100" width="100px;" alt="Pose marto"/><br /><sub><b>Pose marto</b></sub></a><br /><a href="#translation-weblate-posemartonis" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://hosted.weblate.org/user/jf.cosse/"><img src="https://hosted.weblate.org/avatar/128/jf.cosse.png?s=100" width="100px;" alt="Jean-Francois Cosse"/><br /><sub><b>Jean-Francois Cosse</b></sub></a><br /><a href="#translation-weblate-jf.cosse" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/bisquit2003"><img src="https://avatars.githubusercontent.com/u/98059406?v=4?s=100" width="100px;" alt="bisquit2003"/><br /><sub><b>bisquit2003</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Abisquit2003" title="Bug reports">🐛</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chewth91"><img src="https://avatars.githubusercontent.com/u/29686018?v=4?s=100" width="100px;" alt="chewth91"/><br /><sub><b>chewth91</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Achewth91" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
   <tfoot>

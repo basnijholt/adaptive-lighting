@@ -26,7 +26,8 @@
           "brightness_mode_time_dark": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
           "sunset_time": "Fijar una hora (HH:MM:SS) para el atardecer. 🌇",
           "min_sunset_time": "Define el atardecer virtual más temprano (HH:MM:SS), permitiendo atardeceres más tardíos. 🌇",
-          "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️"
+          "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️",
+          "take_over_control_mode": "El modo de pausa de adaptación cuando otras fuentes cambian el brillo y/o el color de las luces. `pause_all` siempre pausa tanto la adaptación de brillo como la de color. `pause_changed` pausa la adaptación solo de los atributos cambiados y continúa adaptando los atributos sin cambios, por ejemplo, continúa la adaptación de color cuando solo se cambió el brillo."
         },
         "data": {
           "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Al encender las luces. Si el valor es `true`, AL adapta sólo si se llama `light.turn_on` sin especificar el color o brillo. ❌🌈 Esto, por ejemplo, previene la adaptación al activar una escena. Si el valor es `false`, AL adapta independientemente de la presencia de color o brillo en `service_data` inicial. Necesita `take_over_control` habilitado. 🕵️",
@@ -193,6 +194,13 @@
       "user": {
         "title": "Elige un nombre para la instancia de Adaptive Lighting",
         "description": "Cada instancia puede contener múltiples luces!"
+      },
+      "menu": {
+        "title": "Crear o duplicar",
+        "description": "¿Quieres crear una nueva instancia o duplicar una existente?",
+        "data": {
+          "action": "Acción"
+        }
       }
     },
     "abort": {

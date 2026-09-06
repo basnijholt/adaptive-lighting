@@ -46,7 +46,16 @@
           "skip_redundant_commands": "Skip_redundant_commands: Пропустить отправку команд адаптации, целевое состояние которых уже равно известному состоянию источника света. Минимизирует сетевой трафик и улучшает скорость адаптации в некоторых ситуациях. 📉Отключите, если физические состояния освещения не синхронизируются с записанным состоянием HA.",
           "intercept": "intercept: перехватывать и адаптировать вызовы `light.turn_on` для обеспечения мгновенной адаптации цвета и яркости. 🏎️ Отключите источники света, которые не поддерживают `light.turn_on` с цветом и яркостью.",
           "include_config_in_attributes": "include_config_in_attributes: отображать все параметры в качестве атрибутов на переключателе в Home Assistant, если установлено значение `true`. 📝",
-          "transition_until_sleep": "transition_until_sleep: когда включено, адаптивное освещение будет рассматривать настройки сна как минимальные, переходя к этим значениям после захода солнца. 🌙"
+          "transition_until_sleep": "transition_until_sleep: когда включено, адаптивное освещение будет рассматривать настройки сна как минимальные, переходя к этим значениям после захода солнца. 🌙",
+          "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp: Использовать либо 'rgb_color', либо 'color_temp' в режиме сна. 🌙",
+          "sleep_rgb_color": "sleep_rgb_color: Цвет RGB в режиме сна (используется при 'sleep_rgb_or_color_temp' как 'rgb_color'). 🌈",
+          "min_sunrise_time": "min_sunrise_time: Самое раннее время виртуального восхода (ЧЧ:ММ:СС). 🌅",
+          "max_sunrise_time": "max_sunrise_time: Самое позднее время виртуального восхода (ЧЧ:ММ:СС). 🌅",
+          "min_sunset_time": "min_sunset_time: Самое раннее время виртуального заката (ЧЧ:ММ:СС). 🌇",
+          "max_sunset_time": "max_sunset_time: Самое позднее время виртуального заката (ЧЧ:ММ:СС). 🌇",
+          "brightness_mode": "brightness_mode: Режим яркости для использования (default, linear, tanh). 📈",
+          "autoreset_control_seconds": "autoreset_control_seconds: Автосброс ручного управления через X секунд. ⏲️",
+          "send_split_delay": "send_split_delay: Задержка между отдельными командами включения для источников света. ⏲️"
         },
         "data_description": {
           "sleep_rgb_or_color_temp": "Используйте либо `\"rgb_color\"`, либо `\"color_temp\"` в спящем режиме. 🌙",
