@@ -118,7 +118,7 @@ When enabled, a turn-on without a state-change context matching the latest recor
 
 Manual-control flags are shared by profiles controlling the same light. Use the same turn-on policy on those profiles; mixed policies can allow an earlier profile to adapt before another marks the light manually controlled.
 
-Enable this if you want turn-ons from physical controls or native scenes to preserve their brightness and color. Leave it disabled if those controls should start normal adaptation.
+Enable this if you want turn-ons from physical controls or native scenes to preserve their brightness and color. To adapt unmatched turn-ons, leave this disabled and enable `detect_non_ha_changes`.
 
 Its advantage over simply disabling `detect_non_ha_changes` is that the two behaviors are decoupled: you can keep `detect_non_ha_changes: true` to catch manual dimming of lights that are *already on*, while leaving unmatched turn-ons untouched.
 
