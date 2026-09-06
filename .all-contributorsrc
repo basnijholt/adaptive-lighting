@@ -1523,6 +1523,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "timstallmann",
+      "name": "Tim Stallmann",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6741938?v=4",
+      "profile": "http://www.tim-maps.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
