@@ -71,6 +71,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     AdaptiveSwitch,
     SimpleSwitch,
     _attributes_have_changed,
+    _expand_light_groups,
     color_difference_redmean,
     create_context,
     is_our_context,
@@ -2549,6 +2550,19 @@ def test_lerp_color_hsv():
 
     with pytest.raises(AssertionError):
         lerp_color_hsv((255, 0, 0), (0, 255, 0), 1.1)
+
+
+async def test_expand_light_groups_waits_for_group_state(hass):
+    """Test expansion waits until a light group's state is available."""
+    await setup_switch(hass, {})
+    group = "light.pending_group"
+    members = ["light.light_1", "light.light_2"]
+
+    assert _expand_light_groups(hass, [group]) == [group]
+
+    hass.states.async_set(group, STATE_ON, {ATTR_ENTITY_ID: members})
+
+    assert _expand_light_groups(hass, [group]) == members
 
 
 @pytest.mark.parametrize("proactive_service_call_adaptation", [True, False])

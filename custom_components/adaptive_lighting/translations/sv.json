@@ -8,6 +8,13 @@
         "data": {
           "name": "Namn"
         }
+      },
+      "menu": {
+        "data": {
+          "action": "Åtgärd"
+        },
+        "title": "Skapa eller duplicera",
+        "description": "Vill du skapa en ny instans eller duplicera en befintlig?"
       }
     },
     "abort": {
@@ -72,6 +79,7 @@
               "brightness_mode": "Ljusstyrkeinställing att använda. Möjliga värden är \"default\", \"linear\" och \"tanh\" (använder \"brightness_mode_time_dark\" och \"brightness_mode_time_light\"). 📈",
               "brightness_mode_time_dark": "(Ignoreras om `brightness_mode='default'`) Varaktigheten i sekunder för att öka/minska ljusstyrkan efter/före soluppgång/solnedgång. 📈📉.",
               "brightness_mode_time_light": "(Ignoreras om `brightness_mode='default'`) Varaktigheten i sekunder för att öka/minska ljusstyrkan efter/före soluppgång/solnedgång. 📈📉.",
+              "take_over_control_mode": "Anpassningspausläget när andra källor ändrar ljusstyrka och/eller färg på belysningen. `pause_all` pausar alltid både ljusstyrka och färganpassning. `pause_changed` pausar endast anpassningen av de ändrade attributen och fortsätter att anpassa oförändrade attribut, t.ex. fortsätter färganpassningen när endast ljusstyrkan har ändrats.",
               "autoreset_control_seconds": "Nollställ automatiskt manuell kontroll efter ett antal sekunder. Sätt till 0 för at avaktivera. ⏲️",
               "send_split_delay": "Dröjsmål (ms) mellan `separate_turn_on_commands` för lampor som inte stödjer samtidiga ljussyrke och färg inställningar. ⏲️",
               "adapt_delay": "Väntetid (sekunder) mellan lamptändning och Adaptiv Ljussättning tillämpar ändringar. Kan hjälpa till att undvika flimmer. ⏲️"
@@ -174,6 +182,9 @@
         },
         "use_defaults": {
           "description": "Ställer in standardvärden som inte anges i detta serviceanrop. Alternativ: \"current\" (standard, behåller nuvarande värden), \"factory\" (återställer till dokumenterade standardinställningar) eller \"configuration\" (återgår till strömbrytarens standardinställningar). ⚙️"
+        },
+        "take_over_control_mode": {
+          "description": "Anpassningspausläget när andra källor ändrar ljusstyrka och/eller färg på belysningen. `pause_all` pausar alltid både ljusstyrka och färganpassning. `pause_changed` pausar endast anpassningen av de ändrade attributen och fortsätter att anpassa oförändrade attribut, t.ex. fortsätter färganpassningen när endast ljusstyrkan har ändrats."
         }
       },
       "description": "Ändra vilka inställningar du vill ha i strömbrytaren. All dessa inställningar är likadana som i config flow."

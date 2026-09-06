@@ -49,6 +49,7 @@
               "brightness_mode": "Modo de brillo a usar. Valores posibles son: `default`, `linear` y `tanh` (usa`brightness_mode_time_dark` y `brightness_mode_time_light`). 📈",
               "brightness_mode_time_dark": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
               "brightness_mode_time_light": "(Ignorado si `brightness_mode='default'`) La duración, en segundos, de la transición del brillo después/antes del amanecer/atardecer. 📈📉.",
+              "take_over_control_mode": "El modo de pausa de adaptación cuando otras fuentes cambian el brillo y/o el color de las luces. `pause_all` siempre pausa tanto la adaptación de brillo como la de color. `pause_changed` pausa la adaptación solo de los atributos cambiados y continúa adaptando los atributos sin cambios, por ejemplo, continúa la adaptación de color cuando solo se cambió el brillo.",
               "autoreset_control_seconds": "Resetear automáticamente el control manual tras `X` segundos. Poner a 0 para deshabilitar.",
               "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands` para luces que no soportan ajustes simultáneos de brillo y color. ⏲️",
               "adapt_delay": "Tiempo de espera (segundos) entre el encendido de la luz y Adaptive Lighting aplicando cambios. Puede ayudar a evitar parpadeos. ⏲️"
@@ -201,6 +202,13 @@
       "user": {
         "title": "Elige un nombre para la instancia de Adaptive Lighting",
         "description": "Cada instancia puede contener múltiples luces!"
+      },
+      "menu": {
+        "title": "Crear o duplicar",
+        "description": "¿Quieres crear una nueva instancia o duplicar una existente?",
+        "data": {
+          "action": "Acción"
+        }
       }
     },
     "abort": {

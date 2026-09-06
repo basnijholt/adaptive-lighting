@@ -8,6 +8,13 @@
         "data": {
           "name": "Naam"
         }
+      },
+      "menu": {
+        "data": {
+          "action": "Actie"
+        },
+        "title": "Maak of dupliceer",
+        "description": "Wil je een nieuwe instantie aanmaken of een bestaande dupliceren?"
       }
     },
     "abort": {
@@ -79,6 +86,7 @@
               "brightness_mode": "Helderheidsmodus om te gebruiken. Mogelijke waarden zijn `default`, `linear` en `tanh` (gebruikt `brightness_mode_time_dark` en `brightness_mode_time_light`). 📈",
               "brightness_mode_time_dark": "(Negeer wanneer `brightness_mode='default'`) De duur in seconden van oplopende/aflopende helderheid na/voor zonsopkomst/zonsondergang. 📈📉.",
               "brightness_mode_time_light": "(Negeer wanneer `brightness_mode='default'`) De duur in seconden van oplopende/aflopende helderheid na/voor zonsopkomst/zonsondergang. 📈📉.",
+              "take_over_control_mode": "De adaptie pauzeermodus wanneer andere bronnen de helderheid en/of kleur van lampen veranderen. `pause_all` pauzeert altijd verandering van zowel helderheid als kleur. `pause_changed` pauzeert alleen de verandering van de extern veranderde eigenschappen en blijft onveranderde eigenschappen aanpassen, bijv. doorgaan met kleur veranderen als alleen helderheid extern is veranderd.",
               "autoreset_control_seconds": "Herstel de handmatige bediening automatisch na een aantal seconden. Stel in op 0 om uit te schakelen.",
               "send_split_delay": "Vertraging (ms) tussen `separate_turn_on_commands` voor lampen die geen gelijktijdige helderheids- en kleurinstelling ondersteunen. ⏲️",
               "adapt_delay": "Wachttijd in (seconden) tussen het aanzetten van de lamp en het toepassen van Adaptieve verlichting veranderingen. Het kan helpen om knipperen tegen te gaan. ⏲️"
@@ -181,6 +189,9 @@
         },
         "min_sunset_time": {
           "description": "Stel de tijd (HH:MM:SS) in voor de meest vroege virtuele zonsondergang, maakt latere zonsondergangen mogelijk. 🌇"
+        },
+        "take_over_control_mode": {
+          "description": "De adaptie pauzeermodus wanneer andere bronnen de helderheid en/of kleur van lampen veranderen. `pause_all` pauzeert altijd verandering van zowel helderheid als kleur. `pause_changed` pauzeert alleen de verandering van de extern veranderde eigenschappen en blijft onveranderde eigenschappen aanpassen, bijv. doorgaan met kleur veranderen als alleen helderheid extern is veranderd."
         }
       },
       "description": "Wijzig alle gewenste instellingen in de schakelaar. Alle opties hier zijn hetzelfde als in de configuratie."

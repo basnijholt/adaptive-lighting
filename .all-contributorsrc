@@ -1332,6 +1332,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "belkin",
+      "name": "Belkin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3419659?v=4",
+      "profile": "http://belkinfahri.com",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
