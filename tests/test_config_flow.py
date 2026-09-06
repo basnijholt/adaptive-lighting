@@ -1,6 +1,11 @@
 """Test Adaptive Lighting config flow."""
 
 import voluptuous as vol
+
+try:
+    from probatio import to_field_list
+except ImportError:
+    from voluptuous_serialize import convert as to_field_list
 from homeassistant.components.adaptive_lighting.const import (
     BASIC_OPTIONS,
     CONF_INITIAL_TRANSITION,
@@ -14,6 +19,7 @@ from homeassistant.components.adaptive_lighting.const import (
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_NAME
 from homeassistant.data_entry_flow import FlowResultType, section
+from homeassistant.helpers import config_validation as cv
 
 from tests.common import MockConfigEntry
 
@@ -142,6 +148,19 @@ async def test_options_schema_has_each_setting_once(hass):
     assert advanced.options == {"collapsed": True}
     assert {key.schema for key in schema if key.schema != "advanced"} == BASIC_OPTIONS
     assert {key.schema for key in advanced.schema.schema} == set(
+        DEFAULT_DATA,
+    ) - BASIC_OPTIONS
+
+    serialized_schema = to_field_list(
+        result["data_schema"],
+        custom_serializer=cv.custom_serializer,
+    )
+    serialized_advanced = next(
+        field for field in serialized_schema if field["name"] == "advanced"
+    )
+    assert serialized_advanced["type"] == "expandable"
+    assert serialized_advanced["expanded"] is False
+    assert {field["name"] for field in serialized_advanced["schema"]} == set(
         DEFAULT_DATA,
     ) - BASIC_OPTIONS
 
