@@ -118,6 +118,7 @@ from homeassistant.const import (
 )
 from homeassistant.const import __version__ as ha_version
 from homeassistant.core import Context, Event, HomeAssistant, State
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -1303,6 +1304,54 @@ async def test_apply_service(hass):
     assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
+async def test_apply_service_uses_each_switch_transition(hass):
+    """Test global apply resolves omitted transition for each profile."""
+    await setup_lights(hass)
+    _, switch_1 = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "switch 1",
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_INITIAL_TRANSITION: 3,
+        },
+    )
+    _, switch_2 = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "switch 2",
+            CONF_LIGHTS: [ENTITY_LIGHT_2],
+            CONF_INITIAL_TRANSITION: 7,
+        },
+    )
+
+    with (
+        patch.object(switch_1, "_adapt_light", new=AsyncMock()) as adapt_1,
+        patch.object(switch_2, "_adapt_light", new=AsyncMock()) as adapt_2,
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {ATTR_ENTITY_ID: [switch_1.entity_id, switch_2.entity_id]},
+            blocking=True,
+        )
+        assert adapt_1.await_args.kwargs["transition"] == 3
+        assert adapt_2.await_args.kwargs["transition"] == 7
+
+        adapt_1.reset_mock()
+        adapt_2.reset_mock()
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: [switch_1.entity_id, switch_2.entity_id],
+                CONF_TRANSITION: 0,
+            },
+            blocking=True,
+        )
+        assert adapt_1.await_args.kwargs["transition"] == 0
+        assert adapt_2.await_args.kwargs["transition"] == 0
+
+
 async def test_switch_off_on_off(hass):
     """Test switch rapid off_on_off."""
 
@@ -2000,6 +2049,48 @@ async def test_change_switch_settings_service(hass):
     # testing with "configuration" should revert back to 2500
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
+
+
+async def test_change_switch_settings_resolves_targets_once(hass):
+    """Test child and duplicate profile targets resolve before mutation."""
+    _, switch = await setup_switch(hass, {})
+    targets = [switch.entity_id, switch.sleep_mode_switch.entity_id]
+
+    with patch.object(
+        switch,
+        "_set_changeable_settings",
+        wraps=switch._set_changeable_settings,
+    ) as set_settings:
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: targets, CONF_MAX_BRIGHTNESS: 50},
+            blocking=True,
+        )
+
+    set_settings.assert_called_once()
+    assert switch._sun_light_settings.max_brightness == 50
+
+    with (
+        patch.object(
+            switch,
+            "_set_changeable_settings",
+            wraps=switch._set_changeable_settings,
+        ) as set_settings,
+        pytest.raises(ServiceValidationError, match="not found in registry"),
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {
+                ATTR_ENTITY_ID: [switch.entity_id, "switch.does_not_exist"],
+                CONF_MAX_BRIGHTNESS: 25,
+            },
+            blocking=True,
+        )
+
+    set_settings.assert_not_called()
+    assert switch._sun_light_settings.max_brightness == 50
 
 
 async def test_cancellable_service_calls_task(hass):

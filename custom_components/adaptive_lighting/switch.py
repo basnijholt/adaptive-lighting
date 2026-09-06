@@ -57,6 +57,7 @@ from homeassistant.core import (
     State,
     callback,
 )
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_component import async_update_entity
@@ -236,16 +237,22 @@ def _switches_with_lights(
 ) -> AdaptiveSwitches:
     """Get all switches that control at least one of the lights passed."""
     config_entries = hass.config_entries.async_entries(DOMAIN)
-    data = hass.data[DOMAIN]
-    switches: AdaptiveSwitches = []
+    data = hass.data.get(DOMAIN, {})
+    loaded_switches: AdaptiveSwitches = []
+    for config in config_entries:
+        entry = data.get(config.entry_id)
+        if not isinstance(entry, dict) or SWITCH_DOMAIN not in entry:
+            continue
+        loaded_switches.append(entry[SWITCH_DOMAIN])
+
+    if not loaded_switches:
+        return []
+
     all_check_lights = (
         _expand_light_groups(hass, lights) if expand_light_groups else set(lights)
     )
-    for config in config_entries:
-        entry = data.get(config.entry_id)
-        if entry is None:  # entry might be disabled and therefore missing
-            continue
-        switch = data[config.entry_id][SWITCH_DOMAIN]
+    switches: AdaptiveSwitches = []
+    for switch in loaded_switches:
         switch._expand_light_groups(hass=hass)
         # Check if any of the lights are in the switch's lights
         if set(switch.lights) & set(all_check_lights):
@@ -303,7 +310,12 @@ def _switches_from_service_call(
             " use case. Currently, you must pass either an adaptive-lighting switch or"
             " the lights to an `adaptive_lighting` service call."
         )
-        raise ValueError(msg)
+        raise ServiceValidationError(msg)
+
+    domain_data = hass.data.get(DOMAIN)
+    if not domain_data:
+        msg = "adaptive-lighting: No Adaptive Lighting config entries are loaded."
+        raise ServiceValidationError(msg)
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
@@ -311,25 +323,50 @@ def _switches_from_service_call(
                 "adaptive-lighting: Cannot pass multiple switches with lights argument."
                 f" Invalid service data received: {service_call.data}"
             )
-            raise ValueError(msg)
+            raise ServiceValidationError(msg)
         switches: AdaptiveSwitches = []
+        config_ids: set[str] = set()
         ent_reg = entity_registry.async_get(hass)
         for entity_id in switch_entity_ids:
             ent_entry = ent_reg.async_get(entity_id)
-            assert ent_entry is not None
+            if ent_entry is None:
+                msg = f"adaptive-lighting: Entity '{entity_id}' not found in registry."
+                raise ServiceValidationError(msg)
+            if ent_entry.platform != DOMAIN:
+                msg = (
+                    f"adaptive-lighting: Entity '{entity_id}' is not registered by"
+                    " Adaptive Lighting."
+                )
+                raise ServiceValidationError(msg)
             config_id = ent_entry.config_entry_id
-            switches.append(hass.data[DOMAIN][config_id][SWITCH_DOMAIN])
+            config_data = domain_data.get(config_id) if config_id else None
+            if (
+                config_id is None
+                or not isinstance(config_data, dict)
+                or SWITCH_DOMAIN not in config_data
+            ):
+                msg = (
+                    f"adaptive-lighting: Adaptive Lighting entry for entity '{entity_id}'"
+                    " is not loaded."
+                )
+                raise ServiceValidationError(msg)
+            if config_id not in config_ids:
+                switches.append(config_data[SWITCH_DOMAIN])
+                config_ids.add(config_id)
         return switches
 
     if lights:
-        switch = _switch_with_lights(hass, lights)
+        try:
+            switch = _switch_with_lights(hass, lights)
+        except NoSwitchFoundError as err:
+            raise ServiceValidationError(str(err)) from err
         return [switch]
 
     msg = (
         "adaptive-lighting: Incorrect data provided in service call."
         f" Entities not found in the integration. Service data: {service_call.data}"
     )
-    raise ValueError(msg)
+    raise ServiceValidationError(msg)
 
 
 async def handle_change_switch_settings(
