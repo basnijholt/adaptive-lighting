@@ -31,7 +31,6 @@ from homeassistant.components.adaptive_lighting.const import (
     ATTR_ADAPT_COLOR,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
-    CONF_ADAPT_ONLY_ON_HA_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
     CONF_AUTORESET_CONTROL,
     CONF_BRIGHTNESS_MODE,
@@ -40,6 +39,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_DETECT_NON_HA_CHANGES,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
+    CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON,
     CONF_MAX_BRIGHTNESS,
     CONF_MAX_COLOR_TEMP,
     CONF_MIN_BRIGHTNESS,
@@ -4475,12 +4475,15 @@ async def test_automation_turn_on_from_off_not_marked_as_manual_control(hass):
 
 
 @pytest.mark.parametrize("intercept", [True, False])
-async def test_adapt_only_on_ha_turn_on_allows_tracked_service_call(hass, intercept):
+async def test_manual_control_on_external_turn_on_allows_tracked_service_call(
+    hass,
+    intercept,
+):
     """Test a real HA turn-on remains eligible for initial adaptation."""
     switch, _ = await setup_lights_and_switch(
         hass,
         {
-            CONF_ADAPT_ONLY_ON_HA_TURN_ON: True,
+            CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON: True,
             CONF_DETECT_NON_HA_CHANGES: True,
             CONF_INTERCEPT: intercept,
             CONF_MIN_BRIGHTNESS: 50,
@@ -4515,7 +4518,7 @@ async def test_adapt_only_on_ha_turn_on_allows_tracked_service_call(hass, interc
 @pytest.mark.parametrize("intercept", [True, False])
 @pytest.mark.parametrize(
     (
-        "adapt_only_on_ha_turn_on",
+        "manual_control_on_external_turn_on",
         "detect_non_ha_changes",
         "expected_manual_control",
         "expected_adaptation",
@@ -4527,11 +4530,11 @@ async def test_adapt_only_on_ha_turn_on_allows_tracked_service_call(hass, interc
         (False, False, LightControlAttributes.ALL, False),
     ],
 )
-async def test_adapt_only_on_ha_turn_on_external_state_change(
+async def test_manual_control_on_external_turn_on_external_state_change(
     hass,
     freezer,
     intercept,
-    adapt_only_on_ha_turn_on,
+    manual_control_on_external_turn_on,
     detect_non_ha_changes,
     expected_manual_control,
     expected_adaptation,
@@ -4540,7 +4543,7 @@ async def test_adapt_only_on_ha_turn_on_external_state_change(
     switch, _ = await setup_lights_and_switch(
         hass,
         {
-            CONF_ADAPT_ONLY_ON_HA_TURN_ON: adapt_only_on_ha_turn_on,
+            "manual_control_on_external_turn_on": manual_control_on_external_turn_on,
             CONF_DETECT_NON_HA_CHANGES: detect_non_ha_changes,
             CONF_INTERCEPT: intercept,
             CONF_MIN_BRIGHTNESS: 50,
@@ -4580,7 +4583,7 @@ async def test_adapt_only_on_ha_turn_on_external_state_change(
 
 
 @pytest.mark.parametrize("intercept", [True, False])
-async def test_adapt_only_on_ha_turn_on_keeps_non_ha_change_detection(
+async def test_manual_control_on_external_turn_on_keeps_non_ha_change_detection(
     hass,
     intercept,
 ):
@@ -4588,7 +4591,7 @@ async def test_adapt_only_on_ha_turn_on_keeps_non_ha_change_detection(
     switch, (light, *_) = await setup_lights_and_switch(
         hass,
         {
-            CONF_ADAPT_ONLY_ON_HA_TURN_ON: True,
+            CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON: True,
             CONF_DETECT_NON_HA_CHANGES: True,
             CONF_INTERCEPT: intercept,
             CONF_MIN_BRIGHTNESS: 50,

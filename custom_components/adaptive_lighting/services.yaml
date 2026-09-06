@@ -238,8 +238,8 @@ change_switch_settings:
       example: false
       selector:
         boolean: null
-    adapt_only_on_ha_turn_on:
-      description: Only adapt an `off` to `on` event when its context exactly matches the latest recorded Home Assistant `light.turn_on` context for that light. Unmatched turn-ons are marked as manually controlled and left unchanged. This still allows `detect_non_ha_changes` for lights that are already on. Needs `take_over_control` enabled. 🕵️
+    manual_control_on_external_turn_on:
+      description: Treat turn-ons without a matching Home Assistant `light.turn_on` context as manual control. Normal manual-control resets apply. Still allows `detect_non_ha_changes` for already-on lights. Needs `take_over_control` enabled. 🕵️
       required: false
       example: false
       selector:

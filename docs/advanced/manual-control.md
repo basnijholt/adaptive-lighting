@@ -112,13 +112,13 @@ adaptive_lighting:
     adapt_only_on_bare_turn_on: true
 ```
 
-### adapt_only_on_ha_turn_on
+### manual_control_on_external_turn_on
 
-When enabled, a light that turns on from `off` is only adapted if the state-change context exactly matches the most recent Home Assistant `light.turn_on` context recorded for that light. An unmatched turn-on is marked as manually controlled and left at its reported brightness and color.
+When enabled, a turn-on without a state-change context matching the latest recorded Home Assistant `light.turn_on` is treated as manual control. This pauses brightness and color adaptation until manual control resets, rather than skipping just the first adjustment. The usual off/on, explicit reset, and configured timeout rules apply. A later unmatched turn-on marks the light manually controlled again.
 
 Manual-control flags are shared by profiles controlling the same light. Use the same turn-on policy on those profiles; mixed policies can allow an earlier profile to adapt before another marks the light manually controlled.
 
-This is the option to reach for when turning a light on with its local switch (or a native Lutron/Caséta scene) makes Adaptive Lighting override your brightness a moment later, forcing you to set it twice.
+Enable this if you want turn-ons from physical controls or native scenes to preserve their brightness and color. Leave it disabled if those controls should start normal adaptation.
 
 Its advantage over simply disabling `detect_non_ha_changes` is that the two behaviors are decoupled: you can keep `detect_non_ha_changes: true` to catch manual dimming of lights that are *already on*, while leaving unmatched turn-ons untouched.
 
@@ -131,7 +131,7 @@ adaptive_lighting:
       - light.living_room
     take_over_control: true
     detect_non_ha_changes: true      # still catch manual changes to already-on lights
-    adapt_only_on_ha_turn_on: true   # leave unmatched off→on events unchanged
+    manual_control_on_external_turn_on: true   # leave unmatched off→on events unchanged
 ```
 
 ## Checking Manual Control Status
