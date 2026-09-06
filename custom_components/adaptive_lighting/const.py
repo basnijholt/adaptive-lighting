@@ -243,6 +243,15 @@ DOCS[CONF_AUTORESET_CONTROL] = (
     "Set to 0 to disable. ⏲️"
 )
 
+(
+    CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+    DEFAULT_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+) = ("reset_manual_control_on_sleep_mode_change", True)
+DOCS[CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE] = (
+    "Reset manual control when the sleep mode switch is toggled. "
+    "Set to `false` to preserve manual control across sleep mode changes. 😴"
+)
+
 CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
     "skip_redundant_commands",
     False,
@@ -407,6 +416,11 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_ONLY_ONCE, DEFAULT_ONLY_ONCE, bool),
     (CONF_ADAPT_ONLY_ON_BARE_TURN_ON, DEFAULT_ADAPT_ONLY_ON_BARE_TURN_ON, bool),
+    (
+        CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+        DEFAULT_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+        bool,
+    ),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
@@ -472,22 +486,32 @@ _DOMAIN_SCHEMA = vol.Schema(
 )
 
 
-def apply_service_schema(initial_transition: int = 1) -> vol.Schema:
+def apply_service_schema() -> vol.Schema:
     """Return the schema for the apply service."""
     return vol.Schema(
         {
             vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
-            vol.Optional(
-                CONF_TRANSITION,
-                default=initial_transition,
-            ): VALID_TRANSITION,
+            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
             vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
         },
     )
+
+
+def change_switch_settings_schema() -> dict[vol.Marker, Any]:
+    """Return the schema for the change_switch_settings service."""
+    args: dict[vol.Marker, Any] = {
+        vol.Optional(CONF_USE_DEFAULTS, default="current"): cv.string,
+    }
+    # Modifying these after init isn't possible
+    skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
+    for k, _, valid in VALIDATION_TUPLES:
+        if k not in skip:
+            args[vol.Optional(k)] = valid
+    return args
 
 
 SET_MANUAL_CONTROL_SCHEMA = vol.Schema(

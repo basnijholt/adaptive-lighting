@@ -447,7 +447,8 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/189372?v=4",
       "profile": "http://protyposis.net",
       "contributions": [
-        "code"
+        "code",
+        "ideas"
       ]
     },
     {
@@ -1367,6 +1368,142 @@
       "profile": "https://github.com/sergeybelozorov",
       "contributions": [
         "translation"
+      ]
+    },
+    {
+      "login": "weblate-Lamster",
+      "name": "Allan Himidi-Rattenborg",
+      "avatar_url": "https://hosted.weblate.org/avatar/128/Lamster.png",
+      "profile": "https://hosted.weblate.org/user/Lamster/",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "weblate-posemartonis",
+      "name": "Pose marto",
+      "avatar_url": "https://hosted.weblate.org/avatar/128/posemartonis.png",
+      "profile": "https://hosted.weblate.org/user/posemartonis/",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "weblate-jf.cosse",
+      "name": "Jean-Francois Cosse",
+      "avatar_url": "https://hosted.weblate.org/avatar/128/jf.cosse.png",
+      "profile": "https://hosted.weblate.org/user/jf.cosse/",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "bisquit2003",
+      "name": "bisquit2003",
+      "avatar_url": "https://avatars.githubusercontent.com/u/98059406?v=4",
+      "profile": "https://github.com/bisquit2003",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "chewth91",
+      "name": "chewth91",
+      "avatar_url": "https://avatars.githubusercontent.com/u/29686018?v=4",
+      "profile": "https://github.com/chewth91",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "rhtenhove",
+      "name": "rhtenhove",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10206967?v=4",
+      "profile": "https://github.com/rhtenhove",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "mrbillpapas",
+      "name": "Bill Papas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45721000?v=4",
+      "profile": "https://github.com/mrbillpapas",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "haasn",
+      "name": "Niklas Haas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1149047?v=4",
+      "profile": "https://niklashaas.de",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "djurny",
+      "name": "Tom Urlings",
+      "avatar_url": "https://avatars.githubusercontent.com/u/950171?v=4",
+      "profile": "https://github.com/djurny",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "BenoitAnastay",
+      "name": "Benoit Anastay",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45088785?v=4",
+      "profile": "http://anastay.dev",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "GollyJer",
+      "name": "Jeremy Gollehon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/689204?v=4",
+      "profile": "https://isjustawesome.com",
+      "contributions": [
+        "ideas",
+        "bug"
+      ]
+    },
+    {
+      "login": "jrbergen",
+      "name": "jrbergen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6237646?v=4",
+      "profile": "https://github.com/jrbergen",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "b-rad15",
+      "name": "Bradley O'Connell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25830163?v=4",
+      "profile": "https://github.com/b-rad15",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "00schteven",
+      "name": "00schteven",
+      "avatar_url": "https://avatars.githubusercontent.com/u/76514745?v=4",
+      "profile": "https://github.com/00schteven",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "Mariuss811",
+      "name": "Wosten",
+      "avatar_url": "https://avatars.githubusercontent.com/u/54115696?v=4",
+      "profile": "https://github.com/Mariuss811",
+      "contributions": [
+        "bug"
       ]
     }
   ],

@@ -275,6 +275,7 @@ def prepare_adaptation_data(
     split: bool,
     filter_by_state: bool,
     force: bool,
+    already_applied: LightControlAttributes = LightControlAttributes.NONE,
 ) -> AdaptationData:
     """Prepares a data object carrying all data required to execute an adaptation."""
     _LOGGER.debug(
@@ -292,6 +293,25 @@ def prepare_adaptation_data(
     else:
         sleep_time = split_delay
 
+    # Keep the original split timing, but omit attributes carried by an
+    # intercepted turn-on shared with other lights. Do this before state
+    # filtering: members can have different brightness/color already satisfied.
+    applied_attrs = (
+        BRIGHTNESS_ATTRS
+        if LightControlAttributes.BRIGHTNESS in already_applied
+        else set()
+    ) | (COLOR_ATTRS if LightControlAttributes.COLOR in already_applied else set())
+    if applied_attrs:
+        service_datas = [
+            {key: value for key, value in data.items() if key not in applied_attrs}
+            for data in service_datas
+        ]
+        service_datas = [
+            data
+            for data in service_datas
+            if _has_relevant_service_data_attributes(data)
+        ]
+
     service_data_iterator = _create_service_call_data_iterator(
         hass,
         service_datas,
@@ -306,8 +326,8 @@ def prepare_adaptation_data(
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
         force=force,
-        max_length=service_datas_length,
-        attributes=attributes,
+        max_length=len(service_datas),
+        attributes=attributes & ~already_applied,
     )
 
 
