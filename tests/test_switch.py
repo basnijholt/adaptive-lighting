@@ -781,24 +781,13 @@ async def test_manual_control(
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
 
-    # Check that toggling the main switch resets manual control.
-    await change_manual_control(True)
-    assert manual_control[ENTITY_LIGHT_1]
-    await turn_switch(False, switch.entity_id)
-    await turn_switch(True, switch.entity_id)
-    assert not manual_control[ENTITY_LIGHT_1]
-
-    # By default, toggling the sleep mode switch must NOT reset manual control.
-    # The opt-in `reset_manual_control_on_sleep_mode_change` behavior is covered
-    # by `test_sleep_mode_resets_manual_control_when_enabled`.
-    await change_manual_control(True)
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
-    await turn_switch(False, switch.sleep_mode_switch.entity_id)
-    await turn_switch(True, switch.sleep_mode_switch.entity_id)
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
-    # Reset manual control before continuing.
-    await change_manual_control(False)
-    assert not manual_control[ENTITY_LIGHT_1]
+    # Toggling the main or sleep switch resets manual control by default.
+    for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
+        await change_manual_control(True)
+        assert manual_control[ENTITY_LIGHT_1]
+        await turn_switch(False, entity_id)
+        await turn_switch(True, entity_id)
+        assert not manual_control[ENTITY_LIGHT_1]
 
     # Check that manual control is still enabled if set while bulb is off.
     # Test issue #37
@@ -906,43 +895,39 @@ async def test_manual_control(
     assert state_attrs["manual_control_color"] == [ENTITY_LIGHT_1]
 
 
-async def test_sleep_mode_resets_manual_control_when_enabled(hass):
-    """Toggling the sleep mode switch resets manual control when the opt-in
-    `reset_manual_control_on_sleep_mode_change` config flag is set.
-    """
-    switch, _ = await setup_lights_and_switch(
-        hass,
-        {CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE: True},
-    )
-    manual_control = switch.manager.manual_control
+@pytest.mark.parametrize("reset_on_sleep", [None, True, False])
+async def test_sleep_mode_manual_control_reset(hass, reset_on_sleep):
+    """Keep the old default and preserve manual brightness only when opted out."""
+    options = {CONF_MIN_BRIGHTNESS: 50, CONF_MAX_BRIGHTNESS: 50}
+    if reset_on_sleep is not None:
+        options[CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE] = reset_on_sleep
+    switch, (light, *_) = await setup_lights_and_switch(hass, options)
 
-    async def turn_switch(state, entity_id):
+    for service, adapted_brightness in [(SERVICE_TURN_ON, 3), (SERVICE_TURN_OFF, 128)]:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 200},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert switch.manager.get_manual_control_attributes(light.entity_id)
         await hass.services.async_call(
             SWITCH_DOMAIN,
-            SERVICE_TURN_ON if state else SERVICE_TURN_OFF,
-            {ATTR_ENTITY_ID: entity_id},
+            service,
+            {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
             blocking=True,
         )
         await hass.async_block_till_done()
-
-    async def set_manual_control(value):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_SET_MANUAL_CONTROL,
-            {
-                ATTR_ENTITY_ID: switch.entity_id,
-                CONF_MANUAL_CONTROL: value,
-                CONF_LIGHTS: [ENTITY_LIGHT_1],
-            },
-            blocking=True,
-        )
-        await hass.async_block_till_done()
-
-    await set_manual_control(True)
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
-    await turn_switch(False, switch.sleep_mode_switch.entity_id)
-    await turn_switch(True, switch.sleep_mode_switch.entity_id)
-    assert not manual_control[ENTITY_LIGHT_1]
+        if reset_on_sleep is False:
+            assert switch.manager.get_manual_control_attributes(light.entity_id)
+            assert hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == 200
+        else:
+            assert not switch.manager.get_manual_control_attributes(light.entity_id)
+            assert (
+                hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS]
+                == adapted_brightness
+            )
 
 
 @flaky(max_runs=3, min_passes=1)

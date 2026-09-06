@@ -1649,9 +1649,6 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             event,
         )
         if self._reset_manual_control_on_sleep_mode_change:
-            # Opt-in: reset the manually controlled status when the sleep mode
-            # switch toggles. Disabled by default so manual control persists
-            # across sleep mode changes.
             self.manager.reset(*self.lights)
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("sleep", parent=event.context),

@@ -246,12 +246,10 @@ DOCS[CONF_AUTORESET_CONTROL] = (
 (
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     DEFAULT_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
-) = ("reset_manual_control_on_sleep_mode_change", False)
+) = ("reset_manual_control_on_sleep_mode_change", True)
 DOCS[CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE] = (
-    "Reset the `manual_control` status of all lights whenever the sleep mode "
-    "switch is toggled. Defaults to `false`, so manual control is preserved "
-    "across sleep mode toggles. Set to `true` to clear manual control on every "
-    "sleep mode change. 😴"
+    "Reset manual control when the sleep mode switch is toggled. "
+    "Set to `false` to preserve manual control across sleep mode changes. 😴"
 )
 
 CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
