@@ -54,8 +54,6 @@
           "min_sunset_time": "min_sunset_time: Самое раннее время виртуального заката (ЧЧ:ММ:СС). 🌇",
           "max_sunset_time": "max_sunset_time: Самое позднее время виртуального заката (ЧЧ:ММ:СС). 🌇",
           "brightness_mode": "brightness_mode: Режим яркости для использования (default, linear, tanh). 📈",
-          "brightness_mode_time_dark": "brightness_mode_time_dark: Время затемнения в секундах. 🌙",
-          "brightness_mode_time_light": "brightness_mode_time_light: Время осветления в секундах. ☀️",
           "autoreset_control_seconds": "autoreset_control_seconds: Автосброс ручного управления через X секунд. ⏲️",
           "send_split_delay": "send_split_delay: Задержка между отдельными командами включения для источников света. ⏲️"
         },
