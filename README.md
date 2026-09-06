@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-168-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-171-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -583,6 +583,16 @@ logger:
 ```
 
 After the issue occurs, create a new issue report with the log (`/config/home-assistant.log`).
+
+For support, use Home Assistant's **Download diagnostics** action on the
+Adaptive Lighting config entry. The download is an on-demand snapshot of the
+profile's current switches and currently tracked light targets. It does not
+refresh group membership or predict targets a disabled profile would use after
+being enabled. It does not create live sensors; existing switch attributes
+remain the interface for automations.
+The reported last adaptation values are the shared manager's latest retained
+value for each attribute. They can come from different commands and do not
+represent one sent command or the current desired state.
 <!-- SECTION:troubleshooting-intro:END -->
 
 <!-- SECTION:common-problems:START -->
@@ -926,6 +936,11 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Mariuss811"><img src="https://avatars.githubusercontent.com/u/54115696?v=4?s=100" width="100px;" alt="Wosten"/><br /><sub><b>Wosten</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3AMariuss811" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://zpriddy.com"><img src="https://avatars.githubusercontent.com/u/1858679?v=4?s=100" width="100px;" alt="Zachary Priddy"/><br /><sub><b>Zachary Priddy</b></sub></a><br /><a href="#ideas-zpriddy" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://blakeslee.me"><img src="https://avatars.githubusercontent.com/u/60765958?v=4?s=100" width="100px;" alt="Andrew Blakeslee Moore"/><br /><sub><b>Andrew Blakeslee Moore</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Aabkslm" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jaynis"><img src="https://avatars.githubusercontent.com/u/1553675?v=4?s=100" width="100px;" alt="jaynis"/><br /><sub><b>jaynis</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=jaynis" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/alistairg"><img src="https://avatars.githubusercontent.com/u/272786?v=4?s=100" width="100px;" alt="Alistair Galbraith"/><br /><sub><b>Alistair Galbraith</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=alistairg" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/hesseleo"><img src="https://avatars.githubusercontent.com/u/44778508?v=4?s=100" width="100px;" alt="Leonhard Hesse"/><br /><sub><b>Leonhard Hesse</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=hesseleo" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://www.tim-maps.com"><img src="https://avatars.githubusercontent.com/u/6741938?v=4?s=100" width="100px;" alt="Tim Stallmann"/><br /><sub><b>Tim Stallmann</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=timstallmann" title="Code">💻</a></td>
     </tr>
   </tbody>

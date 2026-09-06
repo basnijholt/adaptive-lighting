@@ -2612,22 +2612,20 @@ class AdaptiveLightingManager:
             # Fix for https://github.com/basnijholt/adaptive-lighting/issues/1378
             state = self.hass.states.get(eid)
             if state is not None and state.state == STATE_ON:
-                try:
-                    switch = _switch_with_lights(
-                        self.hass,
-                        [eid],
-                        expand_light_groups=False,
-                    )
-                    await self.update_manually_controlled_from_event(
-                        switch,
-                        eid,
-                        force=False,
-                    )
-                except NoSwitchFoundError:
-                    _LOGGER.debug(
-                        "No switch found for entity_id='%s' in 'on' event listener",
-                        eid,
-                    )
+                switches = _switches_with_lights(
+                    self.hass,
+                    [eid],
+                    expand_light_groups=False,
+                )
+                for switch in switches:
+                    # Preserve tracking for a lone profile, including when off.
+                    # Shared lights notify each enabled owner using its takeover policy.
+                    if switch.is_on or len(switches) == 1:
+                        await self.update_manually_controlled_from_event(
+                            switch,
+                            eid,
+                            force=False,
+                        )
 
             timer = self.auto_reset_manual_control_timers.get(eid)
             if (
