@@ -1,7 +1,15 @@
 # Developer notes for the tests directory
 
-To run the tests, check out the [CI configuration](../.github/workflows/pytest.yml) to see how they are executed in the CI pipeline.
+To run the tests, check out the [CI configuration](../.github/workflows/pytest.yaml) to see how they are executed in the CI pipeline.
 Alternatively, you can use the provided Docker image to run the tests locally or run them with VS Code directly in the dev container.
+
+## Coverage reports
+
+Open a `pytest` workflow run in GitHub Actions to see line and branch coverage in each job's summary. Download its `coverage-<Home Assistant version>-py<Python version>` artifact for the XML and JSON reports and the browsable HTML report. After extracting it, open `htmlcov/index.html` to inspect missing lines and branches.
+
+Coverage measures executed code, not whether assertions would catch a bug. Add tests for observable behavior: emitted light commands, final states, manual-control events, and timer expiry. The integration suite runs inside Home Assistant with simulated lights; it does not establish physical-device behavior. It also does not execute every documentation generator included in the package's coverage total.
+
+The tests in `test_automation_examples.py` load YAML directly from `README.md` and execute it through Home Assistant's automation and script engines. Edit the README source when changing those examples, then run `./scripts/update-generated-content` to update the documentation pages.
 
 ## Prerequisites
 
