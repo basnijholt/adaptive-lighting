@@ -22,6 +22,20 @@ target:
   entity_id: switch.adaptive_lighting_sleep_mode_living_room
 ```
 
+Sleep mode stays active until this switch is turned off. It does not turn off
+automatically at sunrise, and Home Assistant restores its previous state after a
+restart. Use an automation, such as the sleep-mode blueprint linked under
+Automation Examples, when you want the switch to follow a schedule or helper.
+
+If lights unexpectedly use `sleep_brightness` or `sleep_color_temp` during the
+day, first check that the sleep-mode switch is off. While the main Adaptive
+Lighting switch is on, it reports the current calculated `brightness_pct` and
+`color_temp_kelvin` targets, including the sleep settings while sleep mode is on.
+You can compare these attributes with the physical light state. They are `None`
+when the main switch is off. In debug logs,
+`initial_sleep=True` describes an internal delay before sending a command; it does
+not mean that sleep mode is active.
+
 ## Configuration Options
 
 Sleep mode is configured through the main Adaptive Lighting configuration. See the [Configuration](../configuration.md) page for the full options table. The sleep-related options are:
