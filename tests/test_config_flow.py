@@ -1,6 +1,17 @@
 """Test Adaptive Lighting config flow."""
 
+import json
+
+import pytest
+import voluptuous as vol
+
+try:
+    from probatio import to_field_list
+except ImportError:
+    from voluptuous_serialize import convert as to_field_list
 from homeassistant.components.adaptive_lighting.const import (
+    BASIC_OPTIONS,
+    CONF_INITIAL_TRANSITION,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     DEFAULT_NAME,
@@ -10,11 +21,33 @@ from homeassistant.components.adaptive_lighting.const import (
 )
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_NAME
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, section
+from homeassistant.helpers import config_validation as cv
 
 from tests.common import MockConfigEntry
 
 DEFAULT_DATA = {key: default for key, default, _ in VALIDATION_TUPLES}
+
+# Split DEFAULT_DATA into basic and advanced for section-based input
+BASIC_DATA = {key: value for key, value in DEFAULT_DATA.items() if key in BASIC_OPTIONS}
+ADVANCED_DATA = {
+    key: value for key, value in DEFAULT_DATA.items() if key not in BASIC_OPTIONS
+}
+
+
+def _schema_defaults(schema: vol.Schema) -> dict[str, object]:
+    """Return the defaults from a voluptuous schema."""
+    return {
+        key.schema: key.default() if callable(key.default) else key.default
+        for key in schema.schema
+    }
+
+
+def _advanced_section(result) -> section:
+    """Return the advanced options section from a flow result."""
+    advanced = result["data_schema"].schema["advanced"]
+    assert isinstance(advanced, section)
+    return advanced
 
 
 async def test_flow_manual_configuration(hass):
@@ -53,7 +86,7 @@ async def test_import_success(hass):
 
 
 async def test_options(hass):
-    """Test updating options."""
+    """Test updating options with collapsible sections."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=DEFAULT_NAME,
@@ -68,20 +101,79 @@ async def test_options(hass):
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
 
-    data = DEFAULT_DATA.copy()
-    data[CONF_SUNRISE_TIME] = NONE_STR
-    data[CONF_SUNSET_TIME] = NONE_STR
+    # Build input with advanced options nested in "advanced" section
+    advanced_data = ADVANCED_DATA.copy()
+    advanced_data[CONF_INITIAL_TRANSITION] = 23
+    advanced_data[CONF_SUNRISE_TIME] = NONE_STR
+    advanced_data[CONF_SUNSET_TIME] = NONE_STR
+    basic_data = {**BASIC_DATA, "min_brightness": 12}
+    user_input = {
+        **basic_data,
+        "advanced": advanced_data,
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input=data,
+        user_input=user_input,
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    for key, value in data.items():
+
+    # Verify flattened data is saved correctly
+    expected_data = {**basic_data, **advanced_data}
+    for key, value in expected_data.items():
         assert result["data"][key] == value
 
+    assert "advanced" not in result["data"]
 
-async def test_incorrect_options(hass):
-    """Test updating incorrect options."""
+    # Starting the flow again must load the saved flat options into both parts
+    # of the sectioned form.
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert _schema_defaults(result["data_schema"])["min_brightness"] == 12
+    assert (
+        _schema_defaults(_advanced_section(result).schema)[CONF_INITIAL_TRANSITION]
+        == 23
+    )
+
+
+async def test_options_schema_has_each_setting_once(hass):
+    """Test that basic and advanced options partition all settings."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=DEFAULT_NAME,
+        data={CONF_NAME: DEFAULT_NAME, "interval": 120, "min_brightness": 7},
+        options={"min_brightness": 12},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    schema = result["data_schema"].schema
+    advanced = _advanced_section(result)
+
+    assert advanced.options == {"collapsed": True}
+    assert {key.schema for key in schema if key.schema != "advanced"} == BASIC_OPTIONS
+    assert {key.schema for key in advanced.schema.schema} == set(
+        DEFAULT_DATA,
+    ) - BASIC_OPTIONS
+    assert _schema_defaults(result["data_schema"])["interval"] == 120
+    assert _schema_defaults(result["data_schema"])["min_brightness"] == 12
+
+    serialized_schema = to_field_list(
+        result["data_schema"],
+        custom_serializer=cv.custom_serializer,
+    )
+    json.dumps(serialized_schema)
+    serialized_advanced = next(
+        field for field in serialized_schema if field["name"] == "advanced"
+    )
+    assert serialized_advanced["type"] == "expandable"
+    assert serialized_advanced["expanded"] is False
+    assert {field["name"] for field in serialized_advanced["schema"]} == set(
+        DEFAULT_DATA,
+    ) - BASIC_OPTIONS
+
+
+@pytest.mark.parametrize("lights", [[], ["light.missing"]])
+async def test_incorrect_options(hass, lights):
+    """Test updating incorrect options in advanced section."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=DEFAULT_NAME,
@@ -93,12 +185,30 @@ async def test_incorrect_options(hass):
     await hass.config_entries.async_setup(entry.entry_id)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    data = DEFAULT_DATA.copy()
-    data[CONF_SUNRISE_TIME] = "yolo"
-    data[CONF_SUNSET_TIME] = "yolo"
+
+    # Build input with invalid advanced options nested in section
+    advanced_data = ADVANCED_DATA.copy()
+    advanced_data[CONF_SUNRISE_TIME] = "yolo"
+    advanced_data[CONF_SUNSET_TIME] = "yolo"
+    basic_data = {**BASIC_DATA, "min_brightness": 12, "lights": lights}
+    user_input = {
+        **basic_data,
+        "advanced": advanced_data,
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input=data,
+        user_input=user_input,
+    )
+    # Should show form with errors
+    assert result["type"] == FlowResultType.FORM
+    expected_errors = {"base": "option_error"}
+    if lights:
+        expected_errors["lights"] = "entity_missing"
+    assert result["errors"] == expected_errors
+    assert _schema_defaults(result["data_schema"])["lights"] == lights
+    assert _schema_defaults(result["data_schema"])["min_brightness"] == 12
+    assert (
+        _schema_defaults(_advanced_section(result).schema)[CONF_SUNRISE_TIME] == "yolo"
     )
 
 
@@ -145,6 +255,10 @@ async def test_options_flow_for_yaml_import(hass):
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
     assert result.get("data_schema") is None
+    assert result["description_placeholders"] == {
+        "docs_url": "https://github.com/basnijholt/adaptive-lighting#readme",
+        "webapp_url": "https://basnijholt.github.io/adaptive-lighting",
+    }
 
 
 async def test_menu_shown_when_entries_exist(hass):
