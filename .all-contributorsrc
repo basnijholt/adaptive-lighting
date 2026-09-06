@@ -1505,6 +1505,24 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "zpriddy",
+      "name": "Zachary Priddy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1858679?v=4",
+      "profile": "http://zpriddy.com",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "abkslm",
+      "name": "Andrew Blakeslee Moore",
+      "avatar_url": "https://avatars.githubusercontent.com/u/60765958?v=4",
+      "profile": "http://blakeslee.me",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
