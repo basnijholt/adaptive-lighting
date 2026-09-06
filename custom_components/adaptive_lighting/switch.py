@@ -2497,9 +2497,11 @@ class AdaptiveLightingManager:
             if (
                 timer is not None
                 and timer.is_running()
+                and not is_our_context(event.context)
+                and not self.is_proactively_adapting(event.context.id)
                 and event.time_fired > timer.start_time  # type: ignore[operator]
             ):
-                # Restart the auto reset timer
+                # Only external turn-ons extend manual control, not our adaptations.
                 timer.start()
 
         if service == SERVICE_TURN_OFF:
