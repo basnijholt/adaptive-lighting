@@ -20,6 +20,20 @@ This feature is available when `take_over_control` is enabled.
 Additionally, enabling `detect_non_ha_changes` allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
 The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
 
+The Adaptive Lighting switch exposes these read-only attributes for its lights:
+
+- `manual_control`: lights with any attribute marked as manually controlled.
+- `manual_control_brightness`: lights with brightness marked as manually controlled.
+- `manual_control_color`: lights with color marked as manually controlled.
+
+These lists report manual-control flags. Actual adaptation also depends on `take_over_control_mode` and the brightness/color adaptation switches. For example, under the default `pause_all` mode, manually changing only brightness leaves `manual_control_color` empty while pausing both brightness and color adaptation. Under `pause_changed`, color can continue adapting.
+
+The attributes are absent when the Adaptive Lighting switch is off. Use a fallback when checking them in templates:
+
+```jinja
+{{ 'light.bedroom' in (state_attr('switch.adaptive_lighting_bedroom', 'manual_control_brightness') or []) }}
+```
+
 > ⚠️ **_Caution: Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Disable `detect_non_ha_changes` if you encounter such issues._**
 
 <!-- OUTPUT:END -->
