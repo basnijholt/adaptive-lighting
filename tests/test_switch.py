@@ -1697,7 +1697,7 @@ async def test_offset_too_large(hass):
     which makes the adaptive lighting algorithm fail with a ValueError.
     """
     _, switch = await setup_switch(hass, {CONF_SUNRISE_OFFSET: 3600 * 12})
-    with pytest.raises(ValueError, match="sun events.*not in the expected order"):
+    with pytest.raises(ValueError, match=r"sun events.*not in the expected order"):
         await switch._update_attrs_and_maybe_adapt_lights(
             context=switch.create_context("test"),
         )
