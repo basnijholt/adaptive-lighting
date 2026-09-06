@@ -79,7 +79,8 @@
               "skip_redundant_commands": "skip_redundant_commands: Skip sending adaptation commands whose target state already equals the light's known state. Minimizes network traffic and improves the adaptation responsivity in some situations. 📉Disable if physical light states get out of sync with HA's recorded state.",
               "intercept": "intercept: Intercept and adapt `light.turn_on` calls to enabling instantaneous color and brightness adaptation. 🏎️ Disable for lights that do not support `light.turn_on` with color and brightness.",
               "multi_light_intercept": "multi_light_intercept: Intercept and adapt `light.turn_on` calls that target multiple lights. ➗⚠️ This might result in splitting up a single `light.turn_on` call into multiple calls, e.g., when lights are in different switches. Requires `intercept` to be enabled.",
-              "include_config_in_attributes": "include_config_in_attributes: Show all options as attributes on the switch in Home Assistant when set to `true`. 📝"
+              "include_config_in_attributes": "include_config_in_attributes: Show all options as attributes on the switch in Home Assistant when set to `true`. 📝",
+              "expand_light_groups": "expand_light_groups: Expand light groups to their members (`true`, default). Set `false` to send commands to the group and track manual control for the group. Explicit member targets in services stay individual targets."
             },
             "data_description": {
               "initial_transition": "Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️",
@@ -211,6 +212,10 @@
         "prefer_rgb_color": {
           "description": "Whether to prefer RGB color adjustment over light color temperature when possible. 🌈",
           "name": "prefer_rgb_color"
+        },
+        "expand_light_groups": {
+          "description": "Expand light groups to their members (`true`, default). Set `false` to send commands to the group and track manual control for the group. Explicit member targets in services stay individual targets.",
+          "name": "expand_light_groups"
         },
         "separate_turn_on_commands": {
           "description": "Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀",

@@ -37,6 +37,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
     CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON,
@@ -2301,7 +2302,8 @@ def test_attributes_have_changed():
 
 async def test_state_change_handlers(hass):
     """Test AdaptiveLightingManager's EVENT_STATE_CHANGED listener.
-    ======================
+    ===============
+
     Sequence of events:
     1. Transition from sleep mode to normal.
     2. Create simulated transition events for that adapt.
@@ -3824,6 +3826,407 @@ async def test_light_group(
         assert len(events) == 3
 
 
+def _track_adaptive_light_calls(hass, *, ours_only=True):
+    """Capture commands emitted by Adaptive Lighting at the HA service boundary."""
+    calls = []
+
+    def track(event):
+        if (
+            event.data["domain"] == LIGHT_DOMAIN
+            and event.data["service"] == SERVICE_TURN_ON
+            and (not ours_only or is_our_context(event.context))
+        ):
+            calls.append(event.data["service_data"])
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, track)
+    return calls
+
+
+async def _setup_group_switch(hass, **settings):
+    return await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: ["light.light_group"],
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+            **settings,
+        },
+    )
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+async def test_light_group_expand_disabled_off_to_on(hass, intercept, cleanup):
+    """Group adaptation reaches members through the group on both turn-on paths."""
+    await setup_lights(hass, with_group=True)
+    _, switch = await _setup_group_switch(
+        hass,
+        expand_light_groups=False,
+        intercept=intercept,
+    )
+    calls = _track_adaptive_light_calls(hass, ours_only=False)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.light_group"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    # HA emits the original service event before the interceptor changes its data.
+    # The group forwards the injected values to its real member entities.
+    expected_target = (
+        ["light.light_4", "light.light_5"] if intercept else "light.light_group"
+    )
+    assert any(
+        call[ATTR_ENTITY_ID] == expected_target and call.get(ATTR_BRIGHTNESS) == 128
+        for call in calls
+    ), calls
+    for member in ["light.light_4", "light.light_5"]:
+        assert hass.states.get(member).attributes[ATTR_BRIGHTNESS] == 128
+
+    calls.clear()
+    await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert any(call[ATTR_ENTITY_ID] == "light.light_group" for call in calls)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.light_group", ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert hass.states.get(switch.entity_id).attributes["manual_control"] == [
+        "light.light_group",
+    ]
+    for member in ["light.light_4", "light.light_5"]:
+        assert hass.states.get(member).attributes[ATTR_BRIGHTNESS] == 77
+
+
+@pytest.mark.parametrize("expand", [False, True])
+@pytest.mark.parametrize("explicit_member", [False, True])
+async def test_group_apply_respects_target_policy(
+    hass,
+    expand,
+    explicit_member,
+    cleanup,
+):
+    """Apply obeys profile expansion without widening an explicit member request."""
+    await setup_lights(hass, with_group=True)
+    _, switch = await _setup_group_switch(hass, expand_light_groups=expand)
+    calls = _track_adaptive_light_calls(hass)
+    target = "light.light_4" if explicit_member else "light.light_group"
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [target],
+            CONF_TURN_ON_LIGHTS: True,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    expected = (
+        ["light.light_4"]
+        if explicit_member
+        else (["light.light_4", "light.light_5"] if expand else ["light.light_group"])
+    )
+    # HA also emits forwarded member calls; AL's own commands use a scalar target.
+    assert (
+        sorted(
+            {
+                call[ATTR_ENTITY_ID]
+                for call in calls
+                if isinstance(call[ATTR_ENTITY_ID], str)
+            },
+        )
+        == expected
+    )
+    assert hass.states.get("light.light_4").attributes[ATTR_BRIGHTNESS] == 128
+    assert hass.states.get("light.light_5").state == (
+        STATE_OFF if explicit_member else STATE_ON
+    )
+
+
+@pytest.mark.parametrize("expand", [False, True])
+async def test_group_manual_control_service(hass, expand, cleanup):
+    """Group lookup and manual service use the same target policy, including reset."""
+    await setup_lights(hass, with_group=True)
+    _, switch = await _setup_group_switch(hass, expand_light_groups=expand)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {CONF_LIGHTS: ["light.light_group"], CONF_MANUAL_CONTROL: True},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    expected = ["light.light_4", "light.light_5"] if expand else ["light.light_group"]
+    assert hass.states.get(switch.entity_id).attributes["manual_control"] == expected
+    for target in expected:
+        assert switch.manager.manual_control[target] == LightControlAttributes.ALL
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {CONF_LIGHTS: ["light.light_group"], CONF_MANUAL_CONTROL: False},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(switch.entity_id).attributes["manual_control"] == []
+
+
+@pytest.mark.parametrize("shared_member", [False, True])
+async def test_group_runtime_expansion_restores_targets(hass, shared_member, cleanup):
+    """Changing expansion back and forth restores groups and retires member timers."""
+    await setup_lights(hass, with_group=True)
+    _, switch = await _setup_group_switch(hass, autoreset_control_seconds=60)
+    if shared_member:
+        _, other = await _setup_group_switch(
+            hass,
+            name="member",
+            lights=["light.light_4"],
+            autoreset_control_seconds=60,
+        )
+        await other.async_turn_off()
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_TURN_ON_LIGHTS: True},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: ["light.light_group"],
+            CONF_MANUAL_CONTROL: True,
+        },
+        blocking=True,
+    )
+    manager = switch.manager
+    old_timers = dict(manager.auto_reset_manual_control_timers)
+    assert len(old_timers) == 2
+    calls = _track_adaptive_light_calls(hass)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_EXPAND_LIGHT_GROUPS: False},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert switch.lights == ["light.light_group"]
+    retained = {"light.light_4"} if shared_member else set()
+    assert manager.lights == {"light.light_group"} | retained
+    assert set(manager.auto_reset_manual_control_timers) == retained
+    for light, timer in old_timers.items():
+        assert timer.is_running() == (light in retained)
+    assert (
+        manager.manual_control.get("light.light_5", LightControlAttributes.NONE)
+        == LightControlAttributes.NONE
+    )
+    assert any(call[ATTR_ENTITY_ID] == "light.light_group" for call in calls)
+    calls.clear()
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_EXPAND_LIGHT_GROUPS: True},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert switch.lights == ["light.light_4", "light.light_5"]
+    assert manager.lights == {"light.light_4", "light.light_5"}
+    expected = (
+        ["light.light_5"] if shared_member else ["light.light_4", "light.light_5"]
+    )
+    assert sorted({call[ATTR_ENTITY_ID] for call in calls}) == expected
+    if shared_member:
+        assert manager.manual_control["light.light_4"] == LightControlAttributes.ALL
+
+
+@pytest.mark.parametrize("expand", [False, True])
+@pytest.mark.parametrize("shared_target", [False, True])
+async def test_group_runtime_change_retires_delayed_events(
+    hass,
+    expand,
+    shared_target,
+    cleanup,
+):
+    """Delayed reactive handlers must not command targets this profile retired."""
+    await setup_lights(hass, with_group=True)
+    _, switch = await _setup_group_switch(
+        hass,
+        expand_light_groups=expand,
+        adapt_delay=0.1234,
+    )
+    retired_targets = (
+        {"light.light_4", "light.light_5"} if expand else {"light.light_group"}
+    )
+    retained_target = "light.light_4" if expand else "light.light_group"
+    if shared_target:
+        _, other = await _setup_group_switch(
+            hass,
+            name="retained",
+            lights=[retained_target],
+            expand_light_groups=False,
+        )
+        await other.async_turn_off()
+
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_sleep = asyncio.sleep
+    delayed_count = 0
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        nonlocal delayed_count
+        if delay == 0.1234:
+            delayed_count += 1
+            if delayed_count == (2 if expand else 1):
+                entered.set()
+            await release.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    calls = _track_adaptive_light_calls(hass)
+    with patch.object(asyncio, "sleep", controlled_sleep):
+        try:
+            await hass.services.async_call(
+                LIGHT_DOMAIN,
+                SERVICE_TURN_ON,
+                {ATTR_ENTITY_ID: "light.light_group"},
+                blocking=True,
+            )
+            await asyncio.wait_for(entered.wait(), timeout=2)
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CHANGE_SWITCH_SETTINGS,
+                {
+                    ATTR_ENTITY_ID: switch.entity_id,
+                    CONF_EXPAND_LIGHT_GROUPS: not expand,
+                },
+                blocking=True,
+            )
+            expected = (
+                ["light.light_group"] if expand else ["light.light_4", "light.light_5"]
+            )
+            assert switch.lights == expected
+            assert switch.manager.lights == set(expected) | (
+                {retained_target} if shared_target else set()
+            )
+            calls.clear()
+        finally:
+            release.set()
+            await hass.async_block_till_done()
+
+    retired_calls = [
+        call
+        for call in calls
+        if isinstance(call[ATTR_ENTITY_ID], str)
+        and call[ATTR_ENTITY_ID] in retired_targets
+    ]
+    assert (
+        not retired_calls
+    ), f"Retired reactive handlers issued commands: {retired_calls}"
+    for member in ["light.light_4", "light.light_5"]:
+        assert hass.states.get(member).attributes[ATTR_BRIGHTNESS] == 128
+
+
+@pytest.mark.parametrize("trigger", ["turn_on", "autoreset"])
+async def test_group_mixed_profiles_preserve_tracking(hass, trigger, cleanup):
+    """Expanding one profile must not remove another profile's group tracking."""
+    await setup_lights(hass, with_group=True)
+    _, proxy = await _setup_group_switch(
+        hass,
+        expand_light_groups=False,
+        autoreset_control_seconds=60,
+        detect_non_ha_changes=True,
+    )
+    _, expanded = await _setup_group_switch(
+        hass,
+        name="expanded",
+        min_brightness=70,
+        max_brightness=70,
+        detect_non_ha_changes=True,
+    )
+    calls = _track_adaptive_light_calls(hass)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: expanded.entity_id,
+            CONF_LIGHTS: ["light.light_group"],
+            CONF_TURN_ON_LIGHTS: True,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert "light.light_group" in proxy.manager.lights
+    calls.clear()
+    if trigger == "turn_on":
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: "light.light_group"},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "light.light_group"},
+            blocking=True,
+        )
+    else:
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_MANUAL_CONTROL,
+            {
+                ATTR_ENTITY_ID: proxy.entity_id,
+                CONF_LIGHTS: ["light.light_group"],
+                CONF_MANUAL_CONTROL: True,
+            },
+            blocking=True,
+        )
+        timer = proxy.manager.auto_reset_manual_control_timers["light.light_group"]
+        timer.delay = 0
+        timer.start()
+        await timer.task
+    await hass.async_block_till_done()
+    # Only the proxy profile may command the group; the expanded profile uses members.
+    assert {
+        call[ATTR_BRIGHTNESS]
+        for call in calls
+        if call[ATTR_ENTITY_ID] == "light.light_group" and ATTR_BRIGHTNESS in call
+    } == {128}
+
+
+async def test_nested_group_apply_targets_leaves(hass, cleanup):
+    """Default expansion reaches nested leaves without sending commands to subgroups."""
+    await setup_lights(hass, with_group=True)
+    hass.states.async_set(
+        "light.outer",
+        STATE_OFF,
+        {ATTR_ENTITY_ID: ["light.light_group", "light.light_3"]},
+    )
+    _, switch = await _setup_group_switch(hass, lights=["light.outer"])
+    calls = _track_adaptive_light_calls(hass)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {CONF_LIGHTS: ["light.outer"], CONF_TURN_ON_LIGHTS: True},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert sorted({call[ATTR_ENTITY_ID] for call in calls}) == [
+        "light.light_3",
+        "light.light_4",
+        "light.light_5",
+    ]
+    assert switch.lights == ["light.light_3", "light.light_4", "light.light_5"]
+
+
 def _state_changed_event(entity_id: str, ts: float, context: Context) -> Event:
     return Event(
         EVENT_STATE_CHANGED,
@@ -3960,25 +4363,21 @@ async def test_just_turned_off_same_automation_context(hass, cleanup):
 
 
 async def test_just_turned_off_group_context_reuse_end_to_end(hass, cleanup):
-    """Drive the issue #1378 scenario through the real event bus listeners.
-
-    Unlike `test_just_turned_off_group_context_reuse`, which calls
-    `just_turned_off` directly, this test fires the service and state-changed
-    events on the bus. Light groups are normally expanded out of
-    `manager.lights`, but they can remain tracked in real setups (e.g., when a
-    group is nested inside another configured group or is unavailable during
-    setup), which is the configuration under which issue #1378 was reported.
-    """
+    """A tracked member turn-on explains a group's reused OFF context (#1378)."""
     await setup_lights(hass, with_group=True)
-    _, switch = await setup_switch(hass, {CONF_LIGHTS: ["light.light_group"]})
+    _, switch = await _setup_group_switch(
+        hass,
+        lights=["light.light_group", "light.light_4"],
+        expand_light_groups=False,
+        detect_non_ha_changes=True,
+    )
     await hass.async_block_till_done()
     manager = switch.manager
 
     group = "light.light_group"
     member = "light.light_4"
     assert member in manager.lights
-    # Simulate a setup in which the group entity itself remains tracked.
-    manager.lights.add(group)
+    assert group in manager.lights
 
     turn_off_context = Context()
     # The group was turned off...
@@ -4008,25 +4407,18 @@ async def test_just_turned_off_group_context_reuse_end_to_end(hass, cleanup):
     assert member in manager.turn_on_event
 
     # ...which turned the group back on, but HA reused the old turn_off context.
-    with patch.object(
-        AdaptiveSwitch,
-        "_respond_to_off_to_on_event",
-        AsyncMock(),
-    ) as respond:
-        hass.bus.async_fire(
-            EVENT_STATE_CHANGED,
-            {
-                "entity_id": group,
-                "old_state": State(group, STATE_OFF),
-                "new_state": State(group, STATE_ON),
-            },
-            context=turn_off_context,
-        )
-        await hass.async_block_till_done()
+    calls = _track_adaptive_light_calls(hass)
+    state = hass.states.get(group)
+    hass.states.async_set(group, STATE_ON, state.attributes, context=turn_off_context)
+    await hass.async_block_till_done()
 
-    # Adaptation must not have been cancelled as a polling artifact.
-    respond.assert_called_once()
-    assert respond.call_args[0][0] == group
+    # The real group command must survive polling-artifact detection.
+    assert any(
+        call[ATTR_ENTITY_ID] == group and call.get(ATTR_BRIGHTNESS) == 128
+        for call in calls
+    )
+    for entity_id in ["light.light_4", "light.light_5"]:
+        assert hass.states.get(entity_id).attributes[ATTR_BRIGHTNESS] == 128
 
 
 @pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])

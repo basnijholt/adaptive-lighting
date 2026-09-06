@@ -68,7 +68,8 @@
               "skip_redundant_commands": "skip_redundant_commands: Überspringt das Senden von Anpassungsbefehlen, deren Zielzustand bereits mit dem bekannten Zustand der Leuchte übereinstimmt. Minimiert den Netzwerkverkehr und verbessert die Anpassungsreaktion in einigen Situationen. 📉 Deaktivieren, falls der physikalische Zustand der Lichter nicht mehr mit dem Zustand in HA übereinstimmt.",
               "intercept": "intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, um eine sofortige Anpassung von Farbe und Helligkeit zu ermöglichen. 🏎️ Deaktivieren für Leuchten, die `light.turn_on` mit Farbe und Helligkeit nicht unterstützen.",
               "multi_light_intercept": "multi_light_intercept: Abfangen und Anpassen von `light.turn_on`-Aufrufen, die auf mehrere Lichter aufrufen. ➗⚠️ Dies kann dazu führen, dass ein einzelner `light.turn_on`-Aufruf in mehrere Aufrufe aufgeteilt wird, z.B. wenn Lichter in verschiedenen Schaltern sind. Erfordert, dass `intercept` aktiviert ist.",
-              "include_config_in_attributes": "include_config_in_attributes: Alle Optionen als Attribute auf dem Schalter im Home Assistant anzeigen, wenn auf `true` gesetzt. 📝"
+              "include_config_in_attributes": "include_config_in_attributes: Alle Optionen als Attribute auf dem Schalter im Home Assistant anzeigen, wenn auf `true` gesetzt. 📝",
+              "expand_light_groups": "expand_light_groups: Lichtgruppen auf einzelne Mitgliedsentitäten erweitern (`true`) oder die Gruppenentität direkt steuern (`false`)."
             },
             "data_description": {
               "initial_transition": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️",
@@ -88,7 +89,8 @@
               "brightness_mode_time_light": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit nach/vor Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉.",
               "autoreset_control_seconds": "Setzt die manuelle Steuerung nach einer bestimmten Anzahl von Sekunden automatisch zurück. Zum Deaktivieren auf 0 setzen. ⏲️",
               "send_split_delay": "Verzögerung (ms) zwischen `separate_turn_on_commands` für Leuchten, die keine gleichzeitige Einstellung von Helligkeit und Farbe unterstützen. ⏲️",
-              "adapt_delay": "Wartezeit (Sekunden) zwischen dem Einschalten des Lichts und der Anwendung der adaptiven Beleuchtung. Könnte helfen, Flackern zu vermeiden. ⏲️"
+              "adapt_delay": "Wartezeit (Sekunden) zwischen dem Einschalten des Lichts und der Anwendung der adaptiven Beleuchtung. Könnte helfen, Flackern zu vermeiden. ⏲️",
+              "expand_light_groups": "Wenn auf `false` gesetzt, werden Anpassungsbefehle direkt an die Gruppenentität gesendet und nicht an die einzelnen Mitglieder."
             }
           }
         }

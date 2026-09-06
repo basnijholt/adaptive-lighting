@@ -98,6 +98,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
+    CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
     CONF_INTERCEPT,
@@ -252,14 +253,11 @@ def _switches_with_lights(
     if not loaded_switches:
         return []
 
-    all_check_lights = (
-        _expand_light_groups(hass, lights) if expand_light_groups else set(lights)
-    )
     switches: AdaptiveSwitches = []
     for switch in loaded_switches:
-        switch._expand_light_groups(hass=hass)
-        # Check if any of the lights are in the switch's lights
-        if set(switch.lights) & set(all_check_lights):
+        switch._expand_light_groups()
+        check_lights = switch._resolve_lights(lights) if expand_light_groups else lights
+        if set(switch.lights) & set(check_lights):
             switches.append(switch)
     return switches
 
@@ -422,7 +420,7 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
     switches = _switches_from_service_call(hass, service_call)
     lights = data[CONF_LIGHTS]
     for switch in switches:
-        all_lights = switch.lights if not lights else _expand_light_groups(hass, lights)
+        all_lights = switch._resolve_lights(lights or None)
         switch.manager.lights.update(all_lights)
         for light in all_lights:
             if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
@@ -457,7 +455,7 @@ async def handle_set_manual_control_service(
     switches = _switches_from_service_call(hass, service_call)
     lights = data[CONF_LIGHTS]
     for switch in switches:
-        all_lights = switch.lights if not lights else _expand_light_groups(hass, lights)
+        all_lights = switch._resolve_lights(lights or None)
         manual_attributes = manual_control_event_attribute_to_flags(
             data[CONF_MANUAL_CONTROL],
         )
@@ -626,17 +624,22 @@ def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
 ) -> list[str]:
+    """Resolve nested groups without changing another profile's tracked targets."""
     all_lights: set[str] = set()
-    manager = hass.data[DOMAIN][ATTR_ADAPTIVE_LIGHTING_MANAGER]
-    for light in lights:
+    pending = list(lights)
+    visited: set[str] = set()
+    while pending:
+        light = pending.pop()
+        if light in visited:
+            continue
+        visited.add(light)
         state = hass.states.get(light)
         if state is None:
             _LOGGER.debug("State of %s is None", light)
             all_lights.add(light)
         elif _is_light_group(state):
             group = state.attributes["entity_id"]
-            manager.lights.discard(light)
-            all_lights.update(group)
+            pending.extend(group)
             _LOGGER.debug("Expanded %s to %s", light, group)
         else:
             all_lights.add(light)
@@ -889,7 +892,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         self._name = data[CONF_NAME]
         self._interval: timedelta = data[CONF_INTERVAL]
-        self.lights: list[str] = data[CONF_LIGHTS]
+        self._configured_lights: list[str] = list(data[CONF_LIGHTS])
+        self.lights: list[str] = []
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
@@ -990,6 +994,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._name,
             )
             self._multi_light_intercept = False
+        self._expand_light_groups_flag = data[CONF_EXPAND_LIGHT_GROUPS]
         self._expand_light_groups()  # updates manual control timers
         observer = get_astral_observer(self.hass)
 
@@ -1073,15 +1078,29 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Remove the listeners upon removing the component."""
         self._remove_listeners()
 
-    def _expand_light_groups(self, hass: HomeAssistant | None = None) -> None:
-        hass = hass or self.hass
-        all_lights = _expand_light_groups(hass, self.lights)
+    def _resolve_lights(self, lights: list[str] | None = None) -> list[str]:
+        """Apply this profile's group policy, preserving explicit member targets."""
+        if lights is None:
+            lights = self._configured_lights
+        if self._expand_light_groups_flag:
+            return _expand_light_groups(self.hass, lights)
+        return sorted(set(lights))
+
+    def _expand_light_groups(self) -> None:
+        all_lights = self._resolve_lights()
+        removed = set(self.lights) - set(all_lights)
+        self.lights = all_lights
+        if removed:
+            # Other profiles may still own a retired member or group, even when off.
+            for entry in self.hass.data[DOMAIN].values():
+                if isinstance(entry, dict) and (switch := entry.get(SWITCH_DOMAIN)):
+                    removed.difference_update(switch._resolve_lights())
+            self.manager.remove_lights(*removed)
         self.manager.lights.update(all_lights)
         self.manager.set_auto_reset_manual_control_times(
             all_lights,
             self._auto_reset_manual_control_time,
         )
-        self.lights = list(all_lights)
 
     async def _setup_listeners(self, _: Event[NoEventData] | None = None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
@@ -1521,6 +1540,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             return
 
         if lights is None:
+            self._expand_light_groups()
             lights = self.lights
 
         on_lights = [light for light in lights if is_on(self.hass, light)]
@@ -1667,6 +1687,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
+
+        # Runtime settings may retire this profile's target while the event waits.
+        if entity_id not in self.lights:
+            return
 
         await self._update_attrs_and_maybe_adapt_lights(
             context=self.create_context("light_event", parent=event.context),
@@ -1983,8 +2007,12 @@ class AdaptiveLightingManager:
                 if (
                     not switch.is_on
                     or not switch._intercept
-                    # Never adapt on light groups, because HA will make a separate light.turn_on
-                    or ((e := self.hass.states.get(entity_id)) and _is_light_group(e))
+                    # Never adapt on light groups when expanding, because HA will make a separate light.turn_on
+                    or (
+                        switch._expand_light_groups_flag
+                        and (e := self.hass.states.get(entity_id))
+                        and _is_light_group(e)
+                    )
                     # Prevent adaptation of TURN_ON calls when light is already on,
                     # and of TOGGLE calls when toggling off.
                     or self.hass.states.is_state(entity_id, STATE_ON)
@@ -2381,7 +2409,11 @@ class AdaptiveLightingManager:
                 delay,
             )
             self.reset(light)
-            switches = _switches_with_lights(self.hass, [light])
+            switches = _switches_with_lights(
+                self.hass,
+                [light],
+                expand_light_groups=False,
+            )
             for switch in switches:
                 if not switch.is_on:
                     continue
@@ -2571,6 +2603,30 @@ class AdaptiveLightingManager:
             self.cancel_ongoing_adaptation_calls(light)
         if reset_manual_control:
             self._schedule_manual_control_state_update(*lights)
+
+    def remove_lights(self, *lights: str) -> None:
+        """Retire tracking and pending work for targets no profile owns anymore."""
+        self.reset(*lights)
+        for light in lights:
+            self.lights.discard(light)
+            self.clear_proactively_adapting(light)
+            if timer := self.transition_timers.pop(light, None):
+                timer.cancel()
+            if task := self.sleep_tasks.pop(light, None):
+                task.cancel()
+            for records in (
+                self.manual_control,
+                self.auto_reset_manual_control_times,
+                self.turn_on_event,
+                self.turn_off_event,
+                self.toggle_event,
+                self.on_to_off_event,
+                self.off_to_on_event,
+                self.turn_off_locks,
+                self.adaptation_tasks_brightness,
+                self.adaptation_tasks_color,
+            ):
+                records.pop(light, None)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
         if ATTR_ENTITY_ID in service_data:
@@ -2806,7 +2862,11 @@ class AdaptiveLightingManager:
                     )
                     return
 
-            switches = _switches_with_lights(self.hass, [entity_id])
+            switches = _switches_with_lights(
+                self.hass,
+                [entity_id],
+                expand_light_groups=False,
+            )
             for switch in switches:
                 if switch.is_on:
                     await switch._respond_to_off_to_on_event(

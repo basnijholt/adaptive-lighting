@@ -11,6 +11,7 @@ except ImportError:
     from voluptuous_serialize import convert as to_field_list
 from homeassistant.components.adaptive_lighting.const import (
     BASIC_OPTIONS,
+    CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON,
     CONF_SUNRISE_TIME,
@@ -106,6 +107,7 @@ async def test_options(hass):
     # Build input with advanced options nested in "advanced" section
     advanced_data = ADVANCED_DATA.copy()
     advanced_data[CONF_INITIAL_TRANSITION] = 23
+    advanced_data[CONF_EXPAND_LIGHT_GROUPS] = False
     advanced_data[CONF_SUNRISE_TIME] = NONE_STR
     advanced_data[CONF_SUNSET_TIME] = NONE_STR
     basic_data = {**BASIC_DATA, "min_brightness": 12}

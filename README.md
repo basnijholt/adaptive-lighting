@@ -48,6 +48,10 @@ This feature is available when `take_over_control` is enabled.
 Additionally, enabling `detect_non_ha_changes` allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
 The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
 
+With `expand_light_groups: false`, manual control belongs to the group. A direct member change cannot pause adaptation for only that member; use group-level manual control or enable expansion for individual tracking.
+Explicit member targets in Adaptive Lighting services stay individual targets and do not mark or command the whole group.
+Changing expansion at runtime discards tracking and pending adaptation for targets no longer used by any profile.
+
 The Adaptive Lighting switch exposes these read-only attributes for its lights:
 
 - `manual_control`: lights with any attribute marked as manually controlled.
@@ -166,6 +170,7 @@ The YAML and frontend configuration methods support all of the options listed be
 | `intercept`                                 | Intercept and adapt `light.turn_on` calls to enabling instantaneous color and brightness adaptation. 🏎️ Disable for lights that do not support `light.turn_on` with color and brightness.                                                                                                                                                                                                     | `True`         | `bool`                                  |
 | `multi_light_intercept`                     | Intercept and adapt `light.turn_on` calls that target multiple lights. ➗⚠️ This might result in splitting up a single `light.turn_on` call into multiple calls, e.g., when lights are in different switches. Requires `intercept` to be enabled.                                                                                                                                             | `True`         | `bool`                                  |
 | `include_config_in_attributes`              | Show all options as attributes on the switch in Home Assistant when set to `true`. 📝                                                                                                                                                                                                                                                                                                         | `False`        | `bool`                                  |
+| `expand_light_groups`                       | Expand light groups to their members (`true`, default). Set `false` to send commands to the group and track manual control for the group. Explicit member targets in services stay individual targets.                                                                                                                                                                                        | `True`         | `bool`                                  |
 
 <!-- OUTPUT:END -->
 

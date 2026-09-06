@@ -20,6 +20,10 @@ This feature is available when `take_over_control` is enabled.
 Additionally, enabling `detect_non_ha_changes` allows Adaptive Lighting to detect all state changes, including those made outside of Home Assistant, by comparing the light's state to its previously used settings.
 The `adaptive_lighting.manual_control` event is fired when a light is marked as "manually controlled," allowing for integration with automations 🤖.
 
+With `expand_light_groups: false`, manual control belongs to the group. A direct member change cannot pause adaptation for only that member; use group-level manual control or enable expansion for individual tracking.
+Explicit member targets in Adaptive Lighting services stay individual targets and do not mark or command the whole group.
+Changing expansion at runtime discards tracking and pending adaptation for targets no longer used by any profile.
+
 The Adaptive Lighting switch exposes these read-only attributes for its lights:
 
 - `manual_control`: lights with any attribute marked as manually controlled.

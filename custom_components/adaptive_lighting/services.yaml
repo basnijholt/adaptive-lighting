@@ -139,6 +139,12 @@ change_switch_settings:
       example: false
       selector:
         boolean: null
+    expand_light_groups:
+      description: Expand light groups to their members (`true`, default). Set `false` to send commands to the group and track manual control for the group. Explicit member targets in services stay individual targets.
+      required: false
+      example: true
+      selector:
+        boolean: null
     separate_turn_on_commands:
       description: Use separate `light.turn_on` calls for color and brightness, needed for some light types. 🔀
       required: false
