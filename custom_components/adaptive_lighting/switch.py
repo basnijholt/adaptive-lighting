@@ -1878,12 +1878,15 @@ class AdaptiveLightingManager:
             )
 
     def disable(self) -> None:
-        """Disable listeners and pending automatic manual-control resets."""
+        """Disable listeners and pending manual-reset and transition timers."""
         for remove in self.listener_removers:
             remove()
         for timer in self.auto_reset_manual_control_timers.values():
             timer.cancel()
         self.auto_reset_manual_control_timers.clear()
+        for timer in self.transition_timers.values():
+            timer.cancel()
+        self.transition_timers.clear()
 
     def set_proactively_adapting(self, context_id: str, entity_id: str) -> None:
         """Declare the adaptation with context_id as proactively adapting,

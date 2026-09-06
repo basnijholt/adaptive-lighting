@@ -2384,6 +2384,53 @@ async def test_unload_switch(hass):
     assert not timer.is_running()
 
 
+async def test_unload_cancels_pending_light_transition(hass):
+    """A real transition must not keep its timer alive after last profile unload."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_3],
+            CONF_INITIAL_TRANSITION: 60,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    calls = []
+    remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, calls.append)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    transition_calls = [
+        event.data["service_data"]
+        for event in calls
+        if event.data["domain"] == LIGHT_DOMAIN
+        and event.data["service"] == SERVICE_TURN_ON
+        and ATTR_TRANSITION in event.data["service_data"]
+    ]
+    assert len(transition_calls) == 1
+    assert transition_calls[0][ATTR_TRANSITION] == 60
+    timer = switch.manager.transition_timers[ENTITY_LIGHT_3]
+    assert timer.is_running()
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    try:
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+        assert DOMAIN not in hass.data
+        assert not timer.is_running()
+        assert not switch.manager.transition_timers
+        state = hass.states.get(ENTITY_LIGHT_3)
+        assert state.state == STATE_ON
+        assert state.attributes[ATTR_BRIGHTNESS] == 128
+    finally:
+        remove_listener()
+        timer.cancel()
+        await asyncio.gather(timer.task, return_exceptions=True)
+
+
 @pytest.mark.parametrize("state", [STATE_ON, STATE_OFF, None])
 async def test_restore_off_state(hass, state):
     """Test that the 'off' and 'on' states are propoperly restored."""
