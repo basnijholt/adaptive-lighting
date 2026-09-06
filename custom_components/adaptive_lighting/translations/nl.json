@@ -8,6 +8,13 @@
         "data": {
           "name": "Naam"
         }
+      },
+      "menu": {
+        "data": {
+          "action": "Actie"
+        },
+        "title": "Maak of dupliceer",
+        "description": "Wil je een nieuwe instantie aanmaken of een bestaande dupliceren?"
       }
     },
     "abort": {
@@ -75,7 +82,8 @@
           "max_sunset_time": "Stel de tijd (HH:MM:SS) in voor de laatste virtuele zonsondergang, maakt eerdere zonsondergangen mogelijk. 🌇",
           "sunrise_time": "Stel een vaste tijd (HH:MM:SS) in voor zonsopkomst. 🌅",
           "brightness_mode_time_dark": "(Negeer wanneer `brightness_mode='default'`) De duur in seconden van oplopende/aflopende helderheid na/voor zonsopkomst/zonsondergang. 📈📉.",
-          "max_sunrise_time": "Stel de tijd (HH:MM:SS) in voor de laatste virtuele zonsopkomst, maakt eerdere zonsopkomsten mogelijk. 🌅"
+          "max_sunrise_time": "Stel de tijd (HH:MM:SS) in voor de laatste virtuele zonsopkomst, maakt eerdere zonsopkomsten mogelijk. 🌅",
+          "take_over_control_mode": "De adaptie pauzeermodus wanneer andere bronnen de helderheid en/of kleur van lampen veranderen. `pause_all` pauzeert altijd verandering van zowel helderheid als kleur. `pause_changed` pauzeert alleen de verandering van de extern veranderde eigenschappen en blijft onveranderde eigenschappen aanpassen, bijv. doorgaan met kleur veranderen als alleen helderheid extern is veranderd."
         }
       }
     },
@@ -173,6 +181,9 @@
         },
         "min_sunset_time": {
           "description": "Stel de tijd (HH:MM:SS) in voor de meest vroege virtuele zonsondergang, maakt latere zonsondergangen mogelijk. 🌇"
+        },
+        "take_over_control_mode": {
+          "description": "De adaptie pauzeermodus wanneer andere bronnen de helderheid en/of kleur van lampen veranderen. `pause_all` pauzeert altijd verandering van zowel helderheid als kleur. `pause_changed` pauzeert alleen de verandering van de extern veranderde eigenschappen en blijft onveranderde eigenschappen aanpassen, bijv. doorgaan met kleur veranderen als alleen helderheid extern is veranderd."
         }
       },
       "description": "Wijzig alle gewenste instellingen in de schakelaar. Alle opties hier zijn hetzelfde als in de configuratie."
