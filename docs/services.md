@@ -9,7 +9,7 @@ Adaptive Lighting provides three services for programmatic control, allowing you
 ## adaptive_lighting.apply
 
 Applies the current Adaptive Lighting settings to lights on demand. Useful for forcing an immediate update or applying settings to lights that aren't in the regular adaptation cycle.
-Provide either `entity_id` or `lights` to select the target.
+Provide a switch in `entity_id`, a list of `lights`, or both.
 
 ### Parameters
 
@@ -59,7 +59,7 @@ data:
 ## adaptive_lighting.set_manual_control
 
 Marks or unmarks a light as "manually controlled". When a light is marked as manually controlled, Adaptive Lighting will not adjust it until the manual control flag is cleared.
-Provide either `entity_id` or `lights` to select the target.
+Provide a switch in `entity_id`, a list of `lights`, or both.
 
 ### Parameters
 

@@ -202,7 +202,7 @@ adaptive_lighting:
 #### `adaptive_lighting.apply`
 
 `adaptive_lighting.apply` applies Adaptive Lighting settings to lights on demand.
-Provide either `entity_id` or `lights` to select the target.
+Provide a switch in `entity_id`, a list of `lights`, or both.
 
 <!-- CODE:START -->
 <!-- from adaptive_lighting._docs_helpers import generate_apply_markdown_table -->
@@ -225,7 +225,7 @@ Provide either `entity_id` or `lights` to select the target.
 #### `adaptive_lighting.set_manual_control`
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
-Provide either `entity_id` or `lights` to select the target.
+Provide a switch in `entity_id`, a list of `lights`, or both.
 
 <!-- CODE:START -->
 <!-- from adaptive_lighting._docs_helpers import generate_set_manual_control_markdown_table -->
