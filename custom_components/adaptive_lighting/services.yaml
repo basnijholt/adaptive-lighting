@@ -251,7 +251,7 @@ change_switch_settings:
       selector:
         text: null
     skip_brightness_increases:
-      description: Prevent automatic adaptation from increasing brightness above the light's reported numeric brightness, while still adapting to lower brightness targets and adapting color. A retained brightness on an off light is also used as the ceiling. If brightness is missing or non-numeric, the calculated target is used. Bare turn-on and leaving sleep mode may therefore keep a light dim until you request a brighter level directly or disable this option. This option does not override manual-control pauses.
+      description: Prevent automatic adaptation from increasing brightness above a reported numeric brightness, while still allowing dimming and color adaptation.
       required: false
       example: false
       selector:
