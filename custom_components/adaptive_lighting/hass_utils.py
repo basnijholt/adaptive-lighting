@@ -4,31 +4,30 @@ import logging
 from collections.abc import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers.target import async_extract_referenced_entity_ids
 from homeassistant.util.read_only_dict import ReadOnlyDict
+
+try:
+    from homeassistant.helpers.target import TargetSelection
+except ImportError:  # Compatibility with older Home Assistant releases
+    from homeassistant.helpers.target import TargetSelectorData as TargetSelection
 
 from .adaptation_utils import ServiceData
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def area_entities(hass: HomeAssistant, area_id: str):
-    """Get all entities linked to an area."""
-    ent_reg = entity_registry.async_get(hass)
-    entity_ids = [
-        entry.entity_id
-        for entry in entity_registry.async_entries_for_area(ent_reg, area_id)
-    ]
-    dev_reg = device_registry.async_get(hass)
-    entity_ids.extend(
-        [
-            entity.entity_id
-            for device in device_registry.async_entries_for_area(dev_reg, area_id)
-            for entity in entity_registry.async_entries_for_device(ent_reg, device.id)
-            if entity.area_id is None
-        ],
+def target_entities(
+    hass: HomeAssistant,
+    service_data: ServiceData,
+) -> set[str]:
+    """Resolve all directly and indirectly targeted entities without groups."""
+    selected = async_extract_referenced_entity_ids(
+        hass,
+        TargetSelection(service_data),
+        expand_group=False,
     )
-    return entity_ids
+    return selected.referenced | selected.indirectly_referenced
 
 
 def setup_service_call_interceptor(

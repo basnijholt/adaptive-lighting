@@ -11,7 +11,6 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import ulid_transform
 from homeassistant.components.light import (
@@ -32,8 +31,11 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import (
     ATTR_AREA_ID,
+    ATTR_DEVICE_ID,
     ATTR_DOMAIN,
     ATTR_ENTITY_ID,
+    ATTR_FLOOR_ID,
+    ATTR_LABEL_ID,
     ATTR_SERVICE,
     ATTR_SERVICE_DATA,
     ATTR_SUPPORTED_FEATURES,
@@ -150,7 +152,7 @@ from .const import (
     change_switch_settings_schema,
     replace_none_str,
 )
-from .hass_utils import area_entities, setup_service_call_interceptor
+from .hass_utils import setup_service_call_interceptor, target_entities
 from .helpers import (
     clamp,
     color_difference_redmean,
@@ -1983,13 +1985,6 @@ class AdaptiveLightingManager:
         self._context_cnt += 1
         return context
 
-    def _is_excluded_from_area(self, entity_id: str) -> bool:
-        """Match Home Assistant's exclusions for indirect area targets."""
-        entry = entity_registry.async_get(self.hass).async_get(entity_id)
-        return entry is not None and (
-            entry.entity_category is not None or entry.hidden_by is not None
-        )
-
     def _separate_entity_ids(
         self,
         entity_ids: list[str],
@@ -2173,8 +2168,14 @@ class AdaptiveLightingManager:
             entity_ids: list[str],
         ) -> dict[str, Any]:
             """Modify the service data to contain the entity IDs."""
-            service_data.pop(ATTR_ENTITY_ID, None)
-            service_data.pop(ATTR_AREA_ID, None)
+            for target_key in (
+                ATTR_ENTITY_ID,
+                ATTR_AREA_ID,
+                ATTR_DEVICE_ID,
+                ATTR_FLOOR_ID,
+                ATTR_LABEL_ID,
+            ):
+                service_data.pop(target_key, None)
             service_data[ATTR_ENTITY_ID] = entity_ids
             return service_data
 
@@ -2646,31 +2647,11 @@ class AdaptiveLightingManager:
                 records.pop(light, None)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
-        if ATTR_ENTITY_ID in service_data:
-            return cv.ensure_list_csv(service_data[ATTR_ENTITY_ID])
-        if ATTR_AREA_ID in service_data:
-            entity_ids: list[str] = []
-            area_ids: list[str] = cv.ensure_list_csv(service_data[ATTR_AREA_ID])
-            for area_id in area_ids:
-                area_entity_ids = area_entities(self.hass, area_id)
-                eids = [
-                    entity_id
-                    for entity_id in area_entity_ids
-                    if entity_id.startswith(LIGHT_DOMAIN)
-                    and not self._is_excluded_from_area(entity_id)
-                ]
-                entity_ids.extend(eids)
-                _LOGGER.debug(
-                    "Found entity_ids '%s' for area_id '%s'",
-                    entity_ids,
-                    area_id,
-                )
-            return entity_ids
-        _LOGGER.debug(
-            "No entity_ids or area_ids found in service_data: %s",
-            service_data,
+        return sorted(
+            entity_id
+            for entity_id in target_entities(self.hass, service_data)
+            if entity_id.startswith(f"{LIGHT_DOMAIN}.")
         )
-        return []
 
     async def turn_on_off_event_listener(self, event: Event) -> None:
         """Track 'light.turn_off' and 'light.turn_on' service calls."""
@@ -3077,7 +3058,7 @@ class AdaptiveLightingManager:
     def _member_turn_on_explains_group_turn_on(
         self,
         entity_id: str,
-        on_to_off_event: Event[EventStateChangedData],
+        off_event: Event,
         off_to_on_event: Event[EventStateChangedData],
     ) -> bool:
         """Check if a light group's 'off' → 'on' is caused by a member's 'light.turn_on'.
@@ -3097,7 +3078,7 @@ class AdaptiveLightingManager:
             member_turn_on = self.turn_on_event.get(member)
             if (
                 member_turn_on is not None
-                and on_to_off_event.time_fired
+                and off_event.time_fired
                 < member_turn_on.time_fired
                 <= off_to_on_event.time_fired
             ):
@@ -3111,6 +3092,49 @@ class AdaptiveLightingManager:
                 )
                 return True
         return False
+
+    def _off_to_on_event_is_during_turn_off(
+        self,
+        entity_id: str,
+        off_to_on_event: Event[EventStateChangedData],
+    ) -> bool:
+        """Check if a reported turn-on belongs to a recent turn-off window."""
+        turn_off_event = self.turn_off_event.get(entity_id)
+        if (
+            turn_off_event is None
+            or off_to_on_event.context.id != turn_off_event.context.id
+        ):
+            return False
+
+        turn_on_event = self.turn_on_event.get(entity_id)
+        if (
+            turn_on_event is not None
+            and turn_off_event.time_fired
+            < turn_on_event.time_fired
+            <= off_to_on_event.time_fired
+        ):
+            return False
+        if self._member_turn_on_explains_group_turn_on(
+            entity_id,
+            turn_off_event,
+            off_to_on_event,
+        ):
+            return False
+
+        transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+        delay = max(transition or 0, TURNING_OFF_DELAY)
+        elapsed = (dt_util.utcnow() - turn_off_event.time_fired).total_seconds()
+        if not 0 <= elapsed <= delay:
+            return False
+
+        _LOGGER.debug(
+            "just_turned_off: Fresh 'light.turn_off' for '%s' shares the"
+            " 'off' → 'on' context; ignoring the state during its %s second"
+            " transition window.",
+            entity_id,
+            delay,
+        )
+        return True
 
     async def just_turned_off(  # noqa: PLR0911, PLR0912
         self,
@@ -3130,6 +3154,8 @@ class AdaptiveLightingManager:
         """
         off_to_on_event = self.off_to_on_event[entity_id]
         on_to_off_event = self.on_to_off_event.get(entity_id)
+        if self._off_to_on_event_is_during_turn_off(entity_id, off_to_on_event):
+            return True
 
         if on_to_off_event is None:
             _LOGGER.debug(

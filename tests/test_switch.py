@@ -110,6 +110,8 @@ from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_DEVICE_ID,
     ATTR_ENTITY_ID,
+    ATTR_FLOOR_ID,
+    ATTR_LABEL_ID,
     ATTR_SUPPORTED_FEATURES,
     CONF_LIGHTS,
     CONF_NAME,
@@ -4255,6 +4257,27 @@ def _turn_on_service_event(entity_ids: list[str], ts: float, context: Context) -
     )
 
 
+def _turn_off_service_event(
+    entity_ids: list[str],
+    ts: float,
+    context: Context,
+    transition: float,
+) -> Event:
+    return Event(
+        EVENT_CALL_SERVICE,
+        {
+            "domain": LIGHT_DOMAIN,
+            "service": SERVICE_TURN_OFF,
+            "service_data": {
+                ATTR_ENTITY_ID: entity_ids,
+                ATTR_TRANSITION: transition,
+            },
+        },
+        time_fired_timestamp=ts,
+        context=context,
+    )
+
+
 async def test_just_turned_off_group_context_reuse(hass, cleanup):
     """Group 'off' → 'on' with a reused 'turn_off' context must still adapt.
 
@@ -4313,6 +4336,154 @@ async def test_just_turned_off_group_context_reuse(hass, cleanup):
     assert await manager.just_turned_off(group)
 
 
+def _register_mixed_target_lights(
+    hass,
+    device_registry,
+    floor_registry,
+    label_registry,
+):
+    """Assign the three test lights to mixed indirect HA targets."""
+    floor = floor_registry.async_create("Upstairs")
+    area_registry = ar.async_get(hass)
+    upstairs_area = area_registry.async_create(
+        "Upstairs room",
+        floor_id=floor.floor_id,
+    )
+    hall_area = area_registry.async_create("Hall")
+
+    config_entry = MockConfigEntry(domain="test")
+    config_entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={("test", "device-target")},
+    )
+    label = label_registry.async_create("Skipped light")
+
+    registry = entity_registry.async_get(hass)
+    registry.async_update_entity(ENTITY_LIGHT_1, area_id=upstairs_area.id)
+    registry.async_update_entity(ENTITY_LIGHT_2, area_id=hall_area.id)
+    registry.async_update_entity(
+        ENTITY_LIGHT_3,
+        device_id=device.id,
+        labels={label.label_id},
+    )
+    return {
+        ATTR_FLOOR_ID: floor.floor_id,
+        ATTR_AREA_ID: hall_area.id,
+        ATTR_DEVICE_ID: device.id,
+        ATTR_LABEL_ID: label.label_id,
+    }
+
+
+async def test_mixed_turn_off_targets_do_not_readapt_off_device_light(
+    hass,
+    device_registry,
+    floor_registry,
+    label_registry,
+    cleanup,
+):
+    """A mixed-target turn-off must cover an already-off device light (#1069)."""
+    await setup_lights(hass)
+    targets = _register_mixed_target_lights(
+        hass,
+        device_registry,
+        floor_registry,
+        label_registry,
+    )
+    targets.pop(ATTR_LABEL_ID)
+
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3],
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INTERCEPT: True,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    assert hass.states.is_state(ENTITY_LIGHT_3, STATE_OFF)
+
+    turn_off_context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {
+            **targets,
+            ATTR_TRANSITION: 10,
+        },
+        blocking=True,
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+
+    calls = _track_adaptive_light_calls(hass)
+    off_state = hass.states.get(ENTITY_LIGHT_3)
+    assert off_state is not None
+    hass.states.async_set(
+        ENTITY_LIGHT_3,
+        STATE_ON,
+        off_state.attributes,
+        context=turn_off_context,
+    )
+    await hass.async_block_till_done()
+
+    assert not calls
+
+
+async def test_intercept_replaces_all_mixed_target_selectors(
+    hass,
+    device_registry,
+    floor_registry,
+    label_registry,
+    cleanup,
+):
+    """A narrowed intercepted call must not retain indirect target selectors."""
+    lights = await setup_lights(hass)
+    targets = _register_mixed_target_lights(
+        hass,
+        device_registry,
+        floor_registry,
+        label_registry,
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {
+            ATTR_ENTITY_ID: [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3],
+        },
+        blocking=True,
+    )
+    await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_1, ENTITY_LIGHT_2],
+            CONF_INTERCEPT: True,
+            CONF_MULTI_LIGHT_INTERCEPT: True,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+
+    with patch.object(
+        lights[2],
+        "async_turn_on",
+        wraps=lights[2].async_turn_on,
+    ) as skipped_turn_on:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {**targets, ATTR_BRIGHTNESS: 200},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 128
+    assert hass.states.get(ENTITY_LIGHT_2).attributes[ATTR_BRIGHTNESS] == 128
+    skipped_turn_on.assert_awaited_once()
+    assert skipped_turn_on.call_args.kwargs[ATTR_BRIGHTNESS] == 200
+
+
 async def test_just_turned_off_same_automation_context(hass, cleanup):
     """'turn_off' and 'turn_on' from one automation share a context.
 
@@ -4329,6 +4500,12 @@ async def test_just_turned_off_same_automation_context(hass, cleanup):
     now = dt_util.utcnow().timestamp()
     automation_context = Context()
 
+    manager.turn_off_event[ENTITY_LIGHT_1] = _turn_off_service_event(
+        [ENTITY_LIGHT_1],
+        now - 2,
+        automation_context,
+        transition=10,
+    )
     manager.on_to_off_event[ENTITY_LIGHT_1] = _state_changed_event(
         ENTITY_LIGHT_1,
         now - 2,
@@ -4366,6 +4543,26 @@ async def test_just_turned_off_same_automation_context(hass, cleanup):
         automation_context,
     )
     assert await manager.just_turned_off(ENTITY_LIGHT_1)
+
+    # A later physical turn-on has a fresh context and must not remain blocked by
+    # the old turn-off record after its transition window has elapsed.
+    manager.on_to_off_event[ENTITY_LIGHT_1] = _state_changed_event(
+        ENTITY_LIGHT_1,
+        now - 20,
+        automation_context,
+    )
+    manager.turn_off_event[ENTITY_LIGHT_1] = _turn_off_service_event(
+        [ENTITY_LIGHT_1],
+        now - 20,
+        automation_context,
+        transition=10,
+    )
+    manager.off_to_on_event[ENTITY_LIGHT_1] = _state_changed_event(
+        ENTITY_LIGHT_1,
+        now,
+        Context(),
+    )
+    assert not await manager.just_turned_off(ENTITY_LIGHT_1)
 
 
 async def test_just_turned_off_group_context_reuse_end_to_end(hass, cleanup):
