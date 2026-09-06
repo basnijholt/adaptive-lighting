@@ -2319,6 +2319,18 @@ class AdaptiveLightingManager:
                 )
 
         self._handle_timer(light, self.auto_reset_manual_control_timers, delay, reset)
+        self._schedule_manual_control_state_update(light)
+
+    def _schedule_manual_control_state_update(self, *lights: str) -> None:
+        """Publish shared manual-control state on every affected switch."""
+        # State publication must not expand groups or change tracked lights.
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            entry_data = self.hass.data[DOMAIN].get(entry.entry_id)
+            if entry_data is None:
+                continue
+            switch = entry_data.get(SWITCH_DOMAIN)
+            if switch is not None and set(lights).intersection(switch.lights):
+                switch.async_schedule_update_ha_state()
 
     def add_manual_control_attributes(
         self,
@@ -2419,6 +2431,8 @@ class AdaptiveLightingManager:
             self.our_last_state_on_change.pop(light, None)
             self.last_service_data.pop(light, None)
             self.cancel_ongoing_adaptation_calls(light)
+        if reset_manual_control:
+            self._schedule_manual_control_state_update(*lights)
 
     def _get_entity_list(self, service_data: ServiceData) -> list[str]:
         if ATTR_ENTITY_ID in service_data:
