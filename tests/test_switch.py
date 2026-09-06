@@ -41,6 +41,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_MIN_COLOR_TEMP,
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_PREFER_RGB_COLOR,
+    CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SUNRISE_OFFSET,
@@ -772,7 +773,7 @@ async def test_manual_control(
         manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
     ), manual_control
 
-    # Check that toggling (sleep mode) switch resets manual control
+    # Toggling the main or sleep switch resets manual control by default.
     for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
         await change_manual_control(True)
         assert manual_control[ENTITY_LIGHT_1]
@@ -884,6 +885,89 @@ async def test_manual_control(
     state_attrs = hass.states.get(switch.entity_id).attributes
     assert state_attrs["manual_control_brightness"] == []
     assert state_attrs["manual_control_color"] == [ENTITY_LIGHT_1]
+
+
+@pytest.mark.parametrize("reset_on_sleep", [None, True, False])
+async def test_sleep_mode_manual_control_reset(hass, reset_on_sleep):
+    """Keep the old default and preserve manual brightness only when opted out."""
+    options = {CONF_MIN_BRIGHTNESS: 50, CONF_MAX_BRIGHTNESS: 50}
+    if reset_on_sleep is not None:
+        options[CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE] = reset_on_sleep
+    switch, (light, *_) = await setup_lights_and_switch(hass, options)
+
+    for service, adapted_brightness in [(SERVICE_TURN_ON, 3), (SERVICE_TURN_OFF, 128)]:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 200},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert switch.manager.get_manual_control_attributes(light.entity_id)
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            service,
+            {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        if reset_on_sleep is False:
+            assert switch.manager.get_manual_control_attributes(light.entity_id)
+            assert hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == 200
+        else:
+            assert not switch.manager.get_manual_control_attributes(light.entity_id)
+            assert (
+                hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS]
+                == adapted_brightness
+            )
+
+
+async def test_sleep_mode_preserves_manual_control_and_cancels_old_adaptation(hass):
+    """A queued pre-sleep command must not overwrite a preserved manual setting."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE: False},
+    )
+    waiting = asyncio.Event()
+    release = asyncio.Event()
+
+    async def pending_service_data():
+        waiting.set()
+        await release.wait()
+        yield {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 1}
+
+    data = AdaptationData(
+        light.entity_id,
+        switch.create_context("test"),
+        0,
+        pending_service_data(),
+        force=False,
+        max_length=1,
+        attributes=LightControlAttributes.BRIGHTNESS,
+    )
+    task = asyncio.create_task(switch.execute_cancellable_adaptation_calls(data))
+    await waiting.wait()
+    try:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: light.entity_id, ATTR_BRIGHTNESS: 200},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+    finally:
+        release.set()
+        await task
+    await hass.async_block_till_done()
+    assert switch.manager.get_manual_control_attributes(light.entity_id)
+    assert hass.states.get(light.entity_id).attributes[ATTR_BRIGHTNESS] == 200
 
 
 @flaky(max_runs=3, min_passes=1)
