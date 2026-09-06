@@ -1,4 +1,5 @@
 """Color util methods."""
+
 # Slightly modified from homeassistant.util.color at
 # https://github.com/home-assistant/core/blob/798fb3e31a6ba87358adc93a4c5b772b64451712/homeassistant/util/color.py#L14
 # to remove the dependency on homeassistant.util.color in sun.py

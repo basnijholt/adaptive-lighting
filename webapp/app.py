@@ -8,8 +8,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import shinyswatch
-from astral import LocationInfo
-from astral.location import Location
+from astral import Observer
 from homeassistant_util_color import color_temperature_to_rgb
 from shiny import App, render, ui
 
@@ -217,10 +216,9 @@ Dive into the simulator, experiment with different settings, and fine-tune the b
 
 # Shiny UI
 app_ui = ui.page_fluid(
-    shinyswatch.theme.sandstone(),
     ui.panel_title("🌞 Adaptive Lighting Simulator WebApp 🌛"),
     ui.layout_sidebar(
-        ui.panel_sidebar(
+        ui.sidebar(
             ui.input_switch("adapt_until_sleep", "adapt_until_sleep", value=False),
             ui.input_switch("sleep_mode", "sleep_mode", value=False),
             ui.input_slider("min_brightness", "min_brightness", 1, 100, 30, post="%"),
@@ -277,13 +275,12 @@ app_ui = ui.page_fluid(
                 post=" hr",
             ),
         ),
-        ui.panel_main(
-            ui.markdown(desc_top),
-            ui.output_plot(id="brightness_plot"),
-            ui.output_plot(id="color_temp_plot"),
-            ui.markdown(desc_bottom),
-        ),
+        ui.markdown(desc_top),
+        ui.output_plot(id="brightness_plot"),
+        ui.output_plot(id="color_temp_plot"),
+        ui.markdown(desc_bottom),
     ),
+    theme=shinyswatch.theme.sandstone,
 )
 
 
@@ -300,7 +297,6 @@ def time_to_float(time: dt.time | dt.datetime) -> float:
 
 
 def _kw(input):
-    location = Location(LocationInfo(timezone=dt.timezone.utc))
     return {
         "name": "Adaptive Lighting Simulator",
         "adapt_until_sleep": input.adapt_until_sleep(),
@@ -326,8 +322,8 @@ def _kw(input):
         "max_sunrise_time": None,
         "min_sunset_time": None,
         "max_sunset_time": None,
-        "astral_location": location,
-        "timezone": location.timezone,
+        "astral_observer": Observer(),
+        "timezone": dt.timezone.utc,
     }
 
 

@@ -1,4 +1,5 @@
 """Extracts the dependencies of the components required for testing."""
+
 from collections import defaultdict
 from pathlib import Path
 
@@ -6,6 +7,10 @@ deps = defaultdict(list)
 components, packages = [], []
 
 requirements = Path("core") / "requirements_test_all.txt"
+if not requirements.exists():
+    # Removed from HA core in 2026.8 (home-assistant/core#171530); the same
+    # per-integration annotations live in requirements_all.txt.
+    requirements = Path("core") / "requirements_all.txt"
 
 with requirements.open() as f:
     lines = f.readlines()
@@ -35,7 +40,9 @@ required = [
     "components.stream",
     "components.conversation",  # only available after HA≥2023.2
     "components.cloud",
+    "components.ffmpeg",  # needed since 2024.1
 ]
 to_install = [package for r in required for package in deps[r]]
+to_install.append("flaky")
 
 print(" ".join(to_install))  # noqa: T201

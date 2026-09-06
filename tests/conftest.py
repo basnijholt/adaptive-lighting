@@ -1,19 +1,26 @@
-"""Fixtures for testing."""
-import os
-import sys
+"""Pytest configuration for adaptive-lighting tests."""
+
+from unittest.mock import patch
 
 import pytest
 
-# Tests in the dev enviromentment use the pytest_homeassistant_custom_component instead of
-# a cloned HA core repo for a simple and clean structure. To still test against a HA core
-# clone (e.g. the dev branch for which no pytest_homeassistant_custom_component exists
-# because HA does not publish dev snapshot packages), set the HA_CLONE env variable.
-if "HA_CLONE" in os.environ:
-    # Rewire the testing package to the cloned test modules. See the test `Dockerfile`
-    # for setup details.
-    sys.modules["pytest_homeassistant_custom_component"] = __import__("tests")
-
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
-    yield
+def mock_template_deprecation_issue():
+    """Mock the template deprecation issue creation.
+
+    The template component's legacy platform syntax creates deprecation
+    issues that require translations. Since adaptive-lighting tests use
+    template lights as test fixtures (not testing the template integration
+    itself), we mock the issue creation to avoid translation validation errors.
+    """
+    # Patch the create_legacy_template_issue function in the template helpers
+    # to be a no-op when called for the deprecated_legacy_templates issue
+    try:
+        with patch(
+            "homeassistant.components.template.helpers.create_legacy_template_issue",
+        ):
+            yield
+    except (ImportError, ModuleNotFoundError, AttributeError):
+        # Older HA versions don't have this function
+        yield

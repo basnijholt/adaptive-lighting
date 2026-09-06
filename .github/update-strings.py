@@ -1,4 +1,5 @@
 """Update strings.json and en.json from const.py."""
+
 import json
 import sys
 from pathlib import Path
@@ -8,7 +9,7 @@ import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from custom_components.adaptive_lighting import const  # noqa: E402
+from custom_components.adaptive_lighting import const
 
 folder = Path("custom_components") / "adaptive_lighting"
 strings_fname = folder / "strings.json"
@@ -21,7 +22,7 @@ data = {}
 data_description = {}
 for k, _, typ in const.VALIDATION_TUPLES:
     desc = const.DOCS[k]
-    if len(desc) > 40 and typ != bool and typ != cv.entity_ids:
+    if len(desc) > 40 and typ not in (bool, cv.entity_ids):
         data[k] = k
         data_description[k] = desc
     else:
@@ -59,6 +60,9 @@ with en_fname.open() as f:
 en["config"]["step"]["user"] = strings["config"]["step"]["user"]
 en["options"]["step"]["init"]["data"] = data
 en["options"]["step"]["init"]["data_description"] = data_description
+en["options"]["step"]["init"]["description"] = strings["options"]["step"]["init"][
+    "description"
+]
 en["services"] = services_json
 
 with en_fname.open("w") as f:

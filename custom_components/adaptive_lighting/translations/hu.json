@@ -1,0 +1,202 @@
+{
+  "options": {
+    "step": {
+      "init": {
+        "data_description": {
+          "sleep_color_temp": "Színhőmérséklet alvó üzemmódban (amikor a `sleep_rgb_or_color_temp` értéke `color_temp`) Kelvinben megadva. 😴",
+          "sleep_rgb_or_color_temp": "Az `\"rgb_color\" vagy a `\"color_temp\" használata alvó üzemmódban. 🌙",
+          "sleep_transition": "Az transition időtartama az \"alvó üzemmód\" kapcsolásakor másodpercben. 😴",
+          "autoreset_control_seconds": "Automatikusan visszaállítja a kézi vezérlést néhány másodperc után. A letiltáshoz állítsa 0-ra. ⏲️",
+          "min_sunset_time": "Állítsa be a legkorábbi virtuális naplemente időpontját (HH:MM:SS), lehetővé téve a későbbi naplementéket. 🌇",
+          "sleep_brightness": "Az alvó üzemmódban lévő lights fényerejének százalékos értéke. 😴",
+          "min_sunrise_time": "Állítsa be a legkorábbi virtuális napfelkelte időpontját (HH:MM:SS), lehetővé téve a későbbi napfelkeltét. 🌅",
+          "interval": "Gyakoriság a lights illesztéséhez, másodpercekben. 🔄",
+          "adapt_delay": "Várakozási idő (másodpercben) a világítás bekapcsolása és az Adaptív világítás alkalmazása között. Segíthet elkerülni a villódzást. ⏲️",
+          "sleep_rgb_color": "RGB szín alvó üzemmódban (akkor érvényes, ha a `sleep_rgb_or_color_temp` értéke \"rgb_color\"). 🌈",
+          "sunrise_offset": "A napfelkelte idejének beállítása pozitív vagy negatív eltolással másodpercekben. ⏰",
+          "transition": "Az transition időtartama, amikor a lights változnak, másodpercben. 🕑",
+          "brightness_mode": "Használandó fényerő üzemmód. A lehetséges értékek: `default`, `linear` és `tanh` (a `brightness_mode_time_dark` és `brightness_mode_time_light` értékeket használja). 📈",
+          "brightness_mode_time_light": "(Figyelmen kívül hagyva, ha `brightness_mode='default'`) A fényerő növelésének/csökkentésének időtartama másodpercben napfelkelte/napnyugta után/előtt. 📈📉.",
+          "sunset_offset": "A naplemente idejének beállítása pozitív vagy negatív eltolással másodpercekben. ⏰",
+          "sunset_time": "Állítson be egy fix időpontot (HH:MM:SS) a naplementéhez. 🌇",
+          "max_sunset_time": "A legkésőbbi virtuális napnyugta időpontjának beállítása (HH:MM:SS), amely lehetővé teszi a korábbi naplementéket. 🌇",
+          "sunrise_time": "Állítson be egy fix időpontot (HH:MM:SS) a napfelkeltéhez. 🌅",
+          "initial_transition": "Az első transition időtartama, amikor a lights \"kikapcsolt\" állapotból \"bekapcsolt\" állapotba váltanak, másodpercben. ⏲️",
+          "brightness_mode_time_dark": "(Figyelmen kívül hagyva, ha `brightness_mode='default'`) A fényerő növelésének/csökkentésének időtartama másodpercben napfelkelte/napnyugta után/előtt. 📈📉.",
+          "max_sunrise_time": "A legkésőbbi virtuális napfelkelte időpontjának beállítása (HH:MM:SS), amely lehetővé teszi a korábbi napfelkeltét. 🌅",
+          "send_split_delay": "Késleltetés (ms-ban) a `separate_turn_on_commands` (különálló_bekapcsolási_parancsok) között olyan lights esetében, amelyek nem támogatják a fényerő és a szín egyidejű beállítását. ⏲️"
+        },
+        "data": {
+          "max_brightness": "max_brightness: Maximális fényerő százalékban megadva. 💡",
+          "detect_non_ha_changes": "detect_non_ha_changes: `Világítás: Bekapcsolás`- szolgáltatás meghívástól eltérő állapotváltozások esetén észleli és leállítja az illesztéseket. A `take_over_control` beállítás engedélyezése szükséges. 🕵️ Vigyázat: ⚠️ Egyes lights tévesen jelezhetik a \"bekapcsolt\" állapotot, ami váratlanul bekapcsolódó lámpákhoz vezethet. Ha ilyen problémákat tapasztal, tiltsa le ezt a funkciót.",
+          "multi_light_intercept": "multi_light_intercept: `Világítás: Bekapcsolás` szolgáltatás hívások elfogása és adaptálása, amelyek több fényt céloznak meg. ➗⚠️ Ez azt eredményezheti, hogy egyetlen `Világítás: Bekapcsolás` szolgáltatás hívás több hívásra oszlik fel, pl. ha a lights különböző kapcsolókban vannak. Az `elfogás` engedélyezése szükséges.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Kizárólag a bekapcsoláskor érvényes. A beállítást \"igaz\"-ra állítva, az AL csak akkor végzi az illesztést, amennyiben a \"Világítás: Bekapcsolás\" szolgáltatás meghívása a szín és fényerő paraméterek megadása nélkül történik.❌🌈 Ez pl. alkalmas az illesztés felfüggesztésére egy jelenet aktiválásakor. \"Hamis\" beállítás esetén az AL elvégzi a kezdeti illesztést a szín és fényerő paraméterek meghívásától függetlenül. A használatához engedélyezve kell lennie a \"take_over_control\" beállításnak. 🕵️",
+          "skip_redundant_commands": "skip_redundant_commands: Az olyan adaptációs parancsok küldésének kihagyása, amelyek célállapota már megegyezik a fény ismert állapotával. Minimalizálja a hálózati forgalmat, és bizonyos helyzetekben javítja az adaptációs reakciókészséget. 📉Kapcsolja ki, ha a fizikai fényállapotok nem szinkronizálódnak a HA rögzített állapotával.",
+          "separate_turn_on_commands": "separate_turn_on_commands:  Elkülönített `Világítás: Bekapcsolás` hívásokat használ a szín és a fényerő beállításához, ami néhány világítás típusnál szükséges. 🔀",
+          "max_color_temp": "max_color_temp: A leghidegebb színhőmérséklet kelvinben. ❄️",
+          "prefer_rgb_color": "prefer_rgb_color: Lehetőség szerint az RGB színbeállítás előnyben részesítése a fény színhőmérsékletével szemben. 🌈",
+          "intercept": "elfogás: `Világítás: Bekapcsolás` szolgáltatás hívások elfogása és adaptálása a színek és a fényerő azonnali illesztésének lehetővé tétele érdekében. 🏎️ Letiltja az olyan lights esetében, amelyek nem támogatják a `Világítás: Bekapcsolás` szolgáltatás színnel és fényerővel történő szín- és fényerőszabályozását.",
+          "only_once": "only_once:  lights illesztése kizárólag, amikor azok be vannak kapcsolva (`igaz`) vagy tartsa folyamatosan illesztve őket (`false`). 🔄",
+          "take_over_control": "take_over_control: Adaptív világítás kikapcsolása, amennyiben más forrásból érkező `Világítás: Bekapcsolás` szolgáltatás hívás történik, miközben a fények be vannak kapcsolva és illesztve vannak. Vegye figyelembe, hogy ez minden `interval`-ban meghívja a `homeassistant.update_entity`-t! 🔒",
+          "lights": "lights: Az entity_id-k listája, amelyeket az AL vezéreljen (üresen is maradhat).🌟",
+          "min_brightness": "min_brightness: Minimális fényerő százalékban. 💡",
+          "min_color_temp": "min_color_temp: A legmelegebb színhőmérséklet Kelvinben. 🔥",
+          "transition_until_sleep": "transition_until_sleep: Ha engedélyezve van, az Adaptív világítás az alvó mód beállításokat minimálisnak tekinti, és napnyugta után ezekre az értékekre vált át. 🌙",
+          "include_config_in_attributes": "include_config_in_attributes: A kapcsoló összes opciójának attribútumként való megjelenítése a Home Assistantben, ha a beállítás értéke `igaz`. 📝"
+        },
+        "title": "Adaptív világítás beállításai",
+        "description": "Egy Adaptív világítás komponens konfigurálása. Az opciók nevei a YAML-beállításokhoz igazodnak. Ha ezt a bejegyzést YAML-ben definiálta, itt nem jelennek meg beállítások. A paraméterek hatásait bemutató interaktív grafikonokért látogasson el [erre a webes alkalmazásra]({webapp_url}). További részletekért olvasd el a [hivatalos dokumentációt]({docs_url})."
+      }
+    },
+    "error": {
+      "option_error": "Érvénytelen beállítás",
+      "entity_missing": "Egy vagy több kiválasztott világítás entitás hiányzik a Home Assistantból"
+    }
+  },
+  "title": "Adaptív világítás",
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "entity_id": {
+          "description": "A kapcsoló entitásazonosítója. 📝"
+        },
+        "max_brightness": {
+          "description": "Maximális fényerő százalékban megadva. 💡"
+        },
+        "max_color_temp": {
+          "description": "Leghidegebb színhőmérséklet Kelvinben megadva. ❄️"
+        },
+        "sleep_brightness": {
+          "description": "Az alvó üzemmódban lévő lights fényerejének százalékos értéke. 😴"
+        },
+        "detect_non_ha_changes": {
+          "description": "`Világítás: Bekapcsolás`- szolgáltatás meghívástól eltérő állapotváltozások esetén észleli és leállítja az illesztéseket. A `take_over_control` beállítás engedélyezése szükséges. 🕵️ Vigyázat: ⚠️ Egyes lights tévesen jelezhetik a \"bekapcsolt\" állapotot, ami váratlanul bekapcsolódó lámpákhoz vezethet. Ha ilyen problémákat tapasztal, tiltsa le ezt a funkciót."
+        },
+        "sunrise_offset": {
+          "description": "A napfelkelte idejének beállítása pozitív vagy negatív eltolással másodpercekben. ⏰"
+        },
+        "max_sunrise_time": {
+          "description": "A legkésőbbi virtuális napfelkelte időpontjának beállítása (HH:MM:SS), amely lehetővé teszi a korábbi napfelkeltét. 🌅"
+        },
+        "sleep_color_temp": {
+          "description": "Színhőmérséklet alvó üzemmódban (akkor használatos, ha a `sleep_rgb_or_color_temp` a `color_temp`-re van állítva) kelvinben. 😴"
+        },
+        "min_brightness": {
+          "description": "Minimális fényerő százalékban. 💡"
+        },
+        "min_color_temp": {
+          "description": "A legmelegebb színhőmérséklet Kelvinben. 🔥"
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Az `\"rgb_color\" vagy a `\"color_temp\" használata alvó üzemmódban. 🌙"
+        },
+        "turn_on_lights": {
+          "description": "A jelenleg kikapcsolt fények bekapcsolása. 🔆"
+        },
+        "initial_transition": {
+          "description": "Az első transition időtartama, amikor a lights \"kikapcsolt\" állapotból \"bekapcsolt\" állapotba váltanak, másodpercben. ⏲️"
+        },
+        "sunrise_time": {
+          "description": "Állítson be egy fix időpontot (HH:MM:SS) a napfelkeltéhez. 🌅"
+        },
+        "include_config_in_attributes": {
+          "description": "Az összes beállítás megjelenítése a kapcsoló attribútumaként a Home Assistantban, ha a beállítás `igaz`. 📝"
+        },
+        "sleep_rgb_color": {
+          "description": "RGB szín alvó üzemmódban (akkor érvényes, ha a `sleep_rgb_or_color_temp` értéke \"rgb_color\"). 🌈"
+        },
+        "take_over_control": {
+          "description": "Az Adaptív világítás letiltása, ha egy másik forrásból érkező `Világítás: Bekapcsolás` hívja, miközben a világítás be van kapcsolva és AL által illesztve van. Vegye figyelembe, hogy ez minden \"interval\"-ban meghívja a `homeassistant.update_entity`-t! 🔒"
+        },
+        "sleep_transition": {
+          "description": "Az transition időtartama az \"alvó üzemmód\" kapcsolásakor másodpercben. 😴"
+        },
+        "autoreset_control_seconds": {
+          "description": "Automatikusan visszaállítja a kézi vezérlést néhány másodperc után. A letiltáshoz állítsa 0-ra. ⏲️"
+        },
+        "adapt_delay": {
+          "description": "Várakozási idő (másodpercben) a világítás bekapcsolása és az Adaptív világítás alkalmazása között. Segíthet elkerülni a villódzást. ⏲️"
+        },
+        "only_once": {
+          "description": "A lights illesztése csak a bekapcsoláskor egy alkalommal (\"igaz\") vagy folyamatosan történjen a bekapcsolás után is (\"hamis\")."
+        },
+        "use_defaults": {
+          "description": "Beállítja az ebben a szolgáltatáshívásban meg nem adott alapértelmezett értékeket. Opciók: \"(alapértelmezett, megtartja az aktuális értékeket), \"gyári\" (visszaállítja a dokumentált alapértelmezett értékeket) vagy \"konfiguráció\" (visszaállítja a kapcsoló konfigurációjának alapértelmezett értékeit). ⚙️"
+        },
+        "separate_turn_on_commands": {
+          "description": "Elkülönített `Világítás: Bekapcsolás` szolgáltatás hívások használata a szín és a fényerő számára, ami néhány világítás típusnál szükséges. 🔀"
+        },
+        "prefer_rgb_color": {
+          "description": "Lehetőség szerint az RGB színbeállítás előnyben részesítése a fény színhőmérsékletével szemben. 🌈"
+        },
+        "sunset_offset": {
+          "description": "A naplemente idejének beállítása pozitív vagy negatív eltolással másodpercekben. ⏰"
+        },
+        "send_split_delay": {
+          "description": "Késleltetés (ms-ban) a `separate_turn_on_commands` (különálló_bekapcsolási_parancsok) között olyan lights esetében, amelyek nem támogatják a fényerő és a szín egyidejű beállítását. ⏲️"
+        },
+        "sunset_time": {
+          "description": "Állítson be egy fix időpontot (HH:MM:SS) a naplementéhez. 🌇"
+        },
+        "transition": {
+          "description": "Az transition időtartama, amikor a lights változnak, másodpercben. 🕑"
+        },
+        "min_sunset_time": {
+          "description": "Állítsa be a legkorábbi virtuális naplemente időpontját (HH:MM:SS), lehetővé téve a későbbi naplementéket. 🌇"
+        }
+      },
+      "description": "Módosítsa a kapcsolóban a kívánt beállításokat. Itt minden beállítás ugyanaz, mint a konfigurációs folyamban."
+    },
+    "set_manual_control": {
+      "description": "Jelölje meg, hogy egy lámpa „kézi vezérlésű”-e.",
+      "fields": {
+        "manual_control": {
+          "description": "A világítás hozzáadása (\"true\") vagy eltávolítása (\"false\") a \"manual_control\" listából. 🔒"
+        },
+        "entity_id": {
+          "description": "A kapcsoló `entity_id`-je, amelyben a lámpát \"kézi vezérlésűnek\" kell jelölni. 📝"
+        },
+        "lights": {
+          "description": "a lights entity_id-je(i), ha nincs megadva, a kapcsoló összes lights ki lesz választva. 💡"
+        }
+      }
+    },
+    "apply": {
+      "fields": {
+        "entity_id": {
+          "description": "Az alkalmazandó beállításokat tartalmazó kapcsoló `entity_id`-je. 📝"
+        },
+        "adapt_brightness": {
+          "description": "A világítás fényerejének beállítása. 🌞"
+        },
+        "turn_on_lights": {
+          "description": "A jelenleg kikapcsolt lights bekapcsolása. 🔆"
+        },
+        "adapt_color": {
+          "description": "A lights által támogatott színek beállítása. 🌈"
+        },
+        "prefer_rgb_color": {
+          "description": "Lehetőség szerint az RGB színbeállítás előnyben részesítése a fény színhőmérsékletével szemben. 🌈"
+        },
+        "lights": {
+          "description": "A világítás (vagy a világítások listája), amelyre a beállításokat alkalmazni kell.💡"
+        },
+        "transition": {
+          "description": "Az transition időtartama, amikor a lights változnak, másodpercben. 🕑"
+        }
+      },
+      "description": "Az aktuális Adaptív világítás beállításokat alkalmazza a lights-ra."
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Válasszon nevet az Adaptív világítás példánynak",
+        "description": "Minden integrációs tétel több lights-t is tartalmazhat!"
+      }
+    },
+    "abort": {
+      "already_configured": "Ez az eszköz már be van állítva"
+    }
+  }
+}

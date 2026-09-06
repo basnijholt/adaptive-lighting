@@ -1,50 +1,214 @@
 {
-   "title":"Adaptiv Belysning",
-   "config":{
-      "step":{
-         "user":{
-            "title":"Velg et navn",
-            "description":"Velg et navn for denne konfigurasjonen for adaptiv belysning - hver konfigurasjon kan inneholde flere lyskilder!",
-            "data":{
-               "name":"Navn"
-            }
-         }
-      },
-      "abort":{
-         "already_configured":"Denne enheten er allerede konfigurert!"
+  "title": "Adaptiv Belysning",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Velg et navn",
+        "description": "Velg et navn for denne konfigurasjonen for adaptiv belysning - hver konfigurasjon kan inneholde flere lyskilder!",
+        "data": {
+          "name": "Navn"
+        }
       }
-   },
-   "options":{
-      "step":{
-         "init":{
-            "title":"Adaptiv Belysning Innstillinger",
-            "description":"Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert adaptive_lighting i din YAML konfigurasjon.",
-            "data":{
-               "lights":"Lys / Lyskilder",
-               "initial_transition":"'initial_transition': overgangen (i sekunder) når lysene skrus av eller på - eller når 'sleep_state' endres",
-               "interval":"'interval': tiden mellom oppdateringer (i sekunder)",
-               "max_brightness":"'max_brightness': den høyeste lysstyrken (i prosent) på lysene i løpet av en syklus",
-               "max_color_temp":"'max_color_temp': den høyeste fargetemperaturen (i kelvin) på lysene i løpet av en syklus",
-               "min_brightness":"'min_brightness': den laveste lysstyrken (i prosent) på lysene i løpet av en syklus",
-               "min_color_temp":"'min_color_temp': den laveste fargetemperaturen (i kelvin) på lysene i løpet av en syklus",
-               "only_once":"'only_once': anvend innstillingene for adaptiv belysning kun når lysene skrus av eller på",
-               "prefer_rgb_color":"'prefer_rgb_color': benytt rgb i stedet for fargetemperatur dersom det er mulig",
-               "separate_turn_on_commands":"'separate_turn_on_commands': separer kommandone i 'light.turn_on' for hver attributt (farge, lysstyrke, osv.). Dette kan være nødvendig for enkelte typer lys / lyskilder",
-               "sleep_brightness":"'sleep_brightness': lysstyrken på lysene (i prosent) når 'sleep_mode' (søvnmodus) er aktiv",
-               "sleep_color_temp":"'sleep_color_temp': fargetemperaturen på lysene (i kelvin) når 'sleep_mode' (søvnmodus) er aktiv",
-               "sunrise_offset":"'sunrise_offset': hvor lenge før (-) eller etter (+) tidspunktet solen står opp (lokalt) skal defineres som soloppgang (i sekunder)",
-               "sunrise_time":"'sunrise_time': definer tidspunktet for soloppgang manuelt (i følgende format: TT:MM:SS)",
-               "sunset_offset":"'sunset_offset': hvor lenge før (-) eller etter (+) tidspunktet solen går ned (lokalt) skal defineres som solnedgang (i sekunder)",
-               "sunset_time":"'sunset_time': definer tidspunktet for solnedgang manuelt (i følgende format: TT:MM:SS - f. eks: '20:30:00' vil definere tidspunktet for solnegang som halv-ni på kvelden)",
-               "take_over_control":"'take_over_control': dersom en annen tjeneste enn adaptiv belysning skrur lysene av eller på, vil automatisk adaptering av lyset stoppes inntil lyset (eller den tilhørende bryteren for adaptiv belysning) blir slått av - og på igjen",
-               "detect_non_ha_changes":"'detect_non_ha_changes': registrerer alle endringer i lysstyrke over 10% med opprinnelse utenfor Home Assistant - krever at 'take_over_control' er aktivert (OBS: tilkaller 'homeassistant.update_entity' ved hvert 'interval'!)",
-               "transition":"'transition': varigheten (i sekunder) på overgangen når lysene oppdateres "
-            }
-         }
-      },
-      "error":{
-         "option_error":"En eller flere valgte innstillinger er ugyldige",
-         "entity_missing": "Et utvalgt lys ble ikke funnet"
+    },
+    "abort": {
+      "already_configured": "Denne enheten er allerede konfigurert!"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adaptiv Belysning Innstillinger",
+        "description": "Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert adaptive_lighting i din YAML konfigurasjon.",
+        "data": {
+          "lights": "Lys / Lyskilder",
+          "initial_transition": "'initial_transition': overgangen (i sekunder) når lysene skrus av eller på - eller når 'sleep_state' endres",
+          "interval": "'interval': tiden mellom oppdateringer (i sekunder)",
+          "max_brightness": "'max_brightness': den høyeste lysstyrken (i prosent) på lysene i løpet av en syklus",
+          "max_color_temp": "'max_color_temp': den høyeste fargetemperaturen (i kelvin) på lysene i løpet av en syklus",
+          "min_brightness": "'min_brightness': den laveste lysstyrken (i prosent) på lysene i løpet av en syklus",
+          "min_color_temp": "'min_color_temp': den laveste fargetemperaturen (i kelvin) på lysene i løpet av en syklus",
+          "only_once": "'only_once': anvend innstillingene for adaptiv belysning kun når lysene skrus av eller på",
+          "prefer_rgb_color": "'prefer_rgb_color': benytt rgb i stedet for fargetemperatur dersom det er mulig",
+          "separate_turn_on_commands": "'separate_turn_on_commands': separer kommandone i 'light.turn_on' for hver attributt (farge, lysstyrke, osv.). Dette kan være nødvendig for enkelte typer lys / lyskilder",
+          "sleep_brightness": "'sleep_brightness': lysstyrken på lysene (i prosent) når 'sleep_mode' (søvnmodus) er aktiv",
+          "sleep_color_temp": "'sleep_color_temp': fargetemperaturen på lysene (i kelvin) når 'sleep_mode' (søvnmodus) er aktiv",
+          "sunrise_offset": "'sunrise_offset': hvor lenge før (-) eller etter (+) tidspunktet solen står opp (lokalt) skal defineres som soloppgang (i sekunder)",
+          "sunrise_time": "'sunrise_time': definer tidspunktet for soloppgang manuelt (i følgende format: TT:MM:SS)",
+          "sunset_offset": "'sunset_offset': hvor lenge før (-) eller etter (+) tidspunktet solen går ned (lokalt) skal defineres som solnedgang (i sekunder)",
+          "sunset_time": "'sunset_time': definer tidspunktet for solnedgang manuelt (i følgende format: TT:MM:SS - f. eks: '20:30:00' vil definere tidspunktet for solnegang som halv-ni på kvelden)",
+          "take_over_control": "'take_over_control': dersom en annen tjeneste enn adaptiv belysning skrur lysene av eller på, vil automatisk adaptering av lyset stoppes inntil lyset (eller den tilhørende bryteren for adaptiv belysning) blir slått av - og på igjen",
+          "detect_non_ha_changes": "'detect_non_ha_changes': registrerer alle endringer i lysstyrke over 10% med opprinnelse utenfor Home Assistant - krever at 'take_over_control' er aktivert (OBS: tilkaller 'homeassistant.update_entity' ved hvert 'interval'!)",
+          "transition": "'transition': varigheten (i sekunder) på overgangen når lysene oppdateres ",
+          "transition_until_sleep": "transition_until_sleep: Når aktivert, Adaptive lightning vil behandle sove innstillingene som minimum, bevege seg til disse verdiene etter solnedgang.",
+          "skip_redundant_commands": "skip_redundant_commands:  Dropp sending av tilpassnings kommandoer hvor målets tilstand allerede er lik den kjente tilstanden til lyset. Minimerer nettverk trafikk og forbedrer tilpasningens responsitivitet i noen situasjoner. Skru av hvis fysisk tilstand til lyset er ute av synkronisering med HA´s registrere tilstand.",
+          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_on: Når lysene skrues på. Hvis satt til \"sann\", AL vil bare  hvis \"light.turn_on\" er aktivert uten spesifisert farge og styrke.  Dette f.eks. forhindrer aktivering når en scene aktiveres. Hvis \"false\", AL  vil aktivere uansett om farge og stryke er satt av i opprinnelig \"service_data\". Trenger \"take_over_control\" er aktivert. ",
+          "intercept": "Bryt: Bryt og tilpass `light.turn_on` kall for å aktivere umiddelbar farge og styrke tilpassning. Deaktiver for lys som ikke støtter `light.turn_on` med farge og styrke.",
+          "multi_light_intercept": "multi_light_incept:  Avskjære og tilpasse \"light.turn_on\" kall til flere lyskilder. Dette kan medføre oppsplitting av et enkelt \"light.turn_on\" kall til flere kall, f.eks når lys tilhører flere brytere. Dette krever at \"intercept\" er aktivert.",
+          "include_config_in_attributes": "include_config_in_attributes: Vis alle valg som attributes på bryteren i Home Assistant når satt til `true`."
+        },
+        "data_description": {
+          "sunrise_offset": "Juster soloppgang tidspunkt med en positiv eller negativ forskyvning i sekunder. ⏰",
+          "sunset_offset": "Juster soloppgang tidspunkt med en positiv eller negativ forskyvning i sekunder. ⏰",
+          "sleep_rgb_or_color_temp": "Bruk enten `\"rgb_color\"` eller `\"color_temp\"` i sove modus.",
+          "sleep_rgb_color": "RGB farger i sove modus (brukes når \"sleep_rgb_or_color_temp\" er \"rgb_color\")",
+          "sleep_brightness": "Lysstyrkeprosent på lysene i sove modus.",
+          "sleep_color_temp": "Fargetemperatur i sove modus (brukes når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin.",
+          "initial_transition": "Varighet på første overgang når lysene endres fra `off` til `on` i sekunder.",
+          "transition": "Varighet på overgang når lysene  endres, i sekunder.",
+          "interval": "Frekvens til å tilpasse lys, i sekunder.",
+          "sunset_time": "Sett et fast tidspunkt (TT:MM:SS) for solnedgang.",
+          "sleep_transition": "Varighet på overgang når \"sleep mode\" er aktivert i sekunder.",
+          "sunrise_time": "Sett et fast tidspunkt (TT:MM:SS) for soloppgang.",
+          "min_sunrise_time": "Sett tidligste virituelle tidspunkt for soloppgang (TT:MM:SS), muliggjør for senere soloppganger",
+          "max_sunrise_time": "Sett det seneste virituelle tidspunktet for soloppgang (TT:MM:SS), muliggjør for tidligere soloppganger.",
+          "min_sunset_time": "Sett det tidligste virituelle tidspunktet for solnedgang (TT:MM:SS), muliggjør for senere solnedgang.",
+          "max_sunset_time": "Sett det seneste virituelle tidspunktet for solnedgang (TT:MM:SS), muliggjør for tidligere solnedgang.",
+          "brightness_mode": "Hvilken lysstyrke moduse skal brukes. Mulige verdier er `default`, `linear`, and `tanh` (bruker `brightness_mode_time_dark` og `brightness_mode_time_light`).",
+          "send_split_delay": "Forsinkelse (ms) mellom `separate_turn_on_commands` for lys som ikke støtter simultane styrke og farge innstillinger.",
+          "adapt_delay": "Ventetid (sekunder) mellom at lyset skrues på og Adaptive Lightning sender endringer. Kan hjelpe til for å unngå blinking.",
+          "autoreset_control_seconds": "Automatisk reset manuell kontroll etter et gitt antall sekunder. Sett til 0 for å skru av.",
+          "brightness_mode_time_light": "(Ignorere hvis `brightness_mode='default'`) Varigheten i sekunder for å justere opp/ned lysstyrken før/etter soloppgang/solnedgang.",
+          "brightness_mode_time_dark": "(Ignorere hvis `brightness_mode='default'`) Varigheten i sekunder for å justere opp/ned lysstyrken før/etter soloppgang/solnedgang."
+        }
       }
-   }
+    },
+    "error": {
+      "option_error": "En eller flere valgte innstillinger er ugyldige",
+      "entity_missing": "Et utvalgt lys ble ikke funnet"
+    }
+  },
+  "services": {
+    "change_switch_settings": {
+      "fields": {
+        "sunrise_offset": {
+          "description": "Juster soloppgang tidspunkt med en positiv eller negativ forskyvning i sekunder.  ⏰"
+        },
+        "only_once": {
+          "description": "Tilpass lys kun når dei er skrudd på (`true`) eller fortsett å tilpasse dei (`false`)"
+        },
+        "sunset_offset": {
+          "description": "Juster soloppgang tidspunkt med en positiv eller negativ forskyvning i sekunder. ⏰"
+        },
+        "use_defaults": {
+          "description": "Sett  default verdier ikke spesifisert i dette service kallet. Muligheter: \"current\" (default, fortsetter med nåværende verdier), \"factory\" (nullstiller til dokumenterte defaults), eller \"configuration\" (går tilbake til bryter defaults)."
+        },
+        "include_config_in_attributes": {
+          "description": "Vis alle muligheter som valg på bryteren i Home Assistant når satt til \"true\"."
+        },
+        "initial_transition": {
+          "description": "Varighet på første overgang når lysene endres fra `off` til `on` i sekunder."
+        },
+        "entity_id": {
+          "description": "Bryterens Entity ID."
+        },
+        "sleep_transition": {
+          "description": "Varighet på overgang når \"sleep mode\" er aktivert i sekunder."
+        },
+        "max_brightness": {
+          "description": "Maksimal lysstyrke prosent."
+        },
+        "separate_turn_on_commands": {
+          "description": "Bruk separat `light.turn_on` kall for farge og styrke, nødvendig for noen typer lys."
+        },
+        "min_color_temp": {
+          "description": "Varmeste farge temperatur i Kelvin."
+        },
+        "prefer_rgb_color": {
+          "description": "Foretrekke RGB farge inntsillinger over  lysets fargetemperatur innstilling når mulig."
+        },
+        "max_color_temp": {
+          "description": "Kaldeste farge temperatur i Kelvin."
+        },
+        "min_brightness": {
+          "description": "Minste lysstyrke prosent."
+        },
+        "sleep_rgb_or_color_temp": {
+          "description": "Bruk enten `\"rgb_color\"` eller `\"color_temp\"` i sove modus."
+        },
+        "sleep_brightness": {
+          "description": "Lysstyrkeprosent på lysene i sove modus."
+        },
+        "send_split_delay": {
+          "description": "Forsinkelse (ms) mellom `separate_turn_on_commands` for lys som ikke støtter simultane styrke og farge innstillinger."
+        },
+        "sleep_rgb_color": {
+          "description": "RGB farger i sove modus (brukes når \"sleep_rgb_or_color_temp\" er \"rgb_color\")"
+        },
+        "sleep_color_temp": {
+          "description": "Fargetemperatur i sove modus (brukes når `sleep_rgb_or_color_temp` er `color_temp`) i Kelvin."
+        },
+        "sunrise_time": {
+          "description": "Sett et fast tidspunkt (TT:MM:SS) for soloppgang."
+        },
+        "sunset_time": {
+          "description": "Set et fast tidspunkt (TT:MM:SS) for solnedgang"
+        },
+        "max_sunrise_time": {
+          "description": "Sett det seneste virituelle tidspunktet for soloppgang (TT:MM:SS), muliggjør for tidligere soloppganger."
+        },
+        "min_sunset_time": {
+          "description": "Sett det tidligeste virituelle tidspunktet for solnedgang (TT:MM:SS), muliggjør for senere solnedgang."
+        },
+        "detect_non_ha_changes": {
+          "description": "Detekterer og stopper tilpasningen for ikke-`light.turn_on` tilstander . Trenger  `take_over_control` aktivert. Advarsel: Noen lys kan gi falske signal om  'on' tilstand, som kan medføre at lysene  skrur seg på av seg selv. Skru av denne funksjonen om dette inntreffer."
+        },
+        "autoreset_control_seconds": {
+          "description": "Automatisk reset manuell kontroll etter et gitt antall sekunder. Sett til 0 for å skru av."
+        },
+        "transition": {
+          "description": "Varighet på overgang når lysene  endres, i sekunder."
+        },
+        "adapt_delay": {
+          "description": "Ventetid (sekunder) mellom at lyset skrues på og Adaptive Lightning sender endringer. Kan hjelpe til for å unngå blinking."
+        },
+        "turn_on_lights": {
+          "description": "Skru på lys som fortiden er skrudd av."
+        },
+        "take_over_control": {
+          "description": "Skrur av Adaptive Lightning hvis en annen kilde kaller `light.turn_on` mens lysene er på og blir styrt. Merk  at dette kaller `homeassistant.update_entity` hvert eneste`interval`!"
+        }
+      },
+      "description": "Endre hvilken som helst innstilling i bryteren. Alle valg er det samme som i konfigurasjons prosessen."
+    },
+    "apply": {
+      "fields": {
+        "lights": {
+          "description": "Et lys (eller ei liste av lys) instillingene skal påvirke. 💡"
+        },
+        "entity_id": {
+          "description": "\"entity_id\" på bryteren hvor innstillingene skal legges til."
+        },
+        "transition": {
+          "description": "Varighet på overgang når lysene  endres, i sekunder."
+        },
+        "adapt_brightness": {
+          "description": "Om å tilpasse styrken til lyset."
+        },
+        "adapt_color": {
+          "description": "Om å tilpasse fargen på støttelysene."
+        },
+        "prefer_rgb_color": {
+          "description": "Foretrekke RGB farge inntsillinger over  lysets fargetemperatur innstilling når mulig."
+        },
+        "turn_on_lights": {
+          "description": "Skru på lys som fortiden er skrudd av."
+        }
+      },
+      "description": "Aktiver nåværende Adaptive Lighting innstillinger til lysene."
+    },
+    "set_manual_control": {
+      "fields": {
+        "entity_id": {
+          "description": "\"entity_id\" på bryteren som skal (u)markeres med at lyset er \"manuelt kontrollert\""
+        },
+        "manual_control": {
+          "description": "Enten å legge til (\"true\") eller fjerne (\"false\") lys fra \"manual_control\" listen."
+        },
+        "lights": {
+          "description": "entity_id(s) til lysene, hvis ikke spesifisert, alle lys i bryteren som er valgt."
+        }
+      },
+      "description": "Marker om et lys er 'manually controlled'"
+    }
+  }
 }
