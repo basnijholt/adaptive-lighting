@@ -1368,6 +1368,33 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "weblate-Lamster",
+      "name": "Allan Himidi-Rattenborg",
+      "avatar_url": "https://hosted.weblate.org/avatar/128/Lamster.png",
+      "profile": "https://hosted.weblate.org/user/Lamster/",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "weblate-posemartonis",
+      "name": "Pose marto",
+      "avatar_url": "https://hosted.weblate.org/avatar/128/posemartonis.png",
+      "profile": "https://hosted.weblate.org/user/posemartonis/",
+      "contributions": [
+        "translation"
+      ]
+    },
+    {
+      "login": "weblate-jf.cosse",
+      "name": "Jean-Francois Cosse",
+      "avatar_url": "https://hosted.weblate.org/avatar/128/jf.cosse.png",
+      "profile": "https://hosted.weblate.org/user/jf.cosse/",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
