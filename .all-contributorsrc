@@ -1314,6 +1314,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "MSL-DA",
+      "name": "Jan",
+      "avatar_url": "https://avatars.githubusercontent.com/u/134940586?v=4",
+      "profile": "https://github.com/MSL-DA",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
