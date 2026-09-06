@@ -40,6 +40,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL,
     CONF_MAX_BRIGHTNESS,
+    CONF_MAX_COLOR_TEMP,
     CONF_MIN_BRIGHTNESS,
     CONF_MIN_COLOR_TEMP,
     CONF_MULTI_LIGHT_INTERCEPT,
@@ -1757,6 +1758,154 @@ async def test_manual_control_state_updates_shared_switches(hass):
         attrs = hass.states.get(profile.entity_id).attributes
         assert attrs["manual_control"] == []
         assert attrs["manual_control_brightness"] == []
+        assert attrs["manual_control_color"] == []
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+@pytest.mark.parametrize(
+    (
+        "brightness_takeover",
+        "color_takeover",
+        "color_enabled",
+        "color_mode",
+        "expected_brightness",
+        "expected_color_calls",
+        "event_profiles",
+    ),
+    [
+        (
+            True,
+            True,
+            True,
+            TakeOverControlMode.PAUSE_CHANGED,
+            77,
+            1,
+            ["brightness", "color"],
+        ),
+        (
+            True,
+            True,
+            True,
+            TakeOverControlMode.PAUSE_ALL,
+            77,
+            0,
+            ["brightness", "color"],
+        ),
+        (False, True, True, TakeOverControlMode.PAUSE_CHANGED, 77, 1, ["color"]),
+        (True, False, True, TakeOverControlMode.PAUSE_CHANGED, 77, 1, ["brightness"]),
+        (False, False, True, TakeOverControlMode.PAUSE_CHANGED, 128, 1, []),
+        (False, True, False, TakeOverControlMode.PAUSE_CHANGED, 128, 0, []),
+        (True, True, False, TakeOverControlMode.PAUSE_CHANGED, 77, 0, ["brightness"]),
+    ],
+)
+async def test_shared_profiles_track_manual_brightness(
+    hass,
+    intercept,
+    brightness_takeover,
+    color_takeover,
+    color_enabled,
+    color_mode,
+    expected_brightness,
+    expected_color_calls,
+    event_profiles,
+):
+    """Shared owners track manual service calls and apply each profile's pause mode."""
+    await setup_lights(hass)
+    profiles = {}
+    for name, takeover, mode in (
+        ("brightness", brightness_takeover, TakeOverControlMode.PAUSE_CHANGED),
+        ("color", color_takeover, color_mode),
+    ):
+        _, switch = await setup_switch(
+            hass,
+            {
+                CONF_NAME: name,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_INTERCEPT: intercept,
+                CONF_TAKE_OVER_CONTROL: takeover,
+                CONF_TAKE_OVER_CONTROL_MODE: mode,
+                CONF_DETECT_NON_HA_CHANGES: False,
+                CONF_INITIAL_TRANSITION: 0,
+                CONF_TRANSITION: 0,
+                CONF_MIN_BRIGHTNESS: 50,
+                CONF_MAX_BRIGHTNESS: 50,
+                CONF_MIN_COLOR_TEMP: 4000,
+                CONF_MAX_COLOR_TEMP: 4000,
+            },
+        )
+        other_axis = (
+            switch.adapt_color_switch
+            if name == "brightness"
+            else switch.adapt_brightness_switch
+        )
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: other_axis.entity_id},
+            blocking=True,
+        )
+        profiles[name] = switch
+    if not color_enabled:
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: profiles["color"].entity_id},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+
+    events = []
+    remove_events = hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 77},
+        context=context,
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    calls = []
+    remove_calls = hass.bus.async_listen(EVENT_CALL_SERVICE, calls.append)
+    for switch in profiles.values():
+        if switch.is_on:
+            await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    remove_calls()
+    remove_events()
+
+    light_calls = [
+        event.data["service_data"]
+        for event in calls
+        if event.data["domain"] == LIGHT_DOMAIN
+        and event.data["service"] == SERVICE_TURN_ON
+    ]
+    assert (
+        sum(ATTR_COLOR_TEMP_KELVIN in call for call in light_calls)
+        == expected_color_calls
+    )
+    assert sum(ATTR_BRIGHTNESS in call for call in light_calls) == (
+        expected_brightness == 128
+    )
+    assert (
+        hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS]
+        == expected_brightness
+    )
+    assert [event.data[SWITCH_DOMAIN] for event in events] == [
+        profiles[name].entity_id for name in event_profiles
+    ]
+    assert all(event.context == context for event in events)
+    assert all(
+        event.data[CONF_MANUAL_CONTROL] == LightControlAttributes.BRIGHTNESS
+        for event in events
+    )
+    for switch in profiles.values():
+        if not switch.is_on:
+            continue
+        attrs = hass.states.get(switch.entity_id).attributes
+        assert attrs["manual_control_brightness"] == (
+            [ENTITY_LIGHT_1] if event_profiles else []
+        )
         assert attrs["manual_control_color"] == []
 
 
@@ -4969,3 +5118,74 @@ async def test_forced_split_apply_stays_off(hass, off_action, cleanup):
     assert ATTR_BRIGHTNESS in turn_on_events[0].data["service_data"]
     assert ATTR_COLOR_TEMP_KELVIN not in turn_on_events[0].data["service_data"]
     assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+async def test_shared_profiles_keep_independent_sun_schedules(
+    hass,
+    intercept,
+    reset_time_zone,
+):
+    """A later color sunrise keeps running after manual brightness takeover."""
+    await hass.config.async_set_time_zone("UTC")
+    await setup_lights(hass)
+    profiles = []
+    for name, sunrise, sunset in (("brightness", 6, 18), ("color", 10, 22)):
+        _, switch = await setup_switch(
+            hass,
+            {
+                CONF_NAME: name,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_INTERCEPT: intercept,
+                CONF_TAKE_OVER_CONTROL_MODE: TakeOverControlMode.PAUSE_CHANGED,
+                CONF_DETECT_NON_HA_CHANGES: False,
+                CONF_INITIAL_TRANSITION: 0,
+                CONF_TRANSITION: 0,
+                CONF_SUNRISE_TIME: datetime.time(sunrise),
+                CONF_SUNSET_TIME: datetime.time(sunset),
+                CONF_MIN_BRIGHTNESS: 10,
+                CONF_MAX_BRIGHTNESS: 90,
+                CONF_MIN_COLOR_TEMP: 2000,
+                CONF_MAX_COLOR_TEMP: 6000,
+            },
+        )
+        other_axis = (
+            switch.adapt_color_switch
+            if name == "brightness"
+            else switch.adapt_brightness_switch
+        )
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: other_axis.entity_id},
+            blocking=True,
+        )
+        profiles.append(switch)
+    with patch(
+        "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+        return_value=datetime.datetime.fromisoformat("2026-09-05T08:00:00+00:00"),
+    ):
+        for switch in profiles:
+            await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+    morning = hass.states.get(ENTITY_LIGHT_1)
+    assert morning.attributes[ATTR_BRIGHTNESS] > 26
+    assert morning.attributes[ATTR_COLOR_TEMP_KELVIN] == 2000
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    with patch(
+        "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+        return_value=datetime.datetime.fromisoformat("2026-09-05T12:00:00+00:00"),
+    ):
+        for switch in profiles:
+            await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+    noon = hass.states.get(ENTITY_LIGHT_1)
+    assert noon.attributes[ATTR_BRIGHTNESS] == 77
+    assert noon.attributes[ATTR_COLOR_TEMP_KELVIN] > 2000
