@@ -5100,12 +5100,12 @@ async def test_adapt_only_on_bare_turn_on_respects_pause_changed_mode(hass, inte
 
 
 @pytest.mark.parametrize(
-    ("repeat_bare_turn_on", "mode", "intercept", "expected_color_temp"),
+    ("repeat_bare_turn_on", "mode", "intercept"),
     [
-        (False, TakeOverControlMode.PAUSE_ALL, False, 3000),
-        (False, TakeOverControlMode.PAUSE_CHANGED, False, 4000),
-        (True, TakeOverControlMode.PAUSE_ALL, True, 3000),
-        (True, TakeOverControlMode.PAUSE_CHANGED, True, 4000),
+        (False, TakeOverControlMode.PAUSE_ALL, False),
+        (False, TakeOverControlMode.PAUSE_CHANGED, False),
+        (True, TakeOverControlMode.PAUSE_ALL, True),
+        (True, TakeOverControlMode.PAUSE_CHANGED, True),
     ],
     ids=[
         "direct-pause-all-reactive",
@@ -5119,7 +5119,6 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(
     repeat_bare_turn_on,
     mode,
     intercept,
-    expected_color_temp,
 ):
     """Regression test for detect_non_ha_changes with separate_turn_on_commands.
 
@@ -5166,6 +5165,8 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(
 
     al_brightness = light.brightness
     assert al_brightness is not None
+    al_color_temp = light.color_temp_kelvin
+    assert al_color_temp is not None
     switch.manager.manual_control[ENTITY_LIGHT_1] = LightControlAttributes.NONE
 
     manual_brightness = (
@@ -5205,6 +5206,9 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(
     assert (
         light.brightness == manual_brightness
     ), f"AL overrode manual brightness {manual_brightness} with {light.brightness}"
+    expected_color_temp = (
+        4000 if mode == TakeOverControlMode.PAUSE_CHANGED else al_color_temp
+    )
     assert light.color_temp_kelvin == expected_color_temp
 
 
