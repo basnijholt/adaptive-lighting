@@ -3,13 +3,21 @@
     "step": {
       "init": {
         "data_description": {
-          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴",
-          "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`",
-          "sunrise_offset": "Axusta a hora do amencer cun desfasamento positivo ou negativo en segundos. ⏰",
-          "sunset_offset": "Axusta a hora da posta de sol cun desfasamento positivo ou negativo en segundos. ⏰",
-          "interval": "Frecuencia para adaptar as luces, en segundos. 🔄"
+          "interval": "Frecuencia para adaptar as luces, en segundos. 🔄",
+          "sleep_brightness": "Porcentaxe de brillo das luces en modo durmir. 😴"
         },
-        "title": "Configuración de Iluminación Adaptativa"
+        "title": "Configuración de Iluminación Adaptativa",
+        "sections": {
+          "advanced": {
+            "data": {},
+            "data_description": {
+              "sunrise_offset": "Axusta a hora do amencer cun desfasamento positivo ou negativo en segundos. ⏰",
+              "sunset_offset": "Axusta a hora da posta de sol cun desfasamento positivo ou negativo en segundos. ⏰",
+              "send_split_delay": "Retraso (ms) entre `separate_turn_on_commands`"
+            }
+          }
+        },
+        "data": {}
       }
     }
   },

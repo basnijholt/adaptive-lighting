@@ -4,12 +4,13 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
+    BASIC_OPTIONS,
     CONF_LIGHTS,
     DOMAIN,
     EXTRA_VALIDATION,
@@ -19,6 +20,12 @@ from .const import (  # pylint: disable=unused-import
 from .switch import validate
 
 _LOGGER = logging.getLogger(__name__)
+
+OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS = {
+    "webapp_url": "https://basnijholt.github.io/adaptive-lighting",
+    "docs_url": "https://github.com/basnijholt/adaptive-lighting#readme",
+}
+ADVANCED_OPTIONS_SECTION = "advanced"
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -122,23 +129,41 @@ def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
+    def _flatten_section_input(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Flatten section input by merging nested 'advanced' dict into top level."""
+        flat_input: dict[str, Any] = {}
+        for key, value in user_input.items():
+            if key == ADVANCED_OPTIONS_SECTION and isinstance(value, dict):
+                flat_input.update(value)
+            else:
+                flat_input[key] = value
+        return flat_input
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        """Handle options flow."""
+        """Handle options flow with collapsible sections."""
         conf = self.config_entry
         data = validate(conf)
+        form_data = {**conf.data, **conf.options}
         if conf.source == config_entries.SOURCE_IMPORT:
-            return self.async_show_form(step_id="init", data_schema=None)
+            return self.async_show_form(
+                step_id="init",
+                data_schema=None,
+                description_placeholders=OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS,
+            )
         errors: dict[str, str] = {}
         if user_input is not None:
-            validate_options(user_input, errors)
+            flat_input = self._flatten_section_input(user_input)
+            validate_options(flat_input, errors)
             if not errors:
-                return self.async_create_entry(title="", data=user_input)
+                return self.async_create_entry(title="", data=flat_input)
+            data.update(flat_input)
+            form_data.update(flat_input)
 
         # Validate that all configured lights still exist
         all_lights = set(self.hass.states.async_entity_ids("light"))
         for configured_light in data[CONF_LIGHTS]:
             if configured_light not in all_lights:
-                errors = {CONF_LIGHTS: "entity_missing"}
+                errors[CONF_LIGHTS] = "entity_missing"
                 _LOGGER.error(
                     "%s: light entity %s is configured, but was not found",
                     data[CONF_NAME],
@@ -154,14 +179,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ),
         }
 
-        options_schema = {}
+        basic_schema: dict[vol.Marker, Any] = {}
+        advanced_schema: dict[vol.Marker, Any] = {}
         for name, default, validation in VALIDATION_TUPLES:
-            key = vol.Optional(name, default=conf.options.get(name, default))
-            value = to_replace.get(name, validation)
-            options_schema[key] = value
+            key = vol.Optional(name, default=form_data.get(name, default))
+            schema = basic_schema if name in BASIC_OPTIONS else advanced_schema
+            schema[key] = to_replace.get(name, validation)
+
+        full_schema = {
+            **basic_schema,
+            vol.Required(ADVANCED_OPTIONS_SECTION): data_entry_flow.section(
+                vol.Schema(advanced_schema),
+                data_entry_flow.SectionConfig(collapsed=True),
+            ),
+        }
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(options_schema),
+            data_schema=vol.Schema(full_schema),
             errors=errors,
+            description_placeholders=OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS,
         )

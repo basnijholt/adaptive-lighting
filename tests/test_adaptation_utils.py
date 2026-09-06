@@ -95,14 +95,82 @@ async def test_split_service_call_data(input_data, expected_data_list):
         ),
         (
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
-            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 11}),
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 13}),
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10, ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 229}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: 227}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 230, ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 5495}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 5524}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 6500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 6494}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_TRANSITION: 2},
+        ),
+        (
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+            State("light.test", STATE_ON, {ATTR_COLOR_TEMP_KELVIN: 5400}),
+            {
+                ATTR_ENTITY_ID: "light.test",
+                ATTR_COLOR_TEMP_KELVIN: 5500,
+                ATTR_TRANSITION: 2,
+            },
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_HS_COLOR: (30.0, 40.0)},
+            State("light.test", STATE_ON, {ATTR_HS_COLOR: (30.0, 40.0)}),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10},
+            State("light.test", STATE_ON, {ATTR_BRIGHTNESS: None}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10},
         ),
     ],
     ids=[
         "pass all attributes on empty state",
         "remove attributes whose values equal the state",
         "keep attributes whose values differ from the state",
+        "remove brightness within quantization tolerance (0-99 device scale)",
+        "keep brightness outside quantization tolerance",
+        "remove color temp within one mired (round-converting integration)",
+        "remove color temp within one mired (floor-converting HA core helpers)",
+        "remove color temp within one mired (6500 K)",
+        "keep color temp more than one mired away",
+        "remove non-numeric attributes on exact equality",
+        "keep attribute when state value is None",
     ],
 )
 async def test_remove_redundant_attributes(
@@ -167,18 +235,18 @@ async def test_has_relevant_service_data_attributes(
             [],
         ),
         (
-            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11}],
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15}],
             True,
-            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11}],
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15}],
         ),
         (
             [
-                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11},
+                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15},
                 {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 22},
             ],
             True,
             [
-                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11},
+                {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 15},
                 {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 22},
             ],
         ),
@@ -192,6 +260,11 @@ async def test_has_relevant_service_data_attributes(
                 {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 22},
             ],
         ),
+        (
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 11}],
+            True,
+            [],
+        ),
     ],
     ids=[
         "single item passed through without filtering",
@@ -201,6 +274,7 @@ async def test_has_relevant_service_data_attributes(
         "filter keeps item with relevant attribute that is different from state",
         "filter keeps two items with relevant attributes that are different from state",
         "filter removes item that equals state and keeps items that differs from state",
+        "filter removes item with relevant attribute within tolerance of the state",
     ],
 )
 async def test_create_service_call_data_iterator(
@@ -480,3 +554,50 @@ def test_get_light_control_attributes(
 ):
     """Test determination of light control attributes."""
     assert get_light_control_attributes(service_data) == expected_flags
+
+
+@pytest.mark.parametrize(
+    ("already_applied", "expected"),
+    [
+        (
+            LightControlAttributes.BRIGHTNESS,
+            [
+                {
+                    ATTR_ENTITY_ID: "light.test",
+                    ATTR_COLOR_TEMP_KELVIN: 3448,
+                    ATTR_TRANSITION: 1,
+                },
+            ],
+        ),
+        (
+            LightControlAttributes.COLOR,
+            [{ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 171, ATTR_TRANSITION: 1}],
+        ),
+        (LightControlAttributes.ALL, []),
+    ],
+)
+async def test_remaining_split_commands_preserve_transition(
+    hass,
+    already_applied,
+    expected,
+):
+    """Removing the shared command must not redistribute its transition time."""
+    data = prepare_adaptation_data(
+        hass,
+        "light.test",
+        Context(),
+        transition=2,
+        split_delay=0.1,
+        service_data={
+            ATTR_ENTITY_ID: "light.test",
+            ATTR_BRIGHTNESS: 171,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            ATTR_TRANSITION: 2,
+        },
+        split=True,
+        filter_by_state=False,
+        force=False,
+        already_applied=already_applied,
+    )
+    assert [command async for command in data.service_call_datas] == expected
+    assert data.sleep_time == 1.1

@@ -26,12 +26,18 @@
     "step": {
       "init": {
         "title": "Aanpasbare beligting opsies",
-        "data": {
-          "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Wanneer ligte aanvanklik aangeskakel word. As dit op \"true\" gestel is, pas AL slegs aan as \"light.turn_on\" opgeroep word sonder om kleur of helderheid te spesifiseer. ❌🌈 Dit verhoed bv. aanpassing wanneer 'n toneel geaktiveer word. As `onwaar`, pas AL aan ongeag die teenwoordigheid van kleur of helderheid in die aanvanklike `diens_data`. Moet `oorname_beheer` geaktiveer moet word. 🕵️ "
-        },
-        "data_description": {
-          "sunrise_offset": "Pas sonsopkomstyd aan met 'n positiewe of negatiewe afwyking in sekondes. ⏰",
-          "sunset_offset": "Pas sonsondergangtyd aan met 'n positiewe of negatiewe afwyking in sekondes. ⏰"
+        "data": {},
+        "data_description": {},
+        "sections": {
+          "advanced": {
+            "data": {
+              "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: Wanneer ligte aanvanklik aangeskakel word. As dit op \"true\" gestel is, pas AL slegs aan as \"light.turn_on\" opgeroep word sonder om kleur of helderheid te spesifiseer. ❌🌈 Dit verhoed bv. aanpassing wanneer 'n toneel geaktiveer word. As `onwaar`, pas AL aan ongeag die teenwoordigheid van kleur of helderheid in die aanvanklike `diens_data`. Moet `oorname_beheer` geaktiveer moet word. 🕵️ "
+            },
+            "data_description": {
+              "sunrise_offset": "Pas sonsopkomstyd aan met 'n positiewe of negatiewe afwyking in sekondes. ⏰",
+              "sunset_offset": "Pas sonsondergangtyd aan met 'n positiewe of negatiewe afwyking in sekondes. ⏰"
+            }
+          }
         }
       }
     }

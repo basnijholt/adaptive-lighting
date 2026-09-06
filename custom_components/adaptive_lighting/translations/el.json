@@ -3,7 +3,15 @@
   "options": {
     "step": {
       "init": {
-        "title": "Επιλογές Adaptive Lighting"
+        "title": "Επιλογές Adaptive Lighting",
+        "sections": {
+          "advanced": {
+            "data": {},
+            "data_description": {}
+          }
+        },
+        "data": {},
+        "data_description": {}
       }
     }
   },
