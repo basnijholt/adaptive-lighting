@@ -727,7 +727,7 @@ async def test_manual_control(
         _LOGGER.debug("End of change_manual_control")
 
     def increased_brightness():
-        return (light._attr_brightness + 100) % 255
+        return max(1, (light._attr_brightness + 100) % 255)
 
     def increased_color_temp():
         return max(
@@ -1125,6 +1125,96 @@ async def test_interval_adaptation_preserves_manual_control_timeout(
         switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
         == 7200
     )
+
+
+@pytest.mark.parametrize("intercept", [False, True])
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+@pytest.mark.parametrize(
+    "manual_attribute",
+    [LightControlAttributes.BRIGHTNESS, LightControlAttributes.COLOR],
+)
+async def test_tracked_change_seeds_non_ha_baseline(
+    hass,
+    freezer,
+    cleanup,
+    intercept,
+    mode,
+    manual_attribute,
+):
+    """A tracked service change must not be detected again by the next poll."""
+    switch, (light, *_) = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_AUTORESET_CONTROL: 7200,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_INTERCEPT: intercept,
+        },
+    )
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test"),
+        force=True,
+        transition=0,
+    )
+    await hass.async_block_till_done()
+
+    if manual_attribute == LightControlAttributes.BRIGHTNESS:
+        adaptive_value = light.brightness
+        attribute = ATTR_BRIGHTNESS
+        difference = 120
+    else:
+        adaptive_value = light.color_temp_kelvin
+        attribute = ATTR_COLOR_TEMP_KELVIN
+        difference = 500
+    assert adaptive_value is not None
+    manual_value = (
+        adaptive_value - difference
+        if adaptive_value >= difference
+        else adaptive_value + difference
+    )
+
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    service_context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id, attribute: manual_value},
+        blocking=True,
+        context=service_context,
+    )
+    await hass.async_block_till_done()
+    assert (
+        switch.manager.get_manual_control_attributes(light.entity_id)
+        == manual_attribute
+    )
+    assert len(events) == 1
+
+    freezer.tick(90)
+    await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert (
+        switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+        == 7110
+    )
+    assert len(events) == 1
+
+    if manual_attribute == LightControlAttributes.BRIGHTNESS:
+        set_light_brightness(light, adaptive_value)
+    else:
+        light._attr_color_temp_kelvin = adaptive_value
+        if hasattr(light, "_temperature"):
+            light._temperature = color_temperature_kelvin_to_mired(adaptive_value)
+    light.async_set_context(service_context)
+    light.async_write_ha_state()
+    await hass.async_block_till_done()
+    await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert (
+        switch.extra_state_attributes["autoreset_time_remaining"][light.entity_id]
+        == 7200
+    )
+    assert len(events) == 2
 
 
 @pytest.mark.parametrize("intercept", [False, True])
@@ -3070,7 +3160,7 @@ async def test_two_switches_for_single_light(hass):
         _LOGGER.debug("Turn light %s, to %s", state, kwargs)
 
     def increased_brightness():
-        return (light1._attr_brightness + 100) % 255
+        return max(1, (light1._attr_brightness + 100) % 255)
 
     def increased_color_temp():
         return max(
