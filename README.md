@@ -317,6 +317,56 @@ This is a top-level `configuration.yaml` example. The timer clears manual contro
 </details>
 
 <details markdown="1">
+<summary>Turn a light off when its adaptive brightness target reaches the minimum.</summary>
+
+Prefer a form over editing YAML? Import the [blueprint](https://github.com/basnijholt/adaptive-lighting/blob/main/blueprints/automation/turn_off_at_minimum.yaml) in Home Assistant under **Settings → Automations & scenes → Blueprints → Import Blueprint**. Select your profile, its matching adapt brightness switch, one light managed by that profile, and its minimum brightness percentage. Create one automation per light. If you change the profile's minimum later, update the automation too. The blueprint and YAML example below have the same behavior.
+
+The Adaptive Lighting switch already exposes its calculated `brightness_pct` target. Use its state changes to choose a power policy in an automation; no custom event is needed. This example assumes `min_brightness: 1`. Change `minimum_pct` to match your profile, and replace the switch and light entity IDs with your own.
+
+The comparison uses the same rounded 0–255 brightness as an adaptation command. Comparing floating-point percentages for exact equality can miss the minimum between updates. This detects the calculated target reaching its minimum command, not the bulb finishing a transition or reaching its physical dimming limit.
+
+```yaml
+- alias: "Adaptive lighting: turn off at minimum brightness"
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: switch.adaptive_lighting_living_room
+      attribute: brightness_pct
+  conditions:
+    - condition: state
+      entity_id:
+        - switch.adaptive_lighting_living_room
+        - switch.adaptive_lighting_living_room_adapt_brightness
+      state: "on"
+    - condition: template
+      value_template: >-
+        {% set minimum_pct = 1 %}
+        {% set minimum = (minimum_pct * 255 / 100) | round(0) %}
+        {% set before = trigger.from_state.attributes.get('brightness_pct')
+                        if trigger.from_state else none %}
+        {% set after = trigger.to_state.attributes.get('brightness_pct')
+                       if trigger.to_state else none %}
+        {{ is_number(before) and is_number(after)
+           and (before | float * 255 / 100) | round(0) > minimum
+           and (after | float * 255 / 100) | round(0) <= minimum }}
+    - condition: state
+      entity_id: light.living_room
+      state: "on"
+    - condition: template
+      value_template: >-
+        {{ 'light.living_room' not in
+           (state_attr('switch.adaptive_lighting_living_room', 'manual_control') or []) }}
+  actions:
+    - action: light.turn_off
+      target:
+        entity_id: light.living_room
+```
+
+This runs once when a valid target crosses down into the minimum range. It skips lights currently marked as manually controlled, does not repeatedly turn them off while the target remains low, and does not turn them back on later. Startup or re-enabling the profile while already at the minimum is not a new crossing. Sleep mode can also cause a crossing if its brightness is at or below the chosen minimum. Changing sleep mode clears manual control by default; set `reset_manual_control_on_sleep_mode_change: false` if you want to preserve it. For a bedtime-only policy, trigger directly on the sleep-mode switch changing to `on` instead.
+
+</details>
+
+<details markdown="1">
 <summary>Set sunrise and sunset from an alarm.</summary>
 
 Call this script from your alarm automation. It sets one Adaptive Lighting profile's sunrise to the current time and its sunset to 12 hours later on the local clock.

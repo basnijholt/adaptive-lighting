@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import shutil
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -16,6 +17,9 @@ from homeassistant.components.adaptive_lighting.adaptation_utils import (
     LightControlAttributes,
 )
 from homeassistant.components.adaptive_lighting.const import (
+    CONF_BRIGHTNESS_MODE,
+    CONF_BRIGHTNESS_MODE_TIME_DARK,
+    CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_INITIAL_TRANSITION,
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
@@ -144,6 +148,194 @@ def _state_waiter(
 def _prepare_hass_startup(hass: HomeAssistant) -> None:
     """Reset the standard running test fixture to exercise a real HA start."""
     hass.set_state(CoreState.not_running)
+
+
+@pytest.fixture(params=["yaml", "blueprint", "blueprint-custom-minimum"])
+def minimum_automation_config(hass: HomeAssistant, tmp_path: Path, request):
+    """Run the same behavior checks against both published formats."""
+    if request.param == "yaml":
+        return _yaml_documents(
+            "Turn a light off when its adaptive brightness target reaches the minimum.",
+        )[0]
+    relative_path = "adaptive_lighting/turn_off_at_minimum.yaml"
+    hass.config.config_dir = str(tmp_path)
+    destination = tmp_path / "blueprints" / "automation" / relative_path
+    destination.parent.mkdir(parents=True)
+    shutil.copyfile(
+        README.parent / "blueprints" / "automation" / "turn_off_at_minimum.yaml",
+        destination,
+    )
+    inputs = {
+        "adaptive_switch": "switch.adaptive_lighting_living_room",
+        "brightness_switch": "switch.adaptive_lighting_living_room_adapt_brightness",
+        "light_entity": "light.living_room",
+    }
+    if request.param == "blueprint-custom-minimum":
+        inputs["minimum_pct"] = 10
+    return {
+        "alias": "Turn off at minimum",
+        "use_blueprint": {
+            "path": relative_path,
+            "input": inputs,
+        },
+    }
+
+
+@pytest.mark.parametrize("manual_control", [False, True])
+@pytest.mark.parametrize("trigger_kind", ["interval", "sleep"])
+@patch(
+    "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+    new=dt_util.utcnow,
+)
+async def test_minimum_brightness_power_automation(
+    hass: HomeAssistant,
+    freezer,
+    manual_control: bool,
+    trigger_kind: str,
+    minimum_automation_config,
+) -> None:
+    """Catch exact-float comparisons, repeated power actions, or lost manual control."""
+    minimum = (
+        minimum_automation_config.get("use_blueprint", {})
+        .get("input", {})
+        .get("minimum_pct", 1)
+        if isinstance(minimum_automation_config, dict)
+        else 1
+    )
+    freezer.move_to(datetime(2026, 9, 6, 18, 58, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    await _setup_template_lights(hass, ["Living Room"])
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.living_room", ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    _, adaptive_switch = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "Living Room",
+            CONF_LIGHTS: ["light.living_room"],
+            CONF_MIN_BRIGHTNESS: minimum,
+            CONF_MAX_BRIGHTNESS: 100,
+            CONF_BRIGHTNESS_MODE: "linear",
+            CONF_BRIGHTNESS_MODE_TIME_DARK: timedelta(hours=1),
+            CONF_BRIGHTNESS_MODE_TIME_LIGHT: timedelta(hours=1),
+            CONF_SUNRISE_TIME: "06:00:00",
+            CONF_SUNSET_TIME: "18:00:00",
+            CONF_TRANSITION: 0,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    if manual_control:
+        await hass.services.async_call(
+            DOMAIN,
+            "set_manual_control",
+            {ATTR_ENTITY_ID: adaptive_switch.entity_id, "manual_control": True},
+            blocking=True,
+        )
+    await _setup_automation(hass, minimum_automation_config)
+    off_calls = []
+
+    @callback
+    def record_off(event: Event) -> None:
+        if (
+            event.data["domain"] == LIGHT_DOMAIN
+            and event.data["service"] == SERVICE_TURN_OFF
+        ):
+            off_calls.append(event.data["service_data"])
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, record_off)
+    assert hass.states.get("light.living_room").state == STATE_ON
+    assert adaptive_switch.extra_state_attributes["brightness_pct"] > minimum + 1
+
+    # The curve is above the minimum, but rounds to the same brightness command.
+    freezer.move_to(datetime(2026, 9, 6, 18, 59, 50, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    if trigger_kind == "sleep":
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "switch.adaptive_lighting_living_room_sleep_mode"},
+            blocking=True,
+        )
+    else:
+        await adaptive_switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    if trigger_kind == "sleep":
+        assert adaptive_switch.extra_state_attributes["brightness_pct"] == 1
+    else:
+        assert (
+            minimum
+            < adaptive_switch.extra_state_attributes["brightness_pct"]
+            < minimum + 0.2
+        )
+    # The default sleep-mode policy clears manual control before publishing its target.
+    should_turn_off = not manual_control or trigger_kind == "sleep"
+    assert hass.states.get("light.living_room").state == (
+        STATE_OFF if should_turn_off else STATE_ON
+    )
+    assert len(off_calls) == int(should_turn_off)
+
+    # Further target changes inside the minimum command range do not retrigger.
+    freezer.move_to(datetime(2026, 9, 6, 19, 1, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    await adaptive_switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert adaptive_switch.extra_state_attributes["brightness_pct"] == (
+        1 if trigger_kind == "sleep" else minimum
+    )
+    assert len(off_calls) == int(should_turn_off)
+
+    if should_turn_off:
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "light.living_room"},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert hass.states.get("light.living_room").state == STATE_ON
+        assert len(off_calls) == 1
+
+
+@pytest.mark.parametrize("previous", [None, "unknown", "unavailable"])
+async def test_minimum_brightness_ignores_missing_previous_target(
+    hass: HomeAssistant,
+    previous: str | None,
+    minimum_automation_config,
+) -> None:
+    """A missing target must not become a numeric crossing during recovery."""
+    await _setup_template_lights(hass, ["Living Room"])
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: "light.living_room"},
+        blocking=True,
+    )
+    _, adaptive_switch = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "Living Room",
+            CONF_LIGHTS: ["light.living_room"],
+            CONF_MIN_BRIGHTNESS: 1,
+            CONF_MAX_BRIGHTNESS: 1,
+            CONF_TRANSITION: 0,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    await _setup_automation(hass, minimum_automation_config)
+    attributes = dict(hass.states.get(adaptive_switch.entity_id).attributes)
+    assert attributes["brightness_pct"] == 1
+    if previous is None:
+        hass.states.async_remove(adaptive_switch.entity_id)
+    else:
+        hass.states.async_set(
+            adaptive_switch.entity_id,
+            previous,
+            {**attributes, "brightness_pct": previous},
+        )
+    await hass.async_block_till_done()
+    hass.states.async_set(adaptive_switch.entity_id, STATE_ON, attributes)
+    await hass.async_block_till_done()
+    assert hass.states.get("light.living_room").state == STATE_ON
 
 
 async def test_schedule_profile_executes_blocks_and_restore(
