@@ -1,7 +1,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/github/v/release/basnijholt/adaptive-lighting?style=for-the-badge)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-141-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-144-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 # 🌞 Adaptive Lighting: Enhance Your Home's Atmosphere with Smart, Sun-Synchronized Lighting 🌙
@@ -690,6 +690,9 @@ Notice the values of `brightness_mode_time_light` and `brightness_mode_time_dark
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/mueslo"><img src="https://avatars.githubusercontent.com/u/847751?v=4?s=100" width="100px;" alt="mueslo"/><br /><sub><b>mueslo</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=mueslo" title="Code">💻</a></td>
     </tr>
     <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/marijneken"><img src="https://avatars.githubusercontent.com/u/928998?v=4?s=100" width="100px;" alt="Marijn Eken"/><br /><sub><b>Marijn Eken</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/commits?author=marijneken" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kasiom"><img src="https://avatars.githubusercontent.com/u/2422245?v=4?s=100" width="100px;" alt="Milan K."/><br /><sub><b>Milan K.</b></sub></a><br /><a href="#translation-kasiom" title="Translation">🌍</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/callistoprime"><img src="https://avatars.githubusercontent.com/u/178052328?v=4?s=100" width="100px;" alt="Callisto"/><br /><sub><b>Callisto</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Acallistoprime" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/davidgeiger"><img src="https://avatars.githubusercontent.com/u/5699049?v=4?s=100" width="100px;" alt="David Geiger"/><br /><sub><b>David Geiger</b></sub></a><br /><a href="https://github.com/basnijholt/adaptive-lighting/issues?q=author%3Adavidgeiger" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
