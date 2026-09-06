@@ -1224,6 +1224,15 @@
       "contributions": [
         "translation"
       ]
+    },
+    {
+      "login": "imwithsam",
+      "name": "Samson Brock",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1934074?v=4",
+      "profile": "http://badmotivator.io/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
