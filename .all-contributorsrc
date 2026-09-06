@@ -87,7 +87,7 @@
     },
     {
       "login": "Repsionu",
-      "name": "Jüri Rebane",
+      "name": "J\u00fcri Rebane",
       "avatar_url": "https://avatars.githubusercontent.com/u/46962963?v=4",
       "profile": "https://github.com/Repsionu",
       "contributions": [
@@ -195,7 +195,7 @@
     },
     {
       "login": "Hypfer",
-      "name": "Sören Beye",
+      "name": "S\u00f6ren Beye",
       "avatar_url": "https://avatars.githubusercontent.com/u/974410?v=4",
       "profile": "http://hypfer.de/",
       "contributions": [
@@ -387,7 +387,7 @@
     },
     {
       "login": "brebtatv",
-      "name": "Tomáš Valigura",
+      "name": "Tom\u00e1\u0161 Valigura",
       "avatar_url": "https://avatars.githubusercontent.com/u/10747062?v=4",
       "profile": "https://github.com/brebtatv",
       "contributions": [
@@ -524,7 +524,7 @@
     },
     {
       "login": "letroll",
-      "name": "Julien Quiévreux",
+      "name": "Julien Qui\u00e9vreux",
       "avatar_url": "https://avatars.githubusercontent.com/u/255774?v=4",
       "profile": "http://www.latavernedutroll.fr",
       "contributions": [
@@ -642,7 +642,7 @@
     },
     {
       "login": "mstefany",
-      "name": "Martin Štefany",
+      "name": "Martin \u0160tefany",
       "avatar_url": "https://avatars.githubusercontent.com/u/57348587?v=4",
       "profile": "https://stefany.eu",
       "contributions": [
@@ -696,7 +696,7 @@
     },
     {
       "login": "jansigu",
-      "name": "Jan-Sigurd Sørensen",
+      "name": "Jan-Sigurd S\u00f8rensen",
       "avatar_url": "https://avatars.githubusercontent.com/u/8410766?v=4",
       "profile": "http://www.jan-sigurd.com",
       "contributions": [
@@ -849,7 +849,7 @@
     },
     {
       "login": "MrEbbinghaus",
-      "name": "Björn Ebbinghaus",
+      "name": "Bj\u00f6rn Ebbinghaus",
       "avatar_url": "https://avatars.githubusercontent.com/u/2965273?v=4",
       "profile": "https://blog.ebbinghaus.me/",
       "contributions": [
@@ -894,7 +894,7 @@
     },
     {
       "login": "TamilNeram",
-      "name": "தமிழ் நேரம்",
+      "name": "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u0ba8\u0bc7\u0bb0\u0bae\u0bcd",
       "avatar_url": "https://avatars.githubusercontent.com/u/67970539?v=4",
       "profile": "https://github.com/TamilNeram",
       "contributions": [
@@ -939,7 +939,7 @@
     },
     {
       "login": "marazmarci",
-      "name": "Márton Maráz",
+      "name": "M\u00e1rton Mar\u00e1z",
       "avatar_url": "https://avatars.githubusercontent.com/u/1349654?v=4",
       "profile": "https://github.com/marazmarci",
       "contributions": [
@@ -1128,7 +1128,7 @@
     },
     {
       "login": "maksim2005UKR",
-      "name": "Горпиніч Максим Олександрович",
+      "name": "\u0413\u043e\u0440\u043f\u0438\u043d\u0456\u0447 \u041c\u0430\u043a\u0441\u0438\u043c \u041e\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u043e\u0432\u0438\u0447",
       "avatar_url": "https://avatars.githubusercontent.com/u/233082001?v=4",
       "profile": "https://github.com/maksim2005UKR",
       "contributions": [
@@ -1223,6 +1223,24 @@
       "profile": "https://github.com/Esspel",
       "contributions": [
         "translation"
+      ]
+    },
+    {
+      "login": "cperuffo3",
+      "name": "Corey Peruffo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/87686305?v=4",
+      "profile": "https://github.com/cperuffo3",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "imwithsam",
+      "name": "Samson Brock",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1934074?v=4",
+      "profile": "http://badmotivator.io/",
+      "contributions": [
+        "code"
       ]
     },
     {
