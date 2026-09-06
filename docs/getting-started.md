@@ -8,7 +8,7 @@ This guide will help you install and configure Adaptive Lighting for the first t
 
 ## Prerequisites
 
-- [Home Assistant](https://www.home-assistant.io/) 2024.12.0 or newer
+- [Home Assistant](https://www.home-assistant.io/) 2025.9.0 or newer
 - [HACS](https://hacs.xyz/) (Home Assistant Community Store) installed
 
 ## Installation
