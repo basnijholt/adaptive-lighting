@@ -28,10 +28,11 @@ restart. Use an automation, such as the sleep-mode blueprint linked under
 Automation Examples, when you want the switch to follow a schedule or helper.
 
 If lights unexpectedly use `sleep_brightness` or `sleep_color_temp` during the
-day, first check that the sleep-mode switch is off. The main Adaptive Lighting
-switch reports the current calculated `brightness_pct` and `color_temp_kelvin`
-targets, including the sleep settings while sleep mode is on. You can compare
-these attributes with the physical light state. In debug logs,
+day, first check that the sleep-mode switch is off. While the main Adaptive
+Lighting switch is on, it reports the current calculated `brightness_pct` and
+`color_temp_kelvin` targets, including the sleep settings while sleep mode is on.
+You can compare these attributes with the physical light state. They are `None`
+when the main switch is off. In debug logs,
 `initial_sleep=True` describes an internal delay before sending a command; it does
 not mean that sleep mode is active.
 
