@@ -1237,6 +1237,57 @@ async def test_sleep_toggle_uses_fresh_profile_entity_ids(
         assert state.state == STATE_OFF
 
 
+async def test_sleep_toggle_tracks_rapid_helper_changes(
+    hass: HomeAssistant,
+    published_automation,
+) -> None:
+    """Keep every sleep switch synchronized when the helper changes rapidly."""
+    summary = (
+        'Toggle multiple Adaptive Lighting switches to "sleep mode" using an '
+        "<code>input_boolean.sleep_mode</code>."
+    )
+    sleep_switches = (
+        "switch.adaptive_lighting_living_room_sleep_mode",
+        "switch.adaptive_lighting_bedroom_sleep_mode",
+    )
+    automation_config = published_automation(
+        summary,
+        "sleep_mode.yaml",
+        {
+            "sleep_helper": "input_boolean.sleep_mode",
+            "sleep_switches": list(sleep_switches),
+        },
+    )
+    assert await async_setup_component(
+        hass,
+        "input_boolean",
+        {"input_boolean": {"sleep_mode": {}}},
+    )
+    await setup_switch(hass, {CONF_NAME: "Living Room"})
+    await setup_switch(hass, {CONF_NAME: "Bedroom"})
+    await _setup_automation(hass, automation_config)
+
+    for _ in range(10):
+        await hass.services.async_call(
+            "input_boolean",
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: "input_boolean.sleep_mode"},
+            blocking=True,
+        )
+        await hass.services.async_call(
+            "input_boolean",
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: "input_boolean.sleep_mode"},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        for entity_id in sleep_switches:
+            state = hass.states.get(entity_id)
+            assert state is not None
+            assert state.state == STATE_OFF
+
+
 async def test_sleep_toggle_applies_restored_state_at_startup(
     hass: HomeAssistant,
     published_automation,

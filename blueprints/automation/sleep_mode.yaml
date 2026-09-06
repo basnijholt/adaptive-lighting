@@ -39,3 +39,4 @@ actions:
   - action: "switch.turn_{{ sleep_mode }}"
     target:
       entity_id: !input sleep_switches
+mode: restart

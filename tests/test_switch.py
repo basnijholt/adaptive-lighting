@@ -48,6 +48,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_MULTI_LIGHT_INTERCEPT,
     CONF_PREFER_RGB_COLOR,
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+    CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
@@ -96,6 +97,7 @@ from homeassistant.components.light import (
     ATTR_XY_COLOR,
     SERVICE_TURN_OFF,
     ColorMode,
+    LightEntityFeature,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -5421,13 +5423,18 @@ async def test_split_command_stays_off_after_turn_off(hass, physical_off):
     assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
 
 
-@pytest.mark.parametrize("brightness_only_member", [0, 1])
+@pytest.mark.parametrize(
+    ("brightness_only_member", "initial_transition", "shared_transition"),
+    [(0, 0, 0), (1, 0, 0), (0, 0.4, 0.4), (1, 0.4, 0.2)],
+)
 async def test_multi_light_split_with_brightness_only_member(
     hass,
     brightness_only_member,
+    initial_transition,
+    shared_transition,
     cleanup,
 ):
-    """A brightness-only member must not consume another member's color command."""
+    """Each member gets its color command after the shared brightness transition."""
     lights = await setup_lights(hass, with_group=True)
     members = ["light.light_4", "light.light_5"]
     light = lights[3 + brightness_only_member]
@@ -5439,6 +5446,9 @@ async def test_multi_light_split_with_brightness_only_member(
         light._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         light._attr_color_mode = ColorMode.BRIGHTNESS
     light.async_write_ha_state()
+    for member in lights[3:5]:
+        member._attr_supported_features |= LightEntityFeature.TRANSITION
+        member.async_write_ha_state()
     _, switch = await setup_switch(
         hass,
         {
@@ -5446,7 +5456,8 @@ async def test_multi_light_split_with_brightness_only_member(
             CONF_INTERCEPT: True,
             CONF_MULTI_LIGHT_INTERCEPT: True,
             CONF_SEPARATE_TURN_ON_COMMANDS: True,
-            CONF_INITIAL_TRANSITION: 0,
+            CONF_INITIAL_TRANSITION: initial_transition,
+            CONF_SEND_SPLIT_DELAY: 50,
         },
     )
     _mock_sun_light_settings(
@@ -5457,6 +5468,14 @@ async def test_multi_light_split_with_brightness_only_member(
             "force_rgb_color": False,
         },
     )
+    call_times = []
+    loop = asyncio.get_running_loop()
+
+    async def record_call(event):
+        if event.data["domain"] == LIGHT_DOMAIN:
+            call_times.append(loop.time())
+
+    hass.bus.async_listen(EVENT_CALL_SERVICE, record_call)
     events = await _turn_on_and_track_event_contexts(
         hass,
         "mixed_split",
@@ -5471,6 +5490,9 @@ async def test_multi_light_split_with_brightness_only_member(
         if ATTR_COLOR_TEMP_KELVIN in event.data["service_data"]
     ]
     assert color_targets == [members[1 - brightness_only_member]]
+    assert len(call_times) == 2
+    # Leave room for event dispatch without accepting overlapping transitions.
+    assert call_times[1] - call_times[0] >= shared_transition + 0.05 - 0.02
     for entity_id in members:
         state = hass.states.get(entity_id)
         assert state.state == STATE_ON

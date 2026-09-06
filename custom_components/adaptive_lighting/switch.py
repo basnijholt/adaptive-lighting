@@ -2277,6 +2277,7 @@ class AdaptiveLightingManager:
         # state can change until the next call), so we just schedule it and let
         # it sort out by itself.
         already_applied = get_light_control_attributes(first_service_data)
+        shared_sleep_time = adaptation_data.sleep_time
         for index, entity_id in enumerate(entity_ids):
             self.set_proactively_adapting(call.context.id, entity_id)
             if index:
@@ -2292,6 +2293,9 @@ class AdaptiveLightingManager:
                 if adaptation_data is None or not adaptation_data.max_length:
                     continue
             self.set_proactively_adapting(adaptation_data.context.id, entity_id)
+            # Every follow-up waits for the shared first command, even when a
+            # member's capabilities give it a different number of split phases.
+            adaptation_data.sleep_time = shared_sleep_time
             adaptation_data.initial_sleep = True
 
             # Don't await to avoid blocking the service call.
