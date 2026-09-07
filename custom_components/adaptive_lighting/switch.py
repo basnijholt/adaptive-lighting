@@ -622,6 +622,28 @@ def _is_state_event(
     )
 
 
+def _turn_off_transition(turn_off_event: Event) -> float | None:
+    """Return the 'transition' of a 'light.turn_off' service call, as a float.
+
+    `EVENT_CALL_SERVICE` carries the *raw* service data, not the data
+    `light.turn_off`'s schema produced for the service handler (see
+    `ServiceRegistry.async_call`), so its `vol.Coerce(float)` never reaches
+    this listener and `transition` arrives exactly as the caller wrote it.
+    A caller passing a string — e.g. a template rendering to `"2"` — must not
+    reach the `max(transition, TURNING_OFF_DELAY)` comparisons below, which
+    raise `TypeError: '>' not supported between instances of 'int' and 'str'`
+    inside a listener task, where it only ever surfaces as "Task exception was
+    never retrieved".
+
+    The event fires only after the schema validated the call, so whatever
+    reaches this point is coercible to a float.
+    """
+    transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+    if transition is None:
+        return None
+    return float(transition)
+
+
 def _expand_light_groups(
     hass: HomeAssistant,
     lights: list[str],
@@ -3109,7 +3131,7 @@ class AdaptiveLightingManager:
         ):
             return False
 
-        transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+        transition = _turn_off_transition(turn_off_event)
         delay = max(transition or 0, TURNING_OFF_DELAY)
         elapsed = (dt_util.utcnow() - turn_off_event.time_fired).total_seconds()
         if not 0 <= elapsed <= delay:
@@ -3193,7 +3215,7 @@ class AdaptiveLightingManager:
 
         turn_off_event = self.turn_off_event.get(entity_id)
         if turn_off_event is not None:
-            transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+            transition = _turn_off_transition(turn_off_event)
         else:
             transition = None
 
