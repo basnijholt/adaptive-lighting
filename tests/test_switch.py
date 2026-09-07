@@ -6896,3 +6896,66 @@ async def test_recovery_newer_member_on_overrides_off_during_delay(
     assert bool(calls) is member_on
     if member_on:
         assert hass.states.get(group).attributes[ATTR_BRIGHTNESS] == 128
+
+
+@pytest.mark.parametrize(
+    ("turn_on_target", "should_adapt"),
+    [("light.light_4", False), ("light.light_5", True), ("light.light_group", True)],
+)
+async def test_recovery_sibling_turn_on_preserves_member_off_intent(
+    hass,
+    freezer,
+    turn_on_target,
+    should_adapt,
+):
+    """Turning on one member must not revive a sibling during a group off fade."""
+    await setup_lights(hass, with_group=True)
+    group, sibling = "light.light_group", "light.light_5"
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: group},
+        blocking=True,
+    )
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: [group],
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_TAKE_OVER_CONTROL: False,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_INTERVAL: 3600,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    attributes = dict(hass.states.get(sibling).attributes)
+    attributes[ATTR_BRIGHTNESS] = 200
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: group, ATTR_TRANSITION: 30},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert sibling in switch.manager.turn_off_event
+    freezer.tick(1)
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: turn_on_target},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(group).state == STATE_ON
+    assert hass.states.get(sibling).state == (STATE_ON if should_adapt else STATE_OFF)
+    calls = _track_adaptive_light_calls(hass)
+    hass.states.async_set(sibling, STATE_UNAVAILABLE, attributes, context=Context())
+    await hass.async_block_till_done()
+    hass.states.async_set(sibling, STATE_ON, attributes, context=Context())
+    await hass.async_block_till_done()
+    assert any(call[ATTR_ENTITY_ID] == sibling for call in calls) is should_adapt
+    assert hass.states.get(sibling).attributes[ATTR_BRIGHTNESS] == (
+        128 if should_adapt else 200
+    )
