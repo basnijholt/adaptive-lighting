@@ -9,6 +9,7 @@ from astral.location import Location
 from homeassistant.components.adaptive_lighting.color_and_brightness import (
     SunLightSettings,
 )
+from homeassistant.util.color import color_temperature_to_rgb
 
 TZINFO = zoneinfo.ZoneInfo("Europe/Amsterdam")
 LOCATION = Location(
@@ -95,10 +96,7 @@ def test_apply_intensity_short_circuits_at_full(intensity_floor):
     """At 100 the interpolation is skipped outright, not merely a no-op."""
     settings = make_settings(intensity=100, intensity_floor=intensity_floor)
     arguments = (50.0, 3000, (255, 180, 100))
-    assert (
-        settings._apply_intensity(*arguments, is_sleep=False, keep_rgb=False)
-        == arguments
-    )
+    assert settings._apply_intensity(*arguments, is_sleep=False) == arguments
 
 
 @pytest.mark.parametrize("intensity", [0, 25, 50, 75, 100])
@@ -213,36 +211,41 @@ def test_adapt_until_sleep_overrides_the_floor(datetime, intensity):
     assert results[0] == results[1]
 
 
-@pytest.mark.parametrize("intensity_floor", ["sleep", "minimum"])
 @pytest.mark.parametrize("adapt_until_sleep", [True, False])
 @pytest.mark.parametrize("datetime", TIMES)
-def test_rgb_path_always_has_the_sleep_floor(
-    datetime,
-    adapt_until_sleep,
-    intensity_floor,
-):
-    """`_apply_intensity` walks RGB towards `sleep_rgb_color` unconditionally.
+def test_zero_intensity_matches_sleep_rgb(datetime, adapt_until_sleep):
+    """0 must reproduce sleep mode's RGB, not a colour derived from Kelvin.
 
-    That is only sound because the RGB path implies `adapt_until_sleep`, which
-    forces the sleep floor.
+    A switch using `sleep_rgb_or_color_temp: rgb_color` expresses its sleep
+    colour as RGB. Interpolating the colour temperature and re-deriving RGB from
+    it lands 0% on `color_temperature_to_rgb(sleep_color_temp)`, which is a
+    different colour from the configured `sleep_rgb_color`. This held only on
+    the `adapt_until_sleep` path before.
+    """
+    kwargs = {
+        "sleep_rgb_or_color_temp": "rgb_color",
+        "adapt_until_sleep": adapt_until_sleep,
+    }
+    asleep = make_settings(**kwargs).brightness_and_color(datetime, is_sleep=True)
+    dialled = make_settings(intensity=0, **kwargs).brightness_and_color(
+        datetime,
+        is_sleep=False,
+    )
+    assert dialled["rgb_color"] == asleep["rgb_color"]
+
+
+@pytest.mark.parametrize("datetime", TIMES)
+def test_minimum_floor_derives_rgb_from_color_temp(datetime):
+    """With the `minimum` floor the anchor is a Kelvin, so RGB follows it.
+
+    The sleep RGB colour is deliberately NOT used here -- it is not the floor.
     """
     settings = make_settings(
-        intensity=50,
-        intensity_floor=intensity_floor,
-        adapt_until_sleep=adapt_until_sleep,
+        intensity=0,
+        intensity_floor="minimum",
+        adapt_until_sleep=False,
         sleep_rgb_or_color_temp="rgb_color",
     )
-    if settings.brightness_and_color(datetime, is_sleep=False)["force_rgb_color"]:
-        assert settings.intensity_floor_is_sleep
-
-
-def test_rgb_path_is_covered():
-    """Guard against `test_rgb_path_always_has_the_sleep_floor` going vacuous."""
-    settings = make_settings(
-        adapt_until_sleep=True,
-        sleep_rgb_or_color_temp="rgb_color",
-    )
-    assert any(
-        settings.brightness_and_color(datetime, is_sleep=False)["force_rgb_color"]
-        for datetime in TIMES
-    )
+    result = settings.brightness_and_color(datetime, is_sleep=False)
+    expected = color_temperature_to_rgb(result["color_temp_kelvin"])
+    assert result["rgb_color"] == tuple(round(c) for c in expected)

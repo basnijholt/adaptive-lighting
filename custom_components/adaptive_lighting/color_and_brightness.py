@@ -433,7 +433,6 @@ class SunLightSettings:
         rgb_color: tuple[int, int, int],
         *,
         is_sleep: bool,
-        keep_rgb: bool,
     ) -> tuple[float | None, int, tuple[int, int, int]]:
         """Scale the adaptive result towards this switch's floor settings.
 
@@ -473,12 +472,15 @@ class SunLightSettings:
         )
         color_temp_kelvin = 5 * round(color_temp_kelvin / 5)  # round to nearest 5
 
-        if keep_rgb:
-            # This switch drives colour as RGB after sunset, so walk the RGB value
-            # towards the configured sleep colour rather than re-deriving it from
-            # the (unused) colour temperature. `keep_rgb` is only ever set when
-            # `adapt_until_sleep` is on, which forces the sleep floor, so the
-            # sleep colour is always the right target here.
+        if (
+            self.intensity_floor_is_sleep
+            and self.sleep_rgb_or_color_temp == "rgb_color"
+        ):
+            # This switch expresses its sleep colour as RGB, so walk the RGB value
+            # towards `sleep_rgb_color` rather than re-deriving it from the
+            # interpolated colour temperature. Deriving it would land 0% on
+            # `color_temperature_to_rgb(sleep_color_temp)`, which is not the
+            # colour sleep mode actually uses.
             rgb_color = lerp_color_hsv(self.sleep_rgb_color, rgb_color, factor)
         else:
             r, g, b = color_temperature_to_rgb(color_temp_kelvin)
@@ -526,7 +528,6 @@ class SunLightSettings:
             color_temp_kelvin,
             rgb_color,
             is_sleep=is_sleep,
-            keep_rgb=force_rgb_color,
         )
 
         # backwards compatibility for versions < 1.3.1 - see #403
