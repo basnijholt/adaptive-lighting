@@ -14,7 +14,7 @@ repos:
         files: ^README[^/]*\.md$
         args: ["--notitle"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.5
+    rev: v0.16.6
     hooks:
       - id: ruff
         args: ["--fix"]
