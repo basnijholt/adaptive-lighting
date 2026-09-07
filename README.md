@@ -84,6 +84,7 @@ The attributes are absent when the Adaptive Lighting switch is off. Use a fallba
 - [Additional Information](#additional-information)
 - [:sos: Troubleshooting](#sos-troubleshooting)
   - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
+    - [:bulb: Lights Only Adapt After Reloading](#bulb-lights-only-adapt-after-reloading)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
     - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
     - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
