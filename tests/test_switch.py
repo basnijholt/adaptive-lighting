@@ -69,6 +69,7 @@ from homeassistant.components.adaptive_lighting.const import (
     DEFAULT_SLEEP_COLOR_TEMP,
     DEFAULT_SLEEP_RGB_COLOR,
     DOMAIN,
+    INTENSITY_NUMBER,
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
@@ -102,6 +103,7 @@ from homeassistant.components.light import (
     LightEntityFeature,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.template import light as template_light
 from homeassistant.components.template.light import StateLightEntity as LightTemplate
@@ -420,6 +422,9 @@ async def test_adaptive_lighting_switches(hass):
         switch.adapt_color_switch.entity_id,
         switch.adapt_brightness_switch.entity_id,
     }
+    assert hass.states.async_entity_ids(NUMBER_DOMAIN) == [
+        "number.adaptive_lighting_default_intensity",
+    ]
     assert ATTR_ADAPTIVE_LIGHTING_MANAGER in hass.data[DOMAIN]
     assert entry.entry_id in hass.data[DOMAIN]
     assert len(hass.data[DOMAIN].keys()) == 2
@@ -430,8 +435,9 @@ async def test_adaptive_lighting_switches(hass):
     assert ADAPT_COLOR_SWITCH in data
     assert ADAPT_BRIGHTNESS_SWITCH in data
     assert UNDO_UPDATE_LISTENER in data
+    assert INTENSITY_NUMBER in data
 
-    assert len(data.keys()) == 5
+    assert len(data.keys()) == 6
 
 
 def async_process_ha_core_config(hass, config):

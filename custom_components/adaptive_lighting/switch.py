@@ -8,6 +8,7 @@ import hashlib
 import logging
 import zoneinfo
 from copy import deepcopy
+from dataclasses import replace
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -103,6 +104,7 @@ from .const import (
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
     CONF_INITIAL_TRANSITION,
+    CONF_INTENSITY_FLOOR,
     CONF_INTERCEPT,
     CONF_INTERVAL,
     CONF_LIGHTS,
@@ -137,12 +139,14 @@ from .const import (
     CONF_TRANSITION,
     CONF_TURN_ON_LIGHTS,
     CONF_USE_DEFAULTS,
+    DEFAULT_INTENSITY,
     DOMAIN,
     EXTRA_VALIDATION,
     ICON_BRIGHTNESS,
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
+    PENDING_INTENSITY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
@@ -898,6 +902,15 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._configured_lights: list[str] = list(data[CONF_LIGHTS])
         self.lights: list[str] = []
 
+        # Needed to find the value the number entity may have left behind.
+        self._config_entry_id = config_entry.entry_id
+
+        # Set before _set_changeable_settings, which builds SunLightSettings.
+        # The number entity restores the real value and pushes it in once it is
+        # added; rebuilding the settings later must not drop it, which is why it
+        # lives on the switch rather than only inside SunLightSettings.
+        self._intensity: float = DEFAULT_INTENSITY
+
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
         self._set_changeable_settings(data=data, defaults=None)
@@ -1025,6 +1038,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
+            intensity=self._intensity,
+            intensity_floor=data[CONF_INTENSITY_FLOOR],
         )
         _LOGGER.debug(
             "%s: Set switch settings for lights '%s'. now using data: '%s'",
@@ -1062,6 +1077,26 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
+        # The number platform may have been set up first, in which case it
+        # left its restored intensity here because this switch did not exist yet.
+        # Take it before the first adaptation, so a restart never comes back at
+        # full intensity for one interval.
+        pending = self.hass.data[DOMAIN][self._config_entry_id].pop(
+            PENDING_INTENSITY,
+            None,
+        )
+        if pending is not None:
+            self._intensity = float(pending)
+            self._sun_light_settings = replace(
+                self._sun_light_settings,
+                intensity=self._intensity,
+            )
+            _LOGGER.debug(
+                "%s: adopted pending intensity %s from the number entity",
+                self._name,
+                self._intensity,
+            )
+
         if self.hass.is_running:
             await self._setup_listeners()
         else:
@@ -1213,6 +1248,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the attributes of the switch."""
         extra_state_attributes: dict[str, Any] = {"configuration": self._config}
+        extra_state_attributes["intensity"] = self._intensity
+        # The floor actually in use, which `transition_until_sleep` can
+        # force to "sleep" regardless of the configured `intensity_floor`.
+        extra_state_attributes["intensity_floor"] = (
+            "sleep" if self._sun_light_settings.intensity_floor_is_sleep else "minimum"
+        )
         if not self.is_on:
             for key in self._settings:
                 extra_state_attributes[key] = None
@@ -1517,6 +1558,30 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self._name,
                 data.entity_id,
                 data,
+            )
+
+    async def async_set_intensity(self, value: float, *, adapt: bool = True) -> None:
+        """Set the intensity dial and re-adapt immediately.
+
+        ``SunLightSettings`` is a frozen dataclass rebuilt by
+        ``_set_changeable_settings``, so the value is kept on the switch and
+        replayed into it here; that way ``change_switch_settings`` (which
+        rebuilds the settings from the stored config) cannot silently reset the
+        dial back to 100.
+        """
+        self._intensity = float(value)
+        self._sun_light_settings = replace(
+            self._sun_light_settings,
+            intensity=self._intensity,
+        )
+        _LOGGER.debug("%s: intensity set to %s", self._name, self._intensity)
+        self.async_write_ha_state()
+        if adapt and self.is_on:
+            await self._update_attrs_and_maybe_adapt_lights(
+                context=self.create_context("intensity"),
+                lights=self.lights,
+                transition=self.initial_transition,
+                force=True,
             )
 
     async def _update_attrs_and_maybe_adapt_lights(

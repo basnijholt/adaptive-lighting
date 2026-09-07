@@ -298,6 +298,10 @@ class SunLightSettings:
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
+    # 0-100. 100 is the normal adaptive behaviour; 0 is the intensity floor.
+    intensity: float = 100.0
+    # What the dial's 0% end is. See `intensity_floor_is_sleep`.
+    intensity_floor: Literal["sleep", "minimum"] = "sleep"
 
     @cached_property
     def sun(self) -> SunEvents:
@@ -408,6 +412,80 @@ class SunLightSettings:
         msg = "Should not happen"
         raise ValueError(msg)
 
+    @property
+    def intensity_floor_is_sleep(self) -> bool:
+        """Whether the dial's 0% end is the sleep settings.
+
+        `adapt_until_sleep` forces it, whatever `intensity_floor` says. With
+        that option on, the adaptive colour temperature after sunset descends
+        *below* `min_color_temp` towards `sleep_color_temp`, so a
+        `min_color_temp` floor would sit above the adaptive value and turning
+        the dial down would make the light cooler -- backwards. The sleep
+        settings are the bottom of the curve there, so they are the only
+        sensible floor.
+        """
+        return self.intensity_floor == "sleep" or self.adapt_until_sleep
+
+    def _apply_intensity(
+        self,
+        brightness_pct: float | None,
+        color_temp_kelvin: int,
+        rgb_color: tuple[int, int, int],
+        *,
+        is_sleep: bool,
+        keep_rgb: bool,
+    ) -> tuple[float | None, int, tuple[int, int, int]]:
+        """Scale the adaptive result towards this switch's floor settings.
+
+        ``intensity`` is an interpolation factor, not a multiplier:
+
+            out = floor_value + (adaptive_value - floor_value) * intensity / 100
+
+        so 100 returns the adaptive value untouched and 0 returns the floor value.
+        Scaling towards zero instead (the obvious implementation) is wrong for a
+        mood dial.
+
+        The floor is the sleep settings by default. ``intensity_floor:
+        minimum`` anchors it to ``min_brightness``/``min_color_temp`` instead --
+        a shallower dial that never goes below what the adaptive curve itself
+        reaches after dark, at the cost of doing nothing at those hours.
+
+        Skipped while sleep mode is on -- the value already IS the sleep value
+        there, so this would be a no-op, and short-circuiting keeps sleep mode
+        unchanged for anyone not using the dial.
+        """
+        if is_sleep or self.intensity >= 100 or brightness_pct is None:
+            return brightness_pct, color_temp_kelvin, rgb_color
+
+        factor = clamp(self.intensity, 0.0, 100.0) / 100.0
+
+        if self.intensity_floor_is_sleep:
+            floor_brightness = self.sleep_brightness
+            floor_color_temp = self.sleep_color_temp
+        else:
+            floor_brightness = self.min_brightness
+            floor_color_temp = self.min_color_temp
+
+        brightness_pct = floor_brightness + (brightness_pct - floor_brightness) * factor
+
+        color_temp_kelvin = round(
+            floor_color_temp + (color_temp_kelvin - floor_color_temp) * factor,
+        )
+        color_temp_kelvin = 5 * round(color_temp_kelvin / 5)  # round to nearest 5
+
+        if keep_rgb:
+            # This switch drives colour as RGB after sunset, so walk the RGB value
+            # towards the configured sleep colour rather than re-deriving it from
+            # the (unused) colour temperature. `keep_rgb` is only ever set when
+            # `adapt_until_sleep` is on, which forces the sleep floor, so the
+            # sleep colour is always the right target here.
+            rgb_color = lerp_color_hsv(self.sleep_rgb_color, rgb_color, factor)
+        else:
+            r, g, b = color_temperature_to_rgb(color_temp_kelvin)
+            rgb_color = (round(r), round(g), round(b))
+
+        return brightness_pct, color_temp_kelvin, rgb_color
+
     def brightness_and_color(
         self,
         dt: datetime.datetime,
@@ -443,6 +521,14 @@ class SunLightSettings:
             color_temp_kelvin = self.color_temp_kelvin(sun_position)
             r, g, b = color_temperature_to_rgb(color_temp_kelvin)
             rgb_color = (round(r), round(g), round(b))
+        brightness_pct, color_temp_kelvin, rgb_color = self._apply_intensity(
+            brightness_pct,
+            color_temp_kelvin,
+            rgb_color,
+            is_sleep=is_sleep,
+            keep_rgb=force_rgb_color,
+        )
+
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
