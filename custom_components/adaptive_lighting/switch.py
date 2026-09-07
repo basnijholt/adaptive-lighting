@@ -887,6 +887,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         assert hass is not None
         self.hass = hass
         self.manager = manager
+        self._removed = False
         self.sleep_mode_switch = sleep_mode_switch
         self.adapt_color_switch = adapt_color_switch
         self.adapt_brightness_switch = adapt_brightness_switch
@@ -1079,6 +1080,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Remove the listeners upon removing the component."""
+        self._removed = True
         self._remove_listeners()
 
     def _resolve_lights(self, lights: list[str] | None = None) -> list[str]:
@@ -1434,6 +1436,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             if not is_first_call or data.initial_sleep:
                 await asyncio.sleep(data.sleep_time)
 
+            if self._removed:
+                return
+
             # Instead of directly iterating the generator in the while-loop, we get
             # the next item here after the sleep to make sure it incorporates state
             # changes which happened during the sleep.
@@ -1489,6 +1494,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         Wraps the sequence of service calls in a task that can be cancelled from elsewhere, e.g.,
         to cancel an ongoing adaptation when a light is turned off.
         """
+        if self._removed:
+            return
+
         # Prevent overlap of multiple adaptation sequences
         self.manager.cancel_ongoing_adaptation_calls(data.entity_id)
         _LOGGER.debug(
@@ -1690,7 +1698,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             await asyncio.sleep(self._adapt_delay)
 
         # Runtime settings may disable the profile or retire its target while waiting.
-        if not self.is_on or entity_id not in self.lights:
+        if self._removed or not self.is_on or entity_id not in self.lights:
             return
 
         old_state = event.data["old_state"]
@@ -1720,7 +1728,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self,
         event: Event[EventStateChangedData],
     ) -> None:
-        if not _is_state_event(event, (STATE_ON, STATE_OFF)):
+        new_state = event.data.get("new_state")
+        if new_state is None or new_state.state not in (STATE_ON, STATE_OFF):
             _LOGGER.debug("%s: Ignoring sleep event %s", self._name, event)
             return
         _LOGGER.debug(
@@ -2745,7 +2754,7 @@ class AdaptiveLightingManager:
                 elif state.state == STATE_OFF:  # is turning on
                     await on(eid, event)
 
-    async def state_changed_event_listener(
+    async def state_changed_event_listener(  # noqa: PLR0912
         self,
         event: Event[EventStateChangedData],
     ) -> None:
@@ -2823,6 +2832,10 @@ class AdaptiveLightingManager:
                 new_on,
                 new_on.context.id,
             )
+
+        if old_on and not new_on:
+            # Availability loss invalidates pending commands, not manual state.
+            self.cancel_ongoing_adaptation_calls(entity_id)
 
         if old_on and new_off:
             # Tracks 'on' → 'off' state changes

@@ -6393,3 +6393,245 @@ async def test_shared_profiles_keep_independent_sun_schedules(
     noon = hass.states.get(ENTITY_LIGHT_1)
     assert noon.attributes[ATTR_BRIGHTNESS] == 77
     assert noon.attributes[ATTR_COLOR_TEMP_KELVIN] > 2000
+
+
+@pytest.mark.parametrize("via_unavailable", [False, True])
+async def test_split_adaptation_cancelled_after_physical_off(
+    hass,
+    monkeypatch,
+    via_unavailable,
+):
+    """Pending split commands must not resurrect a physically switched-off light."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_ONLY_ONCE: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_SEND_SPLIT_DELAY: 1234,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    state = hass.states.get(ENTITY_LIGHT_1)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    await hass.async_block_till_done()
+    # Isolate the split-command lifetime from the separate turn-off debounce.
+    monkeypatch.setattr(
+        switch.manager,
+        "just_turned_off",
+        AsyncMock(return_value=False),
+    )
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_sleep = asyncio.sleep
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        if delay == 1.234:
+            entered.set()
+            await release.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    calls = _track_adaptive_light_calls(hass)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, state.attributes)
+    await asyncio.wait_for(entered.wait(), 2)
+    assert len(calls) == 1
+    if via_unavailable:
+        hass.states.async_set(ENTITY_LIGHT_1, STATE_UNAVAILABLE, state.attributes)
+        await original_sleep(0)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    await original_sleep(0)
+    release.set()
+    await hass.async_block_till_done()
+    assert len(calls) == 1, f"Physical OFF resurrected by split command: {calls}"
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_OFF
+
+
+@pytest.mark.parametrize("remaining_profile", [False, True])
+async def test_profile_unloaded_during_adapt_delay(
+    hass,
+    monkeypatch,
+    remaining_profile,
+):
+    """A removed profile must not send commands after its adaptation delay."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_ONLY_ONCE: True,
+            CONF_ADAPT_DELAY: 0.1234,
+        },
+    )
+    if remaining_profile:
+        _, other = await setup_switch(
+            hass,
+            {
+                CONF_NAME: "remaining",
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_ONLY_ONCE: True,
+                CONF_INITIAL_TRANSITION: 0,
+            },
+        )
+        await other.async_turn_off()
+    state = hass.states.get(ENTITY_LIGHT_1)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    await hass.async_block_till_done()
+    monkeypatch.setattr(
+        switch.manager,
+        "just_turned_off",
+        AsyncMock(return_value=False),
+    )
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_sleep = asyncio.sleep
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        if delay == 0.1234:
+            entered.set()
+            await release.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    calls = _track_adaptive_light_calls(hass)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, state.attributes)
+    await asyncio.wait_for(entered.wait(), 2)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    await hass.config_entries.async_unload(entry.entry_id)
+    calls.clear()
+    release.set()
+    await hass.async_block_till_done()
+    assert calls == []
+    if remaining_profile:
+        await other.async_turn_on()
+        await other._update_attrs_and_maybe_adapt_lights(
+            context=other.create_context("test"),
+            lights=[ENTITY_LIGHT_1],
+            force=True,
+        )
+        await hass.async_block_till_done()
+        assert calls
+        assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+
+
+async def test_profile_unloaded_during_split_delay(hass, monkeypatch):
+    """Removed profiles must not send remaining split commands."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_ONLY_ONCE: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_SEND_SPLIT_DELAY: 1234,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    state = hass.states.get(ENTITY_LIGHT_1)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    await hass.async_block_till_done()
+    # Isolate the split-command lifetime from the separate turn-off debounce.
+    monkeypatch.setattr(
+        switch.manager,
+        "just_turned_off",
+        AsyncMock(return_value=False),
+    )
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_sleep = asyncio.sleep
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        if delay == 1.234:
+            entered.set()
+            await release.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    calls = _track_adaptive_light_calls(hass)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, state.attributes)
+    await asyncio.wait_for(entered.wait(), 2)
+    assert len(calls) == 1
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    release.set()
+    await hass.async_block_till_done()
+    assert len(calls) == 1
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+
+
+@pytest.mark.parametrize("unload_before_split", [False, True])
+async def test_unloaded_polling_profile_preserves_other_split_adaptation(
+    hass,
+    monkeypatch,
+    unload_before_split,
+):
+    """A removed profile resuming a poll must not cancel another profile's work."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_ONLY_ONCE: True})
+    _, other = await setup_switch(
+        hass,
+        {
+            CONF_NAME: "remaining",
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_ONLY_ONCE: True,
+            CONF_SEPARATE_TURN_ON_COMMANDS: True,
+            CONF_SEND_SPLIT_DELAY: 1234,
+            CONF_INITIAL_TRANSITION: 0,
+        },
+    )
+    poll_entered, poll_release = asyncio.Event(), asyncio.Event()
+    split_entered, split_release = asyncio.Event(), asyncio.Event()
+    original_update = switch.manager.update_manually_controlled_from_untracked_change
+    original_sleep = asyncio.sleep
+
+    async def delayed_update(profile, *args, **kwargs):
+        if profile is switch:
+            poll_entered.set()
+            await poll_release.wait()
+        await original_update(profile, *args, **kwargs)
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        if delay == 1.234:
+            split_entered.set()
+            await split_release.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(
+        switch.manager,
+        "update_manually_controlled_from_untracked_change",
+        delayed_update,
+    )
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    calls = _track_adaptive_light_calls(hass)
+    polling = hass.async_create_task(
+        switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("test"),
+            lights=[ENTITY_LIGHT_1],
+            force=True,
+        ),
+    )
+    await asyncio.wait_for(poll_entered.wait(), 2)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    if unload_before_split:
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    adapting = hass.async_create_task(
+        other._adapt_light(
+            ENTITY_LIGHT_1,
+            other.create_context("test"),
+            0,
+            force=True,
+        ),
+    )
+    await asyncio.wait_for(split_entered.wait(), 2)
+    assert len(calls) == 1
+    if not unload_before_split:
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    poll_release.set()
+    await polling
+    split_release.set()
+    await adapting
+    await hass.async_block_till_done()
+    assert len(calls) == 2
+    assert ATTR_COLOR_TEMP_KELVIN in calls[-1]
