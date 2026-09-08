@@ -1537,8 +1537,10 @@ async def test_apply_updates_non_ha_change_baseline(
         )
 
         direction = 1 if manual_value < adaptive_value else -1
+        # Legacy template lights round via mireds; 70 K keeps one reported step
+        # below 100 K and two steps above it across the configured range.
         small_change = (
-            15 if manual_attribute == LightControlAttributes.BRIGHTNESS else 60
+            15 if manual_attribute == LightControlAttributes.BRIGHTNESS else 70
         )
         freezer.tick(90)
         set_physical_state(manual_value + direction * small_change)
