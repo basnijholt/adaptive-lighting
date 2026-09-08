@@ -1,0 +1,28 @@
+# The Home Assistant core checkout. tests/README.md has you clone it to ./core,
+# but the Dockerfile clones its own copy to /core and links /app/core to it.
+# Without this entry `COPY . /app/` ships ~300MB into every build and leaves
+# /app/core as a real directory, so `ln -s /core /app/core` links *inside* it
+# rather than creating the intended symlink.
+core/
+
+# Local virtualenvs
+.venv/
+venv/
+env/
+ENV/
+
+# Not used by the build
+.git/
+.vscode/
+.idea/
+
+# Caches and test output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
