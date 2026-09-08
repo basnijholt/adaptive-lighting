@@ -31,6 +31,7 @@ from homeassistant.components.number import (
     NumberMode,
     RestoreNumber,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
@@ -56,7 +57,6 @@ async def async_setup_entry(
             field_key=row["field_key"],
             conf_key=row["conf_key"],
             default=row["default"],
-            display_name=row["name"],
             native_min=row["native_min"],
             native_max=row["native_max"],
             step=row["step"],
@@ -75,6 +75,8 @@ class AdaptiveRangeNumber(RestoreNumber):
     _attr_has_entity_name = True
     _attr_mode = NumberMode.SLIDER
     _attr_should_poll = False
+    # Behaviour knobs, not state — keep them off the primary device page.
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self,
@@ -83,7 +85,6 @@ class AdaptiveRangeNumber(RestoreNumber):
         field_key: str,
         conf_key: str,
         default: float,
-        display_name: str,
         native_min: float,
         native_max: float,
         step: float,
@@ -95,7 +96,7 @@ class AdaptiveRangeNumber(RestoreNumber):
         self._field_key = field_key
         self._conf_key = conf_key
         self._default = default
-        self._attr_name = display_name
+        # No _attr_name — see the note in sensor.py.
         self._attr_translation_key = field_key
         self._attr_unique_id = f"{entry.entry_id}_{field_key}"
         self._attr_native_min_value = native_min
@@ -197,13 +198,14 @@ class AdaptiveRampWidthNumber(RestoreNumber):
     _attr_has_entity_name = True
     _attr_mode = NumberMode.SLIDER
     _attr_should_poll = False
+    # Behaviour knobs, not state — keep them off the primary device page.
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, *, entry: ConfigEntry) -> None:
         """Initialise the ramp half-width entity from its const declaration."""
         self._entry = entry
         self._field_key: str = RAMP_WIDTH_ENTITY["field_key"]
         self._default: float = float(RAMP_WIDTH_ENTITY["default"])
-        self._attr_name = RAMP_WIDTH_ENTITY["name"]
         self._attr_translation_key = self._field_key
         self._attr_unique_id = f"{entry.entry_id}_{self._field_key}"
         self._attr_native_min_value = RAMP_WIDTH_ENTITY["native_min"]

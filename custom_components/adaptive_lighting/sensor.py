@@ -18,7 +18,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -49,7 +53,6 @@ async def async_setup_entry(
             hass=hass,
             entry=config_entry,
             output_key=row["key"],
-            display_name=row["name"],
             unit=row["unit"],
             icon=row["icon"],
         )
@@ -59,13 +62,17 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
+# Only ambient_lux maps onto a standard HA device class. The rest are AL curve
+# outputs with no equivalent, and claiming one would break their unit handling.
+_SENSOR_DEVICE_CLASSES = {"ambient_lux": SensorDeviceClass.ILLUMINANCE}
+
+
 class AdaptiveOutputSensor(SensorEntity):
     """One read-only output value from an AL profile's curve tick."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_device_class = None  # explicit — no fitting HA device class
 
     def __init__(
         self,
@@ -73,7 +80,6 @@ class AdaptiveOutputSensor(SensorEntity):
         hass: HomeAssistant,
         entry: ConfigEntry,
         output_key: str,
-        display_name: str,
         unit: str,
         icon: str,
     ) -> None:
@@ -81,8 +87,10 @@ class AdaptiveOutputSensor(SensorEntity):
         self._hass = hass
         self._entry = entry
         self._output_key = output_key
-        self._attr_name = display_name
+        # No _attr_name: Entity._name_internal returns it before it ever
+        # consults translation_key, which would leave every translation dead.
         self._attr_translation_key = output_key
+        self._attr_device_class = _SENSOR_DEVICE_CLASSES.get(output_key)
         self._attr_unique_id = f"{entry.entry_id}_{output_key}"
         self._attr_native_unit_of_measurement = unit
         self._attr_icon = icon

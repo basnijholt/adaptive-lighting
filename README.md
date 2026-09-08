@@ -67,8 +67,9 @@
 >    (`sensor.sun2_dawn`, `sensor.sun2_astro_dawn`, etc.) work without code
 >    changes — see "Recommended companions" below.
 > 3. **Synthetic tanh curve** — brightness and color temperature follow a
->    smooth tanh ramp anchored at the two sun events with a fixed 30-minute
->    half-width. No `brightness_mode` selector to fiddle with.
+>    smooth tanh ramp anchored at the two sun events, with a half-width you can
+>    tune live (5-120 min, default 30). No `brightness_mode` selector to fiddle
+>    with.
 > 4. **Fewer features, on purpose** — sleep mode, take-over-control, manual
 >    sun-time overrides, `only_once`, and `adapt_only_on_bare_turn_on` are
 >    **removed**. Manual overrides are expected to live at the
