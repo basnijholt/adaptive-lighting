@@ -10,7 +10,11 @@ from homeassistant.core import callback
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
-    BASIC_OPTIONS,
+    SECTION_SLEEP,
+    SECTION_SUNRISE,
+    SECTION_SUNSET,
+    SECTION_TRANSITION,
+    SECTION_MISC,
     CONF_LIGHTS,
     DOMAIN,
     EXTRA_VALIDATION,
@@ -25,7 +29,6 @@ OPTIONS_FLOW_DESCRIPTION_PLACEHOLDERS = {
     "webapp_url": "https://basnijholt.github.io/adaptive-lighting",
     "docs_url": "https://github.com/basnijholt/adaptive-lighting#readme",
 }
-ADVANCED_OPTIONS_SECTION = "advanced"
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -129,11 +132,24 @@ def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for Adaptive Lighting."""
 
+    SECTION_MAP: dict[str, set[str]] = {
+        "sleep": SECTION_SLEEP,
+        "sunrise": SECTION_SUNRISE,
+        "sunset": SECTION_SUNSET,
+        "transition": SECTION_TRANSITION,
+        "misc": SECTION_MISC,
+    }
+
+    # Reverse lookup, avoids looping through sections for each(!) option
+    OPTION_TO_SECTION: dict[str, str] = {
+        name: section for section, names in SECTION_MAP.items() for name in names
+    }
+
     def _flatten_section_input(self, user_input: dict[str, Any]) -> dict[str, Any]:
-        """Flatten section input by merging nested 'advanced' dict into top level."""
+        """Flatten section input by merging nested section dicts into top level."""
         flat_input: dict[str, Any] = {}
         for key, value in user_input.items():
-            if key == ADVANCED_OPTIONS_SECTION and isinstance(value, dict):
+            if key in self.SECTION_MAP and isinstance(value, dict):
                 flat_input.update(value)
             else:
                 flat_input[key] = value
@@ -179,20 +195,31 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ),
         }
 
-        basic_schema: dict[vol.Marker, Any] = {}
-        advanced_schema: dict[vol.Marker, Any] = {}
+        full_schema: dict[vol.Marker, Any] = {}
+        
+        section_schemas: dict[str, dict[vol.Marker, Any]] = {
+            name: {} for name in self.SECTION_MAP
+        }
+
         for name, default, validation in VALIDATION_TUPLES:
             key = vol.Optional(name, default=form_data.get(name, default))
-            schema = basic_schema if name in BASIC_OPTIONS else advanced_schema
-            schema[key] = to_replace.get(name, validation)
+            field_schema = to_replace.get(name, validation)
 
-        full_schema = {
-            **basic_schema,
-            vol.Required(ADVANCED_OPTIONS_SECTION): data_entry_flow.section(
-                vol.Schema(advanced_schema),
-                data_entry_flow.SectionConfig(collapsed=True),
-            ),
-        }
+            section_name = self.OPTION_TO_SECTION.get(name)
+            if section_name:
+                # Option is part of section, put into section schema
+                section_schemas[section_name][key] = field_schema
+            else:
+                # Option is NOT part of section, place at top level
+                full_schema[key] = field_schema
+
+        # Create collapsible sections for each section set
+        for section_name in self.SECTION_MAP:
+            if section_schemas[section_name]:
+                full_schema[vol.Required(section_name)] = data_entry_flow.section(
+                    vol.Schema(section_schemas[section_name]),
+                    data_entry_flow.SectionConfig(collapsed=True),
+                )
 
         return self.async_show_form(
             step_id="init",
