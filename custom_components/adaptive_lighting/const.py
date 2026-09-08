@@ -238,12 +238,11 @@ DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
 
 CONF_INTENSITY_FLOOR, DEFAULT_INTENSITY_FLOOR = "intensity_floor", "sleep"
 DOCS[CONF_INTENSITY_FLOOR] = (
-    "What the bottom of the intensity dial means. `sleep` interpolates towards "
-    "`sleep_brightness`/`sleep_color_temp`, `minimum` towards "
-    "`min_brightness`/`min_color_temp`. Has no effect while "
-    "`transition_until_sleep` is enabled: the sleep settings are then the "
-    "bottom of the adaptive curve itself, so 0% is always the sleep "
-    "settings. 🎚️"
+    "What 0% on the intensity dial means. `sleep` blends towards "
+    "`sleep_brightness` and the configured sleep color; `minimum` towards "
+    "`min_brightness`/`min_color_temp`. `transition_until_sleep` forces the "
+    "sleep endpoint. Lower intensity dims only when the endpoint is below "
+    "the current adaptive value. 🎚️"
 )
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0

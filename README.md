@@ -79,22 +79,24 @@ Every configuration provides a number entity, `number.adaptive_lighting_living_r
 output = floor_value + (adaptive_value - floor_value) × intensity / 100
 ```
 
-At 100% — the default — the lights receive the adaptive values unchanged, so the dial costs nothing until you move it.
+At 100%, the default, the lights receive the adaptive values unchanged and interpolation is skipped.
 At 0% they receive the floor.
-In between they remain fully adaptive: the sun keeps moving them at every setting, so the dial scales the curve rather than freezing the lights at a level.
+In between they remain adaptive: the sun keeps moving them through a smaller range. At 0%, the target stays at the configured endpoint.
 
 The floor is set per configuration with `intensity_floor`:
 
-- `sleep` (the default) interpolates towards `sleep_brightness` and `sleep_color_temp`, so 0% matches what sleep mode would do.
+- `sleep` (the default) interpolates towards `sleep_brightness` and the configured sleep color, so 0% matches what sleep mode would do. Color-capable lights use `sleep_rgb_color` when configured; CT-only lights use `sleep_color_temp`.
 - `minimum` interpolates towards `min_brightness` and `min_color_temp`. This gives a shallower dial that never takes a light below what the adaptive curve reaches on its own, at the cost of doing progressively less as the evening goes on — and of leaving color alone after sunset, where the adaptive color temperature already *is* `min_color_temp`.
 
 Enabling `transition_until_sleep` forces the `sleep` floor whatever `intensity_floor` says.
-With that option on, the adaptive color temperature after sunset descends *below* `min_color_temp` towards `sleep_color_temp`, so a `min_color_temp` floor would sit above the adaptive value and turning the dial down would make the light cooler.
+With warmer sleep settings, the adaptive color after sunset goes below `min_color_temp`; using the minimum endpoint could then make dial-down cool the light.
 The switch's `intensity_floor` attribute reports the floor actually in use.
 
 Sleep mode ignores the dial entirely — its output already *is* the sleep value.
 
-This is what you want for a room-wide "mood" level that coexists with Adaptive Lighting: point an automation or a dashboard slider at the number entity, rather than rewriting every light's brightness band and putting it out of step with the configuration.
+The sleep endpoint can go below `min_brightness`. Lowering intensity dims and warms only when the endpoint is dimmer and warmer than the current adaptive target. Intensity 0 means the endpoint, not off.
+
+Changes affect eligible, already-on lights and preserve manual control. Restarts restore intensity before adaptation and respect `only_once`; moving the dial explicitly adapts immediately. Runtime settings resets preserve intensity. See [Intensity](https://basnijholt.github.io/adaptive-lighting/advanced/intensity/) for interactions and the existing helper-automation alternative.
 <!-- SECTION:intensity:END -->
 
 ## :books: Table of Contents
@@ -173,7 +175,7 @@ The YAML and frontend configuration methods support all of the options listed be
 | `sleep_rgb_color`                           | RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is "rgb_color"). 🌈                                                                                                                                                                                                                                                                                                             | `[255, 56, 0]` | RGB color                               |
 | `sleep_transition`                          | Duration of transition when "sleep mode" is toggled in seconds. 😴                                                                                                                                                                                                                                                                                                                           | `1`            | `float` 0-6553                          |
 | `transition_until_sleep`                    | When enabled, Adaptive Lighting will treat sleep settings as the minimum, transitioning to these values after sunset. 🌙                                                                                                                                                                                                                                                                     | `False`        | `bool`                                  |
-| `intensity_floor`                           | What the bottom of the intensity dial means. `sleep` interpolates towards `sleep_brightness`/`sleep_color_temp`, `minimum` towards `min_brightness`/`min_color_temp`. Has no effect while `transition_until_sleep` is enabled: the sleep settings are then the bottom of the adaptive curve itself, so 0% is always the sleep settings. 🎚️                                                  | `sleep`        | one of `['sleep', 'minimum']`           |
+| `intensity_floor`                           | What 0% on the intensity dial means. `sleep` blends towards `sleep_brightness` and the configured sleep color; `minimum` towards `min_brightness`/`min_color_temp`. `transition_until_sleep` forces the sleep endpoint. Lower intensity dims only when the endpoint is below the current adaptive value. 🎚️                                                  | `sleep`        | one of `['sleep', 'minimum']`           |
 | `sunrise_time`                              | Set a fixed time (HH:MM:SS) for sunrise. 🌅                                                                                                                                                                                                                                                                                                                                                  | `None`         | `str`                                   |
 | `min_sunrise_time`                          | Set the earliest virtual sunrise time (HH:MM:SS), allowing for later sunrises. 🌅                                                                                                                                                                                                                                                                                                            | `None`         | `str`                                   |
 | `max_sunrise_time`                          | Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier sunrises. 🌅                                                                                                                                                                                                                                                                                                            | `None`         | `str`                                   |

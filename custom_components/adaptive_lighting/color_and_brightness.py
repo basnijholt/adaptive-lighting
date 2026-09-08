@@ -416,13 +416,10 @@ class SunLightSettings:
     def intensity_floor_is_sleep(self) -> bool:
         """Whether the dial's 0% end is the sleep settings.
 
-        `adapt_until_sleep` forces it, whatever `intensity_floor` says. With
-        that option on, the adaptive colour temperature after sunset descends
-        *below* `min_color_temp` towards `sleep_color_temp`, so a
-        `min_color_temp` floor would sit above the adaptive value and turning
-        the dial down would make the light cooler -- backwards. The sleep
-        settings are the bottom of the curve there, so they are the only
-        sensible floor.
+        `adapt_until_sleep` forces it, whatever `intensity_floor` says. When
+        sleep is warmer than the minimum, the adaptive colour after sunset
+        goes below `min_color_temp`. Using the minimum endpoint could then
+        make dial-down cool the light during that period.
         """
         return self.intensity_floor == "sleep" or self.adapt_until_sleep
 
@@ -441,8 +438,7 @@ class SunLightSettings:
             out = floor_value + (adaptive_value - floor_value) * intensity / 100
 
         so 100 returns the adaptive value untouched and 0 returns the floor value.
-        Scaling towards zero instead (the obvious implementation) is wrong for a
-        mood dial.
+        Unlike multiplication towards zero, this retains the configured endpoint.
 
         The floor is the sleep settings by default. ``intensity_floor:
         minimum`` anchors it to ``min_brightness``/``min_color_temp`` instead --
@@ -529,6 +525,14 @@ class SunLightSettings:
             rgb_color,
             is_sleep=is_sleep,
         )
+        if (
+            not is_sleep
+            and self.intensity < 100
+            and self.intensity_floor_is_sleep
+            and self.sleep_rgb_or_color_temp == "rgb_color"
+        ):
+            # Select the blended RGB target even on lights that also support CT.
+            force_rgb_color = True
 
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)

@@ -8,9 +8,8 @@ Adapt Brightness / Adapt Color switches on the same device:
 100% is the normal adaptive behaviour. 0% is the switch's floor, set by the
 ``intensity_floor`` option: its sleep settings (``sleep_brightness`` and
 ``sleep_color_temp``) by default, or its ``min_brightness``/``min_color_temp``.
-Anything in between is a straight interpolation between the two, recomputed
-continuously, so the sun still moves the light at every setting -- it is a
-scaled adaptive curve, not a frozen snapshot.
+Anything in between blends the two, recomputed continuously so the sun still
+moves the light through a smaller range. At 0%, the target stays at the endpoint.
 
 The value survives restarts via RestoreEntity, and is re-applied to the switch
 whenever it changes so the lights follow immediately instead of waiting for the
@@ -118,10 +117,9 @@ class AdaptiveIntensityNumber(NumberEntity, RestoreEntity):
                     last_state.state,
                     DEFAULT_INTENSITY,
                 )
-        # Push even at 100 so the switch and the entity can never disagree.
-        # Re-adapt only if this is an actual dimmed level being restored, so a
-        # plain restart does not push a redundant adaptation at every switch.
-        await self._push(adapt=self._value != DEFAULT_INTENSITY)
+        # The switch starts after this platform and owns startup adaptation,
+        # including the decision to skip it for only_once configurations.
+        await self._push(adapt=False)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set a new intensity and re-adapt the lights straight away."""
@@ -131,11 +129,9 @@ class AdaptiveIntensityNumber(NumberEntity, RestoreEntity):
 
     async def _push(self, *, adapt: bool) -> None:
         switch = self._switch
-        if switch is None:
-            # Home Assistant does not guarantee that the "switch" platform
-            # finishes before "number", so the switch may not exist yet. Leave
-            # the value where AdaptiveSwitch.async_added_to_hass will find it
-            # rather than dropping a restored dial on the floor.
+        if switch is None or switch.hass is None or switch.is_on is None:
+            # The parent may not have started yet, or may be disabled in the
+            # entity registry. It adopts this value when added to Home Assistant.
             entry_data = self.hass.data[DOMAIN][self._config_entry.entry_id]
             entry_data[PENDING_INTENSITY] = self._value
             _LOGGER.debug(
