@@ -6922,6 +6922,31 @@ async def test_recovery_revalidates_after_delay(hass, monkeypatch, freezer, chan
         await hass.async_block_till_done()
 
 
+@pytest.mark.parametrize(
+    ("transition", "window"),
+    [(10, 10), ("10", 10), (10000, 6553), ("10000", 6553), ("inf", 6553), (None, 5)],
+)
+async def test_recovery_normalizes_turn_off_transition(
+    hass,
+    cleanup,
+    transition,
+    window,
+):
+    """Recovery suppression ends after the light service's normalized window."""
+    switch, _ = await setup_lights_and_switch(hass)
+    manager = switch.manager
+    manager.turn_on_event.pop(ENTITY_LIGHT_1, None)
+    now = dt_util.utcnow().timestamp()
+    for elapsed, expected in [(window - 1, True), (window + 1, False)]:
+        manager.turn_off_event[ENTITY_LIGHT_1] = _turn_off_service_event(
+            [ENTITY_LIGHT_1],
+            now - elapsed,
+            Context(),
+            transition,
+        )
+        assert manager.recovery_is_during_turn_off(ENTITY_LIGHT_1) is expected
+
+
 async def test_recovery_preserves_active_transition(hass, cleanup):
     """Availability does not reset a transition that still suppresses adaptation."""
     switch, _ = await setup_lights_and_switch(hass, {CONF_DETECT_NON_HA_CHANGES: False})

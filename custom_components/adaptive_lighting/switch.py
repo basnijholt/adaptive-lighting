@@ -2948,7 +2948,7 @@ class AdaptiveLightingManager:
         turn_off = self.turn_off_event.get(entity_id)
         if turn_off is None:
             return False
-        transition = turn_off.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+        transition = _turn_off_transition(turn_off)
         elapsed = (dt_util.utcnow() - turn_off.time_fired).total_seconds()
         if not 0 <= elapsed <= max(transition or 0, TURNING_OFF_DELAY):
             return False
