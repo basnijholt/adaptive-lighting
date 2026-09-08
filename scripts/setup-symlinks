@@ -2,12 +2,17 @@
 set -ex
 cd "$(dirname "$0")/.."
 
+# '-n' keeps a re-run idempotent: without it 'ln -fs' follows an existing
+# symlink and creates the new link *inside* the target directory, leaving a
+# stray 'tests/tests' and 'custom_components/adaptive_lighting/adaptive_lighting'
+# in the working tree.
+
 # Link custom components
 cd core/homeassistant/components/
-ln -fs ../../../custom_components/adaptive_lighting adaptive_lighting
+ln -fsn ../../../custom_components/adaptive_lighting adaptive_lighting
 cd -
 
 # Link tests
 cd core/tests/components/
-ln -fs ../../../tests/ adaptive_lighting
+ln -fsn ../../../tests/ adaptive_lighting
 cd -

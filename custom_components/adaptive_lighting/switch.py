@@ -20,6 +20,7 @@ from homeassistant.components.light import (
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
+    VALID_TRANSITION,
     ColorMode,
     LightEntityFeature,
     is_on,
@@ -621,6 +622,18 @@ def _is_state_event(
         (new_state := event.data.get("new_state")) is not None
         and new_state.state in from_or_to_state
     )
+
+
+def _turn_off_transition(turn_off_event: Event) -> float | None:
+    """Normalize the raw event transition using the light service's validator.
+
+    Service-call events retain raw data after validation, so repeat the
+    service's coercion and clamping before calculating transition windows.
+    """
+    transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+    if transition is None:
+        return None
+    return VALID_TRANSITION(transition)
 
 
 def _expand_light_groups(
@@ -3186,7 +3199,7 @@ class AdaptiveLightingManager:
         ):
             return False
 
-        transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+        transition = _turn_off_transition(turn_off_event)
         delay = max(transition or 0, TURNING_OFF_DELAY)
         elapsed = (dt_util.utcnow() - turn_off_event.time_fired).total_seconds()
         if not 0 <= elapsed <= delay:
@@ -3270,7 +3283,7 @@ class AdaptiveLightingManager:
 
         turn_off_event = self.turn_off_event.get(entity_id)
         if turn_off_event is not None:
-            transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
+            transition = _turn_off_transition(turn_off_event)
         else:
             transition = None
 

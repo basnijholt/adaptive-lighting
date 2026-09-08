@@ -1568,6 +1568,17 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "ahmadtawakol",
+      "name": "Ahmad Tawakol",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2355493?v=4",
+      "profile": "https://github.com/ahmadtawakol",
+      "contributions": [
+        "code",
+        "bug",
+        "maintenance"
+      ]
     }
   ],
   "contributorsPerLine": 7,
