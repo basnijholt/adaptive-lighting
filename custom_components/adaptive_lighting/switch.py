@@ -20,6 +20,7 @@ from homeassistant.components.light import (
     ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     ATTR_XY_COLOR,
+    VALID_TRANSITION,
     ColorMode,
     LightEntityFeature,
     is_on,
@@ -623,25 +624,15 @@ def _is_state_event(
 
 
 def _turn_off_transition(turn_off_event: Event) -> float | None:
-    """Return the 'transition' of a 'light.turn_off' service call, as a float.
+    """Normalize the raw event transition using the light service's validator.
 
-    `EVENT_CALL_SERVICE` carries the *raw* service data, not the data
-    `light.turn_off`'s schema produced for the service handler (see
-    `ServiceRegistry.async_call`), so its `vol.Coerce(float)` never reaches
-    this listener and `transition` arrives exactly as the caller wrote it.
-    A caller passing a string — e.g. a template rendering to `"2"` — must not
-    reach the `max(transition, TURNING_OFF_DELAY)` comparisons below, which
-    raise `TypeError: '>' not supported between instances of 'int' and 'str'`
-    inside a listener task, where it only ever surfaces as "Task exception was
-    never retrieved".
-
-    The event fires only after the schema validated the call, so whatever
-    reaches this point is coercible to a float.
+    Service-call events retain raw data after validation, so repeat the
+    service's coercion and clamping before calculating transition windows.
     """
     transition = turn_off_event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION)
     if transition is None:
         return None
-    return float(transition)
+    return VALID_TRANSITION(transition)
 
 
 def _expand_light_groups(

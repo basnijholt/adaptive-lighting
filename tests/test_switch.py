@@ -4262,17 +4262,17 @@ def _turn_off_service_event(
     entity_ids: list[str],
     ts: float,
     context: Context,
-    transition: float | str,
+    transition: float | str | None,
 ) -> Event:
+    service_data = {ATTR_ENTITY_ID: entity_ids}
+    if transition is not None:
+        service_data[ATTR_TRANSITION] = transition
     return Event(
         EVENT_CALL_SERVICE,
         {
             "domain": LIGHT_DOMAIN,
             "service": SERVICE_TURN_OFF,
-            "service_data": {
-                ATTR_ENTITY_ID: entity_ids,
-                ATTR_TRANSITION: transition,
-            },
+            "service_data": service_data,
         },
         time_fired_timestamp=ts,
         context=context,
@@ -4566,20 +4566,12 @@ async def test_just_turned_off_same_automation_context(hass, cleanup):
     assert not await manager.just_turned_off(ENTITY_LIGHT_1)
 
 
-@pytest.mark.parametrize("transition", [10, 10.0, "10"])
-async def test_just_turned_off_string_transition(hass, cleanup, transition):
-    """A 'light.turn_off' with a string 'transition' must behave like a number.
-
-    `EVENT_CALL_SERVICE` carries the raw service data, so a caller passing
-    `transition: "10"` (e.g. a template) puts a `str` in `turn_off_event`.
-    Both places that derive a delay from it do `max(transition, ...)` against
-    an `int`, which used to raise `TypeError: '>' not supported between
-    instances of 'int' and 'str'`. The exception surfaced only as "Task
-    exception was never retrieved", because `just_turned_off` runs inside the
-    state-change listener task.
-
-    All three parametrizations must give identical results.
-    """
+@pytest.mark.parametrize(
+    ("transition", "window"),
+    [(10, 10), (10.0, 10), ("10", 10), ("10000", 6553), ("inf", 6553), (None, 5)],
+)
+async def test_just_turned_off_normalized_transition(hass, cleanup, transition, window):
+    """Both turn-off guards use coerced and clamped transition windows."""
     await setup_lights(hass)
     _, switch = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_1]})
     await hass.async_block_till_done()
@@ -4611,15 +4603,12 @@ async def test_just_turned_off_string_transition(hass, cleanup, transition):
             off_to_on_context,
         )
 
-    # `_off_to_on_event_is_during_turn_off`: the 'off' → 'on' state change shares
-    # the 'turn_off' context. 7 seconds sits between TURNING_OFF_DELAY (5) and
-    # the 10 second transition, so this only holds if the transition was read as
-    # a number rather than dropped.
-    set_events(now - 7, context)
+    # A matching context is ignored within the normalized transition window.
+    set_events(now - window + 1, context)
     assert await manager.just_turned_off(ENTITY_LIGHT_1)
 
-    # Past that 10 second window the same shape must stop matching.
-    set_events(now - 20, context)
+    # Past that window the same shape must stop matching.
+    set_events(now - window - 1, context)
     assert not await manager.just_turned_off(ENTITY_LIGHT_1)
 
     # `just_turned_off`'s own `max(transition, TURNING_OFF_DELAY)`: reached when
@@ -4627,13 +4616,13 @@ async def test_just_turned_off_string_transition(hass, cleanup, transition):
     # returns early and the delay is computed from the 'on' → 'off' change.
     manager.turn_off_event[ENTITY_LIGHT_1] = _turn_off_service_event(
         [ENTITY_LIGHT_1],
-        now - 20,
+        now - window - 1,
         context,
         transition=transition,
     )
     manager.on_to_off_event[ENTITY_LIGHT_1] = _state_changed_event(
         ENTITY_LIGHT_1,
-        now - 20,
+        now - window - 1,
         context,
     )
     manager.off_to_on_event[ENTITY_LIGHT_1] = _state_changed_event(
@@ -4644,35 +4633,31 @@ async def test_just_turned_off_string_transition(hass, cleanup, transition):
     assert not await manager.just_turned_off(ENTITY_LIGHT_1)
 
 
-async def test_turn_off_event_keeps_raw_transition(hass, cleanup):
-    """`EVENT_CALL_SERVICE` delivers 'transition' exactly as the caller wrote it.
-
-    `ServiceRegistry.async_call` fires the event with the *raw* `service_data`
-    and hands only the schema's output to the service handler, so
-    `light.turn_off`'s `vol.Coerce(float)` never reaches the listener. This is
-    what makes `test_just_turned_off_string_transition` a real scenario rather
-    than a synthetic one.
-
-    Validation still runs before the event fires, which is why coercing with a
-    bare `float()` is safe: a 'transition' that is not a number raises and no
-    event is recorded at all.
-    """
+@pytest.mark.parametrize(
+    ("transition", "expected"),
+    [("2", 2.0), ("10000", 6553), ("inf", 6553), ("-2", 0), (None, None)],
+)
+async def test_turn_off_event_keeps_raw_transition(hass, cleanup, transition, expected):
+    """Normalize raw event data to the same transition used by the light service."""
     await setup_lights(hass)
     _, switch = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_1]})
     await hass.async_block_till_done()
     manager = switch.manager
 
+    service_data = {ATTR_ENTITY_ID: ENTITY_LIGHT_1}
+    if transition is not None:
+        service_data[ATTR_TRANSITION] = transition
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_OFF,
-        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_TRANSITION: "2"},
+        service_data,
         blocking=True,
     )
     await hass.async_block_till_done()
 
     event = manager.turn_off_event[ENTITY_LIGHT_1]
-    assert event.data[ATTR_SERVICE_DATA][ATTR_TRANSITION] == "2"
-    assert _turn_off_transition(event) == 2.0
+    assert event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION) == transition
+    assert _turn_off_transition(event) == expected
 
     # A 'transition' that cannot be coerced is rejected by the schema, so it
     # never reaches the listener.
