@@ -14,6 +14,7 @@ ICON_MAIN = "mdi:theme-light-dark"
 ICON_BRIGHTNESS = "mdi:brightness-4"
 ICON_COLOR_TEMP = "mdi:sun-thermometer"
 ICON_SLEEP = "mdi:sleep"
+ICON_INTENSITY = "mdi:brightness-percent"
 
 DOMAIN = "adaptive_lighting"
 
@@ -235,6 +236,15 @@ DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
     "transitioning to these values after sunset. 🌙"
 )
 
+CONF_INTENSITY_FLOOR, DEFAULT_INTENSITY_FLOOR = "intensity_floor", "sleep"
+DOCS[CONF_INTENSITY_FLOOR] = (
+    "What 0% on the intensity dial means. `sleep` blends towards "
+    "`sleep_brightness` and the configured sleep color; `minimum` towards "
+    "`min_brightness`/`min_color_temp`. `transition_until_sleep` forces the "
+    "sleep endpoint. Lower intensity dims only when the endpoint is below "
+    "the current adaptive value. 🎚️"
+)
+
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
 DOCS[CONF_ADAPT_DELAY] = (
     "Wait time (seconds) between light turn on and Adaptive Lighting applying "
@@ -302,6 +312,9 @@ DOCS[CONF_EXPAND_LIGHT_GROUPS] = (
 SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
+INTENSITY_NUMBER = "intensity_number"
+PENDING_INTENSITY = "pending_intensity"
+DEFAULT_INTENSITY = 100.0
 ATTR_ADAPTIVE_LIGHTING_MANAGER = "manager"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 NONE_STR = "None"
@@ -390,6 +403,17 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
+    (
+        CONF_INTENSITY_FLOOR,
+        DEFAULT_INTENSITY_FLOOR,
+        selector.SelectSelector(  # type: ignore[arg-type]
+            selector.SelectSelectorConfig(
+                options=["sleep", "minimum"],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        ),
+    ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_MIN_SUNRISE_TIME, NONE_STR, str),
     (CONF_MAX_SUNRISE_TIME, NONE_STR, str),
