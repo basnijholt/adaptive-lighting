@@ -84,6 +84,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     SimpleSwitch,
     _attributes_have_changed,
     _expand_light_groups,
+    _turn_off_transition,
     color_difference_redmean,
     create_context,
     is_our_context,
@@ -114,6 +115,7 @@ from homeassistant.const import (
     ATTR_ENTITY_ID,
     ATTR_FLOOR_ID,
     ATTR_LABEL_ID,
+    ATTR_SERVICE_DATA,
     ATTR_SUPPORTED_FEATURES,
     CONF_LIGHTS,
     CONF_NAME,
@@ -1543,8 +1545,10 @@ async def test_apply_updates_non_ha_change_baseline(
         )
 
         direction = 1 if manual_value < adaptive_value else -1
+        # Legacy template lights round via mireds; 70 K keeps one reported step
+        # below 100 K and two steps above it across the configured range.
         small_change = (
-            15 if manual_attribute == LightControlAttributes.BRIGHTNESS else 60
+            15 if manual_attribute == LightControlAttributes.BRIGHTNESS else 70
         )
         freezer.tick(90)
         set_physical_state(manual_value + direction * small_change)
@@ -4266,17 +4270,17 @@ def _turn_off_service_event(
     entity_ids: list[str],
     ts: float,
     context: Context,
-    transition: float,
+    transition: float | str | None,
 ) -> Event:
+    service_data = {ATTR_ENTITY_ID: entity_ids}
+    if transition is not None:
+        service_data[ATTR_TRANSITION] = transition
     return Event(
         EVENT_CALL_SERVICE,
         {
             "domain": LIGHT_DOMAIN,
             "service": SERVICE_TURN_OFF,
-            "service_data": {
-                ATTR_ENTITY_ID: entity_ids,
-                ATTR_TRANSITION: transition,
-            },
+            "service_data": service_data,
         },
         time_fired_timestamp=ts,
         context=context,
@@ -4568,6 +4572,113 @@ async def test_just_turned_off_same_automation_context(hass, cleanup):
         Context(),
     )
     assert not await manager.just_turned_off(ENTITY_LIGHT_1)
+
+
+@pytest.mark.parametrize(
+    ("transition", "window"),
+    [(10, 10), (10.0, 10), ("10", 10), ("10000", 6553), ("inf", 6553), (None, 5)],
+)
+async def test_just_turned_off_normalized_transition(hass, cleanup, transition, window):
+    """Both turn-off guards use coerced and clamped transition windows."""
+    await setup_lights(hass)
+    _, switch = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_1]})
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    now = dt_util.utcnow().timestamp()
+    context = Context()
+    other_context = Context()
+
+    # Setting up the switch turns the light on, and that 'turn_on' would be read
+    # as the legitimate explanation for the 'off' → 'on' state changes below.
+    manager.turn_on_event.pop(ENTITY_LIGHT_1, None)
+
+    def set_events(turn_off_ts: float, off_to_on_context: Context) -> None:
+        manager.turn_off_event[ENTITY_LIGHT_1] = _turn_off_service_event(
+            [ENTITY_LIGHT_1],
+            turn_off_ts,
+            context,
+            transition=transition,
+        )
+        manager.on_to_off_event[ENTITY_LIGHT_1] = _state_changed_event(
+            ENTITY_LIGHT_1,
+            turn_off_ts,
+            other_context,
+        )
+        manager.off_to_on_event[ENTITY_LIGHT_1] = _state_changed_event(
+            ENTITY_LIGHT_1,
+            now,
+            off_to_on_context,
+        )
+
+    # A matching context is ignored within the normalized transition window.
+    set_events(now - window + 1, context)
+    assert await manager.just_turned_off(ENTITY_LIGHT_1)
+
+    # Past that window the same shape must stop matching.
+    set_events(now - window - 1, context)
+    assert not await manager.just_turned_off(ENTITY_LIGHT_1)
+
+    # `just_turned_off`'s own `max(transition, TURNING_OFF_DELAY)`: reached when
+    # the 'off' → 'on' state change carries a fresh context, so the check above
+    # returns early and the delay is computed from the 'on' → 'off' change.
+    manager.turn_off_event[ENTITY_LIGHT_1] = _turn_off_service_event(
+        [ENTITY_LIGHT_1],
+        now - window - 1,
+        context,
+        transition=transition,
+    )
+    manager.on_to_off_event[ENTITY_LIGHT_1] = _state_changed_event(
+        ENTITY_LIGHT_1,
+        now - window - 1,
+        context,
+    )
+    manager.off_to_on_event[ENTITY_LIGHT_1] = _state_changed_event(
+        ENTITY_LIGHT_1,
+        now,
+        Context(),
+    )
+    assert not await manager.just_turned_off(ENTITY_LIGHT_1)
+
+
+@pytest.mark.parametrize(
+    ("transition", "expected"),
+    [("2", 2.0), ("10000", 6553), ("inf", 6553), ("-2", 0), (None, None)],
+)
+async def test_turn_off_event_keeps_raw_transition(hass, cleanup, transition, expected):
+    """Normalize raw event data to the same transition used by the light service."""
+    await setup_lights(hass)
+    _, switch = await setup_switch(hass, {CONF_LIGHTS: [ENTITY_LIGHT_1]})
+    await hass.async_block_till_done()
+    manager = switch.manager
+
+    service_data = {ATTR_ENTITY_ID: ENTITY_LIGHT_1}
+    if transition is not None:
+        service_data[ATTR_TRANSITION] = transition
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        service_data,
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    event = manager.turn_off_event[ENTITY_LIGHT_1]
+    assert event.data[ATTR_SERVICE_DATA].get(ATTR_TRANSITION) == transition
+    assert _turn_off_transition(event) == expected
+
+    # A 'transition' that cannot be coerced is rejected by the schema, so it
+    # never reaches the listener.
+    manager.turn_off_event.pop(ENTITY_LIGHT_1)
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_TRANSITION: "not-a-number"},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert ENTITY_LIGHT_1 not in manager.turn_off_event
 
 
 async def test_just_turned_off_group_context_reuse_end_to_end(hass, cleanup):
