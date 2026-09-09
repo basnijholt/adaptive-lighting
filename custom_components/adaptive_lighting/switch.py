@@ -71,6 +71,7 @@ from homeassistant.helpers.event import (
     async_track_time_interval,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.storage import Store
 from homeassistant.util import slugify
 from homeassistant.util.color import (
     color_temperature_to_rgb,
@@ -121,6 +122,7 @@ from .const import (
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+    CONF_RESTORE_MANUAL_CONTROL,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
@@ -144,6 +146,8 @@ from .const import (
     ICON_COLOR_TEMP,
     ICON_MAIN,
     ICON_SLEEP,
+    MANUAL_CONTROL_STORAGE_KEY,
+    MANUAL_CONTROL_STORAGE_VERSION,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SLEEP_MODE_SWITCH,
     TURNING_OFF_DELAY,
@@ -544,6 +548,10 @@ async def async_setup_entry(
         adapt_color_switch,
         adapt_brightness_switch,
     )
+
+    if switch._restore_manual_control:
+        # Seed the previous run's manual control before the entities are added.
+        await manager.async_load_persisted_manual_control()
 
     data[config_entry.entry_id][SLEEP_MODE_SWITCH] = sleep_mode_switch
     data[config_entry.entry_id][ADAPT_COLOR_SWITCH] = adapt_color_switch
@@ -999,6 +1007,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._reset_manual_control_on_sleep_mode_change = data[
             CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE
         ]
+        self._restore_manual_control = data[CONF_RESTORE_MANUAL_CONTROL]
+        if self._restore_manual_control:
+            self.manager.persist_manual_control = True
         self._skip_redundant_commands = data[CONF_SKIP_REDUNDANT_COMMANDS]
         self._intercept = data[CONF_INTERCEPT]
         self._multi_light_intercept = data[CONF_MULTI_LIGHT_INTERCEPT]
@@ -1085,7 +1096,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         last_state: State | None = await self.async_get_last_state()
         is_new_entry = last_state is None  # newly added to HA
         if is_new_entry or last_state.state == STATE_ON:  # type: ignore[union-attr]
-            await self.async_turn_on(adapt_lights=not self._only_once)
+            await self.async_turn_on(
+                adapt_lights=not self._only_once,
+                restoring=True,
+            )
         else:
             self._state = False
             assert not self.remove_listeners
@@ -1267,8 +1281,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     async def async_turn_on(  # type: ignore[override]
         self,
         adapt_lights: bool = True,
+        restoring: bool = False,
     ) -> None:
-        """Turn on adaptive lighting."""
+        """Turn on adaptive lighting.
+
+        `restoring` is set by `async_added_to_hass` only. On that path manual
+        control loaded from storage by `restore_manual_control` is left alone,
+        so the forced adaptation below honours it and the profile that happens
+        to be set up first does not decide for the others. The manager resolves
+        those lights once, at `EVENT_HOMEASSISTANT_STARTED`.
+        """
         _LOGGER.debug(
             "%s: Called 'async_turn_on', current state is '%s'",
             self._name,
@@ -1277,7 +1299,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self.is_on:
             return
         self._state = True
-        self.manager.reset(*self.lights)
+        if restoring and self.manager.restored_lights:
+            self.manager.reset(
+                *[
+                    light
+                    for light in self.lights
+                    if light not in self.manager.restored_lights
+                ],
+            )
+        else:
+            self.manager.reset(*self.lights)
         await self._setup_listeners()
         if adapt_lights:
             await self._update_attrs_and_maybe_adapt_lights(
@@ -1874,6 +1905,21 @@ class AdaptiveLightingManager:
         self.turn_off_locks: dict[str, asyncio.Lock] = {}
         # Tracks which lights are manually controlled
         self.manual_control: dict[str, LightControlAttributes] = {}
+        # Manual control persisted across restarts (debounced Store, see
+        # `restore_manual_control`). Saving is off until a profile opts in.
+        self._store: Store = Store(
+            hass,
+            MANUAL_CONTROL_STORAGE_VERSION,
+            MANUAL_CONTROL_STORAGE_KEY,
+        )
+        self._store_loaded = False
+        self._store_lock = asyncio.Lock()
+        self._save_scheduled = False
+        self._remove_restore_listener: CALLBACK_TYPE | None = None
+        self.persist_manual_control = False
+        # Lights whose manual control came from storage and is not resolved yet
+        # (see `_async_resolve_restored_manual_control`).
+        self.restored_lights: set[str] = set()
         # Track 'state_changed' events of self.lights resulting from this integration
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -1941,8 +1987,126 @@ class AdaptiveLightingManager:
                 exc_info=True,
             )
 
+    async def async_load_persisted_manual_control(self) -> None:
+        """Seed `manual_control` from the previous run's storage (once).
+
+        Only a restart restores manual control. When Home Assistant is already
+        running the profile is being added or reloaded, and a reload keeps
+        clearing manual control the way it always has.
+        """
+        async with self._store_lock:
+            if self._store_loaded:
+                return
+            self._store_loaded = True
+            if self.hass.is_running:
+                return
+            try:
+                data = await self._store.async_load()
+            except Exception:
+                _LOGGER.exception("Could not load persisted manual_control state")
+                return
+            stored = (data or {}).get("manual_control") or {}
+            for light, value in stored.items():
+                try:
+                    flags = LightControlAttributes(int(value))
+                except (TypeError, ValueError):
+                    continue
+                if flags:
+                    self.manual_control[light] = flags
+                    self.restored_lights.add(light)
+            if not self.restored_lights:
+                return
+            _LOGGER.debug(
+                "Loaded persisted manual_control for %s",
+                sorted(self.restored_lights),
+            )
+            self._remove_restore_listener = self.hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED,
+                self._async_resolve_restored_manual_control,
+            )
+
+    @callback
+    def _async_resolve_restored_manual_control(
+        self,
+        _event: Event[NoEventData] | None = None,
+    ) -> None:
+        """Decide once which restored manual control survives the restart.
+
+        Manual control belongs to the light, not to a profile, so the outcome
+        must not depend on which profile is set up first. A restored flag is
+        kept while the light is on and at least one profile controlling it has
+        `restore_manual_control` enabled without `autoreset_control_seconds`.
+        The rest is dropped: manual control only clears on an on to off event,
+        so a light switched off while Home Assistant was down would otherwise
+        keep a stale flag, and a light no profile controls anymore would linger
+        in `manual_control` forever.
+        """
+        self._remove_restore_listener = None
+        restored = sorted(self.restored_lights)
+        self.restored_lights.clear()
+        if not restored:
+            return
+        kept: list[str] = []
+        dropped: list[str] = []
+        untracked: list[str] = []
+        for light in restored:
+            switches = _switches_with_lights(
+                self.hass,
+                [light],
+                expand_light_groups=False,
+            )
+            if not switches:
+                untracked.append(light)
+            elif is_on(self.hass, light) and any(
+                switch._restore_manual_control
+                and switch._auto_reset_manual_control_time == 0
+                for switch in switches
+            ):
+                kept.append(light)
+            else:
+                dropped.append(light)
+        if dropped:
+            self.reset(*dropped)
+        if untracked:
+            self.remove_lights(*untracked)
+        _LOGGER.info(
+            "Manual control after restart: restored %s, dropped %s,"
+            " no longer controlled by any profile %s",
+            kept,
+            dropped,
+            untracked,
+        )
+        self._schedule_manual_control_state_update(*kept)
+
+    def _manual_control_snapshot(self) -> dict[str, Any]:
+        """Serializable view of the current manual control (tracked lights only)."""
+        return {
+            "manual_control": {
+                light: int(flags)
+                for light, flags in self.manual_control.items()
+                if flags and (not self.lights or light in self.lights)
+            },
+        }
+
+    def schedule_save_manual_control(self) -> None:
+        """Persist the current manual control, debounced, when a profile opted in."""
+        if not self.persist_manual_control:
+            return
+        self._save_scheduled = True
+        self._store.async_delay_save(self._manual_control_snapshot, 2.0)
+
+    async def async_flush_manual_control(self) -> None:
+        """Write a pending debounced save so no timer outlives the integration."""
+        if not self._save_scheduled:
+            return
+        self._save_scheduled = False
+        await self._store.async_save(self._manual_control_snapshot())
+
     def disable(self) -> None:
         """Disable listeners and pending manual-reset and transition timers."""
+        if self._remove_restore_listener is not None:
+            self._remove_restore_listener()
+            self._remove_restore_listener = None
         for remove in self.listener_removers:
             remove()
         for timer in self.auto_reset_manual_control_timers.values():
@@ -2425,7 +2589,12 @@ class AdaptiveLightingManager:
             attributes,
             self.get_manual_control_attributes(light),
         )
+        changed = (
+            self.manual_control.get(light, LightControlAttributes.NONE) != attributes
+        )
         self.manual_control[light] = attributes
+        if changed:
+            self.schedule_save_manual_control()
         delay = self.auto_reset_manual_control_times.get(light)
 
         async def reset() -> None:
@@ -2620,6 +2789,8 @@ class AdaptiveLightingManager:
                     "Light %s: Clearing manual control attributes.",
                     light,
                 )
+                if self.manual_control.get(light):
+                    self.schedule_save_manual_control()
                 self.manual_control[light] = LightControlAttributes.NONE
                 self.last_manual_control_state.pop(light, None)
                 self.pending_manual_control_state.pop(light, None)

@@ -138,6 +138,27 @@ adaptive_lighting:
     manual_control_on_external_turn_on: true   # leave unmatched off→on events unchanged
 ```
 
+### restore_manual_control
+
+By default a Home Assistant restart clears manual control: the startup adaptation brings every light back to the adaptive values. When enabled, manual control is saved to storage as it changes and restored at startup, so a light you dimmed before the restart stays where you left it. The option is off by default and nothing is written to storage until at least one profile enables it.
+
+What is stored is the manual-control flag of every light your profiles control, with the same brightness and color detail the switch attributes show. It is written whenever a flag changes, whether you dimmed the light, called `adaptive_lighting.set_manual_control`, or turned the light off. Writes are debounced by two seconds and go to one `adaptive_lighting.manual_control` file per Home Assistant instance.
+
+At startup the stored flags are pruned before anything adapts. A flag is kept only when the light is on. A light that was turned off while Home Assistant was down is not restored, because manual control normally clears on the off event that never reached Home Assistant. A light that is unavailable at startup is treated the same way, since its integration may bring it back in any state. A light that no profile controls anymore is forgotten entirely. Everything that is kept follows the usual rules from then on: off and on, an explicit reset, or a sleep mode change clears it.
+
+Profiles with `autoreset_control_seconds` do not restore manual control, because their holds are meant to expire on their own. Manual control belongs to the light rather than to a profile, so when several profiles control the same light the flag is restored as long as one of those profiles has this option enabled without an autoreset. The result does not depend on the order in which the profiles are set up.
+
+Only a full restart restores manual control. Reloading a config entry, or changing an option, still clears it the way it always has.
+
+```yaml
+adaptive_lighting:
+  - name: "Keep my dimming through restarts"
+    lights:
+      - light.living_room
+    take_over_control: true
+    restore_manual_control: true
+```
+
 ## Checking Manual Control Status
 
 You can see which lights are marked as manually controlled by checking the switch attributes:
