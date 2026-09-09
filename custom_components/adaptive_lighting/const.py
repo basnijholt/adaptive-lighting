@@ -262,6 +262,17 @@ DOCS[CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE] = (
     "Set to `false` to preserve manual control across sleep mode changes. 😴"
 )
 
+CONF_RESTORE_MANUAL_CONTROL, DEFAULT_RESTORE_MANUAL_CONTROL = (
+    "restore_manual_control",
+    False,
+)
+DOCS[CONF_RESTORE_MANUAL_CONTROL] = (
+    "Keep manual control across Home Assistant restarts. Manually controlled lights "
+    "are saved to storage and restored at startup while they are still on, so the "
+    "startup adaptation leaves them alone. Ignored when `autoreset_control_seconds` "
+    "is set. 💾"
+)
+
 CONF_SKIP_REDUNDANT_COMMANDS, DEFAULT_SKIP_REDUNDANT_COMMANDS = (
     "skip_redundant_commands",
     False,
@@ -303,6 +314,8 @@ SLEEP_MODE_SWITCH = "sleep_mode_switch"
 ADAPT_COLOR_SWITCH = "adapt_color_switch"
 ADAPT_BRIGHTNESS_SWITCH = "adapt_brightness_switch"
 ATTR_ADAPTIVE_LIGHTING_MANAGER = "manager"
+MANUAL_CONTROL_STORAGE_KEY = f"{DOMAIN}.manual_control"
+MANUAL_CONTROL_STORAGE_VERSION = 1
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 NONE_STR = "None"
 ATTR_ADAPT_COLOR = "adapt_color"
@@ -444,6 +457,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
         DEFAULT_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
         bool,
     ),
+    (CONF_RESTORE_MANUAL_CONTROL, DEFAULT_RESTORE_MANUAL_CONTROL, bool),
     (CONF_SEPARATE_TURN_ON_COMMANDS, DEFAULT_SEPARATE_TURN_ON_COMMANDS, bool),
     (CONF_SEND_SPLIT_DELAY, DEFAULT_SEND_SPLIT_DELAY, int_between(0, 10000)),
     (CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY, cv.positive_float),
