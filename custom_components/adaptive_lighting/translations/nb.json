@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Adaptiv Belysning Innstillinger",
-        "description": "Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert adaptive_lighting i din YAML konfigurasjon.",
+        "description": "Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert adaptive_lighting i din YAML konfigurasjon. For interaktive grafer som viser effekten av parametrene, besøk [denne nettappen]({webapp_url}). For flere detaljer, se [den offisielle dokumentasjonen]({docs_url}).",
         "data": {
           "lights": "Lys / Lyskilder",
           "interval": "'interval': tiden mellom oppdateringer (i sekunder)",
