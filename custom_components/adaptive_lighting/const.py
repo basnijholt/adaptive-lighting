@@ -396,9 +396,11 @@ SECTION_MISC: set[str] = {
     CONF_EXPAND_LIGHT_GROUPS,
 }
 
+
 def int_between(min_int: int, max_int: int) -> vol.All:
     """Return an integer between 'min_int' and 'max_int'."""
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
+
 
 VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     # Basic

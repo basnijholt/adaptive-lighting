@@ -10,15 +10,15 @@ from homeassistant.core import callback
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
-    SECTION_SLEEP,
-    SECTION_SUNRISE,
-    SECTION_SUNSET,
-    SECTION_TRANSITION,
-    SECTION_MISC,
     CONF_LIGHTS,
     DOMAIN,
     EXTRA_VALIDATION,
     NONE_STR,
+    SECTION_MISC,
+    SECTION_SLEEP,
+    SECTION_SUNRISE,
+    SECTION_SUNSET,
+    SECTION_TRANSITION,
     VALIDATION_TUPLES,
 )
 from .switch import validate
@@ -196,7 +196,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
 
         full_schema: dict[vol.Marker, Any] = {}
-        
+
         section_schemas: dict[str, dict[vol.Marker, Any]] = {
             name: {} for name in self.SECTION_MAP
         }
