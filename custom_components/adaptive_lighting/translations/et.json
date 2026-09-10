@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Kohanduva valguse suvandid",
-        "description": "Kohanduva valguse suvandid. Valikute nimetused ühtuvad YAML kirjes olevatega. Valikuid ei kuvata kui seadistus on tehtud YAML kirjes.",
+        "description": "Kohanduva valguse suvandid. Valikute nimetused ühtuvad YAML kirjes olevatega. Valikuid ei kuvata kui seadistus on tehtud YAML kirjes. Parameetrite mõju näitavate interaktiivsete graafikute vaatamiseks külasta [seda veebirakendust]({webapp_url}). Lisateabe saamiseks vaata [ametlikku dokumentatsiooni]({docs_url}).",
         "data": {
           "lights": "valgustid",
           "interval": "Intervall, aeg muutuste vahel sekundites",
