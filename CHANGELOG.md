@@ -26,7 +26,55 @@ maintainers who can actually fix them for everyone.
 
 ---
 
-## [2.2.0-cdit.1] — Unreleased
+## [2.5.0-cdit.1] — 2026-06-07
+
+### Added
+
+- **Live ramp half-width** (`add-runtime-ramp-width`) — `number.<profile>_ramp_half_width`,
+  a 5–120 minute slider replacing the previously fixed 30-minute tanh ramp. The
+  curve re-derives on change; no reload needed.
+
+## [2.4.1-cdit.1] — 2026-06-07
+
+### Fixed
+
+- **Sun-event day-anchoring** — the curve collapsed to its minimum during summer
+  afternoons because the two sun events were being anchored to the wrong day.
+
+## [2.4.0-cdit.1] — 2026-06-05
+
+### Changed
+
+- **Range sliders renamed** to lower/upper, with friendlier defaults for a newly
+  created profile.
+- Ruff is fully green across the fork; lint no longer carries inherited errors.
+
+## [2.3.1-cdit.1] — 2026-05-31
+
+### Fixed
+
+- New-group defaults, and section collapse defaults in the options flow.
+
+### Removed
+
+- The `main`-to-`master` sync workflow, upstream cruft — this fork uses `main`.
+
+## [2.3.0-cdit.1] — 2026-05-31
+
+Released as `v2.3.0-cdit.1`; there was never a `v2.2.0` tag, so the entries
+below (originally drafted under 2.2.0) shipped here.
+
+### Added
+
+- **Ambient-lux gate** (`add-lux-target`) — a reduce-only brightness gate
+  driven by an optional lux sensor, plus a `lux_reduction` sensor reporting
+  the reduction as a percentage rather than the retained factor.
+- **Fork identity** — own HACS name, own version badge, explicit upstream link.
+
+### Fixed
+
+- Options-flow conditional reveal, and saving with an empty lux sensor.
+
 
 ### Added
 
@@ -69,7 +117,7 @@ card or `apexcharts-card` to start graphing.
 
 ---
 
-## [2.1.0-cdit.1] — Unreleased
+## [2.1.0-cdit.1] — 2026-05-16
 
 ### Added
 

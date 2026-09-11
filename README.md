@@ -24,9 +24,6 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![Version](https://img.shields.io/github/v/release/CaseyRo/adaptive-lighting?include_prereleases&style=for-the-badge)](https://github.com/CaseyRo/adaptive-lighting/releases)
 [![Upstream](https://img.shields.io/badge/fork_of-basnijholt%2Fadaptive--lighting-blue?style=for-the-badge)](https://github.com/basnijholt/adaptive-lighting)
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-134-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ---
 
@@ -67,8 +64,9 @@
 >    (`sensor.sun2_dawn`, `sensor.sun2_astro_dawn`, etc.) work without code
 >    changes — see "Recommended companions" below.
 > 3. **Synthetic tanh curve** — brightness and color temperature follow a
->    smooth tanh ramp anchored at the two sun events with a fixed 30-minute
->    half-width. No `brightness_mode` selector to fiddle with.
+>    smooth tanh ramp anchored at the two sun events, with a half-width you can
+>    tune live (5-120 min, default 30). No `brightness_mode` selector to fiddle
+>    with.
 > 4. **Fewer features, on purpose** — sleep mode, take-over-control, manual
 >    sun-time overrides, `only_once`, and `adapt_only_on_bare_turn_on` are
 >    **removed**. Manual overrides are expected to live at the

@@ -246,20 +246,29 @@
   },
   "entity": {
     "number": {
-      "min_brightness": {
-        "name": "Brightness lower"
-      },
       "max_brightness": {
         "name": "Brightness upper"
+      },
+      "max_color_temp": {
+        "name": "Color temp upper"
+      },
+      "min_brightness": {
+        "name": "Brightness lower"
       },
       "min_color_temp": {
         "name": "Color temp lower"
       },
-      "max_color_temp": {
-        "name": "Color temp upper"
+      "ramp_half_width": {
+        "name": "Ramp half-width"
       }
     },
     "sensor": {
+      "ambient_lux": {
+        "name": "Ambient lux"
+      },
+      "lux_reduction": {
+        "name": "Lux reduction"
+      },
       "output_brightness": {
         "name": "Output brightness"
       },

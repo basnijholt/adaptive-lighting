@@ -48,9 +48,17 @@ custom_components/adaptive_lighting/
 │                           and the curve math (sun-position + brightness/CT calc)
 ├── config_flow.py          UI flow for setup and reconfiguration. Iterates
 │                           VALIDATION_TUPLES from const.py to build the schema.
-├── switch.py               the 4 switch entities per AL config (master, sleep,
-│                           adapt_color, adapt_brightness). After
-│                           cdit-config-redesign lands: 3 switches (no sleep).
+├── switch.py               the 3 switch entities per AL config (master,
+│                           adapt_color, adapt_brightness). Sleep mode was
+│                           removed in cdit-config-redesign.
+├── number.py               5 live sliders: the 4 brightness/CT range values
+│                           (RANGE_ENTITIES) plus ramp half-width. RestoreNumber,
+│                           EntityCategory.CONFIG.
+├── sensor.py               5 read-only curve outputs (OUTPUT_SENSORS):
+│                           output_brightness, output_color_temp, sun_elevation,
+│                           and — only with a lux sensor configured —
+│                           ambient_lux, lux_reduction.
+├── helpers.py              small shared utilities used across the platforms.
 ├── const.py                CONF_/DEFAULT_ constants + VALIDATION_TUPLES — the
 │                           single source for what fields exist in the schema.
 ├── color_and_brightness.py pure math: tanh, sun-elevation curve, color-temp
@@ -64,11 +72,15 @@ custom_components/adaptive_lighting/
 └── strings.json            UI labels for the config flow, errors, abort reasons.
 ```
 
-The CDiT fork is also planning two follow-on changes that layer cleanly on top:
-- `add-runtime-range-controls` — adds a `number` platform with live entities for the 4 brightness/CT ranges.
-- `house-mode-modes` — adds an `input_select`-driven behavior matrix that drives the 3 runtime switches on house-mode change.
+Both follow-on changes that used to be listed here are resolved:
+`add-runtime-range-controls` **shipped** (v2.1.0-cdit.1, archived
+2026-05-17) and `house-mode-modes` was **deleted** in `70983a8` — do not
+re-propose it without checking why it was dropped.
 
-Neither is implemented yet; both have proposal stubs in `openspec/changes/`.
+Entity naming across `number.py` and `sensor.py` goes through
+`_attr_translation_key`, never `_attr_name`: `Entity._name_internal` returns
+`_attr_name` before it ever consults the translation key, so setting both
+silently kills every translation.
 
 ## Planning workflow — OpenSpec under `opsx`
 
@@ -76,17 +88,14 @@ All non-trivial changes go through OpenSpec before code lands. The experimental 
 
 ```
 openspec/
-├── config.yaml             (project context lives here once filled in)
-├── specs/                  long-lived capability specs (empty until a change archives)
+├── config.yaml
+├── specs/                  4 long-lived capability specs (options-flow,
+│                           runtime-range-controls, lux-feedback, output-sensors)
 └── changes/
-    ├── cdit-config-redesign/         active, 4/4 artifacts, strict-validate green
-    │   ├── proposal.md     why + what changes + capabilities + impact
-    │   ├── design.md       15 decisions with rejected alternatives, risks, migration
-    │   ├── specs/options-flow/spec.md   9 requirements, 22 Given/When/Then scenarios
-    │   └── tasks.md        9 task groups, 36 checkboxes with [R, D] annotations
-    ├── add-runtime-range-controls/   stub, proposal only
-    └── house-mode-modes/             stub, proposal only
+    └── archive/            7 completed changes — nothing is currently active
 ```
+
+There is no active change. `changes/` holds only `archive/`.
 
 Validate any active change with:
 
