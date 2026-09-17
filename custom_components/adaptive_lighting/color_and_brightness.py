@@ -193,10 +193,12 @@ class SunEvents:
         middle = abs(sunset - sunrise) / 2
         if sunset > sunrise:
             noon = sunrise + middle
-            midnight = noon + timedelta(hours=12) * (1 if noon.hour < 12 else -1)
+            next_sunrise = self.sunrise(dt + timedelta(days=1))
+            midnight = sunset + (next_sunrise - sunset) / 2
         else:
             midnight = sunset + middle
-            noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
+            next_sunset = self.sunset(dt + timedelta(days=1))
+            noon = sunrise + (next_sunset - sunrise) / 2
         return noon, midnight
 
     def sun_events(self, dt: datetime.datetime) -> list[tuple[SunEvent, float]]:
