@@ -152,6 +152,7 @@ def test_noon_and_midnight(tzinfo_and_location):
     assert noon == location.noon(date)
     assert midnight == location.midnight(date)
 
+
 @pytest.mark.parametrize("day", [dt.date(2026, 4, 17), dt.date(2026, 8, 30)])
 def test_midnight_falls_in_the_night_it_belongs_to(day):
     """Derived midnight must lie between sunset and the next sunrise (#1599)."""
