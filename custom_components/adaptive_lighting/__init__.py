@@ -32,7 +32,7 @@ from .switch import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["switch"]
+PLATFORMS = ["number", "switch"]
 
 
 def _all_unique_names(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -110,7 +110,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     undo_listener = config_entry.add_update_listener(async_update_options)
     data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
-    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    # Restore the number before the switch can send its first adaptation.
+    for platform in PLATFORMS:
+        await hass.config_entries.async_forward_entry_setups(config_entry, [platform])
 
     return True
 
@@ -122,9 +124,11 @@ async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry) -
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_forward_entry_unload(
+    # Unload every platform: leaving the number entity loaded here would
+    # strand it when the entry is removed or reloaded.
+    unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry,
-        "switch",
+        PLATFORMS,
     )
     data = hass.data[DOMAIN]
     data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()
