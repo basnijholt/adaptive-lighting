@@ -153,6 +153,41 @@ def test_noon_and_midnight(tzinfo_and_location):
     assert midnight == location.midnight(date)
 
 
+@pytest.mark.parametrize("day", [dt.date(2026, 4, 17), dt.date(2026, 8, 30)])
+def test_midnight_falls_in_the_night_it_belongs_to(day):
+    """Derived midnight must lie between sunset and the next sunrise (#1599)."""
+    location = Location(
+        LocationInfo(
+            name="name",
+            region="region",
+            timezone="UTC",
+            latitude=51.5,
+            longitude=0.0,  # on the prime meridian
+        ),
+    )
+    sun_events = SunEvents(
+        name="test",
+        astral_observer=location.observer,
+        sunrise_time=None,
+        min_sunrise_time=None,
+        max_sunrise_time=dt.time(8, 0),
+        sunset_time=None,
+        min_sunset_time=dt.time(17, 0),
+        max_sunset_time=dt.time(20, 0),
+        timezone=zoneinfo.ZoneInfo("UTC"),
+    )
+    date = dt.datetime.combine(day, dt.time(12), tzinfo=dt.UTC)
+    sunset = sun_events.sunset(date)
+    next_sunrise = sun_events.sunrise(date + dt.timedelta(days=1))
+    _, midnight = sun_events.noon_and_midnight(date)
+    assert sunset < midnight < next_sunrise
+
+    just_after_sunset = sunset + dt.timedelta(minutes=40)
+    events = sun_events.prev_and_next_events(just_after_sunset)
+    assert [event for event, _ in events] == [SunEvent.SUNSET, SunEvent.MIDNIGHT]
+    assert sun_events.sun_position(just_after_sunset) > -0.5
+
+
 def test_sun_events(tzinfo_and_location):
     tzinfo, location = tzinfo_and_location
     sun_events = SunEvents(
