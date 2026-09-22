@@ -25,7 +25,7 @@
     "step": {
       "init": {
         "title": "Adaptiv Ljussättning Inställningar",
-        "description": "Alla inställningar för en Adaptiv Ljussättning komponent. Titeln på inställningarna är desamma som i YAML konfigurationen. Inga inställningar visas om enheten redan är konfigurerad i YAML.",
+        "description": "Alla inställningar för en Adaptiv Ljussättning komponent. Titeln på inställningarna är desamma som i YAML konfigurationen. Inga inställningar visas om enheten redan är konfigurerad i YAML. För interaktiva grafer som visar parametrarnas effekt, besök [den här webbappen]({webapp_url}). För mer information, se [den officiella dokumentationen]({docs_url}).",
         "data": {
           "lights": "lights, ljuskällor",
           "interval": "interval, Tid mellan uppdateringar i sekunder",

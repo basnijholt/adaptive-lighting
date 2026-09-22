@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Opzioni Illuminazione Adattiva",
-        "description": "Tutte le opzioni per il componente Illuminazione Adattiva. I nomi delle opzioni corrispondono con le impostazioni YAML. Non sono mostrate opzioni se hai la voce adaptive-lighting definita nella tua configurazione YAML.",
+        "description": "Tutte le opzioni per il componente Illuminazione Adattiva. I nomi delle opzioni corrispondono con le impostazioni YAML. Non sono mostrate opzioni se hai la voce adaptive-lighting definita nella tua configurazione YAML. Per grafici interattivi che mostrano l'effetto dei parametri, visita [questa web app]({webapp_url}). Per ulteriori dettagli, consulta la [documentazione ufficiale]({docs_url}).",
         "data": {
           "lights": "luci",
           "interval": "interval: Tempo tra i cambiamenti dello switch. (secondi)",
