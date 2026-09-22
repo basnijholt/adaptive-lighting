@@ -1579,6 +1579,17 @@
         "bug",
         "maintenance"
       ]
+    },
+    {
+      "login": "SGXander",
+      "name": "SGXander",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8619536?v=4",
+      "profile": "https://github.com/SGXander",
+      "contributions": [
+        "code",
+        "bug",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
