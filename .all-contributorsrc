@@ -1579,6 +1579,15 @@
         "bug",
         "maintenance"
       ]
+    },
+    {
+      "login": "FezVrasta",
+      "name": "Federico Zivolo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5382443?v=4",
+      "profile": "https://fezvrasta.github.io",
+      "contributions": [
+        "translation"
+      ]
     }
   ],
   "contributorsPerLine": 7,
