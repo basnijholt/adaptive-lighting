@@ -464,12 +464,17 @@ class SunLightSettings:
         self,
         is_sleep: bool,
         transition: float | None,
+        dt: datetime.datetime | None = None,
     ) -> dict[str, float | int | tuple[float, float] | tuple[float, float, float]]:
         """Get all light settings.
 
+        Uses the current time plus ``transition`` unless ``dt`` is given, in which
+        case the settings are calculated as if it were ``dt``.
+
         Calculating all values takes <0.5ms.
         """
-        dt = utcnow() + timedelta(seconds=transition or 0)
+        if dt is None:
+            dt = utcnow() + timedelta(seconds=transition or 0)
         return self.brightness_and_color(dt, is_sleep)
 
 

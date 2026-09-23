@@ -40,6 +40,11 @@ apply:
       example: false
       selector:
         boolean: null
+    time:
+      description: Manually apply the settings for this time of day (HH:MM:SS) instead of now. 🕰️
+      example: '22:00:00'
+      selector:
+        time: null
 set_manual_control:
   description: Mark whether a light is 'manually controlled'.
   fields:

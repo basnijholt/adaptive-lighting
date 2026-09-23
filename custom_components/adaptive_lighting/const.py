@@ -316,6 +316,10 @@ DOCS[CONF_MANUAL_CONTROL] = "Whether to manually control the lights. 🔒"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. 🔆"
+CONF_APPLY_TIME = "time"
+DOCS[CONF_APPLY_TIME] = (
+    "Manually apply the settings for this time of day (HH:MM:SS) instead of now. 🕰️"
+)
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 DOCS[CONF_USE_DEFAULTS] = (
@@ -521,6 +525,7 @@ def apply_service_schema() -> vol.Schema:
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+            vol.Optional(CONF_APPLY_TIME): cv.time,
         },
     )
 

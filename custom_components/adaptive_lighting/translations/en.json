@@ -144,6 +144,10 @@
         "turn_on_lights": {
           "description": "Whether to turn on lights that are currently off. 🔆",
           "name": "turn_on_lights"
+        },
+        "time": {
+          "description": "Manually apply the settings for this time of day (HH:MM:SS) instead of now. 🕰️",
+          "name": "time"
         }
       }
     },

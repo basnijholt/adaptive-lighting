@@ -33,6 +33,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_ADAPT_DELAY,
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
+    CONF_APPLY_TIME,
     CONF_AUTORESET_CONTROL,
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
@@ -2184,6 +2185,169 @@ async def test_apply_service_uses_each_switch_transition(hass):
         )
         assert adapt_1.await_args.kwargs["transition"] == 0
         assert adapt_2.await_args.kwargs["transition"] == 0
+
+
+async def test_apply_service_at_time(hass):
+    """Apply with 'time' adapts as if it were that time and marks manual control."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_MIN_BRIGHTNESS: 10})
+    noon = SUNRISE.replace(hour=12, tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(
+        dt_util.UTC,
+    )
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+
+    def light_attributes():
+        return hass.states.get(ENTITY_LIGHT_1).attributes
+
+    async def interval_update(**kwargs):
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("interval"),
+            transition=0,
+            **kwargs,
+        )
+        await hass.async_block_till_done()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+        return_value=noon,
+    ):
+        await interval_update(force=True)
+        assert light_attributes()[ATTR_BRIGHTNESS] == 255
+        noon_color_temp = light_attributes()[ATTR_COLOR_TEMP_KELVIN]
+        settings = deepcopy(switch._settings)
+
+        # After sunset: minimum brightness and the warmest color
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_APPLY_TIME: "23:30:00",
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        sun_light_settings = switch._sun_light_settings
+        tz = sun_light_settings.timezone
+        at_time = datetime.datetime.combine(
+            dt_util.now(tz).date(),
+            datetime.time(23, 30),
+            tzinfo=tz,
+        )
+        expected = sun_light_settings.brightness_and_color(at_time, is_sleep=False)
+        applied_brightness = round(255 * expected[ATTR_BRIGHTNESS_PCT] / 100)
+        assert applied_brightness < 255
+        assert light_attributes()[ATTR_BRIGHTNESS] == applied_brightness
+        assert light_attributes()[ATTR_COLOR_TEMP_KELVIN] < noon_color_temp
+        # The switch keeps reporting the settings for the current time
+        assert switch._settings == settings
+        assert (
+            switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+            == LightControlAttributes.ALL
+        )
+        assert [event.data[ATTR_ENTITY_ID] for event in events] == [ENTITY_LIGHT_1]
+
+        # The regular adaptation leaves the light alone and does not mistake the
+        # applied values for another manual change.
+        await interval_update()
+        assert light_attributes()[ATTR_BRIGHTNESS] == applied_brightness
+        assert len(events) == 1
+
+        # Resetting manual control resumes regular adaptation
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_MANUAL_CONTROL,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_MANUAL_CONTROL: False,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert light_attributes()[ATTR_BRIGHTNESS] == 255
+        assert light_attributes()[ATTR_COLOR_TEMP_KELVIN] == noon_color_temp
+
+
+async def test_apply_service_at_time_marks_manual_before_adapting(hass):
+    """No regular adaptation can slip in between applying and marking manual."""
+    switch, _ = await setup_lights_and_switch(hass)
+    manual_during_adaptation = []
+    adapt_light = switch._adapt_light
+
+    async def record_and_adapt(light, *args, **kwargs):
+        manual_during_adaptation.append(
+            switch.manager.get_manual_control_attributes(light),
+        )
+        await adapt_light(light, *args, **kwargs)
+
+    with patch.object(switch, "_adapt_light", side_effect=record_and_adapt):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_APPLY_TIME: "22:00",
+            },
+            blocking=True,
+        )
+    assert manual_during_adaptation == [LightControlAttributes.ALL]
+
+
+async def test_apply_service_at_time_sleep_mode_and_partial(hass):
+    """Sleep mode takes precedence, and only adapted attributes become manual."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_SLEEP_TRANSITION: 0})
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    sleep_brightness = round(255 * DEFAULT_SLEEP_BRIGHTNESS / 100)
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == (
+        sleep_brightness
+    )
+
+    # Manual brightness change
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 200},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_2},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [ENTITY_LIGHT_1, ENTITY_LIGHT_2],
+            CONF_APPLY_TIME: datetime.time(12),
+            ATTR_ADAPT_COLOR: False,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == (
+        sleep_brightness
+    )
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    # Lights that are off are neither adapted nor marked
+    assert hass.states.get(ENTITY_LIGHT_2).state == STATE_OFF
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_2)
 
 
 async def test_switch_off_on_off(hass):

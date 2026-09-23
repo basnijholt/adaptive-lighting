@@ -96,6 +96,7 @@ from .const import (
     CONF_ADAPT_DELAY,
     CONF_ADAPT_ONLY_ON_BARE_TURN_ON,
     CONF_ADAPT_UNTIL_SLEEP,
+    CONF_APPLY_TIME,
     CONF_AUTORESET_CONTROL,
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
@@ -422,9 +423,23 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
     )
     switches = _switches_from_service_call(hass, service_call)
     lights = data[CONF_LIGHTS]
+    apply_time: datetime.time | None = data.get(CONF_APPLY_TIME)
+    # Applying the settings of another time of day only sticks if the regular
+    # adaptation leaves the light alone, so treat it like a manual change.
+    manual_attributes = LightControlAttributes.NONE
+    if apply_time is not None:
+        if data[ATTR_ADAPT_BRIGHTNESS]:
+            manual_attributes |= LightControlAttributes.BRIGHTNESS
+        if data[ATTR_ADAPT_COLOR]:
+            manual_attributes |= LightControlAttributes.COLOR
     for switch in switches:
         all_lights = switch._resolve_lights(lights or None)
         switch.manager.lights.update(all_lights)
+        at_time = None
+        if apply_time is not None:
+            tz = switch._sun_light_settings.timezone  # pylint: disable=protected-access
+            today = dt_util.now(tz).date()
+            at_time = datetime.datetime.combine(today, apply_time, tzinfo=tz)
         for light in all_lights:
             if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
                 context = switch.create_context(
@@ -434,6 +449,13 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                 transition = data.get(CONF_TRANSITION)
                 if transition is None:
                     transition = switch.initial_transition
+                if manual_attributes:
+                    # Mark before adapting, so a regular adaptation cannot slip in
+                    # between and overwrite the values with those of the current time.
+                    switch.manager.add_manual_control_attributes(
+                        light,
+                        manual_attributes,
+                    )
                 await switch._adapt_light(  # pylint: disable=protected-access
                     light,
                     context=context,
@@ -442,7 +464,18 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                     adapt_color=data[ATTR_ADAPT_COLOR],
                     prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
                     force=True,
+                    at_time=at_time,
                 )
+                if manual_attributes:
+                    # Use the applied state as the manual-control baseline, like
+                    # the state that results from a manual change.
+                    if (state := hass.states.get(light)) is not None:
+                        switch.manager.update_manual_control_state(
+                            light,
+                            state,
+                            manual_attributes,
+                        )
+                    switch.fire_manual_control_event(light, context)
 
 
 async def handle_set_manual_control_service(
@@ -1315,8 +1348,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         force: bool = False,
         context: Context | None = None,
         already_applied: LightControlAttributes = LightControlAttributes.NONE,
+        at_time: datetime.datetime | None = None,
     ) -> AdaptationData | None:
-        """Prepare `AdaptationData` for adapting a light."""
+        """Prepare `AdaptationData` for adapting a light.
+
+        If `at_time` is given, the light is adapted as if it were that time. The
+        switch's own settings (and its state attributes) are left untouched.
+        """
         adaptation_attributes = self.manager.get_adaption_control_attributes(
             self,
             light,
@@ -1342,10 +1380,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             )
             return None
 
-        # The switch might be off and not have _settings set.
-        self._settings = self._sun_light_settings.get_settings(
+        settings = self._sun_light_settings.get_settings(
             self.sleep_mode_switch.is_on,
             transition,
+            at_time,
         )
 
         # Build service data.
@@ -1358,7 +1396,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             service_data[ATTR_TRANSITION] = transition
 
         if "brightness" in features and adapt_brightness:
-            brightness = round(255 * self._settings["brightness_pct"] / 100)
+            brightness = round(255 * settings["brightness_pct"] / 100)
             service_data[ATTR_BRIGHTNESS] = brightness
 
         sleep_rgb = (
@@ -1370,7 +1408,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             and adapt_color
             and not (prefer_rgb_color and "color" in features)
             and not (sleep_rgb and "color" in features)
-            and not (self._settings["force_rgb_color"] and "color" in features)
+            and not (settings["force_rgb_color"] and "color" in features)
         ):
             _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
             state = self.hass.states.get(light)
@@ -1378,12 +1416,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             attributes = state.attributes
             min_kelvin = attributes["min_color_temp_kelvin"]
             max_kelvin = attributes["max_color_temp_kelvin"]
-            color_temp_kelvin = self._settings["color_temp_kelvin"]
+            color_temp_kelvin = settings["color_temp_kelvin"]
             color_temp_kelvin = clamp(color_temp_kelvin, min_kelvin, max_kelvin)
             service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
         elif "color" in features and adapt_color:
             _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
-            service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
+            service_data[ATTR_RGB_COLOR] = settings["rgb_color"]
 
         required_attrs = [ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, ATTR_BRIGHTNESS]
         if not any(attr in service_data for attr in required_attrs):
@@ -1420,6 +1458,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         adapt_color: bool | None = None,
         prefer_rgb_color: bool | None = None,
         force: bool = False,
+        at_time: datetime.datetime | None = None,
     ) -> None:
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
@@ -1433,6 +1472,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             prefer_rgb_color,
             force,
             context,
+            at_time=at_time,
         )
         if data is None:
             return  # nothing to adapt

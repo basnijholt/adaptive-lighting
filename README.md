@@ -227,8 +227,24 @@ Provide a switch in `entity_id`, a list of `lights`, or both.
 | `adapt_color`            | Whether to adapt the color on supporting lights. 🌈                                   | ❌         | bool                 |
 | `prefer_rgb_color`       | Whether to prefer RGB color adjustment over light color temperature when possible. 🌈 | ❌         | bool                 |
 | `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                  | ❌         | bool                 |
+| `time`                   | Manually apply the settings for this time of day (HH:MM:SS) instead of now. 🕰️        | ❌         | time (HH:MM:SS)      |
 
 <!-- OUTPUT:END -->
+
+With `time`, the lights get the values Adaptive Lighting would use at that time today, for example to dim a room to its evening settings early.
+The adapted attributes are then marked as manually controlled, exactly as if you had changed them yourself: the regular adaptation leaves them alone until manual control is reset (see `autoreset_control_seconds` and `adaptive_lighting.set_manual_control`), and an `adaptive_lighting.manual_control` event is fired.
+When sleep mode is on, the sleep settings are applied instead, whatever the time.
+
+```yaml
+action: adaptive_lighting.apply
+data:
+  entity_id: switch.adaptive_lighting_living_room
+  lights:
+    - light.sofa
+    - light.floor_lamp
+  time: "22:00:00"
+```
+
 #### `adaptive_lighting.set_manual_control`
 
 `adaptive_lighting.set_manual_control` can mark (or unmark) whether a light is "manually controlled", meaning that when a light has `manual_control`, the light is not adapted.
