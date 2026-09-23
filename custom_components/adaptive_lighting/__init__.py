@@ -134,6 +134,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     if len(data) == 1 and ATTR_ADAPTIVE_LIGHTING_MANAGER in data:
         # no more config_entries
         manager = data.pop(ATTR_ADAPTIVE_LIGHTING_MANAGER)
+        # Write a pending debounced save before the manager goes away.
+        await manager.async_flush_manual_control()
         manager.disable()
 
     if not data:
