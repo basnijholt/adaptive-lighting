@@ -2187,6 +2187,64 @@ async def test_apply_service_uses_each_switch_transition(hass):
         assert adapt_2.await_args.kwargs["transition"] == 0
 
 
+@pytest.mark.parametrize("apply_time", [None, "22:00:00"])
+async def test_apply_service_keeps_manual_control(hass, apply_time):
+    """Apply changes manually controlled lights without releasing them."""
+    switch, _ = await setup_lights_and_switch(hass)
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+
+    def brightness():
+        return hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS]
+
+    async def interval_update():
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("interval"),
+            transition=0,
+        )
+        await hass.async_block_till_done()
+
+    # Manual brightness change
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 50},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await interval_update()
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    n_events = len(events)
+
+    data = {ATTR_ENTITY_ID: switch.entity_id, CONF_LIGHTS: [ENTITY_LIGHT_1]}
+    if apply_time is not None:
+        data[CONF_APPLY_TIME] = apply_time
+    await hass.services.async_call(DOMAIN, SERVICE_APPLY, data, blocking=True)
+    await hass.async_block_till_done()
+    applied_brightness = brightness()
+    assert applied_brightness != 50
+
+    # Without `time` the manual control is kept as is, with `time` it is extended
+    expected = (
+        LightControlAttributes.BRIGHTNESS
+        if apply_time is None
+        else LightControlAttributes.ALL
+    )
+    assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1) == expected
+    assert len(events) == n_events + (apply_time is not None)
+
+    # The regular adaptation leaves the light alone and does not mistake the
+    # applied values for another manual change.
+    for _ in range(2):
+        await interval_update()
+    assert brightness() == applied_brightness
+    assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1) == expected
+    assert len(events) == n_events + (apply_time is not None)
+
+
 async def test_apply_service_at_time(hass):
     """Apply with 'time' adapts as if it were that time and marks manual control."""
     switch, _ = await setup_lights_and_switch(hass, {CONF_MIN_BRIGHTNESS: 10})
