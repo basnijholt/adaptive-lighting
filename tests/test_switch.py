@@ -2354,6 +2354,117 @@ async def test_apply_service_at_time_marks_manual_before_adapting(hass):
     assert manual_during_adaptation == [LightControlAttributes.ALL]
 
 
+@pytest.mark.parametrize("failure", ["locked", "error"])
+@pytest.mark.parametrize(
+    "previous",
+    [LightControlAttributes.NONE, LightControlAttributes.BRIGHTNESS],
+)
+async def test_apply_service_at_time_not_applied_restores_manual_control(
+    hass,
+    failure,
+    previous,
+):
+    """A time that isn't applied leaves manual control as it was."""
+    switch, _ = await setup_lights_and_switch(hass)
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    switch.manager.reset(ENTITY_LIGHT_1)
+    if previous:
+        switch.manager.set_manual_control_attributes(ENTITY_LIGHT_1, previous)
+    brightness = hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS]
+
+    async def apply():
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_APPLY_TIME: "23:30:00",
+            },
+            blocking=True,
+        )
+
+    if failure == "locked":
+        # E.g., while checking whether a light that just turned on was turned off
+        lock = switch.manager.turn_off_locks.setdefault(ENTITY_LIGHT_1, asyncio.Lock())
+        async with lock:
+            await apply()
+    else:
+        with (
+            patch.object(
+                switch,
+                "execute_cancellable_adaptation_calls",
+                side_effect=RuntimeError("light.turn_on failed"),
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            await apply()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == brightness
+    assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1) == previous
+    assert events == []
+
+
+async def test_apply_service_at_time_ignores_transition_reports(hass):
+    """A report from during the transition doesn't count as a manual change."""
+    switch, _ = await setup_lights_and_switch(hass)
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    adapt_light = switch._adapt_light
+
+    async def adapt_and_report_transition(light, *args, **kwargs):
+        applied = await adapt_light(light, *args, **kwargs)
+        # The light reports its level halfway through the transition.
+        state = hass.states.get(light)
+        hass.states.async_set(
+            light,
+            state.state,
+            {**state.attributes, ATTR_BRIGHTNESS: 47},
+        )
+        return applied
+
+    with patch.object(
+        switch,
+        "_adapt_light",
+        side_effect=adapt_and_report_transition,
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_APPLY_TIME: "23:30:00",
+            },
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert len(events) == 1
+
+    # The light has finished its transition when the regular adaptation checks it.
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("interval"),
+        transition=0,
+    )
+    await hass.async_block_till_done()
+    assert len(events) == 1
+
+
+async def test_apply_service_updates_switch_settings(hass):
+    """An apply without a time keeps the switch's settings current."""
+    switch, _ = await setup_lights_and_switch(hass)
+    switch._settings.clear()
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_LIGHTS: [ENTITY_LIGHT_1]},
+        blocking=True,
+    )
+    assert ATTR_BRIGHTNESS_PCT in switch._settings
+
+
 async def test_apply_service_at_time_follows_adapt_switches(hass):
     """With 'time', only what the profile adapts is applied and made manual."""
     switch, _ = await setup_lights_and_switch(hass)

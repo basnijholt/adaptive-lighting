@@ -163,7 +163,7 @@ from .helpers import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine, Iterable
+    from collections.abc import Callable, Coroutine, Iterable, Mapping
 
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -414,6 +414,42 @@ async def handle_change_switch_settings(
         )
 
 
+def _apply_service_targets(
+    switch: AdaptiveSwitch,
+    data: Mapping[str, Any],
+    apply_time: datetime.time | None,
+) -> tuple[datetime.datetime | None, bool, bool, LightControlAttributes]:
+    """Get what `apply` adapts for a switch, and what that marks as manual.
+
+    Returns the time to adapt for (`None` for now), whether to adapt brightness
+    and color, and the attributes to mark as manually controlled.
+    """
+    adapt_brightness: bool | None = data.get(ATTR_ADAPT_BRIGHTNESS)
+    adapt_color: bool | None = data.get(ATTR_ADAPT_COLOR)
+    if apply_time is None:
+        return (
+            None,
+            True if adapt_brightness is None else adapt_brightness,
+            True if adapt_color is None else adapt_color,
+            LightControlAttributes.NONE,
+        )
+    tz = switch._sun_light_settings.timezone  # pylint: disable=protected-access
+    at_time = datetime.datetime.combine(dt_util.now(tz).date(), apply_time, tzinfo=tz)
+    # Adapt what the regular adaptation would, unless specified.
+    if adapt_brightness is None:
+        adapt_brightness = switch.adapt_brightness_switch.is_on
+    if adapt_color is None:
+        adapt_color = switch.adapt_color_switch.is_on
+    # Applying the settings of another time of day only sticks if the regular
+    # adaptation leaves the light alone, so treat it like a manual change.
+    manual_attributes = LightControlAttributes.NONE
+    if adapt_brightness:
+        manual_attributes |= LightControlAttributes.BRIGHTNESS
+    if adapt_color:
+        manual_attributes |= LightControlAttributes.COLOR
+    return at_time, adapt_brightness, adapt_color, manual_attributes
+
+
 async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
     """Handle the entity service apply."""
     data = service_call.data
@@ -427,28 +463,9 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
     for switch in switches:
         all_lights = switch._resolve_lights(lights or None)
         switch.manager.lights.update(all_lights)
-        adapt_brightness = data.get(ATTR_ADAPT_BRIGHTNESS)
-        adapt_color = data.get(ATTR_ADAPT_COLOR)
-        at_time = None
-        manual_attributes = LightControlAttributes.NONE
-        if apply_time is not None:
-            tz = switch._sun_light_settings.timezone  # pylint: disable=protected-access
-            today = dt_util.now(tz).date()
-            at_time = datetime.datetime.combine(today, apply_time, tzinfo=tz)
-            # Adapt what the regular adaptation would, unless specified.
-            if adapt_brightness is None:
-                adapt_brightness = switch.adapt_brightness_switch.is_on
-            if adapt_color is None:
-                adapt_color = switch.adapt_color_switch.is_on
-            # Applying the settings of another time of day only sticks if the
-            # regular adaptation leaves the light alone, so treat it like a
-            # manual change.
-            if adapt_brightness:
-                manual_attributes |= LightControlAttributes.BRIGHTNESS
-            if adapt_color:
-                manual_attributes |= LightControlAttributes.COLOR
-        adapt_brightness = True if adapt_brightness is None else adapt_brightness
-        adapt_color = True if adapt_color is None else adapt_color
+        at_time, adapt_brightness, adapt_color, manual_attributes = (
+            _apply_service_targets(switch, data, apply_time)
+        )
         for light in all_lights:
             if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
                 context = switch.create_context(
@@ -458,6 +475,7 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                 transition = data.get(CONF_TRANSITION)
                 if transition is None:
                     transition = switch.initial_transition
+                previous = switch.manager.get_manual_control_attributes(light)
                 if manual_attributes:
                     # Mark before adapting, so a regular adaptation cannot slip in
                     # between and overwrite the values with those of the current time.
@@ -465,25 +483,27 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                         light,
                         manual_attributes,
                     )
-                await switch._adapt_light(  # pylint: disable=protected-access
-                    light,
-                    context=context,
-                    transition=transition,
-                    adapt_brightness=adapt_brightness,
-                    adapt_color=adapt_color,
-                    prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
-                    force=True,
-                    at_time=at_time,
-                )
-                if manual_attributes:
-                    # Use the applied state as the manual-control baseline, like
-                    # the state that results from a manual change.
-                    if (state := hass.states.get(light)) is not None:
-                        switch.manager.update_manual_control_state(
+                applied = False
+                try:
+                    applied = (
+                        await switch._adapt_light(  # pylint: disable=protected-access
                             light,
-                            state,
-                            manual_attributes,
+                            context=context,
+                            transition=transition,
+                            adapt_brightness=adapt_brightness,
+                            adapt_color=adapt_color,
+                            prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
+                            force=True,
+                            at_time=at_time,
                         )
+                    )
+                finally:
+                    if manual_attributes and not applied:
+                        switch.manager.restore_manual_control_attributes(
+                            light,
+                            previous,
+                        )
+                if manual_attributes and applied:
                     switch.fire_manual_control_event(light, context)
 
 
@@ -1394,6 +1414,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             transition,
             at_time,
         )
+        if at_time is None:
+            # Keep the switch's attributes current, also when the switch is off and
+            # the periodic update isn't setting them. Settings for another time of
+            # day (`at_time`) only apply to this light, so they are not stored.
+            self._settings = settings
 
         # Build service data.
         service_data: dict[str, Any] = {ATTR_ENTITY_ID: light}
@@ -1468,10 +1493,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         prefer_rgb_color: bool | None = None,
         force: bool = False,
         at_time: datetime.datetime | None = None,
-    ) -> None:
+    ) -> bool:
+        """Adapt a light, returning whether any adaptation was sent to it."""
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
-            return
+            return False
 
         data = await self.prepare_adaptation_data(
             light,
@@ -1484,9 +1510,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             at_time=at_time,
         )
         if data is None:
-            return  # nothing to adapt
+            return False  # nothing to adapt
 
         await self.execute_cancellable_adaptation_calls(data)
+        return True
 
     async def _execute_adaptation_calls(self, data: AdaptationData) -> None:
         """Executes a sequence of adaptation service calls for the given service datas."""
@@ -2529,6 +2556,20 @@ class AdaptiveLightingManager:
         )
         new = current | attributes
         self.set_manual_control_attributes(light, new)
+
+    def restore_manual_control_attributes(
+        self,
+        light: str,
+        attributes: LightControlAttributes,
+    ) -> None:
+        """Restore the manual control of a light after marking it had no effect."""
+        if attributes:
+            self.set_manual_control_attributes(light, attributes)
+            return
+        self.manual_control[light] = LightControlAttributes.NONE
+        if timer := self.auto_reset_manual_control_timers.pop(light, None):
+            timer.cancel()
+        self._schedule_manual_control_state_update(light)
 
     def invalidate_manual_control_state(
         self,
