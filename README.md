@@ -227,7 +227,7 @@ Provide a switch in `entity_id`, a list of `lights`, or both.
 | `adapt_color`            | Whether to adapt the color on supporting lights. 🌈                                   | ❌         | bool                 |
 | `prefer_rgb_color`       | Whether to prefer RGB color adjustment over light color temperature when possible. 🌈 | ❌         | bool                 |
 | `turn_on_lights`         | Whether to turn on lights that are currently off. 🔆                                  | ❌         | bool                 |
-| `time`                   | Manually apply the settings for this time of day (HH:MM:SS) instead of now. 🕰️        | ❌         | time (HH:MM:SS)      |
+| `time`                   | Manually apply the settings for this time of day (HH:MM:SS) instead of now. 🕰️        | ❌         | `str` (HH:MM:SS)     |
 
 <!-- OUTPUT:END -->
 
@@ -244,6 +244,8 @@ data:
     - light.floor_lamp
   time: "22:00:00"
 ```
+
+Quote the time in YAML (`"22:00:00"`), since an unquoted `22:00:00` is read as a number.
 
 #### `adaptive_lighting.set_manual_control`
 

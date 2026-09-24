@@ -45,7 +45,7 @@ def _type_to_str(type_: Any) -> str:  # noqa: PLR0911
     if type_ == cv.boolean:
         return "bool"
     if type_ == cv.time:
-        return "time (HH:MM:SS)"
+        return "`str` (HH:MM:SS)"
     if isinstance(type_, vol.All):
         return _format_voluptuous_instance(type_)
     if isinstance(type_, vol.Any):
