@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import hashlib
+import inspect
 import logging
 import zoneinfo
 from copy import deepcopy
@@ -3329,7 +3330,7 @@ class _AsyncSingleShotTimer:
         """Run the timer. Don't call this directly, use start() instead."""
         await asyncio.sleep(self.delay)
         if self.callback:
-            if asyncio.iscoroutinefunction(self.callback):
+            if inspect.iscoroutinefunction(self.callback):
                 await self.callback()
             else:
                 self.callback()
