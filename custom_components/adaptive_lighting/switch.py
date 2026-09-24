@@ -475,14 +475,12 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                 transition = data.get(CONF_TRANSITION)
                 if transition is None:
                     transition = switch.initial_transition
-                previous = switch.manager.get_manual_control_attributes(light)
-                if manual_attributes:
-                    # Mark before adapting, so a regular adaptation cannot slip in
-                    # between and overwrite the values with those of the current time.
-                    switch.manager.add_manual_control_attributes(
-                        light,
-                        manual_attributes,
-                    )
+                # Hold before adapting, so a regular adaptation cannot slip in
+                # between and overwrite the values with those of the current time.
+                previous = switch.manager.hold_manual_control_attributes(
+                    light,
+                    manual_attributes,
+                )
                 applied = False
                 try:
                     applied = (
@@ -498,13 +496,19 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                         )
                     )
                 finally:
-                    if manual_attributes and not applied:
+                    if manual_attributes and applied:
+                        # Like a manual change, which (re)starts the auto reset.
+                        switch.manager.add_manual_control_attributes(
+                            light,
+                            manual_attributes,
+                        )
+                        switch.fire_manual_control_event(light, context)
+                    else:
                         switch.manager.restore_manual_control_attributes(
                             light,
                             previous,
+                            manual_attributes,
                         )
-                if manual_attributes and applied:
-                    switch.fire_manual_control_event(light, context)
 
 
 async def handle_set_manual_control_service(
@@ -1494,7 +1498,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         force: bool = False,
         at_time: datetime.datetime | None = None,
     ) -> bool:
-        """Adapt a light, returning whether any adaptation was sent to it."""
+        """Adapt a light, returning whether it was adapted (see `_execute_adaptation_calls`)."""
         if (lock := self.manager.turn_off_locks.get(light)) and lock.locked():
             _LOGGER.debug("%s: '%s' is locked", self._name, light)
             return False
@@ -1512,11 +1516,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if data is None:
             return False  # nothing to adapt
 
-        await self.execute_cancellable_adaptation_calls(data)
-        return True
+        return await self.execute_cancellable_adaptation_calls(data)
 
-    async def _execute_adaptation_calls(self, data: AdaptationData) -> None:
-        """Executes a sequence of adaptation service calls for the given service datas."""
+    async def _execute_adaptation_calls(self, data: AdaptationData) -> bool:
+        """Executes a sequence of adaptation service calls for the given service datas.
+
+        Returns whether the whole sequence was carried out, where service calls that
+        are redundant because the light is already in that state count as carried out.
+        """
         for index in range(data.max_length):
             is_first_call = index == 0
 
@@ -1525,7 +1532,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 await asyncio.sleep(data.sleep_time)
 
             if self._removed:
-                return
+                return False
 
             # Instead of directly iterating the generator in the while-loop, we get
             # the next item here after the sleep to make sure it incorporates state
@@ -1548,7 +1555,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     self._name,
                     data.entity_id,
                 )
-                return
+                return False
 
             _LOGGER.debug(
                 "%s: Scheduling 'light.turn_on' with the following 'service_data': %s"
@@ -1572,18 +1579,20 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 service_data,
                 context=data.context,
             )
+        return True
 
     async def execute_cancellable_adaptation_calls(
         self,
         data: AdaptationData,
-    ) -> None:
+    ) -> bool:
         """Executes a cancellable sequence of adaptation service calls for the given service datas.
 
         Wraps the sequence of service calls in a task that can be cancelled from elsewhere, e.g.,
-        to cancel an ongoing adaptation when a light is turned off.
+        to cancel an ongoing adaptation when a light is turned off. Returns whether the whole
+        sequence was carried out, i.e., not stopped or cancelled.
         """
         if self._removed:
-            return
+            return False
 
         # Prevent overlap of multiple adaptation sequences
         self.manager.cancel_ongoing_adaptation_calls(data.entity_id)
@@ -1599,7 +1608,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 self.manager.adaptation_tasks_brightness[data.entity_id] = task
             if LightControlAttributes.COLOR in data.attributes:
                 self.manager.adaptation_tasks_color[data.entity_id] = task
-            await task
+            return await task
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: Ongoing adaptation of %s cancelled, with AdaptationData: %s",
@@ -1607,6 +1616,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data.entity_id,
                 data,
             )
+            return False
 
     async def _update_attrs_and_maybe_adapt_lights(
         self,
@@ -2557,18 +2567,36 @@ class AdaptiveLightingManager:
         new = current | attributes
         self.set_manual_control_attributes(light, new)
 
-    def restore_manual_control_attributes(
+    def hold_manual_control_attributes(
         self,
         light: str,
         attributes: LightControlAttributes,
-    ) -> None:
-        """Restore the manual control of a light after marking it had no effect."""
+    ) -> LightControlAttributes:
+        """Stop adapting attributes of a light, without (re)starting its auto reset.
+
+        Returns the previous manual control, for `restore_manual_control_attributes`.
+        """
+        previous = self.get_manual_control_attributes(light)
         if attributes:
-            self.set_manual_control_attributes(light, attributes)
+            self.manual_control[light] = previous | attributes
+        return previous
+
+    def restore_manual_control_attributes(
+        self,
+        light: str,
+        previous: LightControlAttributes,
+        held: LightControlAttributes,
+    ) -> None:
+        """Undo `hold_manual_control_attributes`, keeping a running auto reset.
+
+        Only the attributes that were added by holding them are released, so a reset
+        in the meantime isn't undone.
+        """
+        current = self.get_manual_control_attributes(light)
+        restored = current & ~(held & ~previous)
+        if restored == current:
             return
-        self.manual_control[light] = LightControlAttributes.NONE
-        if timer := self.auto_reset_manual_control_timers.pop(light, None):
-            timer.cancel()
+        self.manual_control[light] = restored
         self._schedule_manual_control_state_update(light)
 
     def invalidate_manual_control_state(

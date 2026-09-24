@@ -2338,7 +2338,7 @@ async def test_apply_service_at_time_marks_manual_before_adapting(hass):
         manual_during_adaptation.append(
             switch.manager.get_manual_control_attributes(light),
         )
-        await adapt_light(light, *args, **kwargs)
+        return await adapt_light(light, *args, **kwargs)
 
     with patch.object(switch, "_adapt_light", side_effect=record_and_adapt):
         await hass.services.async_call(
@@ -2352,6 +2352,10 @@ async def test_apply_service_at_time_marks_manual_before_adapting(hass):
             blocking=True,
         )
     assert manual_during_adaptation == [LightControlAttributes.ALL]
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
 
 
 @pytest.mark.parametrize("failure", ["locked", "error"])
@@ -2405,6 +2409,121 @@ async def test_apply_service_at_time_not_applied_restores_manual_control(
     assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == brightness
     assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1) == previous
     assert events == []
+
+
+async def test_apply_service_at_time_cancelled_restores_manual_control(hass):
+    """A time whose adaptation is cancelled before it's sent isn't held."""
+    switch, _ = await setup_lights_and_switch(hass)
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    switch.manager.reset(ENTITY_LIGHT_1)
+    started = asyncio.Event()
+
+    async def never_finishes(data):
+        started.set()
+        await asyncio.Event().wait()
+
+    with patch.object(switch, "_execute_adaptation_calls", side_effect=never_finishes):
+        call = hass.async_create_task(
+            hass.services.async_call(
+                DOMAIN,
+                SERVICE_APPLY,
+                {
+                    ATTR_ENTITY_ID: switch.entity_id,
+                    CONF_LIGHTS: [ENTITY_LIGHT_1],
+                    CONF_APPLY_TIME: "23:30:00",
+                },
+                blocking=True,
+            ),
+        )
+        await started.wait()
+        # E.g., the light becomes unavailable
+        switch.manager.cancel_ongoing_adaptation_calls(ENTITY_LIGHT_1)
+        await call
+    await hass.async_block_till_done()
+    assert not switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+    assert events == []
+
+
+async def test_apply_service_at_time_not_applied_keeps_auto_reset(hass):
+    """A time that isn't applied doesn't extend the auto reset of manual control."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_AUTORESET_CONTROL: 600})
+    switch.manager.reset(ENTITY_LIGHT_1)
+    switch.manager.set_manual_control_attributes(
+        ENTITY_LIGHT_1,
+        LightControlAttributes.BRIGHTNESS,
+    )
+    timer = switch.manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1]
+    start_time = timer.start_time
+
+    async def apply():
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_APPLY_TIME: "23:30:00",
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    lock = switch.manager.turn_off_locks.setdefault(ENTITY_LIGHT_1, asyncio.Lock())
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.dt_util.utcnow",
+        return_value=start_time + datetime.timedelta(minutes=5),
+    ):
+        async with lock:
+            await apply()
+        assert switch.manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1] is timer
+        assert timer.start_time == start_time
+        assert (
+            switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+            == LightControlAttributes.BRIGHTNESS
+        )
+
+        # When applied, it restarts like any manual change.
+        await apply()
+        assert timer.start_time > start_time
+        assert (
+            switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+            == LightControlAttributes.ALL
+        )
+
+
+async def test_apply_service_at_time_already_at_values(hass):
+    """A light that already has the values for the time is held there too."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {CONF_SKIP_REDUNDANT_COMMANDS: True},
+    )
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+
+    async def apply():
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_APPLY_TIME: "23:30:00",
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await apply()
+    switch.manager.reset(ENTITY_LIGHT_1)
+    calls = _track_adaptive_light_calls(hass)
+    await apply()  # nothing left to send
+    assert calls == []
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+    assert len(events) == 2
 
 
 async def test_apply_service_at_time_ignores_transition_reports(hass):
