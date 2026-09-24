@@ -2445,6 +2445,58 @@ async def test_apply_service_at_time_cancelled_restores_manual_control(hass):
     assert events == []
 
 
+async def test_apply_service_at_time_overlapping(hass):
+    """A newer time apply keeps holding the light when it cancels an older one."""
+    switch, _ = await setup_lights_and_switch(hass)
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    switch.manager.reset(ENTITY_LIGHT_1)
+    execute = switch._execute_adaptation_calls
+    first_started, second_started, second_continue = (asyncio.Event() for _ in range(3))
+
+    async def execute_in_turn(data):
+        if not first_started.is_set():
+            first_started.set()
+            await asyncio.Event().wait()  # cancelled by the second apply
+        second_started.set()
+        await second_continue.wait()
+        return await execute(data)
+
+    def apply(time):
+        return hass.async_create_task(
+            hass.services.async_call(
+                DOMAIN,
+                SERVICE_APPLY,
+                {
+                    ATTR_ENTITY_ID: switch.entity_id,
+                    CONF_LIGHTS: [ENTITY_LIGHT_1],
+                    CONF_APPLY_TIME: time,
+                },
+                blocking=True,
+            ),
+        )
+
+    with patch.object(switch, "_execute_adaptation_calls", side_effect=execute_in_turn):
+        first = apply("21:00:00")
+        await first_started.wait()
+        second = apply("23:30:00")
+        await second_started.wait()
+        await first  # the cancelled first apply is done
+        assert (
+            switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+            == LightControlAttributes.ALL
+        )
+        second_continue.set()
+        await second
+    await hass.async_block_till_done()
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+    assert len(events) == 1
+    assert switch.manager.manual_control_holds == {}
+
+
 async def test_apply_service_at_time_not_applied_keeps_auto_reset(hass):
     """A time that isn't applied doesn't extend the auto reset of manual control."""
     switch, _ = await setup_lights_and_switch(hass, {CONF_AUTORESET_CONTROL: 600})

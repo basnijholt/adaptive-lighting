@@ -9,7 +9,7 @@ import logging
 import zoneinfo
 from copy import deepcopy
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import homeassistant.util.dt as dt_util
 import ulid_transform
@@ -414,24 +414,29 @@ async def handle_change_switch_settings(
         )
 
 
+class _ApplyTargets(NamedTuple):
+    """What `apply` adapts for a switch, and what that marks as manual."""
+
+    at_time: datetime.datetime | None  # `None` for now
+    adapt_brightness: bool
+    adapt_color: bool
+    manual_attributes: LightControlAttributes
+
+
 def _apply_service_targets(
     switch: AdaptiveSwitch,
     data: Mapping[str, Any],
     apply_time: datetime.time | None,
-) -> tuple[datetime.datetime | None, bool, bool, LightControlAttributes]:
-    """Get what `apply` adapts for a switch, and what that marks as manual.
-
-    Returns the time to adapt for (`None` for now), whether to adapt brightness
-    and color, and the attributes to mark as manually controlled.
-    """
+) -> _ApplyTargets:
+    """Get what `apply` adapts for a switch, and what that marks as manual."""
     adapt_brightness: bool | None = data.get(ATTR_ADAPT_BRIGHTNESS)
     adapt_color: bool | None = data.get(ATTR_ADAPT_COLOR)
     if apply_time is None:
-        return (
-            None,
-            True if adapt_brightness is None else adapt_brightness,
-            True if adapt_color is None else adapt_color,
-            LightControlAttributes.NONE,
+        return _ApplyTargets(
+            at_time=None,
+            adapt_brightness=True if adapt_brightness is None else adapt_brightness,
+            adapt_color=True if adapt_color is None else adapt_color,
+            manual_attributes=LightControlAttributes.NONE,
         )
     tz = switch._sun_light_settings.timezone  # pylint: disable=protected-access
     at_time = datetime.datetime.combine(dt_util.now(tz).date(), apply_time, tzinfo=tz)
@@ -447,7 +452,7 @@ def _apply_service_targets(
         manual_attributes |= LightControlAttributes.BRIGHTNESS
     if adapt_color:
         manual_attributes |= LightControlAttributes.COLOR
-    return at_time, adapt_brightness, adapt_color, manual_attributes
+    return _ApplyTargets(at_time, adapt_brightness, adapt_color, manual_attributes)
 
 
 async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
@@ -463,9 +468,7 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
     for switch in switches:
         all_lights = switch._resolve_lights(lights or None)
         switch.manager.lights.update(all_lights)
-        at_time, adapt_brightness, adapt_color, manual_attributes = (
-            _apply_service_targets(switch, data, apply_time)
-        )
+        targets = _apply_service_targets(switch, data, apply_time)
         for light in all_lights:
             if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
                 context = switch.create_context(
@@ -477,9 +480,9 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                     transition = switch.initial_transition
                 # Hold before adapting, so a regular adaptation cannot slip in
                 # between and overwrite the values with those of the current time.
-                previous = switch.manager.hold_manual_control_attributes(
+                hold = switch.manager.hold_manual_control_attributes(
                     light,
-                    manual_attributes,
+                    targets.manual_attributes,
                 )
                 applied = False
                 try:
@@ -488,27 +491,19 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                             light,
                             context=context,
                             transition=transition,
-                            adapt_brightness=adapt_brightness,
-                            adapt_color=adapt_color,
+                            adapt_brightness=targets.adapt_brightness,
+                            adapt_color=targets.adapt_color,
                             prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
                             force=True,
-                            at_time=at_time,
+                            at_time=targets.at_time,
                         )
                     )
                 finally:
-                    if manual_attributes and applied:
-                        # Like a manual change, which (re)starts the auto reset.
-                        switch.manager.add_manual_control_attributes(
-                            light,
-                            manual_attributes,
-                        )
+                    if hold is not None and switch.manager.release_manual_control_hold(
+                        hold,
+                        applied=applied,
+                    ):
                         switch.fire_manual_control_event(light, context)
-                    else:
-                        switch.manager.restore_manual_control_attributes(
-                            light,
-                            previous,
-                            manual_attributes,
-                        )
 
 
 async def handle_set_manual_control_service(
@@ -1935,6 +1930,15 @@ type AdaptiveSwitches = list[AdaptiveSwitch]
 type AdaptiveSwitchMap = dict[AdaptiveSwitch, list[str]]
 
 
+class _ManualControlHold(NamedTuple):
+    """Attributes of a light held as manually controlled while it's being adapted."""
+
+    light: str
+    previous: LightControlAttributes  # manual control before the first hold
+    attributes: LightControlAttributes  # to mark if the adaptation is applied
+    held: LightControlAttributes  # also those of holds that this one took over
+
+
 class AdaptiveLightingManager:
     """Track 'light.turn_off' and 'light.turn_on' service calls."""
 
@@ -1960,6 +1964,7 @@ class AdaptiveLightingManager:
         self.turn_off_locks: dict[str, asyncio.Lock] = {}
         # Tracks which lights are manually controlled
         self.manual_control: dict[str, LightControlAttributes] = {}
+        self.manual_control_holds: dict[str, _ManualControlHold] = {}
         # Track 'state_changed' events of self.lights resulting from this integration
         self.our_last_state_on_change: dict[str, list[State]] = {}
         # Track last 'service_data' to 'light.turn_on' resulting from this integration
@@ -2571,33 +2576,54 @@ class AdaptiveLightingManager:
         self,
         light: str,
         attributes: LightControlAttributes,
-    ) -> LightControlAttributes:
+    ) -> _ManualControlHold | None:
         """Stop adapting attributes of a light, without (re)starting its auto reset.
 
-        Returns the previous manual control, for `restore_manual_control_attributes`.
+        Returns the hold to pass to `release_manual_control_hold` once the light is
+        adapted (or not), or `None` if there is nothing to hold.
         """
-        previous = self.get_manual_control_attributes(light)
-        if attributes:
-            self.manual_control[light] = previous | attributes
-        return previous
-
-    def restore_manual_control_attributes(
-        self,
-        light: str,
-        previous: LightControlAttributes,
-        held: LightControlAttributes,
-    ) -> None:
-        """Undo `hold_manual_control_attributes`, keeping a running auto reset.
-
-        Only the attributes that were added by holding them are released, so a reset
-        in the meantime isn't undone.
-        """
+        if not attributes:
+            return None
         current = self.get_manual_control_attributes(light)
-        restored = current & ~(held & ~previous)
-        if restored == current:
-            return
-        self.manual_control[light] = restored
-        self._schedule_manual_control_state_update(light)
+        # A newer hold (whose adaptation cancels the older one's) takes it over.
+        older = self.manual_control_holds.get(light)
+        hold = _ManualControlHold(
+            light,
+            previous=older.previous if older is not None else current,
+            attributes=attributes,
+            held=attributes | (older.held if older is not None else attributes),
+        )
+        self.manual_control[light] = current | attributes
+        self.manual_control_holds[light] = hold
+        return hold
+
+    def release_manual_control_hold(
+        self,
+        hold: _ManualControlHold,
+        *,
+        applied: bool,
+    ) -> bool:
+        """Mark the held attributes as manually controlled if applied, else release them.
+
+        A released hold keeps a running auto reset, and only releases the attributes
+        added by holding them, so a reset in the meantime isn't undone. A hold that
+        was taken over by a newer one is left to that one. Returns whether the held
+        attributes were marked as manually controlled.
+        """
+        if self.manual_control_holds.get(hold.light) is not hold:
+            return False
+        del self.manual_control_holds[hold.light]
+        current = self.get_manual_control_attributes(hold.light)
+        released = current & ~(hold.held & ~hold.previous)
+        if applied:
+            self.manual_control[hold.light] = released
+            # Like a manual change, which (re)starts the auto reset.
+            self.add_manual_control_attributes(hold.light, hold.attributes)
+            return True
+        if released != current:
+            self.manual_control[hold.light] = released
+            self._schedule_manual_control_state_update(hold.light)
+        return False
 
     def invalidate_manual_control_state(
         self,
