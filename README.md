@@ -233,7 +233,7 @@ Provide a switch in `entity_id`, a list of `lights`, or both.
 
 With `time`, the lights get the values Adaptive Lighting would use at that time today, for example to dim a room to its evening settings early.
 The adapted attributes are then marked as manually controlled, exactly as if you had changed them yourself: the regular adaptation leaves them alone until manual control is reset (see `autoreset_control_seconds` and `adaptive_lighting.set_manual_control`), and an `adaptive_lighting.manual_control` event is fired.
-When sleep mode is on, the sleep settings are applied instead, whatever the time.
+When sleep mode is on, the sleep settings are applied instead, whatever the time. Unless `adapt_brightness` or `adapt_color` is given, only what the profile adapts (its Adapt Brightness and Adapt Color switches) is applied.
 
 ```yaml
 action: adaptive_lighting.apply

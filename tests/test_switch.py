@@ -2354,6 +2354,48 @@ async def test_apply_service_at_time_marks_manual_before_adapting(hass):
     assert manual_during_adaptation == [LightControlAttributes.ALL]
 
 
+async def test_apply_service_at_time_follows_adapt_switches(hass):
+    """With 'time', only what the profile adapts is applied and made manual."""
+    switch, _ = await setup_lights_and_switch(hass)
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: switch.adapt_color_switch.entity_id},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {
+            ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+            ATTR_BRIGHTNESS: 10,
+            ATTR_COLOR_TEMP_KELVIN: 3000,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    switch.manager.reset(ENTITY_LIGHT_1)
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_APPLY_TIME: "12:00:00",
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    attributes = hass.states.get(ENTITY_LIGHT_1).attributes
+    assert attributes[ATTR_BRIGHTNESS] != 10
+    assert attributes[ATTR_COLOR_TEMP_KELVIN] == 3000
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+
+
 async def test_apply_service_at_time_sleep_mode_and_partial(hass):
     """Sleep mode takes precedence, and only adapted attributes become manual."""
     switch, _ = await setup_lights_and_switch(hass, {CONF_SLEEP_TRANSITION: 0})

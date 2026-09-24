@@ -424,22 +424,31 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
     switches = _switches_from_service_call(hass, service_call)
     lights = data[CONF_LIGHTS]
     apply_time: datetime.time | None = data.get(CONF_APPLY_TIME)
-    # Applying the settings of another time of day only sticks if the regular
-    # adaptation leaves the light alone, so treat it like a manual change.
-    manual_attributes = LightControlAttributes.NONE
-    if apply_time is not None:
-        if data[ATTR_ADAPT_BRIGHTNESS]:
-            manual_attributes |= LightControlAttributes.BRIGHTNESS
-        if data[ATTR_ADAPT_COLOR]:
-            manual_attributes |= LightControlAttributes.COLOR
     for switch in switches:
         all_lights = switch._resolve_lights(lights or None)
         switch.manager.lights.update(all_lights)
+        adapt_brightness = data.get(ATTR_ADAPT_BRIGHTNESS)
+        adapt_color = data.get(ATTR_ADAPT_COLOR)
         at_time = None
+        manual_attributes = LightControlAttributes.NONE
         if apply_time is not None:
             tz = switch._sun_light_settings.timezone  # pylint: disable=protected-access
             today = dt_util.now(tz).date()
             at_time = datetime.datetime.combine(today, apply_time, tzinfo=tz)
+            # Adapt what the regular adaptation would, unless specified.
+            if adapt_brightness is None:
+                adapt_brightness = switch.adapt_brightness_switch.is_on
+            if adapt_color is None:
+                adapt_color = switch.adapt_color_switch.is_on
+            # Applying the settings of another time of day only sticks if the
+            # regular adaptation leaves the light alone, so treat it like a
+            # manual change.
+            if adapt_brightness:
+                manual_attributes |= LightControlAttributes.BRIGHTNESS
+            if adapt_color:
+                manual_attributes |= LightControlAttributes.COLOR
+        adapt_brightness = True if adapt_brightness is None else adapt_brightness
+        adapt_color = True if adapt_color is None else adapt_color
         for light in all_lights:
             if data[CONF_TURN_ON_LIGHTS] or is_on(hass, light):
                 context = switch.create_context(
@@ -460,8 +469,8 @@ async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -
                     light,
                     context=context,
                     transition=transition,
-                    adapt_brightness=data[ATTR_ADAPT_BRIGHTNESS],
-                    adapt_color=data[ATTR_ADAPT_COLOR],
+                    adapt_brightness=adapt_brightness,
+                    adapt_color=adapt_color,
                     prefer_rgb_color=data[CONF_PREFER_RGB_COLOR],
                     force=True,
                     at_time=at_time,

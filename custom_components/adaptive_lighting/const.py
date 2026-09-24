@@ -521,8 +521,8 @@ def apply_service_schema() -> vol.Schema:
             vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
             vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
-            vol.Optional(ATTR_ADAPT_BRIGHTNESS, default=True): cv.boolean,
-            vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
+            vol.Optional(ATTR_ADAPT_BRIGHTNESS): cv.boolean,
+            vol.Optional(ATTR_ADAPT_COLOR): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
             vol.Optional(CONF_APPLY_TIME): cv.time,

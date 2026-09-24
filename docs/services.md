@@ -66,7 +66,7 @@ data:
   time: "22:00:00"
 ```
 
-With `time`, the lights get the values Adaptive Lighting would use at that time today. The adapted attributes are then marked as manually controlled, exactly as if you had changed them yourself: the regular adaptation leaves them alone until manual control is reset (for example by `autoreset_control_seconds` or `adaptive_lighting.set_manual_control`), and an `adaptive_lighting.manual_control` event is fired. When sleep mode is on, the sleep settings are applied instead, whatever the time.
+With `time`, the lights get the values Adaptive Lighting would use at that time today. The adapted attributes are then marked as manually controlled, exactly as if you had changed them yourself: the regular adaptation leaves them alone until manual control is reset (for example by `autoreset_control_seconds` or `adaptive_lighting.set_manual_control`), and an `adaptive_lighting.manual_control` event is fired. When sleep mode is on, the sleep settings are applied instead, whatever the time. Unless `adapt_brightness` or `adapt_color` is given, only what the profile adapts (its Adapt Brightness and Adapt Color switches) is applied.
 
 ---
 
