@@ -45,7 +45,7 @@ Big-picture layout:
 ```
 custom_components/adaptive_lighting/
 ├── __init__.py             entry point: async_setup_entry, async_unload_entry,
-│                           and the curve math (sun-position + brightness/CT calc)
+│                           orphan-entity cleanup. UI-only (no YAML import).
 ├── config_flow.py          UI flow for setup and reconfiguration. Iterates
 │                           VALIDATION_TUPLES from const.py to build the schema.
 ├── switch.py               the 3 switch entities per AL config (master,
@@ -61,8 +61,8 @@ custom_components/adaptive_lighting/
 ├── helpers.py              small shared utilities used across the platforms.
 ├── const.py                CONF_/DEFAULT_ constants + VALIDATION_TUPLES — the
 │                           single source for what fields exist in the schema.
-├── color_and_brightness.py pure math: tanh, sun-elevation curve, color-temp
-│                           interpolation.
+├── color_and_brightness.py the curve math: sun position, tanh brightness/CT
+│                           curve, color-temp interpolation (pure functions).
 ├── adaptation_utils.py     per-light service-call shaping (intercept,
 │                           skip_redundant_commands, split commands, etc.)
 ├── hass_utils.py           HA-specific helpers (entity registry lookups,
@@ -84,15 +84,15 @@ silently kills every translation.
 
 ## Planning workflow — OpenSpec under `opsx`
 
-All non-trivial changes go through OpenSpec before code lands. The experimental `opsx` schema (artifact-driven: proposal → design → specs → tasks) is configured. Drive it via `.claude/commands/opsx/*` slash commands or the `openspec-*` skills.
+All non-trivial changes go through OpenSpec before code lands. The experimental `opsx` schema (artifact-driven: proposal → design → specs → tasks) is configured. Drive it via the `/opsx:*` slash commands or the `openspec-*` skills (installed at user scope, not in this repo).
 
 ```
 openspec/
 ├── config.yaml
-├── specs/                  4 long-lived capability specs (options-flow,
+├── specs/                  long-lived capability specs (options-flow,
 │                           runtime-range-controls, lux-feedback, output-sensors)
 └── changes/
-    └── archive/            7 completed changes — nothing is currently active
+    └── archive/            completed changes — nothing is currently active
 ```
 
 There is no active change. `changes/` holds only `archive/`.
