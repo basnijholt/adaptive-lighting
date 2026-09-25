@@ -47,8 +47,6 @@ ignore = [
     "TD003",   # Missing issue link on the line following this TODO
 ]
 ".github/*py" = ["INP001"]
-"webapp/homeassistant_util_color.py" = ["ALL"]
-"webapp/app.py" = ["INP001", "DTZ011", "A002"]
 "custom_components/adaptive_lighting/homeassistant_util_color.py" = ["ALL"]
 
 [lint.flake8-pytest-style]
