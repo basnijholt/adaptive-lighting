@@ -136,3 +136,11 @@ config/*
 # Home Assistant core
 core/
 .ha_snapshot_pre_cdit.json
+
+# Managed at user scope, not per repo (OpenSpec CLI copies, vendored skills)
+.claude/commands/opsx/
+.claude/skills/
+.cursor/commands/opsx*
+.cursor/skills/openspec-*/
+.agents/
+skills-lock.json
