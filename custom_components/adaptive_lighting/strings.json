@@ -13,8 +13,7 @@
       }
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
-      "no_data": "Cannot import without configuration data."
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     },
     "error": {
       "incompatible_version": "This entry was created with an older, incompatible version of Adaptive Lighting. Delete the entry and create a new one."
@@ -124,9 +123,6 @@
           }
         }
       }
-    },
-    "abort": {
-      "yaml_managed": "This Adaptive Lighting profile is managed by YAML. To change its options, edit configuration.yaml."
     },
     "error": {
       "option_error": "One of the options has an invalid value.",

@@ -1,21 +1,16 @@
 """Adaptive Lighting integration in Home Assistant (CDiT fork)."""
 
 import logging
-from typing import Any
 
 import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-from homeassistant.const import CONF_SOURCE
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
-    _DOMAIN_SCHEMA,  # pyright: ignore[reportPrivateUsage]
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
     CONF_LUX_SENSOR,
-    CONF_NAME,
     CONFIG_ENTRY_VERSION,
     DOMAIN,
 )
@@ -31,41 +26,9 @@ PLATFORMS = ["switch", "number", "sensor"]
 _REMOVED_UNIQUE_ID_SUFFIXES = ("_sleep_mode",)
 
 
-def _all_unique_names(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Validate that all entities have a unique profile name."""
-    hosts = [device[CONF_NAME] for device in value]
-    schema = vol.Schema(vol.Unique())
-    schema(hosts)
-    return value
-
-
-CONFIG_SCHEMA = vol.Schema(
-    {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_names)},
-    extra=vol.ALLOW_EXTRA,
-)
-
-
-async def reload_configuration_yaml(event: Event) -> None:
-    """Reload configuration.yaml."""
-    hass: HomeAssistant | None = event.data.get("hass")
-    if hass is not None:
-        await hass.services.async_call("homeassistant", "check_config", {})
-    else:
-        _LOGGER.error("HomeAssistant instance not found in event data.")
-
-
-async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Import integration from config."""
-    if DOMAIN in config:
-        for entry in config[DOMAIN]:
-            hass.async_create_task(
-                hass.config_entries.flow.async_init(
-                    DOMAIN,
-                    context={CONF_SOURCE: SOURCE_IMPORT},
-                    data=entry,
-                ),
-            )
-    return True
+# UI-only: an `adaptive_lighting:` block in configuration.yaml is not imported.
+# HA logs that the integration is set up from the UI instead.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 def _remove_orphan_sleep_entities(
@@ -154,10 +117,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     _remove_orphan_lux_sensors(hass, config_entry)
 
     data = hass.data.setdefault(DOMAIN, {})
-
-    # Reload YAML configs on `hass.config.entry_updated` (covers `quick reload`
-    # and explicit `hass.reload_config_entry` calls).
-    hass.bus.async_listen("hass.config.entry_updated", reload_configuration_yaml)
 
     data[config_entry.entry_id] = {
         # Cache slot the master switch publishes to after each curve tick

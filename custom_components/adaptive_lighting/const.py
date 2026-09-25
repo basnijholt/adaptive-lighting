@@ -315,8 +315,8 @@ def int_between(min_int: int, max_int: int) -> vol.All:
     return vol.All(vol.Coerce(int), vol.Range(min=min_int, max=max_int))
 
 
-# Per-field validation tuples driving YAML import and (via maybe_coerce)
-# the YAML schema. The UI options flow does not consume this list directly;
+# Per-field validation tuples: switch.py validates and defaults entry options
+# against them. The UI options flow does not consume this list directly;
 # config_flow.py hand-shapes its sections via HA selectors. Eighteen entries:
 # 16 retained from upstream + 2 new sun-entity fields.
 VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
@@ -348,33 +348,12 @@ def timedelta_as_int(value: timedelta) -> float:
     return value.total_seconds()
 
 
-# Only CONF_INTERVAL still needs YAML-time coercion (HA accepts strings like
-# "00:01:30" and turns them into timedeltas). All other coerced fields
-# (sun times, brightness-mode windows) were removed.
+# Only CONF_INTERVAL still needs coercion (HA accepts strings like "00:01:30"
+# and turns them into timedeltas). All other coerced fields (sun times,
+# brightness-mode windows) were removed.
 EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_INTERVAL: (cv.time_period, timedelta_as_int),
 }
-
-
-def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
-    """Coerce the validation into a json serializable type."""
-    validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
-    if coerce is not None:
-        return vol.All(validation, vol.Coerce(coerce))
-    return validation
-
-
-_yaml_validation_tuples = [
-    (key, default, maybe_coerce(key, validation))
-    for key, default, validation in VALIDATION_TUPLES
-] + [(CONF_NAME, DEFAULT_NAME, cv.string)]
-
-_DOMAIN_SCHEMA = vol.Schema(
-    {
-        vol.Optional(key, default=default): validation
-        for key, default, validation in _yaml_validation_tuples
-    },
-)
 
 
 def apply_service_schema(initial_transition: int = 1) -> vol.Schema:

@@ -5,7 +5,6 @@ Covers spec/options-flow/spec.md requirements R1, R2, R3, R5, R6, R7.
 
 from __future__ import annotations
 
-from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import CONF_NAME
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.selector import (
@@ -335,24 +334,6 @@ async def test_user_flow_creates_entry(hass) -> None:
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "living room"
-
-
-async def test_yaml_managed_entry_aborts_options_flow(hass) -> None:
-    """R7: options flow on a SOURCE_IMPORT entry aborts with yaml_managed."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title=DEFAULT_NAME,
-        data={CONF_NAME: DEFAULT_NAME},
-        options={},
-        source=SOURCE_IMPORT,
-        version=2,
-    )
-    entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
-
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "yaml_managed"
 
 
 async def test_options_flow_renders_sectioned_schema(hass) -> None:

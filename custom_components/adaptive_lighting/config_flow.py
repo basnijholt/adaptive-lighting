@@ -12,7 +12,6 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
-    SOURCE_IMPORT,
     ConfigEntry,
 )
 from homeassistant.config_entries import ConfigFlow as HAConfigFlow
@@ -405,23 +404,6 @@ class AdaptiveLightingConfigFlow(HAConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_import(self, user_input: dict[str, Any] | None = None):
-        """Handle a YAML import.
-
-        YAML-configured entries can be loaded into HA but cannot be edited
-        via the options flow — see `OptionsFlowHandler.async_step_init`.
-        """
-        if user_input is None:
-            return self.async_abort(reason="no_data")
-        await self.async_set_unique_id(user_input[CONF_NAME])
-        data = self.hass.data.setdefault(DOMAIN, {})
-        data.setdefault("__yaml__", set()).add(self.unique_id)
-        for entry in self._async_current_entries():
-            if entry.unique_id == self.unique_id:
-                self.hass.config_entries.async_update_entry(entry, data=user_input)
-                self._abort_if_unique_id_configured()
-        return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
-
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -440,8 +422,7 @@ class OptionsFlowHandler(OptionsFlowWithReload):
     """Sectioned options flow with reload-on-save.
 
     Spec R6: extends OptionsFlowWithReload so saving triggers a clean
-    reload of the entry. Spec R7: YAML-managed entries abort with a
-    translation-keyed message instead of presenting an editable form.
+    reload of the entry.
     """
 
     def _overlay_range_values(self, current: dict[str, Any]) -> None:
@@ -467,9 +448,6 @@ class OptionsFlowHandler(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Render the single-page options form and handle its submission."""
         conf = self.config_entry
-        if conf.source == SOURCE_IMPORT:
-            return self.async_abort(reason="yaml_managed")
-
         # Merge data and options to compute the effective "current" view.
         current = dict(conf.data)
         current.update(conf.options)

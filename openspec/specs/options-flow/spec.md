@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change cdit-config-redesign. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Options dialog presents fields in named collapsible sections
 
 The integration options dialog SHALL group its configurable fields into seven named sections, rendered using Home Assistant's `section()` schema helper. Section names and field membership SHALL match the layout below.
@@ -214,17 +216,6 @@ The options flow class SHALL extend `homeassistant.config_entries.OptionsFlowWit
 - **WHEN** the integration reloads after a save
 - **THEN** the entity IDs of the AL device's switches SHALL remain unchanged
 - **AND** no duplicate entities SHALL appear in the entity registry
-
-### Requirement: YAML-managed config entries cannot be edited via the options dialog
-
-When a config entry was created from `configuration.yaml` rather than the UI, the options flow SHALL abort with `async_abort(reason="yaml_managed")` instead of presenting an editable form. The abort SHALL produce a translation-keyed message in the HA UI that directs the user to edit `configuration.yaml`.
-
-#### Scenario: Opening options on a YAML-managed entry shows an abort message
-
-- **WHEN** the user navigates to Configure on a config entry whose `source == SOURCE_IMPORT`
-- **THEN** the options flow SHALL abort with reason `yaml_managed`
-- **AND** the HA UI SHALL display a message indicating the entry is YAML-managed and must be edited in `configuration.yaml`
-- **AND** no editable form SHALL be shown
 
 ### Requirement: Incompatible config entry versions fail to load with a clear error
 
