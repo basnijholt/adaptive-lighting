@@ -4,7 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "adaptive-lighting"
-version = "1.30.1"
+# PEP 440 spelling of manifest.json's "2.5.0-cdit.1" (keep the two in step)
+version = "2.5.0+cdit.1"
 description = "Automatically adjust brightness and color of lights based on the sun position"
 readme = "README.md"
 license = "Apache-2.0"
@@ -24,29 +25,6 @@ test = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["custom_components/adaptive_lighting"]
-
-[tool.ruff]
-target-version = "py313"
-line-length = 88
-
-[tool.ruff.lint]
-select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # Pyflakes
-    "I",      # isort
-    "UP",     # pyupgrade
-    "RUF",    # Ruff-specific rules
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "SIM",    # flake8-simplify
-]
-ignore = [
-    "E501",   # line too long (handled by formatter)
-]
-
-[tool.ruff.lint.isort]
-known-first-party = ["adaptive_lighting"]
 
 [tool.mypy]
 python_version = "3.13"
