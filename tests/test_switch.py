@@ -2328,15 +2328,15 @@ async def test_apply_service_at_time(hass):
         assert light_attributes()[ATTR_COLOR_TEMP_KELVIN] == noon_color_temp
 
 
-async def test_apply_service_at_time_marks_manual_before_adapting(hass):
+async def test_apply_service_at_time_holds_while_adapting(hass):
     """No regular adaptation can slip in between applying and marking manual."""
     switch, _ = await setup_lights_and_switch(hass)
-    manual_during_adaptation = []
+    adaptable_during_adaptation = []
     adapt_light = switch._adapt_light
 
     async def record_and_adapt(light, *args, **kwargs):
-        manual_during_adaptation.append(
-            switch.manager.get_manual_control_attributes(light),
+        adaptable_during_adaptation.append(
+            switch.manager.get_adaption_control_attributes(switch, light),
         )
         return await adapt_light(light, *args, **kwargs)
 
@@ -2351,11 +2351,12 @@ async def test_apply_service_at_time_marks_manual_before_adapting(hass):
             },
             blocking=True,
         )
-    assert manual_during_adaptation == [LightControlAttributes.ALL]
+    assert adaptable_during_adaptation == [LightControlAttributes.NONE]
     assert (
         switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
         == LightControlAttributes.ALL
     )
+    assert switch.manager.adaptation_holds == {}
 
 
 @pytest.mark.parametrize("failure", ["locked", "error"])
@@ -2482,9 +2483,10 @@ async def test_apply_service_at_time_overlapping(hass):
         second = apply("23:30:00")
         await second_started.wait()
         await first  # the cancelled first apply is done
+        # The second apply still holds the light from the regular adaptation.
         assert (
-            switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
-            == LightControlAttributes.ALL
+            switch.manager.get_adaption_control_attributes(switch, ENTITY_LIGHT_1)
+            == LightControlAttributes.NONE
         )
         second_continue.set()
         await second
@@ -2494,7 +2496,51 @@ async def test_apply_service_at_time_overlapping(hass):
         == LightControlAttributes.ALL
     )
     assert len(events) == 1
-    assert switch.manager.manual_control_holds == {}
+    assert switch.manager.adaptation_holds == {}
+
+
+async def test_apply_service_at_time_cancelled_keeps_new_manual_control(hass):
+    """Manual control set while a time is being applied survives its cancellation."""
+    switch, _ = await setup_lights_and_switch(hass)
+    switch.manager.reset(ENTITY_LIGHT_1)
+    started = asyncio.Event()
+
+    async def never_finishes(data):
+        started.set()
+        await asyncio.Event().wait()
+
+    with patch.object(switch, "_execute_adaptation_calls", side_effect=never_finishes):
+        call = hass.async_create_task(
+            hass.services.async_call(
+                DOMAIN,
+                SERVICE_APPLY,
+                {
+                    ATTR_ENTITY_ID: switch.entity_id,
+                    CONF_LIGHTS: [ENTITY_LIGHT_1],
+                    CONF_APPLY_TIME: "23:30:00",
+                },
+                blocking=True,
+            ),
+        )
+        await started.wait()
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_MANUAL_CONTROL,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                CONF_MANUAL_CONTROL: "brightness",
+            },
+            blocking=True,
+        )
+        switch.manager.cancel_ongoing_adaptation_calls(ENTITY_LIGHT_1)
+        await call
+    await hass.async_block_till_done()
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.BRIGHTNESS
+    )
+    assert switch.manager.adaptation_holds == {}
 
 
 async def test_apply_service_at_time_not_applied_keeps_auto_reset(hass):
