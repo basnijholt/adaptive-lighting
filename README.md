@@ -86,6 +86,7 @@ The attributes are absent when the Adaptive Lighting switch is off. Use a fallba
   - [:exclamation: Common Problems & Solutions](#exclamation-common-problems--solutions)
     - [:bulb: Lights Only Adapt After Reloading](#bulb-lights-only-adapt-after-reloading)
     - [:bulb: Lights Not Responding or Turning On by Themselves](#bulb-lights-not-responding-or-turning-on-by-themselves)
+  - [Color-temperature lights incorrectly detected as manually controlled](#color-temperature-lights-incorrectly-detected-as-manually-controlled)
     - [:signal_strength: WiFi Networks](#signal_strength-wifi-networks)
     - [:spider_web: Zigbee, Z-Wave, and Other Mesh Networks](#spider_web-zigbee-z-wave-and-other-mesh-networks)
     - [:rainbow: Light Colors Not Matching](#rainbow-light-colors-not-matching)
@@ -159,6 +160,7 @@ The YAML and frontend configuration methods support all of the options listed be
 | `take_over_control`                         | Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒                                                                                                                                                                                                                                             | `True`         | `bool`                                  |
 | `take_over_control_mode`                    | The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.                                                 | `pause_all`    | one of `['pause_all', 'pause_changed']` |
 | `detect_non_ha_changes`                     | Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.                                        | `False`        | `bool`                                  |
+| `detect_color_mode_changes`                 | Treat a reported color-mode change alone as manual control when `detect_non_ha_changes` is enabled. Disable for lights that report requested color temperatures as RGB/HS; brightness and meaningful color changes are still detected. Equivalent-color mode-only changes will then be ignored.                                                                                               | `True`         | `bool`                                  |
 | `autoreset_control_seconds`                 | Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️                                                                                                                                                                                                                                                                                                     | `0`            | `int` 0-31536000                        |
 | `only_once`                                 | Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄                                                                                                                                                                                                                                                                                                        | `False`        | `bool`                                  |
 | `adapt_only_on_bare_turn_on`                | When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is invoked without specifying color or brightness. ❌🌈 This e.g., prevents adaptation when activating a scene and marks the light as manually controlled. If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. Needs `take_over_control` enabled. 🕵️ | `False`        | `bool`                                  |
@@ -784,6 +786,24 @@ Addressing these issues will significantly improve your Home Assistant experienc
 
 In case lights are suddenly turning on by themselves, this is most likely due to the light incorrectly reporting an "on" state to Home Assistant, leading to an undesired Adaptive Lighting action.
 To prevent adapting in cases *where the state of the light is suddenly "on" and only adapt if there is an associated `light.turn_on` service call*, set `detect_non_ha_changes: false`.
+
+### Color-temperature lights incorrectly detected as manually controlled
+
+Some integrations report a requested color temperature as RGB/HS instead of
+reporting the active color-temperature mode. With `detect_non_ha_changes: true`,
+that representation change alone normally counts as manual control, even if the
+reported color is equivalent.
+
+For those lights, set `detect_color_mode_changes: false` in their Adaptive
+Lighting instance's advanced settings. Brightness and meaningful color changes
+are still detected using the existing comparison tolerances; this does **not**
+disable external-change detection. The default is `true`, preserving detection
+of external scenes that change only the color mode. Disabling the option also
+means an intentional mode-only change to an equivalent color is ignored.
+
+This is an instance-wide setting. Use a separate instance if only some lights
+need it. It cannot correct inaccurate color readback or distinguish an external
+change that falls within the existing tolerances.
 
 To keep detecting manual changes to lights that are already on while leaving unmatched `off` to `on` state events unchanged, enable `manual_control_on_external_turn_on`. Matching uses the exact context of the most recently recorded `light.turn_on` call. Some integrations replace or omit that context, so Adaptive Lighting cannot distinguish every physical versus Home Assistant turn-on source.
 

@@ -47,6 +47,17 @@ DOCS[CONF_DETECT_NON_HA_CHANGES] = (
     "Disable this feature if you encounter such issues."
 )
 
+CONF_DETECT_COLOR_MODE_CHANGES, DEFAULT_DETECT_COLOR_MODE_CHANGES = (
+    "detect_color_mode_changes",
+    True,
+)
+DOCS[CONF_DETECT_COLOR_MODE_CHANGES] = (
+    "Treat a reported color-mode change alone as manual control when "
+    "`detect_non_ha_changes` is enabled. Disable for lights that report requested "
+    "color temperatures as RGB/HS; brightness and meaningful color changes are "
+    "still detected. Equivalent-color mode-only changes will then be ignored."
+)
+
 CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES = (
     "include_config_in_attributes",
     False,
@@ -427,6 +438,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
         ),
     ),
     (CONF_DETECT_NON_HA_CHANGES, DEFAULT_DETECT_NON_HA_CHANGES, bool),
+    (CONF_DETECT_COLOR_MODE_CHANGES, DEFAULT_DETECT_COLOR_MODE_CHANGES, bool),
     (
         CONF_AUTORESET_CONTROL,
         DEFAULT_AUTORESET_CONTROL,

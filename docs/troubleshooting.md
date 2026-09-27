@@ -67,6 +67,24 @@ Addressing these issues will significantly improve your Home Assistant experienc
 In case lights are suddenly turning on by themselves, this is most likely due to the light incorrectly reporting an "on" state to Home Assistant, leading to an undesired Adaptive Lighting action.
 To prevent adapting in cases *where the state of the light is suddenly "on" and only adapt if there is an associated `light.turn_on` service call*, set `detect_non_ha_changes: false`.
 
+### Color-temperature lights incorrectly detected as manually controlled
+
+Some integrations report a requested color temperature as RGB/HS instead of
+reporting the active color-temperature mode. With `detect_non_ha_changes: true`,
+that representation change alone normally counts as manual control, even if the
+reported color is equivalent.
+
+For those lights, set `detect_color_mode_changes: false` in their Adaptive
+Lighting instance's advanced settings. Brightness and meaningful color changes
+are still detected using the existing comparison tolerances; this does **not**
+disable external-change detection. The default is `true`, preserving detection
+of external scenes that change only the color mode. Disabling the option also
+means an intentional mode-only change to an equivalent color is ignored.
+
+This is an instance-wide setting. Use a separate instance if only some lights
+need it. It cannot correct inaccurate color readback or distinguish an external
+change that falls within the existing tolerances.
+
 To keep detecting manual changes to lights that are already on while leaving unmatched `off` to `on` state events unchanged, enable `manual_control_on_external_turn_on`. Matching uses the exact context of the most recently recorded `light.turn_on` call. Some integrations replace or omit that context, so Adaptive Lighting cannot distinguish every physical versus Home Assistant turn-on source.
 
 #### :signal_strength: WiFi Networks

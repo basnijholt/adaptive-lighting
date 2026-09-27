@@ -100,6 +100,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_DETECT_COLOR_MODE_CHANGES,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -802,6 +803,8 @@ def _attributes_have_changed(
     old_attributes: dict[str, Any],
     new_attributes: dict[str, Any],
     context: Context,
+    *,
+    detect_color_mode_changes: bool = True,
 ) -> LightControlAttributes:
     # 2023-11-19: HA core no longer removes light domain attributes when off
     # so we must protect for `None` here
@@ -812,7 +815,7 @@ def _attributes_have_changed(
     # Check for color mode changes BEFORE attribute conversion
     # This detects external changes like Hue scenes switching from color_temp to RGB
     # See: https://github.com/basnijholt/adaptive-lighting/issues/1275
-    if _has_color_mode_changed(
+    if detect_color_mode_changes and _has_color_mode_changed(
         light,
         old_attributes,
         new_attributes,
@@ -955,6 +958,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         self._current_settings = data
 
         self._detect_non_ha_changes = data[CONF_DETECT_NON_HA_CHANGES]
+        self._detect_color_mode_changes = data[CONF_DETECT_COLOR_MODE_CHANGES]
         self._include_config_in_attributes = data[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES]
         self._config: dict[str, Any] = {}
         if self._include_config_in_attributes:
@@ -3002,6 +3006,7 @@ class AdaptiveLightingManager:
                 new_attributes=refreshed_state.attributes,
                 light=light,
                 context=context,
+                detect_color_mode_changes=switch._detect_color_mode_changes,
             )
         if changed_attributes:
             self.update_manual_control_state(

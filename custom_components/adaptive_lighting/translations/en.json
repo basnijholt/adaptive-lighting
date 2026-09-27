@@ -68,6 +68,7 @@
               "take_over_control": "take_over_control: Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒",
               "take_over_control_mode": "take_over_control_mode",
               "detect_non_ha_changes": "detect_non_ha_changes: Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.",
+              "detect_color_mode_changes": "detect_color_mode_changes: Treat a reported color-mode change alone as manual control when `detect_non_ha_changes` is enabled. Disable for lights that report requested color temperatures as RGB/HS; brightness and meaningful color changes are still detected. Equivalent-color mode-only changes will then be ignored.",
               "autoreset_control_seconds": "autoreset_control_seconds",
               "only_once": "only_once: Adapt lights only when they are turned on (`true`) or keep adapting them (`false`). 🔄",
               "adapt_only_on_bare_turn_on": "adapt_only_on_bare_turn_on: When turning lights on initially. If set to `true`, AL adapts only if `light.turn_on` is invoked without specifying color or brightness. ❌🌈 This e.g., prevents adaptation when activating a scene and marks the light as manually controlled. If `false`, AL adapts regardless of the presence of color or brightness in the initial `service_data`. Needs `take_over_control` enabled. 🕵️",
@@ -272,6 +273,10 @@
         "take_over_control_mode": {
           "description": "The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.",
           "name": "take_over_control_mode"
+        },
+        "detect_color_mode_changes": {
+          "description": "Treat a reported color-mode change alone as manual control when `detect_non_ha_changes` is enabled. Disable for lights that report requested color temperatures as RGB/HS; brightness and meaningful color changes are still detected. Equivalent-color mode-only changes will then be ignored.",
+          "name": "detect_color_mode_changes"
         },
         "detect_non_ha_changes": {
           "description": "Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.",
