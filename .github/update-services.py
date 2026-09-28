@@ -14,7 +14,11 @@ with open(services_filename) as f:  # noqa: PTH123
     services = yaml.safe_load(f)
 
 for service_name, dct in services.items():
-    _docs = {"set_manual_control": const.DOCS_MANUAL_CONTROL, "apply": const.DOCS_APPLY}
+    _docs = {
+        "set_manual_control": const.DOCS_MANUAL_CONTROL,
+        "apply": const.DOCS_APPLY,
+        "get_commands": const.DOCS_GET_COMMANDS,
+    }
     alternative_docs = _docs.get(service_name, const.DOCS)
     for field_name, field in dct["fields"].items():
         description = alternative_docs.get(field_name, const.DOCS[field_name])

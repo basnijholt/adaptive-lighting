@@ -8,6 +8,7 @@ from homeassistant.components.adaptive_lighting.const import (
     DEFAULT_NAME,
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
+    SERVICE_GET_COMMANDS,
     SERVICE_SET_MANUAL_CONTROL,
     UNDO_UPDATE_LISTENER,
 )
@@ -70,10 +71,12 @@ async def test_services_survive_entry_unload_and_reload(hass):
     service_names = (
         SERVICE_APPLY,
         SERVICE_CHANGE_SWITCH_SETTINGS,
+        SERVICE_GET_COMMANDS,
         SERVICE_SET_MANUAL_CONTROL,
     )
     services = hass.services.async_services()[adaptive_lighting.DOMAIN]
     assert SERVICE_APPLY in services
+    assert SERVICE_GET_COMMANDS in services
     assert SERVICE_SET_MANUAL_CONTROL in services
     if hasattr(service, "async_register_platform_entity_service"):
         assert SERVICE_CHANGE_SWITCH_SETTINGS in services

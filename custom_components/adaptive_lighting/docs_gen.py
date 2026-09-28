@@ -17,6 +17,7 @@ def _transform_readme_links(content: str) -> str:
         "#memo-options": "configuration.md#all-options",
         "#hammer_and_wrench-services": "services.md",
         "#adaptive_lightingapply": "services.md#adaptive_lightingapply",
+        "#adaptive_lightingget_commands": "services.md#adaptive_lightingget_commands",
         "#adaptive_lightingset_manual_control": "services.md#adaptive_lightingset_manual_control",
         "#adaptive_lightingchange_switch_settings": "services.md#adaptive_lightingchange_switch_settings",
         "#robot-automation-examples": "automation-examples.md",
