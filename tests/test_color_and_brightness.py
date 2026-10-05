@@ -613,7 +613,10 @@ def test_adapt_until_sleep_ct_follows_rgb_blend():
             settings.sleep_color_temp,
             settings.min_color_temp,
         )
-        assert abs(result["color_temp_kelvin"] - expected_cct) <= 5, (
+        # The trajectory is anchored at `min_color_temp` for the RGB color
+        # shown at sunset (whose CCT is only approximately `min_color_temp`),
+        # so allow for that small, constant offset.
+        assert abs(result["color_temp_kelvin"] - expected_cct) <= 40, (
             moment,
             result,
         )
@@ -723,3 +726,85 @@ def test_adapt_until_sleep_ct_mode_linear_is_default_and_unchanged():
     assert result["color_temp_kelvin"] == settings.color_temp_kelvin(
         result["sun_position"],
     )
+
+
+def _settings_until_sleep(**overrides):
+    kwargs = {
+        "name": "test",
+        "astral_observer": location.observer,
+        "adapt_until_sleep": True,
+        "max_brightness": 100,
+        "max_color_temp": 5500,
+        "min_brightness": 30,
+        "min_color_temp": 2700,
+        "sleep_brightness": 1,
+        "sleep_rgb_or_color_temp": "rgb_color",
+        "sleep_color_temp": 1000,
+        "sleep_rgb_color": (255, 56, 0),
+        "sunrise_time": None,
+        "min_sunrise_time": None,
+        "max_sunrise_time": None,
+        "sunset_time": None,
+        "min_sunset_time": None,
+        "max_sunset_time": None,
+        "brightness_mode_time_dark": dt.timedelta(hours=1),
+        "brightness_mode_time_light": dt.timedelta(hours=1),
+        "timezone": dt.timezone.utc,
+        "adapt_until_sleep_ct_mode": "match_rgb",
+    }
+    kwargs.update(overrides)
+    return SunLightSettings(**kwargs)
+
+
+@pytest.mark.parametrize("min_color_temp", [2000, 2700, 3000, 4000])
+@pytest.mark.parametrize("curve", [1.0, 2.5])
+def test_adapt_until_sleep_match_rgb_no_step_at_sunset(min_color_temp, curve):
+    """`match_rgb` must keep `min_color_temp` right after sunset.
+
+    The kelvin -> RGB -> CCT round trip is approximate, so without anchoring
+    the trajectory the color temperature would step to a slightly different
+    value the moment the sun goes below the horizon.
+    """
+    settings = _settings_until_sleep(
+        min_color_temp=min_color_temp,
+        adapt_until_sleep_ct_curve=curve,
+    )
+    date = dt.datetime(2022, 6, 1, tzinfo=dt.timezone.utc)
+    sunset = settings.sun.sunset(date.date())
+    at_sunset = settings.brightness_and_color(sunset, is_sleep=False)
+    assert not at_sunset["force_rgb_color"]
+    assert at_sunset["color_temp_kelvin"] == min_color_temp
+    just_after = settings.brightness_and_color(
+        sunset + dt.timedelta(seconds=1),
+        is_sleep=False,
+    )
+    assert just_after["force_rgb_color"]
+    assert just_after["color_temp_kelvin"] == min_color_temp
+
+
+def test_adapt_until_sleep_match_rgb_black_sleep_color():
+    """A black `sleep_rgb_color` has no chromaticity to match.
+
+    Color-temp-only lights must still end at `sleep_color_temp` (not at
+    `min_color_temp`) and warm up monotonically in between.
+    """
+    settings = _settings_until_sleep(sleep_rgb_color=(0, 0, 0))
+    date = dt.datetime(2022, 6, 1, tzinfo=dt.timezone.utc)
+    sunset = settings.sun.sunset(date.date())
+    _, midnight = settings.sun.noon_and_midnight(date)
+    if midnight < sunset:
+        midnight += dt.timedelta(days=1)
+
+    previous = None
+    for fraction in (0.01, 0.25, 0.5, 0.75, 0.99, 1.0):
+        result = settings.brightness_and_color(
+            sunset + (midnight - sunset) * fraction,
+            is_sleep=False,
+        )
+        assert result["force_rgb_color"]
+        assert 1000 <= result["color_temp_kelvin"] <= 2700
+        if previous is not None:
+            assert result["color_temp_kelvin"] <= previous
+        previous = result["color_temp_kelvin"]
+    assert result["rgb_color"] == (0, 0, 0)
+    assert result["color_temp_kelvin"] == settings.sleep_color_temp

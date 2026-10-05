@@ -412,6 +412,47 @@ class SunLightSettings:
         msg = "Should not happen"
         raise ValueError(msg)
 
+    def _color_temp_kelvin_matching_rgb(
+        self,
+        rgb_color: tuple[int, int, int],
+        xy_color: tuple[float, float],
+        linear_color_temp_kelvin: int,
+    ) -> int:
+        """Color temperature for color-temp-only lights following the RGB blend.
+
+        Keeps color-temp-only lights on the same perceived trajectory as the
+        RGB blend after sunset: the CCT is derived from the blended color
+        instead of interpolating in kelvin space, which diverges perceptually
+        from the HSV interpolation used for `rgb_color` (see #624).
+        """
+        if not any(self.sleep_rgb_color) or not any(rgb_color):
+            # Black has no chromaticity, so there is no color temperature to
+            # match; fall back to the linear interpolation, which ends at
+            # `sleep_color_temp` when the blend reaches black.
+            return linear_color_temp_kelvin
+        mired_min = 1e6 / self.min_color_temp
+        mired_sleep = 1e6 / self.sleep_color_temp
+        mired = 1e6 / color_xy_to_cct(*xy_color)
+        # The kelvin -> RGB -> CCT round trip is approximate, so the CCT of the
+        # RGB color shown right after sunset is not exactly `min_color_temp`.
+        # Anchor the start of the trajectory to that CCT, so color-temp-only
+        # lights keep `min_color_temp` at sunset instead of stepping to a
+        # slightly different value.
+        r, g, b = color_temperature_to_rgb(self.min_color_temp)
+        min_rgb_xy = color_RGB_to_xy(round(r), round(g), round(b))
+        mired_start = 1e6 / color_xy_to_cct(*min_rgb_xy)
+        if mired_sleep <= mired_start:
+            # Degenerate configuration (sleep_color_temp >= min_color_temp).
+            cct = clamp(1e6 / mired, self.sleep_color_temp, self.min_color_temp)
+            return 5 * round(cct / 5)
+        progress = clamp((mired - mired_start) / (mired_sleep - mired_start), 0, 1)
+        # Optional calibration: reshape the progress towards
+        # `sleep_color_temp` in mired space (perceptually uniform), so that
+        # `>1` reaches warm tones earlier and `<1` later.
+        progress **= 1 / self.adapt_until_sleep_ct_curve
+        cct = 1e6 / (mired_min + progress * (mired_sleep - mired_min))
+        return 5 * round(cct / 5)
+
     def brightness_and_color(
         self,
         dt: datetime.datetime,
@@ -449,28 +490,11 @@ class SunLightSettings:
             rgb_color = (round(r), round(g), round(b))
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
         if force_rgb_color and self.adapt_until_sleep_ct_mode == "match_rgb":
-            # Keep color-temp-only lights on the same perceived trajectory as
-            # the RGB blend: derive the CCT from the blended color instead of
-            # interpolating in kelvin space, which diverges perceptually from
-            # the HSV interpolation used for `rgb_color` (see #624).
-            cct = clamp(
-                color_xy_to_cct(*xy_color),
-                self.sleep_color_temp,
-                self.min_color_temp,
+            color_temp_kelvin = self._color_temp_kelvin_matching_rgb(
+                rgb_color,
+                xy_color,
+                color_temp_kelvin,
             )
-            if self.adapt_until_sleep_ct_curve != 1:
-                # Optional calibration: reshape the progress towards
-                # `sleep_color_temp` in mired space (perceptually uniform), so
-                # that `>1` reaches warm tones earlier and `<1` later.
-                mired_min = 1e6 / self.min_color_temp
-                mired_sleep = 1e6 / self.sleep_color_temp
-                if mired_sleep != mired_min:
-                    progress = (1e6 / cct - mired_min) / (mired_sleep - mired_min)
-                    progress = clamp(progress, 0, 1) ** (
-                        1 / self.adapt_until_sleep_ct_curve
-                    )
-                    cct = 1e6 / (mired_min + progress * (mired_sleep - mired_min))
-            color_temp_kelvin = 5 * round(cct / 5)
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         hs_color: tuple[float, float] = color_xy_to_hs(*xy_color)
@@ -641,8 +665,8 @@ def color_xy_to_cct(x: float, y: float) -> float:
         uk, vk = _uv(xk, yk)
         return (u0 - uk) ** 2 + (v0 - vk) ** 2
 
-    # Ternary search in mired space (perceptually uniform) over the range
-    # supported by `color_temperature_to_rgb` (1000-40000 K).
+    # Ternary search in mired space (perceptually uniform). 1000-13000 K covers
+    # every configurable color temperature with a wide margin.
     lo_mired, hi_mired = 1e6 / 13000, 1e6 / 1000
     for _ in range(40):
         m1 = lo_mired + (hi_mired - lo_mired) / 3
