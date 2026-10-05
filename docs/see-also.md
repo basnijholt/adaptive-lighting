@@ -45,9 +45,9 @@ The simulator lets you:
 
 Adaptive Lighting was initially inspired by [hass-circadian_lighting](https://github.com/claytonjn/hass-circadian_lighting) by @claytonjn, but has since been entirely rewritten and expanded with many new features.
 
-## Official Documentation
+## Documentation
 
-- [Home Assistant Documentation (PR Preview)](https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/)
+- [Adaptive Lighting Documentation](https://adaptive-lighting.nijho.lt/)
 - [Home Assistant Community Store (HACS)](https://hacs.xyz/)
 
 ## Community
