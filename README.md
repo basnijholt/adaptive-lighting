@@ -731,7 +731,7 @@ Use `min_sunrise_time`, `max_sunrise_time`, `min_sunset_time`, or `max_sunset_ti
 
 ## Additional Information
 
-For more details on adding the integration and setting options, refer to the [documentation of the PR](https://deploy-preview-14877--home-assistant-docs.netlify.app/integrations/adaptive_lighting/) and [this video tutorial on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/).
+For more details on adding the integration and setting options, refer to the [Adaptive Lighting documentation](https://adaptive-lighting.nijho.lt/) and [this video tutorial on Reddit](https://www.reddit.com/r/homeassistant/comments/jabhso/ha_has_it_before_apple_has_even_finished_it_i/).
 
 Adaptive Lighting was initially inspired by @claytonjn's [hass-circadian\_lighting](https://github.com/claytonjn/hass-circadian_lighting), but has since been entirely rewritten and expanded with new features.
 
