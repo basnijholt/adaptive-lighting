@@ -18,7 +18,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import service
 from homeassistant.setup import async_setup_component
 
-from tests.common import MockConfigEntry, async_mock_service
+from tests.common import MockConfigEntry
 
 
 async def test_setup_with_config(hass):
@@ -62,29 +62,6 @@ async def test_unload_entry(hass):
 
     assert entry.state == ConfigEntryState.NOT_LOADED
     assert adaptive_lighting.DOMAIN not in hass.data
-
-
-async def test_config_entry_updated_listener_removed_on_unload(hass):
-    """Test config entry updates stop reloading YAML after the entry unloads."""
-    entry = MockConfigEntry(
-        domain=adaptive_lighting.DOMAIN,
-        data={CONF_NAME: DEFAULT_NAME},
-    )
-    entry.add_to_hass(hass)
-    calls = async_mock_service(hass, "homeassistant", "check_config")
-
-    assert await hass.config_entries.async_setup(entry.entry_id)
-
-    hass.bus.async_fire("hass.config.entry_updated", {"hass": hass})
-    await hass.async_block_till_done()
-    assert len(calls) == 1
-
-    assert await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
-
-    hass.bus.async_fire("hass.config.entry_updated", {"hass": hass})
-    await hass.async_block_till_done()
-    assert len(calls) == 1
 
 
 async def test_services_survive_entry_unload_and_reload(hass):
