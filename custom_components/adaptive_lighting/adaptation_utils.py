@@ -265,6 +265,26 @@ def _identify_light_control_attributes(
     return parameters
 
 
+def adaptation_command_sequence(
+    service_data: ServiceData,
+    transition: float | None,
+    split_delay: float,
+    split: bool,
+) -> tuple[list[ServiceData], float]:
+    """Prepare axis payloads and their wait before removing already-applied data."""
+    service_datas = _split_service_call_data(service_data) if split else [service_data]
+
+    service_datas_length = len(service_datas)
+
+    if transition is not None:
+        transition_duration_per_data = transition / max(1, service_datas_length)
+        sleep_time = transition_duration_per_data + split_delay
+    else:
+        sleep_time = split_delay
+
+    return service_datas, sleep_time
+
+
 def prepare_adaptation_data(
     hass: HomeAssistant,
     entity_id: str,
@@ -283,15 +303,12 @@ def prepare_adaptation_data(
         entity_id,
         service_data,
     )
-    service_datas = _split_service_call_data(service_data) if split else [service_data]
-
-    service_datas_length = len(service_datas)
-
-    if transition is not None:
-        transition_duration_per_data = transition / max(1, service_datas_length)
-        sleep_time = transition_duration_per_data + split_delay
-    else:
-        sleep_time = split_delay
+    service_datas, sleep_time = adaptation_command_sequence(
+        service_data,
+        transition,
+        split_delay,
+        split,
+    )
 
     # Keep the original split timing, but omit attributes carried by an
     # intercepted turn-on shared with other lights. Do this before state

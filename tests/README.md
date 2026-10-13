@@ -11,6 +11,22 @@ Coverage measures executed code, not whether assertions would catch a bug. Add t
 
 The tests in `test_automation_examples.py` load YAML directly from `README.md` and execute it through Home Assistant's automation and script engines. Edit the README source when changing those examples, then run `./scripts/update-generated-content` to update the documentation pages.
 
+## Native-group test support
+
+Native-group tests are organised by behaviour (`test_native_scenes.py`, `test_native_dispatch.py`, `test_native_lifecycle.py`, and the related manual-control, ownership, permission and compatibility modules). `test_native_brightness.py` covers independent brightness and colour grouping, including brightness-only operation, explicit scene values and computed split commands. `test_native_brightness_coverage.py` covers delayed activation reports, attribute coverage and timing when the two attributes use different targets. `test_native_retirement.py` covers profile removal while commands or activation reports are waiting, including preservation of explicit scene attributes and work retained by other owners or members. Keep shared fixtures in `support/` instead of importing them from another test module.
+
+`support/native_lights.py` models physical colour separately from the colour reported to HA. Recording devices add a device-command trace and support delayed reports. Direct HA light-service tests in `test_native_light_model.py` check the model without Adaptive Lighting: bare or transition-only ON and brightness commands power group members, colour-only commands preserve power, and group OFF reaches every member while retaining its attributes. A broadcast records one group command; member reports are independent of that command count. `support/native_scenarios.py` installs these devices and exposes three deliberate starting states:
+
+| Setup helper | Starting state |
+| --- | --- |
+| `setup_native_group` | One ON member physically matches the target; OFF members have matching caches but stale physical colours. |
+| `setup_scene_group` | Mixed member power; every physical colour is stale while all reported caches match the target. |
+| `setup_reported_group` | Mixed member power; physical and reported colours agree at a value away from the target. |
+
+Use `prepare_reported_members` to arrange consistent physical/report states while reactive work is disabled. Use the device trace for outgoing command assertions and `support/adaptive.py` for shared profile setup or observations at the HA service boundary. These observations represent different boundaries and are not interchangeable.
+
+The device trace omits the legacy `color_temp` alias only when it exactly matches the mired conversion of the supplied `color_temp_kelvin`. Contradictory aliases and mired-only commands remain visible. The physical device model receives the original parameters unchanged, so this projection only removes duplicate representations across Home Assistant versions.
+
 ## Prerequisites
 
 Before running tests with Docker, you need a local Home Assistant core checkout with symlinks:

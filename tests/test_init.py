@@ -177,7 +177,10 @@ async def test_change_switch_settings_requires_entity_target(hass):
 
     with pytest.raises(
         voluptuous.error.MultipleInvalid,
-        match=r"must contain at least one of entity_id.*area_id",
+        match=(
+            r"(?:must contain at least one of entity_id.*area_id"
+            r"|at least one of .*entity_id.*area_id.* is required)"
+        ),
     ):
         await hass.services.async_call(
             adaptive_lighting.DOMAIN,

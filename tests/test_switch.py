@@ -106,7 +106,7 @@ from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.template import light as template_light
 from homeassistant.components.template.light import StateLightEntity as LightTemplate
-from homeassistant.config_entries import SOURCE_IMPORT, SOURCE_USER, ConfigEntryState
+from homeassistant.config_entries import SOURCE_IMPORT, SOURCE_USER
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_DEVICE_ID,
@@ -140,6 +140,9 @@ from homeassistant.util.color import (
 from tests.common import MockConfigEntry
 from tests.common import mock_area_registry as mock_ha_area_registry
 
+from .support.adaptive import setup_switch
+from .support.adaptive import track_adaptive_light_calls as _track_adaptive_light_calls
+
 # HA 2026.6 removed the legacy `light: platform: template` YAML format
 # (home-assistant/core#169615); use the modern `template:` format there.
 LEGACY_TEMPLATE_LIGHTS = hasattr(template_light, "PLATFORM_SCHEMA")
@@ -170,6 +173,8 @@ LAT_LONG_TZS = [
 ENTITY_LIGHT_1 = "light.light_1"
 ENTITY_LIGHT_2 = "light.light_2"
 ENTITY_LIGHT_3 = "light.light_3"
+# Legacy template lights store integer mireds; this target round-trips exactly.
+MATCHING_COLOR_TEMP_KELVIN = 4000
 _SWITCH_FMT = f"{SWITCH_DOMAIN}.{DOMAIN}"
 ENTITY_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}"
 ENTITY_SLEEP_MODE_SWITCH = f"{_SWITCH_FMT}_{DEFAULT_NAME}_sleep_mode"
@@ -200,24 +205,6 @@ async def cleanup(hass):
         timer.cancel()
     for task in manager.adaptation_tasks:
         task.cancel()
-
-
-async def setup_switch(hass, extra_data) -> tuple[MockConfigEntry, AdaptiveSwitch]:
-    """Create the switch entry."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_NAME: DEFAULT_NAME,
-            CONF_INTERCEPT: False,
-            **extra_data,
-        },
-    )
-    entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-    assert entry.state is ConfigEntryState.LOADED
-    switch = hass.data[DOMAIN][entry.entry_id][SWITCH_DOMAIN]
-    return entry, switch
 
 
 async def setup_lights(hass: HomeAssistant, with_group: bool = False):
@@ -2138,6 +2125,222 @@ async def test_apply_service(hass):
     assert old_state[ATTR_COLOR_TEMP_KELVIN] == new_state[ATTR_COLOR_TEMP_KELVIN]
 
 
+async def _setup_matching_adaptation(hass, **settings):
+    """Set up lights whose recorded attributes already match a fixed target."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+            CONF_MIN_COLOR_TEMP: MATCHING_COLOR_TEMP_KELVIN,
+            CONF_MAX_COLOR_TEMP: MATCHING_COLOR_TEMP_KELVIN,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_SKIP_REDUNDANT_COMMANDS: True,
+            **settings,
+        },
+    )
+    state = hass.states.get(ENTITY_LIGHT_1)
+    assert state.state == STATE_ON
+    assert state.attributes[ATTR_BRIGHTNESS] == 128
+    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == MATCHING_COLOR_TEMP_KELVIN
+    return switch
+
+
+@pytest.mark.parametrize("skip_redundant", [False, True])
+@pytest.mark.parametrize("force", [False, True])
+async def test_forced_adaptation_bypasses_redundancy(
+    hass,
+    skip_redundant,
+    force,
+    cleanup,
+):
+    """Only unforced adaptations may trust matching recorded attributes."""
+    switch = await _setup_matching_adaptation(
+        hass,
+        **{CONF_SKIP_REDUNDANT_COMMANDS: skip_redundant},
+    )
+    calls = _track_adaptive_light_calls(hass)
+
+    await switch._adapt_light(
+        ENTITY_LIGHT_1,
+        context=switch.create_context("test"),
+        transition=0,
+        force=force,
+    )
+    await hass.async_block_till_done()
+
+    expected = {
+        ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+        ATTR_BRIGHTNESS: 128,
+        ATTR_COLOR_TEMP_KELVIN: MATCHING_COLOR_TEMP_KELVIN,
+    }
+    assert calls == ([] if skip_redundant and not force else [expected])
+
+
+@pytest.mark.parametrize("split", [False, True])
+@pytest.mark.parametrize(
+    ("adapt_brightness", "adapt_color"),
+    [(False, True), (True, False), (True, True), (False, False)],
+)
+async def test_apply_reapplies_matching_attributes(
+    hass,
+    split,
+    adapt_brightness,
+    adapt_color,
+    cleanup,
+):
+    """An explicit reapply sends requested attributes despite optimistic state."""
+    switch = await _setup_matching_adaptation(
+        hass,
+        **{CONF_SEPARATE_TURN_ON_COMMANDS: split},
+    )
+    other_state = hass.states.get(ENTITY_LIGHT_2)
+    calls = _track_adaptive_light_calls(hass)
+    attributes = {}
+    if adapt_brightness:
+        attributes[ATTR_BRIGHTNESS] = 128
+    if adapt_color:
+        attributes[ATTR_COLOR_TEMP_KELVIN] = MATCHING_COLOR_TEMP_KELVIN
+    target = {ATTR_ENTITY_ID: ENTITY_LIGHT_1}
+    expected = [target | attributes] if attributes else []
+    if split:
+        expected = [target | {key: value} for key, value in attributes.items()]
+
+    # Repeated requests must each reach the light: matching HA state does not
+    # prove that a bulb received an earlier command (e.g. while it was off).
+    for _ in range(2):
+        calls.clear()
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_APPLY,
+            {
+                ATTR_ENTITY_ID: switch.entity_id,
+                CONF_LIGHTS: [ENTITY_LIGHT_1],
+                ATTR_ADAPT_BRIGHTNESS: adapt_brightness,
+                ATTR_ADAPT_COLOR: adapt_color,
+                CONF_TURN_ON_LIGHTS: False,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert calls == expected
+        assert hass.states.get(ENTITY_LIGHT_2) == other_state
+        assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+
+
+@pytest.mark.parametrize("turn_on_lights", [False, True])
+async def test_apply_matching_attributes_respects_turn_on_lights(
+    hass,
+    turn_on_lights,
+    cleanup,
+):
+    """Bypassing redundancy must preserve the apply service's power opt-in."""
+    switch = await _setup_matching_adaptation(hass)
+    # Isolate the explicit service from the profile's separate OFF-to-ON response.
+    # Apply remains available while automatic adaptation is disabled.
+    await switch.async_turn_off()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    calls = _track_adaptive_light_calls(hass)
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_APPLY,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            ATTR_ADAPT_BRIGHTNESS: False,
+            ATTR_ADAPT_COLOR: True,
+            CONF_TURN_ON_LIGHTS: turn_on_lights,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert calls == (
+        [
+            {
+                ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+                ATTR_COLOR_TEMP_KELVIN: MATCHING_COLOR_TEMP_KELVIN,
+            },
+        ]
+        if turn_on_lights
+        else []
+    )
+    assert hass.states.get(ENTITY_LIGHT_1).state == (
+        STATE_ON if turn_on_lights else STATE_OFF
+    )
+
+
+async def test_turn_on_reapplies_matching_attributes_then_suppresses_interval(
+    hass,
+    monkeypatch,
+    cleanup,
+):
+    """Activation corrects potentially stale state; unchanged intervals stay quiet."""
+    switch = await _setup_matching_adaptation(hass)
+    state = hass.states.get(ENTITY_LIGHT_1)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    await hass.async_block_till_done()
+    # Isolate redundant-command handling from the separate turn-off debounce.
+    monkeypatch.setattr(
+        switch.manager,
+        "just_turned_off",
+        AsyncMock(return_value=False),
+    )
+    calls = _track_adaptive_light_calls(hass)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    assert calls == [
+        {
+            ATTR_ENTITY_ID: ENTITY_LIGHT_1,
+            ATTR_BRIGHTNESS: 128,
+            ATTR_COLOR_TEMP_KELVIN: MATCHING_COLOR_TEMP_KELVIN,
+        },
+    ]
+
+    calls.clear()
+    await switch._async_update_at_interval_action()
+    await hass.async_block_till_done()
+    assert calls == []
+
+
+async def test_forced_adaptation_preserves_manual_control_with_redundancy(
+    hass,
+    cleanup,
+):
+    """A forced automatic update must not reclaim manually controlled lights."""
+    switch = await _setup_matching_adaptation(hass)
+    switch.manager.set_manual_control_attributes(ENTITY_LIGHT_1)
+    calls = _track_adaptive_light_calls(hass)
+
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test"),
+        lights=[ENTITY_LIGHT_1],
+        transition=0,
+        force=True,
+    )
+    await hass.async_block_till_done()
+
+    assert calls == []
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+        == LightControlAttributes.ALL
+    )
+
+
 async def test_apply_service_uses_each_switch_transition(hass):
     """Test global apply resolves omitted transition for each profile."""
     await setup_lights(hass)
@@ -3835,22 +4038,6 @@ async def test_light_group(
         ]
         assert ":skpp:" in events[2].context.id
         assert len(events) == 3
-
-
-def _track_adaptive_light_calls(hass, *, ours_only=True):
-    """Capture commands emitted by Adaptive Lighting at the HA service boundary."""
-    calls = []
-
-    def track(event):
-        if (
-            event.data["domain"] == LIGHT_DOMAIN
-            and event.data["service"] == SERVICE_TURN_ON
-            and (not ours_only or is_our_context(event.context))
-        ):
-            calls.append(event.data["service_data"])
-
-    hass.bus.async_listen(EVENT_CALL_SERVICE, track)
-    return calls
 
 
 async def _setup_group_switch(hass, **settings):
