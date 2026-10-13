@@ -781,9 +781,9 @@ async def test_manual_control(
     # - With adapt_only_on_bare_turn_on=True: SHOULD mark as manually controlled (to preserve scenes)
     # - With adapt_only_on_bare_turn_on=False: should NOT mark (fix for issue #1378)
     if adapt_only_on_bare_turn_on:
-        assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS, (
-            manual_control
-        )
+        assert (
+            manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+        ), manual_control
     else:
         assert not manual_control[ENTITY_LIGHT_1], manual_control
     # Reset for next test
@@ -792,9 +792,9 @@ async def test_manual_control(
     assert not manual_control[ENTITY_LIGHT_1], manual_control
     # Now change brightness while ON - this should always be manual control
     await turn_light(True, brightness=increased_brightness())
-    assert manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS, (
-        manual_control
-    )
+    assert (
+        manual_control[ENTITY_LIGHT_1] == LightControlAttributes.BRIGHTNESS
+    ), manual_control
 
     # Toggling the main or sleep switch resets manual control by default.
     for entity_id in [switch.entity_id, switch.sleep_mode_switch.entity_id]:
@@ -4147,9 +4147,9 @@ async def test_group_runtime_change_retires_delayed_events(
         if isinstance(call[ATTR_ENTITY_ID], str)
         and call[ATTR_ENTITY_ID] in retired_targets
     ]
-    assert not retired_calls, (
-        f"Retired reactive handlers issued commands: {retired_calls}"
-    )
+    assert (
+        not retired_calls
+    ), f"Retired reactive handlers issued commands: {retired_calls}"
     for member in ["light.light_4", "light.light_5"]:
         assert hass.states.get(member).attributes[ATTR_BRIGHTNESS] == 128
 
@@ -5089,9 +5089,9 @@ async def test_skipped_lights_context_not_from_arbitrary_switch(hass):
 
     # Find the skipped event (contains ":skpp:" in context)
     skipped_events = [e for e in events if ":skpp:" in e.context.id]
-    assert len(skipped_events) == 1, (
-        f"Expected 1 skipped event, got {len(skipped_events)}"
-    )
+    assert (
+        len(skipped_events) == 1
+    ), f"Expected 1 skipped event, got {len(skipped_events)}"
 
     skipped_event = skipped_events[0]
     skipped_context_id = skipped_event.context.id
@@ -5524,9 +5524,9 @@ async def test_detect_non_ha_changes_with_separate_turn_on_commands(
         await update(force=False)
         await update(force=False)
 
-    assert light.brightness == manual_brightness, (
-        f"AL overrode manual brightness {manual_brightness} with {light.brightness}"
-    )
+    assert (
+        light.brightness == manual_brightness
+    ), f"AL overrode manual brightness {manual_brightness} with {light.brightness}"
     expected_color_temp = (
         4000 if mode == TakeOverControlMode.PAUSE_CHANGED else al_color_temp
     )
