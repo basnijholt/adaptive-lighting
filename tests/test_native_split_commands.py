@@ -5,6 +5,7 @@ import asyncio
 
 import pytest
 from homeassistant.components.adaptive_lighting.const import (
+    CONF_INITIAL_TRANSITION,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
 )
@@ -12,15 +13,17 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_TRANSITION,
+    Profile,
 )
-from homeassistant.components.light.const import DATA_COMPONENT
-from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.components.light.const import DATA_COMPONENT, DATA_PROFILES
+from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
 from homeassistant.core import Context
 from homeassistant.exceptions import HomeAssistantError
 
 from .support.async_helpers import DelayBarrier
-from .support.native_lights import GROUP, RIGHT, TARGET_KELVIN, RecordingMember
+from .support.native_lights import GROUP, LEFT, RIGHT, TARGET_KELVIN, RecordingMember
 from .support.native_scenarios import (
+    activate_scene,
     prepare_reported_members,
     set_manual,
     setup_reported_group,
@@ -52,6 +55,229 @@ async def _activate_group(hass, transition=None):
         blocking=True,
         context=Context(),
     )
+
+
+async def _setup_mixed_scene(hass, *, split=True):
+    """One ON member keeps its brightness while the scene activates two siblings."""
+    setup = await setup_reported_group(
+        hass,
+        **{
+            CONF_INITIAL_TRANSITION: 0.4,
+            CONF_SEPARATE_TURN_ON_COMMANDS: split,
+            CONF_SEND_SPLIT_DELAY: 200,
+        },
+    )
+    await prepare_reported_members(
+        hass,
+        setup,
+        on=(True, False, False),
+        brightness_adaptation=True,
+    )
+    return setup
+
+
+async def test_native_split_scene_validates_each_phase_against_default_profile(
+    hass,
+    monkeypatch,
+):
+    """A group default colour cannot leak into a brightness-only split phase."""
+    setup = await _setup_activation(hass, delay=200)
+    profile_name = f"{GROUP}.default"
+    hass.data[DATA_PROFILES].data[profile_name] = Profile(
+        profile_name,
+        0.3,
+        0.3,
+        None,
+        None,
+    )
+    delay = DelayBarrier(
+        monkeypatch,
+        setup.switch.manager.native_groups,
+        "_execute_dispatch",
+        all_tasks=True,
+    )
+    task = asyncio.create_task(
+        activate_scene(
+            hass,
+            {member.entity_id: {"state": STATE_ON} for member in setup.members},
+            transition=1.2,
+        ),
+    )
+    try:
+        await asyncio.wait_for(delay.entered.wait(), 2)
+        assert delay.delay == 0.8
+        brightness = [call for call in setup.commands if ATTR_BRIGHTNESS in call]
+        assert len(brightness) == 3, setup.commands
+        assert {call["target"] for call in brightness} == {
+            member.entity_id for member in setup.members
+        }
+        assert all(
+            call
+            == {
+                "target": call["target"],
+                "service": "turn_on",
+                ATTR_BRIGHTNESS: 128,
+                ATTR_TRANSITION: 0.6,
+            }
+            for call in brightness
+        ), setup.commands
+        assert not setup.colour_commands
+        assert all(member.physical_kelvin == 4000 for member in setup.members)
+        assert all(member.brightness == 128 for member in setup.members)
+        assert not task.done()
+    finally:
+        delay.release.set()
+        await task
+    await hass.async_block_till_done()
+
+    assert [call for call in setup.commands if ATTR_BRIGHTNESS in call] == brightness
+    # Legacy HA's default-profile handling of canonical Kelvin can cause a
+    # conservative member fallback. Either path must cover each member once.
+    colour_targets = [call["target"] for call in setup.colour_commands]
+    assert colour_targets == [GROUP] or sorted(colour_targets) == sorted(
+        member.entity_id for member in setup.members
+    )
+    assert all(
+        call
+        == {
+            "target": call["target"],
+            "service": "turn_on",
+            ATTR_COLOR_TEMP_KELVIN: TARGET_KELVIN,
+            ATTR_TRANSITION: 0.6,
+        }
+        for call in setup.colour_commands
+    )
+    waits = [delay.arrivals.get_nowait() for _ in range(delay.arrivals.qsize())]
+    assert waits == [0.8] * len(setup.colour_commands)
+    assert all(member.is_on for member in setup.members)
+    assert all(member.brightness == 128 for member in setup.members)
+    assert all(member.physical_kelvin == TARGET_KELVIN for member in setup.members)
+
+
+@pytest.mark.parametrize("service", ["apply", "turn_on"])
+@pytest.mark.parametrize("split", [False, True])
+async def test_native_mixed_scene_preserves_computed_member_transitions(
+    hass,
+    monkeypatch,
+    service,
+    split,
+):
+    """Ungroupable computed brightness retains the scene's timing and both axes."""
+    setup = await _setup_mixed_scene(hass, split=split)
+    delay = DelayBarrier(
+        monkeypatch,
+        setup.switch.manager.native_groups,
+        "_execute_dispatch",
+        all_tasks=True,
+    )
+    task = asyncio.create_task(
+        activate_scene(
+            hass,
+            {member.entity_id: {"state": STATE_ON} for member in setup.members},
+            service=service,
+            transition=1.2,
+        ),
+    )
+    try:
+        if split:
+            # Both newly activated members must reach their own brightness-to-
+            # colour boundary; neither can escape through a real-clock sleep.
+            waits = await asyncio.wait_for(
+                asyncio.gather(delay.arrivals.get(), delay.arrivals.get()),
+                2,
+            )
+            assert waits == [0.8, 0.8]
+            assert [member.brightness for member in setup.members] == [80, 128, 128]
+            assert all(member.physical_kelvin == 4000 for member in setup.members[1:])
+            assert all(call["target"] == LEFT for call in setup.colour_commands)
+            assert not task.done()
+    finally:
+        delay.release.set()
+        await task
+    await hass.async_block_till_done()
+
+    assert all(member.is_on for member in setup.members)
+    assert [member.brightness for member in setup.members] == [80, 128, 128]
+    assert all(member.physical_kelvin == TARGET_KELVIN for member in setup.members)
+    adjustments = [
+        call
+        for call in setup.commands
+        if ATTR_BRIGHTNESS in call or ATTR_COLOR_TEMP_KELVIN in call
+    ]
+    for index, member in enumerate(setup.members):
+        # A shared colour command is still valid when all members have the
+        # same colour timing. Count its effect once for each intended member.
+        member_adjustments = [
+            call for call in adjustments if call["target"] in (member.entity_id, GROUP)
+        ]
+        brightness = [call for call in member_adjustments if ATTR_BRIGHTNESS in call]
+        colour = [call for call in member_adjustments if ATTR_COLOR_TEMP_KELVIN in call]
+        assert len(colour) == 1, setup.commands
+        assert colour[0][ATTR_COLOR_TEMP_KELVIN] == TARGET_KELVIN
+        if index == 0:
+            assert not brightness, setup.commands
+            assert colour[0][ATTR_TRANSITION] == 1.2
+        else:
+            assert len(brightness) == 1, setup.commands
+            assert brightness[0][ATTR_BRIGHTNESS] == 128
+            duration = 0.6 if split else 1.2
+            assert (
+                brightness[0][ATTR_TRANSITION] == colour[0][ATTR_TRANSITION] == duration
+            )
+            if brightness[0] is colour[0]:
+                assert not split
+            else:
+                assert member_adjustments.index(
+                    brightness[0],
+                ) < member_adjustments.index(colour[0])
+
+
+@pytest.mark.parametrize("change", ["cancel", "profile_off"])
+async def test_native_mixed_scene_retires_member_colour_during_split_delay(
+    hass,
+    monkeypatch,
+    change,
+):
+    """Retiring a scene or profile cannot flush the two waiting member colours."""
+    setup = await _setup_mixed_scene(hass)
+    delay = DelayBarrier(
+        monkeypatch,
+        setup.switch.manager.native_groups,
+        "_execute_dispatch",
+        all_tasks=True,
+    )
+    task = asyncio.create_task(
+        activate_scene(
+            hass,
+            {member.entity_id: {"state": STATE_ON} for member in setup.members},
+            transition=1.2,
+        ),
+    )
+    try:
+        waits = await asyncio.wait_for(
+            asyncio.gather(delay.arrivals.get(), delay.arrivals.get()),
+            2,
+        )
+        assert waits == [0.8, 0.8]
+        assert [member.brightness for member in setup.members] == [80, 128, 128]
+        assert all(member.physical_kelvin == 4000 for member in setup.members[1:])
+        if change == "cancel":
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        else:
+            await setup.switch.async_turn_off()
+        after_change = len(setup.commands)
+    finally:
+        delay.release.set()
+        if not task.cancelled():
+            await task
+    await hass.async_block_till_done()
+
+    assert setup.commands[after_change:] == []
+    assert all(member.is_on for member in setup.members)
+    assert [member.brightness for member in setup.members] == [80, 128, 128]
+    assert all(member.physical_kelvin == 4000 for member in setup.members[1:])
 
 
 @pytest.mark.parametrize("planner_enabled", [False, True])

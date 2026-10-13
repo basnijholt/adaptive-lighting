@@ -888,10 +888,10 @@ class NativeGroupPlanner:
         groups: Mapping[str, NativeGroup],
         intents: dict[str, NativeIntent],
     ) -> None:
-        """Defer brightness only when a complete compatible group can carry it.
+        """Defer explicit brightness only when a complete group can carry it.
 
         Other explicit brightness stays in HA's original payload. Computed
-        individual brightness retains the established activation response.
+        brightness remains in the plan so member fallbacks retain request timing.
         """
         covered = set()
         for group, candidate in groups.items():
@@ -933,7 +933,8 @@ class NativeGroupPlanner:
             ):
                 covered.update(members)
         for member in intents.keys() - covered:
-            intents[member] = intents[member].select(LightControlAttributes.COLOR)
+            if LightControlAttributes.BRIGHTNESS in intents[member].explicit:
+                intents[member] = intents[member].select(LightControlAttributes.COLOR)
 
     async def _member_intent(
         self,
@@ -1395,7 +1396,11 @@ class NativeGroupPlanner:
         intents: Mapping[str, NativeIntent],
     ) -> list[tuple[str, dict[str, NativeIntent]]]:
         """Reserve shared attributes once, retaining each member's other attributes."""
-        pending = self._pending_intents(batch, intents)
+        # Validate group eligibility against the actual split-phase payloads.
+        pending = {
+            member: self._split_intent(intent)
+            for member, intent in self._pending_intents(batch, intents).items()
+        }
         dispatches = []
         groups = sorted(
             batch.plan.groups.items(),
@@ -1406,11 +1411,6 @@ class NativeGroupPlanner:
             LightControlAttributes.BRIGHTNESS,
             LightControlAttributes.COLOR,
         ):
-            if attributes == LightControlAttributes.BRIGHTNESS:
-                pending = {
-                    member: self._split_intent(intent)
-                    for member, intent in pending.items()
-                }
             for group, candidate in groups:
                 selected = {
                     member: intent.select(attributes)
@@ -1442,11 +1442,14 @@ class NativeGroupPlanner:
                     )
                     if attribute in intent.attributes
                 )
+
         # Explicit attributes are due immediately. A computed overlapping
         # attribute must not delay them; equal-time phases retain brightness first.
-        dispatches.sort(
-            key=lambda item: self._ready_delay(next(iter(item[1].values()))),
-        )
+        def dispatch_order(item):
+            intent = next(iter(item[1].values()))
+            return self._ready_delay(intent), not intent.brightness
+
+        dispatches.sort(key=dispatch_order)
         return dispatches
 
     async def _dispatch_pending(
@@ -1528,40 +1531,6 @@ class NativeGroupPlanner:
             return
         intent = next(iter(pending.values()))
         members = candidate.members if candidate is not None else ()
-        if (
-            intent.brightness
-            and intent.colour
-            and not intent.explicit
-            and intent.switch._separate_turn_on_commands
-        ):
-            commands, split_wait = adaptation_command_sequence(
-                {**intent.brightness, **intent.colour},
-                intent.colour.get(ATTR_TRANSITION),
-                intent.switch._send_split_delay / 1000.0,
-                split=True,
-            )
-            if len(commands) > 1:
-                await self._send(
-                    target,
-                    replace(
-                        intent.select(LightControlAttributes.BRIGHTNESS),
-                        brightness=commands[0],
-                    ),
-                    batch.plan.context,
-                    members,
-                )
-                await asyncio.sleep(split_wait)
-            # Brightness is never repeated after an accepted first phase. The
-            # shared policy also preserves duration if that phase was suppressed.
-            colours = {
-                member: replace(
-                    member_intent.select(LightControlAttributes.COLOR),
-                    colour=commands[-1],
-                )
-                for member, member_intent in pending.items()
-            }
-            await self._dispatch_pending(batch, colours, initial_delay=False)
-            return
         await self._send(target, intent, batch.plan.context, members)
 
     async def _can_send_group(
