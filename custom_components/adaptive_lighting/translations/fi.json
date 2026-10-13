@@ -50,9 +50,6 @@
         "entity_id": {
           "description": "Kytkimen entiteettitunnus. 📝"
         },
-        "turn_on_lights": {
-          "description": "Sytytetäänkö valot, jotka ovat tällä hetkellä pois päältä. 🔆"
-        },
         "include_config_in_attributes": {
           "description": "Näytä kaikki vaihtoehdot attribuutteina kotiavustajan kytkimellä, kun sen arvo on \"true\". 📝"
         },

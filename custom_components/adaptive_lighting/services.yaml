@@ -85,12 +85,6 @@ change_switch_settings:
       required: false
       selector:
         boolean: null
-    turn_on_lights:
-      description: Whether to turn on lights that are currently off. 🔆
-      example: false
-      required: false
-      selector:
-        boolean: null
     initial_transition:
       description: Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️
       example: 1

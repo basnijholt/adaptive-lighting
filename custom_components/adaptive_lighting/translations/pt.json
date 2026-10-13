@@ -12,9 +12,6 @@
         "sunset_offset": {
           "description": "Ajustar a hora do pôr do sol com um offset  positivo ou negativo em segundos. ⏰"
         },
-        "turn_on_lights": {
-          "description": "Para ligar luzes que estão neste momento desligadas. 🔆"
-        },
         "entity_id": {
           "description": "ID Entidade do interruptor. 📝"
         },

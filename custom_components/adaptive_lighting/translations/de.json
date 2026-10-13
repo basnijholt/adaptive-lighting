@@ -196,9 +196,6 @@
         "entity_id": {
           "description": "Entity ID des Schalters. 📝"
         },
-        "turn_on_lights": {
-          "description": "Ob Lichter eingeschaltet werden sollen, die derzeit ausgeschaltet sind. 🔆"
-        },
         "initial_transition": {
           "description": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️"
         },

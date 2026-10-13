@@ -167,10 +167,6 @@
           "description": "在Home Assistant中将所有选项显示为开关的属性时，设置为`true`。📝",
           "name": "include_config_in_attributes"
         },
-        "turn_on_lights": {
-          "description": "是否打开当前关闭的灯光。🔆",
-          "name": "turn_on_lights"
-        },
         "initial_transition": {
           "description": "灯光从“关闭”到“开启”时的第一个过渡持续时间，以秒为单位。⏲️",
           "name": "initial_transition"

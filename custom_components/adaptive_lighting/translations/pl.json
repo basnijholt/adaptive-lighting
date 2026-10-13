@@ -145,9 +145,6 @@
         "max_brightness": {
           "description": "Maksymalna jasność (w procentach). 💡"
         },
-        "turn_on_lights": {
-          "description": "Czy włączyć światła, które są aktualnie wyłączone? 🔆"
-        },
         "initial_transition": {
           "description": "Długość pierwszego przejścia, gdy światło zostanie przełączone z `off` na `on` (w sekundach). ⏲️"
         },
