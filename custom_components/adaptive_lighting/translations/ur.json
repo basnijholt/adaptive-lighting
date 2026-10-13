@@ -26,9 +26,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "نیند کے موڈ میں \"rgb_color\" یا \"color_temp\" کا استعمال کریں۔ 🌙"
         },
-        "turn_on_lights": {
-          "description": "کیا ان لائٹس کو آن کرنا ہے جو فی الحال بند ہیں۔ 🔆"
-        },
         "initial_transition": {
           "description": "پہلی منتقلی کا دورانیہ جب لائٹس سیکنڈوں میں 'بند' سے 'آن' میں تبدیل ہوجاتی ہیں۔ ⏲️"
         },

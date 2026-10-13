@@ -106,9 +106,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "V režime spánku použiť `\"rgb_color\"` alebo `\"color_temp\"`. 🌙"
         },
-        "turn_on_lights": {
-          "description": "Či sa majú zapnúť svetlá, ktoré sú momentálne vypnuté. 🔆"
-        },
         "initial_transition": {
           "description": "Trvanie prvého prechodu, keď sú svetlá zapnuté z `off` na `on` (v sekundách). ⏲️"
         },

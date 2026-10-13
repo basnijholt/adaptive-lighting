@@ -26,9 +26,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "Gunakan `\"rgb_color\"` atau `\"color_temp\"` dalam mode tidur. 🌙"
         },
-        "turn_on_lights": {
-          "description": "Kalau ingin menyalakan lampu yang sedang mati. 🔆"
-        },
         "initial_transition": {
           "description": "Durasi transisi pertama saat lampu berubah dari `mati` ke `hidup` dalam hitungan detik. ⏲️"
         },

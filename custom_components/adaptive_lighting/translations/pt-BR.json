@@ -109,9 +109,6 @@
         "sleep_brightness": {
           "description": "Porcentagem do brilho das luzes no modo dormir. 😴"
         },
-        "turn_on_lights": {
-          "description": "Se deve ligar as luzes que estão atualmente desligadas. 🔆"
-        },
         "initial_transition": {
           "description": "Duração da primeira transição, em segundos, quando as luzes alternarem de 'desligado' para 'ligado'. ⏲️"
         },

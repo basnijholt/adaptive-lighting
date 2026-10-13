@@ -98,9 +98,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "Az `\"rgb_color\" vagy a `\"color_temp\" használata alvó üzemmódban. 🌙"
         },
-        "turn_on_lights": {
-          "description": "A jelenleg kikapcsolt fények bekapcsolása. 🔆"
-        },
         "initial_transition": {
           "description": "Az első transition időtartama, amikor a lights \"kikapcsolt\" állapotból \"bekapcsolt\" állapotba váltanak, másodpercben. ⏲️"
         },

@@ -174,10 +174,6 @@
           "description": "Показва всички опции като атрибути на ключа в Home Assistant, когато е зададено на \"true\". 📝",
           "name": "include_config_in_attributes"
         },
-        "turn_on_lights": {
-          "description": "Дали да се включат лампите, които в момента са изключени. 🔆",
-          "name": "turn_on_lights"
-        },
         "initial_transition": {
           "description": "Продължителност на първия преход, когато лампите преминават от 'изключено' на 'включено' в секунди. ⏲️",
           "name": "initial_transition"

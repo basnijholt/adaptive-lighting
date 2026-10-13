@@ -137,9 +137,6 @@
         "prefer_rgb_color": {
           "description": "Preferir ajustes de color RGB a temperatura de color cuando sea posible. 🌈"
         },
-        "turn_on_lights": {
-          "description": "Encender (o no) luces que estén apagadas. 🔆"
-        },
         "max_brightness": {
           "description": "Porcentaje máximo de brillo. 💡"
         },
