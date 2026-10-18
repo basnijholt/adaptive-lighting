@@ -1,6 +1,6 @@
 """Constants for the Adaptive Lighting integration."""
 
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from typing import Any
 
@@ -228,6 +228,24 @@ DOCS[CONF_COLOR_TEMP_PLATEAU_EVENING] = (
 # Each side of the plateau is limited to half a day.
 MAX_COLOR_TEMP_PLATEAU = 12 * 60 * 60
 
+CONF_COLOR_TEMP_FIXED_PLATEAU_END = "color_temp_fixed_plateau_end"
+DOCS[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = (
+    "Local time (HH:MM:SS, 12:00 or later) until which the color temperature stays at "
+    "`max_color_temp` in the evening, every day of the year. Needs "
+    "`color_temp_fixed_descent_end`. Leave unset to keep the default evening curve. "
+    "Only affects the color temperature. 🌙"
+)
+CONF_COLOR_TEMP_FIXED_DESCENT_END = "color_temp_fixed_descent_end"
+DOCS[CONF_COLOR_TEMP_FIXED_DESCENT_END] = (
+    "Local time (HH:MM:SS) at which the color temperature has smoothly descended from "
+    "`max_color_temp` to `min_color_temp`, starting at `color_temp_fixed_plateau_end`. "
+    "May be after midnight but at most 12 hours after the plateau end. Needs "
+    "`color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙"
+)
+# The descent from the plateau end to the descent end lasts at most this long.
+MAX_COLOR_TEMP_FIXED_DESCENT = timedelta(hours=12)
+MIN_COLOR_TEMP_FIXED_PLATEAU_END = time(12, 0)
+
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
     "Pause adaptation of individual lights and hand over (manual) control to other sources that "
@@ -443,6 +461,8 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
         DEFAULT_COLOR_TEMP_PLATEAU_EVENING,
         int_between(0, MAX_COLOR_TEMP_PLATEAU),
     ),
+    (CONF_COLOR_TEMP_FIXED_PLATEAU_END, NONE_STR, str),
+    (CONF_COLOR_TEMP_FIXED_DESCENT_END, NONE_STR, str),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,
@@ -520,7 +540,52 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
     CONF_COLOR_TEMP_PLATEAU_MORNING: (_PLATEAU_PERIOD, timedelta_as_int),
     CONF_COLOR_TEMP_PLATEAU_EVENING: (_PLATEAU_PERIOD, timedelta_as_int),
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END: (cv.time, str),
+    CONF_COLOR_TEMP_FIXED_DESCENT_END: (cv.time, str),
 }
+
+
+def validate_fixed_evening(plateau_end: Any, descent_end: Any) -> None:
+    """Check the pair of fixed evening color temperature times.
+
+    Both are local times of day (strings or `datetime.time`), or unset
+    (`None` or "None"). Raises `vol.Invalid` for an incoherent pair.
+    """
+    plateau_end, descent_end = (
+        None if value in (None, NONE_STR) else cv.time(value)
+        for value in (plateau_end, descent_end)
+    )
+    if plateau_end is None and descent_end is None:
+        return
+    if plateau_end is None or descent_end is None:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_END} and"
+            f" {CONF_COLOR_TEMP_FIXED_DESCENT_END} must be set together"
+        )
+        raise vol.Invalid(msg)
+    if plateau_end < MIN_COLOR_TEMP_FIXED_PLATEAU_END:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_END} must be"
+            f" {MIN_COLOR_TEMP_FIXED_PLATEAU_END:%H:%M} or later (it is an evening time)"
+        )
+        raise vol.Invalid(msg)
+    if plateau_end == descent_end:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_DESCENT_END} must differ from"
+            f" {CONF_COLOR_TEMP_FIXED_PLATEAU_END}"
+        )
+        raise vol.Invalid(msg)
+    # A descent end that is not after the plateau end is on the next day.
+    duration = (
+        datetime.combine(date(2000, 1, 1), descent_end)
+        - datetime.combine(date(2000, 1, 1), plateau_end)
+    ) % timedelta(days=1)
+    if duration > MAX_COLOR_TEMP_FIXED_DESCENT:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_DESCENT_END} must be at most"
+            f" {MAX_COLOR_TEMP_FIXED_DESCENT} after {CONF_COLOR_TEMP_FIXED_PLATEAU_END}"
+        )
+        raise vol.Invalid(msg)
 
 
 def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
@@ -541,11 +606,26 @@ _yaml_validation_tuples = [
     for key, default, validation in VALIDATION_TUPLES
 ] + [(CONF_NAME, DEFAULT_NAME, cv.string)]
 
-_DOMAIN_SCHEMA = vol.Schema(
-    {
-        vol.Optional(key, default=replace_none_str(default, vol.UNDEFINED)): validation
-        for key, default, validation in _yaml_validation_tuples
-    },
+
+def _validate_yaml_fixed_evening(config: dict[str, Any]) -> dict[str, Any]:
+    validate_fixed_evening(
+        config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
+        config.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+    )
+    return config
+
+
+_DOMAIN_SCHEMA = vol.All(
+    vol.Schema(
+        {
+            vol.Optional(
+                key,
+                default=replace_none_str(default, vol.UNDEFINED),
+            ): validation
+            for key, default, validation in _yaml_validation_tuples
+        },
+    ),
+    _validate_yaml_fixed_evening,
 )
 
 

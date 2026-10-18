@@ -247,6 +247,66 @@ class SunEvents:
         i_now = bisect.bisect([ts for _, ts in events], dt.timestamp())
         return events[i_now - 1 : i_now + 1]
 
+    def fixed_evening_position(
+        self,
+        dt: datetime.datetime,
+        plateau_end: datetime.time,
+        descent_end: datetime.time,
+    ) -> float | None:
+        """Position in [0, 1] for the fixed evening color temperature, or None.
+
+        `plateau_end` and `descent_end` are local wall-clock times. Starting at
+        the last solar noon before `dt`, the position is 1 until the first
+        `plateau_end` after that noon (or the noon itself if it is later), then
+        eases from 1 to 0 (cosine, so without kinks) until the `descent_end`
+        following it, and stays 0 until sunset if that is later. After that
+        (or before the noon) None is returned and the regular curve applies.
+
+        The window is cut at the next sunrise, so the position reaches 0 no
+        later than the morning curve starts at 0, and it is ignored for a day
+        where it does not fit between noon and the next sunrise (None). The
+        times are wall-clock: across a DST change the real duration changes
+        by the shift, but the position stays continuous and monotonic.
+        """
+        target_ts = dt.timestamp()
+        events = sorted(
+            (event, ts)
+            for days in (-1, 0, 1)
+            for event, ts in self.sun_events(dt + timedelta(days=days))
+        )
+        noons = [ts for event, ts in events if event == SunEvent.NOON]
+        noon_ts = max((ts for ts in noons if ts <= target_ts), default=None)
+        if noon_ts is None:
+            return None
+        sunrise_ts = min(
+            (ts for e, ts in events if e == SunEvent.SUNRISE and ts > noon_ts),
+            default=None,
+        )
+        sunset_ts = min(
+            (ts for e, ts in events if e == SunEvent.SUNSET and ts > noon_ts),
+            default=None,
+        )
+        if sunrise_ts is None or sunset_ts is None:  # pragma: no cover
+            return None
+        local_day = datetime.datetime.fromtimestamp(noon_ts, self.timezone).date()
+        plateau_ts = self._replace_time(local_day, plateau_end).timestamp()
+        descent_day = local_day
+        if descent_end <= plateau_end:  # the descent ends after midnight
+            descent_day += timedelta(days=1)
+        descent_ts = self._replace_time(descent_day, descent_end).timestamp()
+        start = max(plateau_ts, noon_ts)
+        end = min(descent_ts, sunrise_ts)
+        if end <= start:
+            return None
+        if target_ts <= start:
+            return 1.0
+        if target_ts <= end:
+            return 0.5 * (1 + math.cos(math.pi * (target_ts - start) / (end - start)))
+        # Past the descent: hold the minimum until sunset, where the regular
+        # curve (which is 0 at sunset) continues, so a descent finishing
+        # before sunset does not jump back up.
+        return 0.0 if target_ts <= sunset_ts else None
+
     def sun_position(
         self,
         dt: datetime.datetime,
@@ -334,6 +394,8 @@ class SunLightSettings:
     brightness_mode: Literal["default", "linear", "tanh"] = "default"
     color_temp_plateau_morning: datetime.timedelta = datetime.timedelta()
     color_temp_plateau_evening: datetime.timedelta = datetime.timedelta()
+    color_temp_fixed_plateau_end: datetime.time | None = None
+    color_temp_fixed_descent_end: datetime.time | None = None
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
@@ -464,6 +526,17 @@ class SunLightSettings:
             if self.color_temp_plateau_morning or self.color_temp_plateau_evening
             else sun_position
         )
+        if (
+            self.color_temp_fixed_plateau_end is not None
+            and self.color_temp_fixed_descent_end is not None
+        ):
+            fixed_position = self.sun.fixed_evening_position(
+                dt,
+                self.color_temp_fixed_plateau_end,
+                self.color_temp_fixed_descent_end,
+            )
+            if fixed_position is not None:
+                color_sun_position = fixed_position
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
@@ -475,6 +548,7 @@ class SunLightSettings:
             self.sleep_rgb_or_color_temp == "rgb_color"
             and self.adapt_until_sleep
             and sun_position < 0
+            and color_sun_position < 0
         ):
             # Feature requested in
             # https://github.com/basnijholt/adaptive-lighting/issues/624

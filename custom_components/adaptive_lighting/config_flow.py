@@ -11,11 +11,14 @@ from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (  # pylint: disable=unused-import
     BASIC_OPTIONS,
+    CONF_COLOR_TEMP_FIXED_DESCENT_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END,
     CONF_LIGHTS,
     DOMAIN,
     EXTRA_VALIDATION,
     NONE_STR,
     VALIDATION_TUPLES,
+    validate_fixed_evening,
 )
 from .switch import validate
 
@@ -124,6 +127,14 @@ def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None
         except vol.Invalid:
             _LOGGER.exception("Configuration option %s=%s is incorrect", key, value)
             errors["base"] = "option_error"
+    try:
+        validate_fixed_evening(
+            user_input.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
+            user_input.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+        )
+    except vol.Invalid:
+        _LOGGER.exception("The fixed evening color temperature times are incorrect")
+        errors["base"] = "option_error"
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):

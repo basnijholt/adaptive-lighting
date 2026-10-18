@@ -223,6 +223,18 @@ change_switch_settings:
           min: 0
           max: 43200
           unit_of_measurement: s
+    color_temp_fixed_plateau_end:
+      description: Local time (HH:MM:SS, 12:00 or later) until which the color temperature stays at `max_color_temp` in the evening, every day of the year. Needs `color_temp_fixed_descent_end`. Leave unset to keep the default evening curve. Only affects the color temperature. 🌙
+      example: ''
+      required: false
+      selector:
+        time: null
+    color_temp_fixed_descent_end:
+      description: Local time (HH:MM:SS) at which the color temperature has smoothly descended from `max_color_temp` to `min_color_temp`, starting at `color_temp_fixed_plateau_end`. May be after midnight but at most 12 hours after the plateau end. Needs `color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙
+      example: ''
+      required: false
+      selector:
+        time: null
     sunset_time:
       description: Set a fixed time (HH:MM:SS) for sunset. 🌇
       example: ''

@@ -34,3 +34,30 @@ adaptive_lighting:
 ```
 
 The same options can be changed at runtime with `adaptive_lighting.change_switch_settings`.
+
+## Fixed evening times
+
+The plateau options above are measured from solar noon, so the evening moves with the seasons. To get the same evening every day of the year, set two optional **local** times instead:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `color_temp_fixed_plateau_end` | unset | Local time until which the color temperature stays at `max_color_temp` |
+| `color_temp_fixed_descent_end` | unset | Local time at which the color temperature has descended to `min_color_temp` |
+
+```yaml
+adaptive_lighting:
+  - name: kitchen
+    min_color_temp: 2700
+    max_color_temp: 4000
+    color_temp_fixed_plateau_end: "21:00:00"   # 4000 K until 21:00
+    color_temp_fixed_descent_end: "23:00:00"   # smooth descent to 2700 K at 23:00
+```
+
+Both options are available in the UI (advanced section), in YAML and in `adaptive_lighting.change_switch_settings`. When both are unset, which is the default, nothing changes.
+
+- Only the color temperature is affected. The brightness, the sleep mode (which keeps priority) and the morning curve are unchanged. `color_temp_plateau_evening` is superseded by these times while they are set.
+- The color temperature follows the default curve until solar noon (and stays at `max_color_temp` from then until `color_temp_fixed_plateau_end`), then descends with a smooth cosine easing, then stays at `min_color_temp` until sunset or later.
+- Validation: both times must be set together, they must differ, `color_temp_fixed_plateau_end` must be 12:00 or later, and the descent must last at most 12 hours. `color_temp_fixed_descent_end` may be after midnight (for example 23:00 → 01:00). In YAML or the UI an invalid pair is rejected; through the service it raises an error; in a stored configuration it is ignored with an error in the log.
+- The times are wall-clock times of the Home Assistant time zone. On a day with a DST change inside the window, the real duration of the descent is one hour shorter or longer, but the curve stays continuous.
+- The window is anchored on the last solar noon and cut at the next sunrise: it ends at `color_temp_fixed_descent_end` or at that sunrise, whichever comes first, so the color temperature is never higher than the morning curve at sunrise. If solar noon is later than `color_temp_fixed_plateau_end`, the descent starts at noon; if the window does not fit between noon and the next sunrise, the default curve is used for that day.
+- Between sunset and `color_temp_fixed_descent_end` the fixed curve replaces the night value (so winter evenings stay at `max_color_temp` after sunset). After `color_temp_fixed_descent_end` the default night behavior resumes. With `adapt_until_sleep` this means a step from `min_color_temp` to the night gradient at that moment.

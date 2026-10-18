@@ -37,6 +37,8 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COLOR_TEMP_FIXED_DESCENT_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END,
     CONF_COLOR_TEMP_PLATEAU_EVENING,
     CONF_COLOR_TEMP_PLATEAU_MORNING,
     CONF_DETECT_NON_HA_CHANGES,
@@ -129,7 +131,7 @@ from homeassistant.const import (
     EntityCategory,
 )
 from homeassistant.core import Context, CoreState, Event, HomeAssistant, State
-from homeassistant.exceptions import Unauthorized
+from homeassistant.exceptions import ServiceValidationError, Unauthorized
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -2970,6 +2972,140 @@ def test_color_temp_plateau_yaml_validation(invalid, key):
     assert _DOMAIN_SCHEMA({key: 3600})[key] == 3600
     with pytest.raises(voluptuous.error.MultipleInvalid):
         _DOMAIN_SCHEMA({key: invalid})
+
+
+async def test_fixed_evening_defaults_and_service(hass):
+    """The fixed evening times are unset by default and settable at runtime."""
+    switch, _ = await setup_lights_and_switch(hass)
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end is None
+    assert settings.color_temp_fixed_descent_end is None
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: switch.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await change_switch_settings(
+        **{
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+    assert settings.color_temp_fixed_descent_end == datetime.time(23, 0)
+
+    # unrelated changes keep the times ("current" defaults)
+    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 80})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+
+    # an incoherent pair is rejected and leaves the settings untouched
+    for bad in (
+        {CONF_COLOR_TEMP_FIXED_DESCENT_END: "21:00:00"},  # no descent
+        {CONF_COLOR_TEMP_FIXED_PLATEAU_END: "11:00:00"},  # not an evening time
+        {CONF_COLOR_TEMP_FIXED_PLATEAU_END: "nonsense"},
+    ):
+        with pytest.raises((ServiceValidationError, voluptuous.error.Invalid)):
+            await change_switch_settings(**bad)
+        settings = switch._sun_light_settings
+        assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+        assert settings.color_temp_fixed_descent_end == datetime.time(23, 0)
+
+    # one time alone is rejected
+    with pytest.raises(ServiceValidationError):
+        await change_switch_settings(
+            **{CONF_COLOR_TEMP_FIXED_DESCENT_END: "None"},
+        )
+
+    # both can be cleared together
+    await change_switch_settings(
+        **{
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "None",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "None",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end is None
+    assert settings.color_temp_fixed_descent_end is None
+
+    await change_switch_settings(
+        **{
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+        },
+    )
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_end is None
+    assert switch._sun_light_settings.color_temp_fixed_descent_end is None
+
+
+async def test_fixed_evening_from_configuration(hass):
+    """The options from the config entry reach the sun light settings."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+    assert settings.color_temp_fixed_descent_end == datetime.time(23, 0)
+    # the brightness is not influenced by the evening times
+    default = switch._sun_light_settings.__class__(
+        **{
+            **{
+                f.name: getattr(settings, f.name)
+                for f in settings.__dataclass_fields__.values()
+            },
+            "color_temp_fixed_plateau_end": None,
+            "color_temp_fixed_descent_end": None,
+        },
+    )
+    now = dt_util.utcnow()
+    assert (
+        settings.brightness_and_color(now, False)["brightness_pct"]
+        == default.brightness_and_color(now, False)["brightness_pct"]
+    )
+
+
+async def test_fixed_evening_incoherent_stored_configuration_is_ignored(
+    hass,
+    caplog,
+):
+    """A hand edited stored pair does not break the setup: it is ignored and logged."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "21:00:00",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end is None
+    assert settings.color_temp_fixed_descent_end is None
+    assert "ignoring the incoherent fixed evening color temperature" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("plateau_end", "descent_end"),
+    [("21:00:00", None), ("21:00:00", "21:00:00"), ("08:00:00", "10:00:00")],
+)
+def test_fixed_evening_yaml_validation(plateau_end, descent_end):
+    """Incoherent pairs are rejected by the YAML schema."""
+    from homeassistant.components.adaptive_lighting.const import _DOMAIN_SCHEMA
+
+    config = {CONF_COLOR_TEMP_FIXED_PLATEAU_END: plateau_end}
+    if descent_end is not None:
+        config[CONF_COLOR_TEMP_FIXED_DESCENT_END] = descent_end
+    with pytest.raises(voluptuous.error.Invalid):
+        _DOMAIN_SCHEMA(config)
 
 
 @pytest.mark.parametrize("target", ["entity", "area", "device", "all"])
