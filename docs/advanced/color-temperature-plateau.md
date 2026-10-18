@@ -18,7 +18,7 @@ By default the color temperature follows the sun position: it rises from `min_co
 The ramp is the same curve as without a plateau, but compressed into the time between sunrise (or sunset) and the start (or end) of the plateau. The color temperature is therefore continuous, has no jump at the edge of the plateau, and still equals `min_color_temp` exactly at the (offset) sunrise and sunset.
 
 - A plateau is measured from the same "noon" as the rest of the integration: solar noon, or the middle between sunrise and sunset when `sunrise_time`/`sunset_time` (or their min/max variants) are set. Sunrise and sunset offsets move the far end of the ramp; without fixed times, the anchor stays at solar noon.
-- Each plateau is limited to 12 hours (43200 seconds) and to 90% of the time between noon and sunrise/sunset, so that a ramp of at least 10% of that time always remains. Larger values are clamped, never an error at runtime.
+- Configuration accepts durations from 0 to 12 hours (43200 seconds); values outside that range are rejected. At runtime, each plateau is further limited to 90% of the time between noon and sunrise/sunset, so that a ramp of at least 10% of that time always remains.
 - Only the color temperature is affected. The brightness, the sleep mode, and the color after sunset (including `adapt_until_sleep`) are unchanged.
 
 ## Example
