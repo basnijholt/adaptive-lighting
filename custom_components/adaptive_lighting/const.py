@@ -206,6 +206,28 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
     "the brightness after/before sunrise/sunset. 📈📉."
 )
 
+CONF_COLOR_TEMP_PLATEAU_MORNING, DEFAULT_COLOR_TEMP_PLATEAU_MORNING = (
+    "color_temp_plateau_morning",
+    0,
+)
+DOCS[CONF_COLOR_TEMP_PLATEAU_MORNING] = (
+    "The duration in seconds before solar noon during which the color temperature "
+    "stays at `max_color_temp` instead of only reaching it at noon. The ramp from "
+    "`min_color_temp` at sunrise to `max_color_temp` is compressed accordingly. "
+    "`0` keeps the default curve. Only affects the morning. 🌤️"
+)
+CONF_COLOR_TEMP_PLATEAU_EVENING, DEFAULT_COLOR_TEMP_PLATEAU_EVENING = (
+    "color_temp_plateau_evening",
+    0,
+)
+DOCS[CONF_COLOR_TEMP_PLATEAU_EVENING] = (
+    "The duration in seconds after solar noon during which the color temperature "
+    "stays at `max_color_temp` before ramping down to `min_color_temp` at sunset. "
+    "`0` keeps the default curve. Only affects the evening. 🌇"
+)
+# Each side of the plateau is limited to half a day.
+MAX_COLOR_TEMP_PLATEAU = 12 * 60 * 60
+
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
     "Pause adaptation of individual lights and hand over (manual) control to other sources that "
@@ -411,6 +433,16 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
+    (
+        CONF_COLOR_TEMP_PLATEAU_MORNING,
+        DEFAULT_COLOR_TEMP_PLATEAU_MORNING,
+        int_between(0, MAX_COLOR_TEMP_PLATEAU),
+    ),
+    (
+        CONF_COLOR_TEMP_PLATEAU_EVENING,
+        DEFAULT_COLOR_TEMP_PLATEAU_EVENING,
+        int_between(0, MAX_COLOR_TEMP_PLATEAU),
+    ),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,
@@ -467,6 +499,11 @@ def timedelta_as_int(value: timedelta) -> float:
     return value.total_seconds()
 
 
+_PLATEAU_PERIOD = vol.All(
+    cv.time_period,
+    vol.Range(min=timedelta(0), max=timedelta(seconds=MAX_COLOR_TEMP_PLATEAU)),
+)
+
 # conf_option: (validator, coerce) tuples
 # these validators cannot be serialized but can be serialized when coerced by coerce.
 EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
@@ -481,6 +518,8 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_TEMP_PLATEAU_MORNING: (_PLATEAU_PERIOD, timedelta_as_int),
+    CONF_COLOR_TEMP_PLATEAU_EVENING: (_PLATEAU_PERIOD, timedelta_as_int),
 }
 
 

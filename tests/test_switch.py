@@ -37,6 +37,8 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COLOR_TEMP_PLATEAU_EVENING,
+    CONF_COLOR_TEMP_PLATEAU_MORNING,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
@@ -2902,6 +2904,72 @@ async def test_change_switch_settings_service(hass):
     # testing with "configuration" should revert back to 2500
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
+
+
+async def test_color_temp_plateau_defaults_and_service(hass):
+    """The plateau options default to 0 and can be changed at runtime."""
+    switch, _ = await setup_lights_and_switch(hass)
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(0)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(0)
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: switch.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await change_switch_settings(**{CONF_COLOR_TEMP_PLATEAU_EVENING: 7200})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_evening == datetime.timedelta(hours=2)
+    # the other side is untouched
+    assert settings.color_temp_plateau_morning == datetime.timedelta(0)
+
+    await change_switch_settings(**{CONF_COLOR_TEMP_PLATEAU_MORNING: 3600})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(hours=1)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(hours=2)
+
+    for key in (CONF_COLOR_TEMP_PLATEAU_MORNING, CONF_COLOR_TEMP_PLATEAU_EVENING):
+        for invalid in (-1, 43201):
+            with pytest.raises(voluptuous.error.MultipleInvalid):
+                await change_switch_settings(**{key: invalid})
+
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(0)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(0)
+
+
+async def test_color_temp_plateau_from_configuration(hass):
+    """The options from the config entry reach the sun light settings."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_COLOR_TEMP_PLATEAU_MORNING: 1800,
+            CONF_COLOR_TEMP_PLATEAU_EVENING: datetime.timedelta(hours=3),
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(minutes=30)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(hours=3)
+
+
+@pytest.mark.parametrize("invalid", [-1, 43201])
+@pytest.mark.parametrize(
+    "key",
+    [CONF_COLOR_TEMP_PLATEAU_MORNING, CONF_COLOR_TEMP_PLATEAU_EVENING],
+)
+def test_color_temp_plateau_yaml_validation(invalid, key):
+    """Out of range plateaus are rejected in the YAML schema."""
+    from homeassistant.components.adaptive_lighting.const import _DOMAIN_SCHEMA
+
+    assert _DOMAIN_SCHEMA({key: 3600})[key] == 3600
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        _DOMAIN_SCHEMA({key: invalid})
 
 
 @pytest.mark.parametrize("target", ["entity", "area", "device", "all"])

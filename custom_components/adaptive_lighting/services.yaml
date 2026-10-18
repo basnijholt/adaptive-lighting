@@ -205,6 +205,24 @@ change_switch_settings:
         number:
           min: -86400
           max: 86300
+    color_temp_plateau_morning:
+      description: The duration in seconds before solar noon during which the color temperature stays at `max_color_temp` instead of only reaching it at noon. The ramp from `min_color_temp` at sunrise to `max_color_temp` is compressed accordingly. `0` keeps the default curve. Only affects the morning. 🌤️
+      required: false
+      example: ''
+      selector:
+        number:
+          min: 0
+          max: 43200
+          unit_of_measurement: s
+    color_temp_plateau_evening:
+      description: The duration in seconds after solar noon during which the color temperature stays at `max_color_temp` before ramping down to `min_color_temp` at sunset. `0` keeps the default curve. Only affects the evening. 🌇
+      required: false
+      example: ''
+      selector:
+        number:
+          min: 0
+          max: 43200
+          unit_of_measurement: s
     sunset_time:
       description: Set a fixed time (HH:MM:SS) for sunset. 🌇
       example: ''

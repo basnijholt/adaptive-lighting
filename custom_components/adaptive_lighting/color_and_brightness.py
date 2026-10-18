@@ -41,6 +41,10 @@ _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 _POLAR_SUN_EVENT_OFFSET = timedelta(minutes=30)
 _POLAR_SUN_EVENT_EPSILON = timedelta(seconds=1)
 
+# The color temperature plateau is limited to this fraction of the time between
+# solar noon and sunrise/sunset, such that the ramp never collapses.
+_PLATEAU_MAX_FRACTION = 0.9
+
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
 
@@ -243,15 +247,46 @@ class SunEvents:
         i_now = bisect.bisect([ts for _, ts in events], dt.timestamp())
         return events[i_now - 1 : i_now + 1]
 
-    def sun_position(self, dt: datetime.datetime) -> float:
-        """Calculate the position of the sun, between [-1, 1]."""
+    def sun_position(
+        self,
+        dt: datetime.datetime,
+        plateau_morning: datetime.timedelta = datetime.timedelta(),
+        plateau_evening: datetime.timedelta = datetime.timedelta(),
+    ) -> float:
+        """Calculate the position of the sun, between [-1, 1].
+
+        With a non-zero `plateau_morning` (`plateau_evening`) the position stays
+        at its maximum of 1 for that long before (after) solar noon, and the
+        parabola between sunrise (sunset) and the end of the plateau is
+        compressed to still start (end) at 0 at sunrise (sunset). This is a
+        monotonic and continuous remapping of the time axis that only applies
+        to the part of the day where the sun is up; the position below the
+        horizon is never changed. With both plateaus zero this is the
+        unmodified position.
+        """
         target_ts = dt.timestamp()
-        (_, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
+        (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
         h, x = (
             (prev_ts, next_ts)
             if next_event in (SunEvent.SUNSET, SunEvent.SUNRISE)
             else (next_ts, prev_ts)
         )
+        plateau = None
+        if next_event == SunEvent.NOON and prev_event == SunEvent.SUNRISE:
+            plateau = plateau_morning
+        elif next_event == SunEvent.SUNSET and prev_event == SunEvent.NOON:
+            plateau = plateau_evening
+        if plateau:
+            # `h` is solar noon and `x` the sunrise or sunset bounding this half
+            half_day = abs(h - x)
+            # Always keep part of the half-day for the ramp so that it has a
+            # non-zero duration, which also prevents dividing by zero.
+            hold = min(plateau.total_seconds(), _PLATEAU_MAX_FRACTION * half_day)
+            distance = abs(target_ts - h)
+            if hold > 0 and half_day > 0:
+                if distance <= hold:
+                    return 1.0
+                return 1 - ((distance - hold) / (half_day - hold)) ** 2
         # k = -1 between sunset and sunrise (sun below horizon)
         # k = 1 between sunrise and sunset (sun above horizon)
         k = 1 if next_event in (SunEvent.SUNSET, SunEvent.NOON) else -1
@@ -297,6 +332,8 @@ class SunLightSettings:
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
     brightness_mode: Literal["default", "linear", "tanh"] = "default"
+    color_temp_plateau_morning: datetime.timedelta = datetime.timedelta()
+    color_temp_plateau_evening: datetime.timedelta = datetime.timedelta()
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
@@ -417,6 +454,16 @@ class SunLightSettings:
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
+        # Only the color temperature (not the brightness) has the plateaus.
+        color_sun_position = (
+            self.sun.sun_position(
+                dt,
+                self.color_temp_plateau_morning,
+                self.color_temp_plateau_evening,
+            )
+            if self.color_temp_plateau_morning or self.color_temp_plateau_evening
+            else sun_position
+        )
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
@@ -439,10 +486,10 @@ class SunLightSettings:
                 self.sleep_rgb_color,
                 sun_position,
             )
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(color_sun_position)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(color_sun_position)
             r, g, b = color_temperature_to_rgb(color_temp_kelvin)
             rgb_color = (round(r), round(g), round(b))
         # backwards compatibility for versions < 1.3.1 - see #403
