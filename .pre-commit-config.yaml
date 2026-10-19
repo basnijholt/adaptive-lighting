@@ -14,11 +14,11 @@ repos:
         files: ^README[^/]*\.md$
         args: ["--notitle"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.8
+    rev: v0.17.1
     hooks:
       - id: ruff
         args: ["--fix"]
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 26.5.1
+    rev: 26.10.1
     hooks:
       - id: black
