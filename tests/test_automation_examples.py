@@ -63,7 +63,7 @@ from homeassistant.util import yaml as yaml_util
 
 from tests.common import async_fire_time_changed
 
-from .test_switch import setup_switch
+from .support.adaptive import setup_switch
 
 if TYPE_CHECKING:
     from collections.abc import Callable
