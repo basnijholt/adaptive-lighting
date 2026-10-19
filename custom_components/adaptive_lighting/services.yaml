@@ -235,6 +235,15 @@ change_switch_settings:
       required: false
       selector:
         time: null
+    color_temp_fixed_plateau_kelvin:
+      description: Evening temperature in Kelvin (between `min_color_temp` and `max_color_temp`), reached and held for the last hour before `color_temp_fixed_plateau_end`; the daytime maximum is not capped. Needs both fixed times and is ignored when the plateau end is less than 1 h after solar noon. Applied in steps of 5 K. Unset holds `max_color_temp`. 🌙
+      example: ''
+      required: false
+      selector:
+        number:
+          min: 1000
+          max: 10000
+          unit_of_measurement: K
     sunset_time:
       description: Set a fixed time (HH:MM:SS) for sunset. 🌇
       example: ''

@@ -103,6 +103,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
     CONF_COLOR_TEMP_FIXED_DESCENT_END,
     CONF_COLOR_TEMP_FIXED_PLATEAU_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN,
     CONF_COLOR_TEMP_PLATEAU_EVENING,
     CONF_COLOR_TEMP_PLATEAU_MORNING,
     CONF_DETECT_NON_HA_CHANGES,
@@ -157,6 +158,7 @@ from .const import (
     change_switch_settings_schema,
     replace_none_str,
     validate_fixed_evening,
+    validate_fixed_plateau_kelvin,
 )
 from .hass_utils import setup_service_call_interceptor, target_entities
 from .helpers import (
@@ -630,6 +632,22 @@ def validate(
         )
         data[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = None
         data[CONF_COLOR_TEMP_FIXED_DESCENT_END] = None
+    try:
+        validate_fixed_plateau_kelvin(
+            data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN],
+            data[CONF_COLOR_TEMP_FIXED_PLATEAU_END],
+            data[CONF_COLOR_TEMP_FIXED_DESCENT_END],
+            data[CONF_MIN_COLOR_TEMP],
+            data[CONF_MAX_COLOR_TEMP],
+        )
+    except vol.Invalid:
+        if config_entry is None:  # service call: report it to the caller
+            raise
+        _LOGGER.exception(
+            "%s: ignoring the incoherent fixed evening plateau color temperature",
+            data.get(CONF_NAME),
+        )
+        data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN] = None
     return data
 
 
@@ -1065,6 +1083,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             color_temp_plateau_evening=data[CONF_COLOR_TEMP_PLATEAU_EVENING],
             color_temp_fixed_plateau_end=data[CONF_COLOR_TEMP_FIXED_PLATEAU_END],
             color_temp_fixed_descent_end=data[CONF_COLOR_TEMP_FIXED_DESCENT_END],
+            color_temp_fixed_plateau_kelvin=data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
         )
         _LOGGER.debug(

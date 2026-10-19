@@ -13,12 +13,18 @@ from .const import (  # pylint: disable=unused-import
     BASIC_OPTIONS,
     CONF_COLOR_TEMP_FIXED_DESCENT_END,
     CONF_COLOR_TEMP_FIXED_PLATEAU_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN,
     CONF_LIGHTS,
+    CONF_MAX_COLOR_TEMP,
+    CONF_MIN_COLOR_TEMP,
+    DEFAULT_MAX_COLOR_TEMP,
+    DEFAULT_MIN_COLOR_TEMP,
     DOMAIN,
     EXTRA_VALIDATION,
     NONE_STR,
     VALIDATION_TUPLES,
     validate_fixed_evening,
+    validate_fixed_plateau_kelvin,
 )
 from .switch import validate
 
@@ -134,6 +140,17 @@ def validate_options(user_input: dict[str, Any], errors: dict[str, str]) -> None
         )
     except vol.Invalid:
         _LOGGER.exception("The fixed evening color temperature times are incorrect")
+        errors["base"] = "option_error"
+    try:
+        validate_fixed_plateau_kelvin(
+            user_input.get(CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN),
+            user_input.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
+            user_input.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+            int(user_input.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP)),
+            int(user_input.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP)),
+        )
+    except vol.Invalid:
+        _LOGGER.exception("The fixed evening plateau color temperature is incorrect")
         errors["base"] = "option_error"
 
 

@@ -242,6 +242,14 @@ DOCS[CONF_COLOR_TEMP_FIXED_DESCENT_END] = (
     "May be after midnight but at most 12 hours after the plateau end. Needs "
     "`color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙"
 )
+CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN = "color_temp_fixed_plateau_kelvin"
+DOCS[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN] = (
+    "Evening temperature in Kelvin (between `min_color_temp` and `max_color_temp`), "
+    "reached and held for the last hour before `color_temp_fixed_plateau_end`; the "
+    "daytime maximum is not capped. Needs both fixed times and is ignored when the "
+    "plateau end is less than 1 h after solar noon. Applied in steps of 5 K. "
+    "Unset holds `max_color_temp`. 🌙"
+)
 # The descent from the plateau end to the descent end lasts at most this long.
 MAX_COLOR_TEMP_FIXED_DESCENT = timedelta(hours=12)
 MIN_COLOR_TEMP_FIXED_PLATEAU_END = time(12, 0)
@@ -463,6 +471,7 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_COLOR_TEMP_FIXED_PLATEAU_END, NONE_STR, str),
     (CONF_COLOR_TEMP_FIXED_DESCENT_END, NONE_STR, str),
+    (CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN, NONE_STR, str),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,
@@ -542,6 +551,7 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_COLOR_TEMP_PLATEAU_EVENING: (_PLATEAU_PERIOD, timedelta_as_int),
     CONF_COLOR_TEMP_FIXED_PLATEAU_END: (cv.time, str),
     CONF_COLOR_TEMP_FIXED_DESCENT_END: (cv.time, str),
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: (int_between(1000, 10000), int),
 }
 
 
@@ -588,6 +598,37 @@ def validate_fixed_evening(plateau_end: Any, descent_end: Any) -> None:
         raise vol.Invalid(msg)
 
 
+def validate_fixed_plateau_kelvin(
+    kelvin: Any,
+    plateau_end: Any,
+    descent_end: Any,
+    min_color_temp: int,
+    max_color_temp: int,
+) -> None:
+    """Check the custom evening plateau temperature, unset being `None`/"None".
+
+    It needs the fixed evening times and must lie between the minimum and
+    maximum color temperature. Raises `vol.Invalid` otherwise.
+    """
+    if kelvin in (None, NONE_STR):
+        return
+    kelvin = int_between(1000, 10000)(kelvin)
+    if plateau_end in (None, NONE_STR) or descent_end in (None, NONE_STR):
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN} needs"
+            f" {CONF_COLOR_TEMP_FIXED_PLATEAU_END} and"
+            f" {CONF_COLOR_TEMP_FIXED_DESCENT_END}"
+        )
+        raise vol.Invalid(msg)
+    if not min_color_temp <= kelvin <= max_color_temp:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN} ({kelvin}) must be between"
+            f" {CONF_MIN_COLOR_TEMP} ({min_color_temp}) and"
+            f" {CONF_MAX_COLOR_TEMP} ({max_color_temp})"
+        )
+        raise vol.Invalid(msg)
+
+
 def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
     """Coerce the validation into a json serializable type."""
     validation, coerce = EXTRA_VALIDATION.get(key, (validation, None))
@@ -611,6 +652,13 @@ def _validate_yaml_fixed_evening(config: dict[str, Any]) -> dict[str, Any]:
     validate_fixed_evening(
         config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
         config.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+    )
+    validate_fixed_plateau_kelvin(
+        config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN),
+        config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
+        config.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+        config.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP),
+        config.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP),
     )
     return config
 
@@ -644,6 +692,13 @@ def apply_service_schema() -> vol.Schema:
     )
 
 
+# The service takes the numbers of its selectors, where the options flow only
+# has a (serializable) string field; the strict check is made by `validate`.
+_SERVICE_VALIDATION: dict[str, Any] = {
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: vol.Any(vol.Coerce(int), str),
+}
+
+
 def change_switch_settings_schema() -> dict[vol.Marker, Any]:
     """Return the schema for the change_switch_settings service."""
     args: dict[vol.Marker, Any] = {
@@ -653,7 +708,7 @@ def change_switch_settings_schema() -> dict[vol.Marker, Any]:
     skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
     for k, _, valid in VALIDATION_TUPLES:
         if k not in skip:
-            args[vol.Optional(k)] = valid
+            args[vol.Optional(k)] = _SERVICE_VALIDATION.get(k, valid)
     return args
 
 

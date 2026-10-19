@@ -44,6 +44,12 @@ _POLAR_SUN_EVENT_EPSILON = timedelta(seconds=1)
 # The color temperature plateau is limited to this fraction of the time between
 # solar noon and sunrise/sunset, such that the ramp never collapses.
 _PLATEAU_MAX_FRACTION = 0.9
+# A custom evening plateau temperature is held at least this long (on a long
+# enough afternoon) before the end of the fixed evening plateau.
+_FIXED_PLATEAU_MIN_HOLD = timedelta(hours=1)
+# ... and it is ignored (the maximum is held instead) on a day where the plateau
+# end is less than this after solar noon, as there is no room to ramp down.
+_FIXED_PLATEAU_MIN_AFTERNOON = timedelta(hours=1)
 
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
@@ -252,6 +258,8 @@ class SunEvents:
         dt: datetime.datetime,
         plateau_end: datetime.time,
         descent_end: datetime.time,
+        plateau_level: float = 1.0,
+        plateau_evening: datetime.timedelta = datetime.timedelta(),
     ) -> float | None:
         """Position in [0, 1] for the fixed evening color temperature, or None.
 
@@ -261,6 +269,17 @@ class SunEvents:
         eases from 1 to 0 (cosine, so without kinks) until the `descent_end`
         following it, and stays 0 until sunset if that is later. After that
         (or before the noon) None is returned and the regular curve applies.
+
+        With a `plateau_level` below 1 (the position of a custom evening
+        temperature, needing `plateau_end` at least 1 hour after solar noon,
+        else it is ignored for that day) the position is
+        `plateau_level` for the last `_FIXED_PLATEAU_MIN_HOLD` before
+        `plateau_end` (less on a short afternoon) instead of 1. It reaches it
+        along the regular afternoon curve (which holds 1 for `plateau_evening`
+        after noon) as soon as that does, otherwise along the same curve sped
+        up so that it arrives in time. Hence the level is reached exactly and
+        held in every season, with no step, and the descent after `plateau_end`
+        starts from the level. Before the ramp nothing is capped.
 
         The window is cut at the next sunrise, so the position reaches 0 no
         later than the morning curve starts at 0, and it is ignored for a day
@@ -298,14 +317,75 @@ class SunEvents:
         end = min(descent_ts, sunrise_ts)
         if end <= start:
             return None
+        # The custom level needs a long enough afternoon to ramp down to it
+        use_level = (
+            plateau_level < 1
+            and start - noon_ts >= _FIXED_PLATEAU_MIN_AFTERNOON.total_seconds()
+        )
         if target_ts <= start:
-            return 1.0
+            return (
+                self._afternoon_to_level(
+                    target_ts,
+                    noon_ts,
+                    sunset_ts,
+                    start,
+                    plateau_level,
+                    plateau_evening,
+                )
+                if use_level
+                else 1.0
+            )
+        level = plateau_level if use_level else 1.0
         if target_ts <= end:
-            return 0.5 * (1 + math.cos(math.pi * (target_ts - start) / (end - start)))
+            return (
+                level
+                * 0.5
+                * (1 + math.cos(math.pi * (target_ts - start) / (end - start)))
+            )
         # Past the descent: hold the minimum until sunset, where the regular
         # curve (which is 0 at sunset) continues, so a descent finishing
         # before sunset does not jump back up.
         return 0.0 if target_ts <= sunset_ts else None
+
+    @staticmethod
+    def _afternoon_to_level(
+        target_ts: float,
+        noon_ts: float,
+        sunset_ts: float,
+        start: float,
+        level: float,
+        plateau_evening: datetime.timedelta,
+    ) -> float:
+        """Position from solar noon to `start`, holding `level` before `start`.
+
+        Follows the regular afternoon parabola (1 for the plateau after noon, then
+        falling to 0 at sunset) until it reaches `level`; when that would be too
+        late to hold `level` for `_FIXED_PLATEAU_MIN_HOLD` before `start`, the
+        same curve is traversed faster (and, if its own plateau is too long,
+        starting later within the afternoon) so that it reaches `level` in time.
+        """
+        half_day = sunset_ts - noon_ts
+        hold = min(plateau_evening.total_seconds(), _PLATEAU_MAX_FRACTION * half_day)
+        ramp = half_day - hold
+        # time at which the regular curve gets to `level`
+        natural_end = noon_ts + hold + ramp * math.sqrt(1 - level)
+        ramp_end = start - min(
+            _FIXED_PLATEAU_MIN_HOLD.total_seconds(),
+            (start - noon_ts) / 2,
+        )
+        ramp_start = noon_ts + hold
+        if natural_end > ramp_end:  # too late: compress the curve into the window
+            ramp_end = max(ramp_end, noon_ts)
+            ramp_start = min(ramp_start, (noon_ts + ramp_end) / 2)
+        else:
+            ramp_end = natural_end
+        if target_ts <= ramp_start:
+            return 1.0
+        if target_ts >= ramp_end:
+            return level
+        progress = (target_ts - ramp_start) / (ramp_end - ramp_start)
+        regular_ts = noon_ts + hold + progress * (natural_end - noon_ts - hold)
+        return 1 - ((regular_ts - noon_ts - hold) / ramp) ** 2
 
     def sun_position(
         self,
@@ -396,6 +476,7 @@ class SunLightSettings:
     color_temp_plateau_evening: datetime.timedelta = datetime.timedelta()
     color_temp_fixed_plateau_end: datetime.time | None = None
     color_temp_fixed_descent_end: datetime.time | None = None
+    color_temp_fixed_plateau_kelvin: int | None = None
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
@@ -494,6 +575,14 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
+    def _fixed_plateau_level(self) -> float:
+        """Position in [0, 1] of the custom evening temperature (1 if unset)."""
+        kelvin = self.color_temp_fixed_plateau_kelvin
+        delta = self.max_color_temp - self.min_color_temp
+        if kelvin is None or delta <= 0:
+            return 1.0
+        return min(max((kelvin - self.min_color_temp) / delta, 0.0), 1.0)
+
     def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""
         if sun_position > 0:
@@ -534,6 +623,8 @@ class SunLightSettings:
                 dt,
                 self.color_temp_fixed_plateau_end,
                 self.color_temp_fixed_descent_end,
+                self._fixed_plateau_level(),
+                self.color_temp_plateau_evening,
             )
             if fixed_position is not None:
                 color_sun_position = fixed_position
