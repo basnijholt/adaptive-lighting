@@ -50,6 +50,7 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
+    STATE_UNAVAILABLE,
 )
 from homeassistant.core import (
     CALLBACK_TYPE,
@@ -1532,13 +1533,14 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
-    async def _update_attrs_and_maybe_adapt_lights(
+    async def _update_attrs_and_maybe_adapt_lights(  # noqa: PLR0912
         self,
         *,
         context: Context,
         lights: list[str] | None = None,
         transition: int | None = None,
         force: bool = False,
+        recovery_event: Event[EventStateChangedData] | None = None,
     ) -> None:
         assert context is not None
         _LOGGER.debug(
@@ -1613,6 +1615,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 context,
             )
 
+            # Polling may yield before a cancellable adaptation task exists.
+            if recovery_event is not None and not self._recovery_is_current(
+                light,
+                recovery_event,
+            ):
+                continue
+
             # Performance optimization: Skip adaptation task if all attributes are
             # manually controlled and the task wouldn't actually do anything.
             if self.manager.get_adaption_control_attributes(self, light).has_none():
@@ -1639,6 +1648,45 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             tasks.append(task)
         if tasks:
             await asyncio.gather(*tasks)
+
+    def _recovery_is_current(
+        self,
+        entity_id: str,
+        event: Event[EventStateChangedData],
+    ) -> bool:
+        """Reject superseded reconnects and current off intent."""
+        current = self.hass.states.get(entity_id)
+        recovered = event.data["new_state"]
+        return (
+            not self._removed
+            and self.is_on
+            and not self._only_once
+            and entity_id in self.lights
+            and current is not None
+            and current.state == STATE_ON
+            and recovered is not None
+            and current.last_changed == recovered.last_changed
+            and not self.manager.recovery_is_during_turn_off(entity_id)
+        )
+
+    async def _respond_to_recovery_event(
+        self,
+        entity_id: str,
+        event: Event[EventStateChangedData],
+    ) -> None:
+        """Resume eligible adaptation without starting a new turn-on cycle."""
+        if self._only_once:
+            return
+        if self._adapt_delay > 0:
+            await asyncio.sleep(self._adapt_delay)
+        if not self._recovery_is_current(entity_id, event):
+            return
+        await self._update_attrs_and_maybe_adapt_lights(
+            context=self.create_context("recovery", parent=event.context),
+            lights=[entity_id],
+            transition=self.initial_transition,
+            recovery_event=event,
+        )
 
     async def _respond_to_off_to_on_event(
         self,
@@ -1711,8 +1759,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if self._adapt_delay > 0:
             await asyncio.sleep(self._adapt_delay)
 
-        # Runtime settings may retire this profile's target while the event waits.
-        if self._removed or entity_id not in self.lights:
+        # Runtime settings may disable the profile or retire its target while waiting.
+        if self._removed or not self.is_on or entity_id not in self.lights:
             return
 
         await self._update_attrs_and_maybe_adapt_lights(
@@ -2780,6 +2828,7 @@ class AdaptiveLightingManager:
             if old_state is not None and old_state.state == STATE_OFF
             else None
         )
+        old_unavailable = old_state is not None and old_state.state == STATE_UNAVAILABLE
         if new_on:
             _LOGGER.debug(
                 "Detected a '%s' 'state_changed' event: '%s' with context.id='%s'",
@@ -2843,8 +2892,17 @@ class AdaptiveLightingManager:
                 entity_id,
                 event.context.id,
             )
+        elif old_unavailable and new_on:
+            if self.is_proactively_adapting(event.context.id):
+                return
+            for switch in _switches_with_lights(
+                self.hass,
+                [entity_id],
+                expand_light_groups=False,
+            ):
+                if switch.is_on:
+                    await switch._respond_to_recovery_event(entity_id, event)
         elif old_off and new_on:
-            # Tracks 'off' → 'on' state changes
             self.off_to_on_event[entity_id] = event
             _LOGGER.debug(
                 "Detected an 'off' → 'on' event for '%s' with context.id='%s'",
@@ -2884,6 +2942,25 @@ class AdaptiveLightingManager:
                         entity_id,
                         event,
                     )
+
+    def recovery_is_during_turn_off(self, entity_id: str) -> bool:
+        """Respect an active fade, regardless of the reconnect's context."""
+        turn_off = self.turn_off_event.get(entity_id)
+        if turn_off is None:
+            return False
+        transition = _turn_off_transition(turn_off)
+        elapsed = (dt_util.utcnow() - turn_off.time_fired).total_seconds()
+        if not 0 <= elapsed <= max(transition or 0, TURNING_OFF_DELAY):
+            return False
+        targets = [entity_id]
+        state = self.hass.states.get(entity_id)
+        if state is not None and _is_light_group(state):
+            targets.extend(state.attributes[ATTR_ENTITY_ID])
+        return not any(
+            (turn_on := self.turn_on_event.get(target)) is not None
+            and turn_on.time_fired > turn_off.time_fired
+            for target in targets
+        )
 
     async def update_manually_controlled_from_event(
         self,
