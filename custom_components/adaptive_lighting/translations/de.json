@@ -41,23 +41,70 @@
           "interval": "Häufigkeit der Lichtanpassung in Sekunden. 🔄",
           "transition": "Dauer des Übergangs beim Lichtwechsel in Sekunden. 🕑",
           "sleep_brightness": "Helligkeit der Lichter im Schlafmodus in Prozent. 😴",
-          "sleep_color_temp": "Farbtemperatur im Schlafmodus in Kelvin (wird verwendet, wenn `sleep_rgb_or_color_temp` `color_temp` ist) . 😴"
+          "sleep_color_temp": "Farbtemperatur im Schlafmodus in Kelvin (wird verwendet, wenn `sleep_rgb_or_color_temp` `color_temp` ist) . 😴",
+          "min_brightness": "min_brightness: Minimale Helligkeit in Prozent. 💡",
+          "max_brightness": "max_brightness: Maximale Helligkeit in Prozent. 💡",
+          "min_color_temp": "min_color_temp: Wärmste Farbtemperatur in Kelvin. 🔥",
+          "max_color_temp": "max_color_temp: Kälteste Farbtemperatur in Kelvin. ❄️"
         },
         "sections": {
-          "advanced": {
+          "sleep": {
+            "name": "Schlafmodus",
             "data": {
-              "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt",
-              "prefer_rgb_color": "prefer_rgb_color: Ob die RGB-Farbanpassung der Farbtemperaturanpassung vorgezogen werden soll, wenn möglich. 🌈",
               "sleep_rgb_or_color_temp": "sleep_rgb_or_color_temp, nutze 'rgb_color' oder 'color_temp'",
               "sleep_rgb_color": "sleep_rgb_color, in RGB",
-              "sleep_transition": "sleep_transition: Wenn 'sleep_state' sich ändert. (Sekunden)",
-              "transition_until_sleep": "transition_until_sleep: Wenn diese Option aktiviert ist, behandelt die adaptive Beleuchtung die Schlafeinstellungen als Minimum und geht nach Sonnenuntergang zu diesen Werten über. 🌙",
+              "sleep_transition": "sleep_transition: Wenn 'sleep_state' sich ändert. (Sekunden)"
+            },
+            "data_description": {
+              "sleep_rgb_or_color_temp": "Verwende entweder `rgb_color` oder `color_temp` im Schlafmodus. 🌙",
+              "sleep_rgb_color": "RGB-Farbe im Schlafmodus (wird verwendet, wenn `sleep_rgb_or_color_temp` `rgb_color` ist). 🌈",
+              "sleep_transition": "Dauer des Übergangs, wenn der \"Schlafmodus\" umgeschaltet wird, in Sekunden. 😴"
+            }
+          },
+          "sunrise": {
+            "name": "Sonnenaufgang",
+            "data": {
               "sunrise_time": "sunrise_time, Sonnenaufgangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenaufgangs an deiner Position verwendet)",
               "max_sunrise_time": "max_sunrise_time: Manuelles Überschreiben der max. sunrise_time. Falls 'None', wird die tatsächliche sunrise_time an deiner Position verwendet (HH:MM:SS)",
-              "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- Sekunden",
+              "sunrise_offset": "sunrise_offset, Sonnenaufgang Verschiebung in +/- Sekunden"
+            },
+            "data_description": {
+              "sunrise_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenaufgang ein. 🌅",
+              "min_sunrise_time": "Lege die früheste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen späteren Sonnenaufgang zu ermöglichen. 🌅",
+              "max_sunrise_time": "Lege die späteste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen früheren Sonnenaufgang zu ermöglichen. 🌅",
+              "sunrise_offset": "Anpassung der Sonnenaufgangszeit mit positivem oder negativem Versatz in Sekunden. ⏰"
+            }
+          },
+          "sunset": {
+            "name": "Sonnenuntergang",
+            "data": {
               "sunset_time": "sunset_time, Sonnenuntergangszeit in 'HH:MM:SS' Format (wenn 'None' wird die aktuelle Zeit des Sonnenuntergangs an deiner Position verwendet)",
               "min_sunset_time": "min_sunset_time: Manuelles Überschreiben der min. sunset_time. Falls 'None', wird die tatsächliche sunset_time an deiner Position verwendet (HH:MM:SS)",
-              "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- Sekunden",
+              "sunset_offset": "sunset_offset, Sonnenuntergang Verschiebung in +/- Sekunden"
+            },
+            "data_description": {
+              "sunset_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenuntergang ein. 🌇",
+              "min_sunset_time": "Lege die früheste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um spätere Sonnenuntergänge zu ermöglichen. 🌇",
+              "max_sunset_time": "Lege die späteste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um frühere Sonnenuntergänge zu ermöglichen. 🌇",
+              "sunset_offset": "Anpassung der Sonnenuntergangszeit mit positivem oder negativem Versatz in Sekunden. ⏰"
+            }
+          },
+          "transition": {
+            "name": "Übergang",
+            "data": {
+              "initial_transition": "initial_transition, wenn Lichter von 'off' zu 'on' wechseln oder wenn 'sleep_state' wechselt"
+            },
+            "data_description": {
+              "initial_transition": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️",
+              "brightness_mode": "Helligkeitsmodus, der verwendet werden soll. Mögliche Werte sind `default`, `linear` und `tanh` (verwendet `brightness_mode_time_dark` und `brightness_mode_time_light`). 📈",
+              "brightness_mode_time_dark": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit vor/nach Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉.",
+              "brightness_mode_time_light": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit nach/vor Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉."
+            }
+          },
+          "misc": {
+            "name": "Erweitert",
+            "data": {
+              "prefer_rgb_color": "prefer_rgb_color: Ob die RGB-Farbanpassung der Farbtemperaturanpassung vorgezogen werden soll, wenn möglich. 🌈",
               "take_over_control": "take_over_control: Deaktiviere die adaptive Beleuchtung, wenn eine andere Quelle `light.turn_on` aufruft, während die Beleuchtung eingeschaltet ist und angepasst wird. Beachte, dass dies `homeassistant.update_entity` jedes `Intervall` aufruft! 🔒",
               "detect_non_ha_changes": "detect_non_ha_changes: Erkennt und stoppt Anpassungen für nicht-`light.turn_on`-Zustandsänderungen. Benötigt, dass `take_over_control` aktiviert ist. 🕵️ Vorsicht: ⚠️ Einige Lichter können fälschlicherweise einen 'an'-Zustand anzeigen, was dazu führen kann, dass Lichter unerwartet eingeschaltet werden. Deaktiviere diese Funktion, wenn solche Probleme auftreten.",
               "only_once": "only_once: Lichter nur einmalig anpassen, wenn sie eingeschaltet werden (`true`) oder sie immer wieder anpassen (`false`). 🔄",
@@ -72,21 +119,6 @@
               "expand_light_groups": "expand_light_groups: Lichtgruppen auf einzelne Mitgliedsentitäten erweitern (`true`) oder die Gruppenentität direkt steuern (`false`)."
             },
             "data_description": {
-              "initial_transition": "Dauer des ersten Übergangs, wenn das Licht von `off` auf `on` schaltet, in Sekunden. ⏲️",
-              "sleep_rgb_or_color_temp": "Verwende entweder `rgb_color` oder `color_temp` im Schlafmodus. 🌙",
-              "sleep_rgb_color": "RGB-Farbe im Schlafmodus (wird verwendet, wenn `sleep_rgb_or_color_temp` `rgb_color` ist). 🌈",
-              "sleep_transition": "Dauer des Übergangs, wenn der \"Schlafmodus\" umgeschaltet wird, in Sekunden. 😴",
-              "sunrise_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenaufgang ein. 🌅",
-              "min_sunrise_time": "Lege die früheste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen späteren Sonnenaufgang zu ermöglichen. 🌅",
-              "max_sunrise_time": "Lege die späteste virtuelle Sonnenaufgangszeit (HH:MM:SS) fest, um einen früheren Sonnenaufgang zu ermöglichen. 🌅",
-              "sunrise_offset": "Anpassung der Sonnenaufgangszeit mit positivem oder negativem Versatz in Sekunden. ⏰",
-              "sunset_time": "Stelle eine feste Zeit (HH:MM:SS) für den Sonnenuntergang ein. 🌇",
-              "min_sunset_time": "Lege die früheste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um spätere Sonnenuntergänge zu ermöglichen. 🌇",
-              "max_sunset_time": "Lege die späteste virtuelle Sonnenuntergangszeit (HH:MM:SS) fest, um frühere Sonnenuntergänge zu ermöglichen. 🌇",
-              "sunset_offset": "Anpassung der Sonnenuntergangszeit mit positivem oder negativem Versatz in Sekunden. ⏰",
-              "brightness_mode": "Helligkeitsmodus, der verwendet werden soll. Mögliche Werte sind `default`, `linear` und `tanh` (verwendet `brightness_mode_time_dark` und `brightness_mode_time_light`). 📈",
-              "brightness_mode_time_dark": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit vor/nach Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉.",
-              "brightness_mode_time_light": "(Wird ignoriert, wenn `brightness_mode='default'`) Die Dauer in Sekunden, um die Helligkeit nach/vor Sonnenaufgang/Sonnenuntergang hoch/runter zu fahren. 📈📉.",
               "autoreset_control_seconds": "Setzt die manuelle Steuerung nach einer bestimmten Anzahl von Sekunden automatisch zurück. Zum Deaktivieren auf 0 setzen. ⏲️",
               "send_split_delay": "Verzögerung (ms) zwischen `separate_turn_on_commands` für Leuchten, die keine gleichzeitige Einstellung von Helligkeit und Farbe unterstützen. ⏲️",
               "adapt_delay": "Wartezeit (Sekunden) zwischen dem Einschalten des Lichts und der Anwendung der adaptiven Beleuchtung. Könnte helfen, Flackern zu vermeiden. ⏲️",
