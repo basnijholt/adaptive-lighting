@@ -547,3 +547,409 @@ def test_brightness_and_color_on_polar_days(date):
     at_midnight = settings.brightness_and_color(midnight, is_sleep=False)
     assert at_midnight["brightness_pct"] == 30
     assert at_midnight["color_temp_kelvin"] == 2000
+
+
+# --- Color temperature plateau --------------------------------------------
+
+PLATEAU_DAY = dt.date(2022, 6, 1)
+H = dt.timedelta(hours=1)
+
+
+def _plateau_settings(
+    morning=dt.timedelta(),
+    evening=dt.timedelta(),
+    *,
+    sunset_offset=dt.timedelta(),
+    sunrise_offset=dt.timedelta(),
+    adapt_until_sleep=False,
+    brightness_mode="default",
+    sleep_rgb_or_color_temp="color_temp",
+    min_color_temp=2700,
+    max_color_temp=4000,
+):
+    """Settings with fixed sunrise 06:00 and sunset 18:00 UTC (noon is 12:00)."""
+    return SunLightSettings(
+        name="test",
+        astral_observer=location.observer,
+        adapt_until_sleep=adapt_until_sleep,
+        max_brightness=100,
+        max_color_temp=max_color_temp,
+        min_brightness=30,
+        min_color_temp=min_color_temp,
+        sleep_brightness=1,
+        sleep_rgb_or_color_temp=sleep_rgb_or_color_temp,
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=dt.time(6, 0),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=dt.time(18, 0),
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=30),
+        brightness_mode_time_light=dt.timedelta(minutes=30),
+        brightness_mode=brightness_mode,
+        sunrise_offset=sunrise_offset,
+        sunset_offset=sunset_offset,
+        color_temp_plateau_morning=morning,
+        color_temp_plateau_evening=evening,
+        timezone=dt.UTC,
+    )
+
+
+def _at(hour, minute=0, second=0):
+    return dt.datetime.combine(PLATEAU_DAY, dt.time(hour, minute, second), dt.UTC)
+
+
+def _kelvin(settings, when, is_sleep=False):
+    return settings.brightness_and_color(when, is_sleep)["color_temp_kelvin"]
+
+
+def _day_grid(step_minutes=7):
+    start = _at(0)
+    return [start + dt.timedelta(minutes=m) for m in range(0, 24 * 60, step_minutes)]
+
+
+def _reference_sun_position(sun, when):
+    """The original (pre-plateau) formula, kept here as the reference."""
+    target_ts = when.timestamp()
+    (_, prev_ts), (next_event, next_ts) = sun.prev_and_next_events(when)
+    h, x = (
+        (prev_ts, next_ts)
+        if next_event in (SunEvent.SUNSET, SunEvent.SUNRISE)
+        else (next_ts, prev_ts)
+    )
+    k = 1 if next_event in (SunEvent.SUNSET, SunEvent.NOON) else -1
+    return k * (1 - ((target_ts - h) / (h - x)) ** 2)
+
+
+@pytest.mark.parametrize("sunset_offset", [dt.timedelta(), 2 * H, -2 * H])
+@pytest.mark.parametrize("adapt_until_sleep", [True, False])
+def test_plateau_defaults_are_bit_for_bit_identical(sunset_offset, adapt_until_sleep):
+    default = _plateau_settings(
+        sunset_offset=sunset_offset,
+        adapt_until_sleep=adapt_until_sleep,
+    )
+    explicit_zero = _plateau_settings(
+        dt.timedelta(0),
+        dt.timedelta(seconds=0),
+        sunset_offset=sunset_offset,
+        adapt_until_sleep=adapt_until_sleep,
+    )
+    for when in _day_grid():
+        reference = _reference_sun_position(default.sun, when)
+        assert default.sun.sun_position(when) == reference
+        assert default.sun.sun_position(when, dt.timedelta(), dt.timedelta()) == (
+            reference
+        )
+        for is_sleep in (False, True):
+            assert default.brightness_and_color(
+                when,
+                is_sleep,
+            ) == explicit_zero.brightness_and_color(when, is_sleep)
+        assert default.color_temp_kelvin(reference) == _kelvin(default, when)
+
+
+def test_plateau_morning_shape():
+    settings = _plateau_settings(morning=3 * H)
+    assert _kelvin(settings, _at(6)) == 2700  # sunrise: still the minimum
+    assert _kelvin(settings, _at(9)) == 4000  # plateau starts 3h before noon
+    assert _kelvin(settings, _at(9, 0, 1)) == 4000
+    assert _kelvin(settings, _at(10, 30)) == 4000
+    assert _kelvin(settings, _at(12)) == 4000
+    # the ramp is compressed: reaching 4000 earlier than without plateau
+    default = _plateau_settings()
+    assert _kelvin(settings, _at(8)) > _kelvin(default, _at(8))
+    # and is monotonic
+    values = [_kelvin(settings, _at(6) + dt.timedelta(minutes=m)) for m in range(361)]
+    assert values == sorted(values)
+
+
+def test_plateau_evening_shape():
+    settings = _plateau_settings(evening=4 * H)
+    assert _kelvin(settings, _at(12)) == 4000
+    assert _kelvin(settings, _at(16)) == 4000  # plateau ends 4h after noon
+    assert _kelvin(settings, _at(16, 0, 1)) >= 3995
+    assert _kelvin(settings, _at(18)) == 2700  # sunset: the minimum again
+    default = _plateau_settings()
+    assert _kelvin(settings, _at(15)) > _kelvin(default, _at(15))
+    values = [_kelvin(settings, _at(12) + dt.timedelta(minutes=m)) for m in range(361)]
+    assert values == sorted(values, reverse=True)
+
+
+def test_plateau_sides_are_independent():
+    default = _plateau_settings()
+    morning = _plateau_settings(morning=3 * H)
+    evening = _plateau_settings(evening=3 * H)
+    both = _plateau_settings(morning=3 * H, evening=3 * H)
+    noon = _at(12)
+    for when in _day_grid(5):
+        before_noon = when < noon
+        after_noon = when > noon
+        if after_noon:
+            # a morning plateau never changes the evening
+            assert morning.brightness_and_color(
+                when,
+                False,
+            ) == default.brightness_and_color(when, False)
+            assert both.brightness_and_color(when, False) == (
+                evening.brightness_and_color(when, False)
+            )
+        if before_noon:
+            # an evening plateau never changes the morning
+            assert evening.brightness_and_color(
+                when,
+                False,
+            ) == default.brightness_and_color(when, False)
+            assert both.brightness_and_color(when, False) == (
+                morning.brightness_and_color(when, False)
+            )
+
+
+def test_plateau_is_continuous_at_its_boundaries():
+    settings = _plateau_settings(morning=2 * H, evening=2 * H)
+    eps = dt.timedelta(milliseconds=1)
+    for boundary in (_at(10), _at(14)):
+        before = settings.sun.sun_position(boundary - eps, 2 * H, 2 * H)
+        after = settings.sun.sun_position(boundary + eps, 2 * H, 2 * H)
+        assert abs(before - after) < 1e-6
+        assert max(before, after) == pytest.approx(1, abs=1e-6)
+    # sunrise and sunset still map to exactly 0
+    for event in (_at(6), _at(18)):
+        assert settings.sun.sun_position(event, 2 * H, 2 * H) == pytest.approx(
+            0,
+            abs=1e-9,
+        )
+
+
+def test_plateau_never_decreases_color_temp():
+    default = _plateau_settings()
+    plateau = _plateau_settings(morning=5 * H, evening=3 * H)
+    for when in _day_grid(3):
+        assert _kelvin(plateau, when) >= _kelvin(default, when)
+
+
+@pytest.mark.parametrize("plateau", [dt.timedelta(hours=12), dt.timedelta(days=3)])
+def test_plateau_larger_than_the_half_day_is_clamped(plateau):
+    settings = _plateau_settings(plateau, plateau)
+    sun = settings.sun
+    assert _kelvin(settings, _at(6)) == 2700
+    assert _kelvin(settings, _at(18)) == 2700
+    assert _kelvin(settings, _at(12)) == 4000
+    previous = None
+    for when in _day_grid(1):
+        position = sun.sun_position(when, plateau, plateau)
+        assert -1 <= position <= 1
+        if previous is not None and _at(6) <= when <= _at(18):
+            # no jump bigger than what a smooth ramp over 10% of the half-day
+            # (36 minutes) allows between consecutive minutes
+            assert abs(position - previous) < 0.1
+        previous = position
+    # a ramp of 10% of the half-day (36 minutes) remains at both ends
+    assert _kelvin(settings, _at(17, 59)) < 4000
+    assert _kelvin(settings, _at(17, 30)) < 4000
+    assert _kelvin(settings, _at(6, 30)) < 4000
+
+
+def test_plateau_with_a_collapsed_day():
+    # sunrise and sunset only a few seconds apart around noon
+    settings = SunLightSettings(
+        name="test",
+        astral_observer=location.observer,
+        adapt_until_sleep=False,
+        max_brightness=100,
+        max_color_temp=4000,
+        min_brightness=30,
+        min_color_temp=2700,
+        sleep_brightness=1,
+        sleep_rgb_or_color_temp="color_temp",
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=dt.time(11, 59, 58),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=dt.time(12, 0, 2),
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=30),
+        brightness_mode_time_light=dt.timedelta(minutes=30),
+        color_temp_plateau_morning=12 * H,
+        color_temp_plateau_evening=12 * H,
+        timezone=dt.UTC,
+    )
+    for seconds in range(-5, 6):
+        when = _at(12) + dt.timedelta(seconds=seconds)
+        assert 2700 <= _kelvin(settings, when) <= 4000
+    assert _kelvin(settings, _at(12)) == 4000
+    assert _kelvin(settings, _at(3)) == 2700
+
+
+def test_plateau_does_not_touch_the_night_or_sleep():
+    default = _plateau_settings(adapt_until_sleep=True)
+    plateau = _plateau_settings(5 * H, 5 * H, adapt_until_sleep=True)
+    for when in _day_grid(11):
+        if when < _at(6) or when > _at(18):
+            # below the horizon (including the transition to the sleep color)
+            assert plateau.brightness_and_color(when, False) == (
+                default.brightness_and_color(when, False)
+            )
+        # sleep mode ignores the color temperature curve entirely
+        sleep = plateau.brightness_and_color(when, True)
+        assert sleep == default.brightness_and_color(when, True)
+        assert sleep["color_temp_kelvin"] == 1000
+        assert sleep["brightness_pct"] == 1
+
+
+def test_plateau_with_rgb_sleep_color_after_sunset():
+    default = _plateau_settings(
+        adapt_until_sleep=True,
+        sleep_rgb_or_color_temp="rgb_color",
+    )
+    plateau = _plateau_settings(
+        4 * H,
+        4 * H,
+        adapt_until_sleep=True,
+        sleep_rgb_or_color_temp="rgb_color",
+    )
+    for when in (_at(19), _at(22), _at(1), _at(5, 30)):
+        assert plateau.brightness_and_color(when, False) == (
+            default.brightness_and_color(when, False)
+        )
+
+
+@pytest.mark.parametrize("brightness_mode", ["default", "linear", "tanh"])
+def test_plateau_does_not_change_brightness(brightness_mode):
+    default = _plateau_settings(brightness_mode=brightness_mode)
+    plateau = _plateau_settings(
+        5 * H,
+        5 * H,
+        brightness_mode=brightness_mode,
+        adapt_until_sleep=True,
+    )
+    reference = _plateau_settings(
+        brightness_mode=brightness_mode,
+        adapt_until_sleep=True,
+    )
+    for when in _day_grid(9):
+        for is_sleep in (False, True):
+            assert plateau.brightness_pct(when, is_sleep) == (
+                reference.brightness_pct(when, is_sleep)
+            )
+            result = plateau.brightness_and_color(when, is_sleep)
+            ref = reference.brightness_and_color(when, is_sleep)
+            assert result["brightness_pct"] == ref["brightness_pct"]
+            # the (brightness-driving) sun position itself is left untouched
+            assert result["sun_position"] == ref["sun_position"]
+        assert default.brightness_pct(when, False) == reference.brightness_pct(
+            when,
+            False,
+        )
+
+
+def test_plateau_with_sunset_offset_is_anchored_on_noon():
+    # sunrise 06:00 and sunset 18:00 + 2h offset = 20:00, so the (adjusted) noon,
+    # the middle of the two, is 13:00 and the evening ramp spans 13:00 -> 20:00
+    settings = _plateau_settings(evening=4 * H, sunset_offset=2 * H)
+    default = _plateau_settings(sunset_offset=2 * H)
+    assert _kelvin(settings, _at(11)) == _kelvin(default, _at(11))
+    assert _kelvin(settings, _at(13)) == 4000
+    assert _kelvin(settings, _at(17)) == 4000  # plateau ends 4h after noon
+    assert _kelvin(settings, _at(18)) < 4000
+    assert _kelvin(settings, _at(18)) > _kelvin(default, _at(18))
+    assert _kelvin(settings, _at(20)) == 2700  # the offset sunset is respected
+    # the morning is not affected by the sunset offset nor the other way around
+    morning = _plateau_settings(morning=2 * H, sunset_offset=2 * H)
+    assert _kelvin(morning, _at(11)) == 4000
+    assert _kelvin(morning, _at(8)) > _kelvin(default, _at(8))
+    assert _kelvin(morning, _at(14)) == _kelvin(default, _at(14))
+
+
+def test_plateau_with_sunrise_and_sunset_times_and_limits():
+    settings = _plateau_settings(morning=2 * H, evening=2 * H, sunrise_offset=-1 * H)
+    # sunrise is 05:00 and sunset 18:00: noon is their midpoint (11:30)
+    sunrise = settings.sun.sunrise(PLATEAU_DAY)
+    sunset = settings.sun.sunset(PLATEAU_DAY)
+    noon, _ = settings.sun.noon_and_midnight(_at(12))
+    assert noon == sunrise + (sunset - sunrise) / 2
+    assert _kelvin(settings, noon) == 4000
+    assert _kelvin(settings, noon - 2 * H) == 4000
+    assert _kelvin(settings, noon + 2 * H) == 4000
+    assert _kelvin(settings, sunrise) == 2700
+    assert _kelvin(settings, sunset) == 2700
+
+
+def test_plateau_astral_sunrise_and_sunset(tzinfo_and_location):
+    tzinfo, loc = tzinfo_and_location
+    kwargs = {
+        "name": "test",
+        "astral_observer": loc.observer,
+        "adapt_until_sleep": False,
+        "max_brightness": 100,
+        "max_color_temp": 4000,
+        "min_brightness": 30,
+        "min_color_temp": 2700,
+        "sleep_brightness": 1,
+        "sleep_rgb_or_color_temp": "color_temp",
+        "sleep_color_temp": 1000,
+        "sleep_rgb_color": (255, 56, 0),
+        "sunrise_time": None,
+        "min_sunrise_time": None,
+        "max_sunrise_time": None,
+        "sunset_time": None,
+        "min_sunset_time": None,
+        "max_sunset_time": None,
+        "brightness_mode_time_dark": dt.timedelta(minutes=30),
+        "brightness_mode_time_light": dt.timedelta(minutes=30),
+        "sunset_offset": 2 * H,
+        "timezone": tzinfo,
+    }
+    default = SunLightSettings(**kwargs)
+    plateau = SunLightSettings(
+        **kwargs,
+        color_temp_plateau_morning=2 * H,
+        color_temp_plateau_evening=4 * H,
+    )
+    day = dt.datetime(2022, 3, 20, tzinfo=dt.UTC)
+    noon, _ = default.sun.noon_and_midnight(day)
+    assert _kelvin(plateau, noon) == 4000
+    assert _kelvin(plateau, noon - 2 * H) == 4000
+    assert _kelvin(plateau, noon + 4 * H) == 4000
+    assert _kelvin(plateau, default.sun.sunset(day.date())) == 2700
+    assert _kelvin(plateau, default.sun.sunrise(day.date())) == 2700
+
+
+@pytest.mark.parametrize("date", [POLAR_NIGHT_DATE, MIDNIGHT_SUN_DATE])
+def test_plateau_on_polar_days(date):
+    kwargs = {
+        "name": "test",
+        "astral_observer": TROMSO.observer,
+        "adapt_until_sleep": False,
+        "max_brightness": 100,
+        "max_color_temp": 4000,
+        "min_brightness": 30,
+        "min_color_temp": 2700,
+        "sleep_brightness": 1,
+        "sleep_rgb_or_color_temp": "color_temp",
+        "sleep_color_temp": 1000,
+        "sleep_rgb_color": (255, 56, 0),
+        "sunrise_time": None,
+        "min_sunrise_time": None,
+        "max_sunrise_time": None,
+        "sunset_time": None,
+        "min_sunset_time": None,
+        "max_sunset_time": None,
+        "brightness_mode_time_dark": dt.timedelta(hours=1),
+        "brightness_mode_time_light": dt.timedelta(hours=1),
+        "timezone": zoneinfo.ZoneInfo("Europe/Oslo"),
+    }
+    plateau = SunLightSettings(
+        **kwargs,
+        color_temp_plateau_morning=12 * H,
+        color_temp_plateau_evening=12 * H,
+    )
+    start = dt.datetime(date.year, date.month, date.day, tzinfo=dt.UTC)
+    noon, _ = plateau.sun.noon_and_midnight(start)
+    assert _kelvin(plateau, noon) == 4000
+    for minutes in range(0, 24 * 60, 5):
+        when = start + dt.timedelta(minutes=minutes)
+        assert 2700 <= _kelvin(plateau, when) <= 4000

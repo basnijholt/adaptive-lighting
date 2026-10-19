@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 import homeassistant.util.dt as dt_util
 import ulid_transform
+import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP_KELVIN,
@@ -100,6 +101,11 @@ from .const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COLOR_TEMP_FIXED_DESCENT_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN,
+    CONF_COLOR_TEMP_PLATEAU_EVENING,
+    CONF_COLOR_TEMP_PLATEAU_MORNING,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -151,6 +157,8 @@ from .const import (
     TakeOverControlMode,
     change_switch_settings_schema,
     replace_none_str,
+    validate_fixed_evening,
+    validate_fixed_plateau_kelvin,
 )
 from .hass_utils import setup_service_call_interceptor, target_entities
 from .helpers import (
@@ -394,7 +402,11 @@ async def handle_change_switch_settings(
         defaults = None
 
     # deep copy the defaults so we don't modify the original dicts
-    switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
+    try:
+        switch._set_changeable_settings(data=data, defaults=deepcopy(defaults))
+    except vol.Invalid as err:
+        msg = f"adaptive-lighting: Incorrect data provided in service call: {err}"
+        raise ServiceValidationError(msg) from err
     if switch.is_on:
         switch._update_time_interval_listener()
 
@@ -606,6 +618,36 @@ def validate(
         value = data.get(key)
         if value is not None:
             data[key] = validate_value(value)  # Fix the types of the inputs
+    try:
+        validate_fixed_evening(
+            data[CONF_COLOR_TEMP_FIXED_PLATEAU_END],
+            data[CONF_COLOR_TEMP_FIXED_DESCENT_END],
+        )
+    except vol.Invalid:
+        if config_entry is None:  # service call: report it to the caller
+            raise
+        _LOGGER.exception(
+            "%s: ignoring the incoherent fixed evening color temperature times",
+            data.get(CONF_NAME),
+        )
+        data[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = None
+        data[CONF_COLOR_TEMP_FIXED_DESCENT_END] = None
+    try:
+        validate_fixed_plateau_kelvin(
+            data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN],
+            data[CONF_COLOR_TEMP_FIXED_PLATEAU_END],
+            data[CONF_COLOR_TEMP_FIXED_DESCENT_END],
+            data[CONF_MIN_COLOR_TEMP],
+            data[CONF_MAX_COLOR_TEMP],
+        )
+    except vol.Invalid:
+        if config_entry is None:  # service call: report it to the caller
+            raise
+        _LOGGER.exception(
+            "%s: ignoring the incoherent fixed evening plateau color temperature",
+            data.get(CONF_NAME),
+        )
+        data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN] = None
     return data
 
 
@@ -1037,6 +1079,11 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
+            color_temp_plateau_morning=data[CONF_COLOR_TEMP_PLATEAU_MORNING],
+            color_temp_plateau_evening=data[CONF_COLOR_TEMP_PLATEAU_EVENING],
+            color_temp_fixed_plateau_end=data[CONF_COLOR_TEMP_FIXED_PLATEAU_END],
+            color_temp_fixed_descent_end=data[CONF_COLOR_TEMP_FIXED_DESCENT_END],
+            color_temp_fixed_plateau_kelvin=data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
         )
         _LOGGER.debug(

@@ -205,6 +205,45 @@ change_switch_settings:
         number:
           min: -86400
           max: 86300
+    color_temp_plateau_morning:
+      description: The duration in seconds before solar noon during which the color temperature stays at `max_color_temp` instead of only reaching it at noon. The ramp from `min_color_temp` at sunrise to `max_color_temp` is compressed accordingly. `0` keeps the default curve. Only affects the morning. 🌤️
+      required: false
+      example: ''
+      selector:
+        number:
+          min: 0
+          max: 43200
+          unit_of_measurement: s
+    color_temp_plateau_evening:
+      description: The duration in seconds after solar noon during which the color temperature stays at `max_color_temp` before ramping down to `min_color_temp` at sunset. `0` keeps the default curve. Only affects the evening. 🌇
+      required: false
+      example: ''
+      selector:
+        number:
+          min: 0
+          max: 43200
+          unit_of_measurement: s
+    color_temp_fixed_plateau_end:
+      description: Local time (HH:MM:SS, 12:00 or later) until which the color temperature stays at `max_color_temp` in the evening, every day of the year. Needs `color_temp_fixed_descent_end`. Leave unset to keep the default evening curve. Only affects the color temperature. 🌙
+      example: ''
+      required: false
+      selector:
+        time: null
+    color_temp_fixed_descent_end:
+      description: Local time (HH:MM:SS) at which the color temperature has smoothly descended from `max_color_temp` to `min_color_temp`, starting at `color_temp_fixed_plateau_end`. May be after midnight but at most 12 hours after the plateau end. Needs `color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙
+      example: ''
+      required: false
+      selector:
+        time: null
+    color_temp_fixed_plateau_kelvin:
+      description: Evening temperature in Kelvin (between `min_color_temp` and `max_color_temp`), reached and held for the last hour before `color_temp_fixed_plateau_end`; the daytime maximum is not capped. Needs both fixed times and is ignored when the plateau end is less than 1 h after solar noon. Applied in steps of 5 K. Unset holds `max_color_temp`. 🌙
+      example: ''
+      required: false
+      selector:
+        number:
+          min: 1000
+          max: 10000
+          unit_of_measurement: K
     sunset_time:
       description: Set a fixed time (HH:MM:SS) for sunset. 🌇
       example: ''

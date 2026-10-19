@@ -64,6 +64,11 @@
               "brightness_mode": "brightness_mode",
               "brightness_mode_time_dark": "brightness_mode_time_dark",
               "brightness_mode_time_light": "brightness_mode_time_light",
+              "color_temp_plateau_morning": "color_temp_plateau_morning",
+              "color_temp_plateau_evening": "color_temp_plateau_evening",
+              "color_temp_fixed_plateau_end": "color_temp_fixed_plateau_end",
+              "color_temp_fixed_descent_end": "color_temp_fixed_descent_end",
+              "color_temp_fixed_plateau_kelvin": "color_temp_fixed_plateau_kelvin",
               "take_over_control": "take_over_control: Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒",
               "take_over_control_mode": "take_over_control_mode",
               "detect_non_ha_changes": "detect_non_ha_changes: Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an 'on' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.",
@@ -97,6 +102,11 @@
               "brightness_mode": "Brightness mode to use. Possible values are `default`, `linear`, and `tanh` (uses `brightness_mode_time_dark` and `brightness_mode_time_light`). 📈",
               "brightness_mode_time_dark": "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down the brightness before/after sunrise/sunset. 📈📉",
               "brightness_mode_time_light": "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down the brightness after/before sunrise/sunset. 📈📉.",
+              "color_temp_plateau_morning": "The duration in seconds before solar noon during which the color temperature stays at `max_color_temp` instead of only reaching it at noon. The ramp from `min_color_temp` at sunrise to `max_color_temp` is compressed accordingly. `0` keeps the default curve. Only affects the morning. 🌤️",
+              "color_temp_plateau_evening": "The duration in seconds after solar noon during which the color temperature stays at `max_color_temp` before ramping down to `min_color_temp` at sunset. `0` keeps the default curve. Only affects the evening. 🌇",
+              "color_temp_fixed_plateau_end": "Local time (HH:MM:SS, 12:00 or later) until which the color temperature stays at `max_color_temp` in the evening, every day of the year. Needs `color_temp_fixed_descent_end`. Leave unset to keep the default evening curve. Only affects the color temperature. 🌙",
+              "color_temp_fixed_descent_end": "Local time (HH:MM:SS) at which the color temperature has smoothly descended from `max_color_temp` to `min_color_temp`, starting at `color_temp_fixed_plateau_end`. May be after midnight but at most 12 hours after the plateau end. Needs `color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙",
+              "color_temp_fixed_plateau_kelvin": "Evening temperature in Kelvin (between `min_color_temp` and `max_color_temp`), reached and held for the last hour before `color_temp_fixed_plateau_end`; the daytime maximum is not capped. Needs both fixed times and is ignored when the plateau end is less than 1 h after solar noon. Applied in steps of 5 K. Unset holds `max_color_temp`. 🌙",
               "take_over_control_mode": "The adaptation pausing mode when other sources change brightness and/or color of lights. `pause_all` always pauses both brightness and color adaptation. `pause_changed` pauses the adaptation of only the changed attributes and continues adapting unchanged attributes, e.g., continues color adaptation when only brightness was changed.",
               "autoreset_control_seconds": "Automatically reset the manual control after a number of seconds. Set to 0 to disable. ⏲️",
               "send_split_delay": "Delay (ms) between `separate_turn_on_commands` for lights that don't support simultaneous brightness and color setting. ⏲️",
@@ -251,6 +261,26 @@
         "sunset_offset": {
           "description": "Adjust sunset time with a positive or negative offset in seconds. ⏰",
           "name": "sunset_offset"
+        },
+        "color_temp_plateau_morning": {
+          "description": "The duration in seconds before solar noon during which the color temperature stays at `max_color_temp` instead of only reaching it at noon. The ramp from `min_color_temp` at sunrise to `max_color_temp` is compressed accordingly. `0` keeps the default curve. Only affects the morning. 🌤️",
+          "name": "color_temp_plateau_morning"
+        },
+        "color_temp_plateau_evening": {
+          "description": "The duration in seconds after solar noon during which the color temperature stays at `max_color_temp` before ramping down to `min_color_temp` at sunset. `0` keeps the default curve. Only affects the evening. 🌇",
+          "name": "color_temp_plateau_evening"
+        },
+        "color_temp_fixed_plateau_end": {
+          "description": "Local time (HH:MM:SS, 12:00 or later) until which the color temperature stays at `max_color_temp` in the evening, every day of the year. Needs `color_temp_fixed_descent_end`. Leave unset to keep the default evening curve. Only affects the color temperature. 🌙",
+          "name": "color_temp_fixed_plateau_end"
+        },
+        "color_temp_fixed_descent_end": {
+          "description": "Local time (HH:MM:SS) at which the color temperature has smoothly descended from `max_color_temp` to `min_color_temp`, starting at `color_temp_fixed_plateau_end`. May be after midnight but at most 12 hours after the plateau end. Needs `color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙",
+          "name": "color_temp_fixed_descent_end"
+        },
+        "color_temp_fixed_plateau_kelvin": {
+          "description": "Evening temperature in Kelvin (between `min_color_temp` and `max_color_temp`), reached and held for the last hour before `color_temp_fixed_plateau_end`; the daytime maximum is not capped. Needs both fixed times and is ignored when the plateau end is less than 1 h after solar noon. Applied in steps of 5 K. Unset holds `max_color_temp`. 🌙",
+          "name": "color_temp_fixed_plateau_kelvin"
         },
         "sunset_time": {
           "description": "Set a fixed time (HH:MM:SS) for sunset. 🌇",

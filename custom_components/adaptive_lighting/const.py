@@ -1,6 +1,6 @@
 """Constants for the Adaptive Lighting integration."""
 
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from typing import Any
 
@@ -205,6 +205,54 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
     "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down "
     "the brightness after/before sunrise/sunset. 📈📉."
 )
+
+CONF_COLOR_TEMP_PLATEAU_MORNING, DEFAULT_COLOR_TEMP_PLATEAU_MORNING = (
+    "color_temp_plateau_morning",
+    0,
+)
+DOCS[CONF_COLOR_TEMP_PLATEAU_MORNING] = (
+    "The duration in seconds before solar noon during which the color temperature "
+    "stays at `max_color_temp` instead of only reaching it at noon. The ramp from "
+    "`min_color_temp` at sunrise to `max_color_temp` is compressed accordingly. "
+    "`0` keeps the default curve. Only affects the morning. 🌤️"
+)
+CONF_COLOR_TEMP_PLATEAU_EVENING, DEFAULT_COLOR_TEMP_PLATEAU_EVENING = (
+    "color_temp_plateau_evening",
+    0,
+)
+DOCS[CONF_COLOR_TEMP_PLATEAU_EVENING] = (
+    "The duration in seconds after solar noon during which the color temperature "
+    "stays at `max_color_temp` before ramping down to `min_color_temp` at sunset. "
+    "`0` keeps the default curve. Only affects the evening. 🌇"
+)
+# Each side of the plateau is limited to half a day.
+MAX_COLOR_TEMP_PLATEAU = 12 * 60 * 60
+
+CONF_COLOR_TEMP_FIXED_PLATEAU_END = "color_temp_fixed_plateau_end"
+DOCS[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = (
+    "Local time (HH:MM:SS, 12:00 or later) until which the color temperature stays at "
+    "`max_color_temp` in the evening, every day of the year. Needs "
+    "`color_temp_fixed_descent_end`. Leave unset to keep the default evening curve. "
+    "Only affects the color temperature. 🌙"
+)
+CONF_COLOR_TEMP_FIXED_DESCENT_END = "color_temp_fixed_descent_end"
+DOCS[CONF_COLOR_TEMP_FIXED_DESCENT_END] = (
+    "Local time (HH:MM:SS) at which the color temperature has smoothly descended from "
+    "`max_color_temp` to `min_color_temp`, starting at `color_temp_fixed_plateau_end`. "
+    "May be after midnight but at most 12 hours after the plateau end. Needs "
+    "`color_temp_fixed_plateau_end`. Leave unset to keep the default evening curve. 🌙"
+)
+CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN = "color_temp_fixed_plateau_kelvin"
+DOCS[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN] = (
+    "Evening temperature in Kelvin (between `min_color_temp` and `max_color_temp`), "
+    "reached and held for the last hour before `color_temp_fixed_plateau_end`; the "
+    "daytime maximum is not capped. Needs both fixed times and is ignored when the "
+    "plateau end is less than 1 h after solar noon. Applied in steps of 5 K. "
+    "Unset holds `max_color_temp`. 🌙"
+)
+# The descent from the plateau end to the descent end lasts at most this long.
+MAX_COLOR_TEMP_FIXED_DESCENT = timedelta(hours=12)
+MIN_COLOR_TEMP_FIXED_PLATEAU_END = time(12, 0)
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
@@ -411,6 +459,19 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
+    (
+        CONF_COLOR_TEMP_PLATEAU_MORNING,
+        DEFAULT_COLOR_TEMP_PLATEAU_MORNING,
+        int_between(0, MAX_COLOR_TEMP_PLATEAU),
+    ),
+    (
+        CONF_COLOR_TEMP_PLATEAU_EVENING,
+        DEFAULT_COLOR_TEMP_PLATEAU_EVENING,
+        int_between(0, MAX_COLOR_TEMP_PLATEAU),
+    ),
+    (CONF_COLOR_TEMP_FIXED_PLATEAU_END, NONE_STR, str),
+    (CONF_COLOR_TEMP_FIXED_DESCENT_END, NONE_STR, str),
+    (CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN, NONE_STR, str),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,
@@ -467,6 +528,11 @@ def timedelta_as_int(value: timedelta) -> float:
     return value.total_seconds()
 
 
+_PLATEAU_PERIOD = vol.All(
+    cv.time_period,
+    vol.Range(min=timedelta(0), max=timedelta(seconds=MAX_COLOR_TEMP_PLATEAU)),
+)
+
 # conf_option: (validator, coerce) tuples
 # these validators cannot be serialized but can be serialized when coerced by coerce.
 EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
@@ -481,7 +547,86 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_TEMP_PLATEAU_MORNING: (_PLATEAU_PERIOD, timedelta_as_int),
+    CONF_COLOR_TEMP_PLATEAU_EVENING: (_PLATEAU_PERIOD, timedelta_as_int),
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END: (cv.time, str),
+    CONF_COLOR_TEMP_FIXED_DESCENT_END: (cv.time, str),
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: (int_between(1000, 10000), int),
 }
+
+
+def validate_fixed_evening(plateau_end: Any, descent_end: Any) -> None:
+    """Check the pair of fixed evening color temperature times.
+
+    Both are local times of day (strings or `datetime.time`), or unset
+    (`None` or "None"). Raises `vol.Invalid` for an incoherent pair.
+    """
+    plateau_end, descent_end = (
+        None if value in (None, NONE_STR) else cv.time(value)
+        for value in (plateau_end, descent_end)
+    )
+    if plateau_end is None and descent_end is None:
+        return
+    if plateau_end is None or descent_end is None:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_END} and"
+            f" {CONF_COLOR_TEMP_FIXED_DESCENT_END} must be set together"
+        )
+        raise vol.Invalid(msg)
+    if plateau_end < MIN_COLOR_TEMP_FIXED_PLATEAU_END:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_END} must be"
+            f" {MIN_COLOR_TEMP_FIXED_PLATEAU_END:%H:%M} or later (it is an evening time)"
+        )
+        raise vol.Invalid(msg)
+    if plateau_end == descent_end:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_DESCENT_END} must differ from"
+            f" {CONF_COLOR_TEMP_FIXED_PLATEAU_END}"
+        )
+        raise vol.Invalid(msg)
+    # A descent end that is not after the plateau end is on the next day.
+    duration = (
+        datetime.combine(date(2000, 1, 1), descent_end)
+        - datetime.combine(date(2000, 1, 1), plateau_end)
+    ) % timedelta(days=1)
+    if duration > MAX_COLOR_TEMP_FIXED_DESCENT:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_DESCENT_END} must be at most"
+            f" {MAX_COLOR_TEMP_FIXED_DESCENT} after {CONF_COLOR_TEMP_FIXED_PLATEAU_END}"
+        )
+        raise vol.Invalid(msg)
+
+
+def validate_fixed_plateau_kelvin(
+    kelvin: Any,
+    plateau_end: Any,
+    descent_end: Any,
+    min_color_temp: int,
+    max_color_temp: int,
+) -> None:
+    """Check the custom evening plateau temperature, unset being `None`/"None".
+
+    It needs the fixed evening times and must lie between the minimum and
+    maximum color temperature. Raises `vol.Invalid` otherwise.
+    """
+    if kelvin in (None, NONE_STR):
+        return
+    kelvin = int_between(1000, 10000)(kelvin)
+    if plateau_end in (None, NONE_STR) or descent_end in (None, NONE_STR):
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN} needs"
+            f" {CONF_COLOR_TEMP_FIXED_PLATEAU_END} and"
+            f" {CONF_COLOR_TEMP_FIXED_DESCENT_END}"
+        )
+        raise vol.Invalid(msg)
+    if not min_color_temp <= kelvin <= max_color_temp:
+        msg = (
+            f"{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN} ({kelvin}) must be between"
+            f" {CONF_MIN_COLOR_TEMP} ({min_color_temp}) and"
+            f" {CONF_MAX_COLOR_TEMP} ({max_color_temp})"
+        )
+        raise vol.Invalid(msg)
 
 
 def maybe_coerce(key: str, validation: Any) -> vol.All | Any:
@@ -502,11 +647,33 @@ _yaml_validation_tuples = [
     for key, default, validation in VALIDATION_TUPLES
 ] + [(CONF_NAME, DEFAULT_NAME, cv.string)]
 
-_DOMAIN_SCHEMA = vol.Schema(
-    {
-        vol.Optional(key, default=replace_none_str(default, vol.UNDEFINED)): validation
-        for key, default, validation in _yaml_validation_tuples
-    },
+
+def _validate_yaml_fixed_evening(config: dict[str, Any]) -> dict[str, Any]:
+    validate_fixed_evening(
+        config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
+        config.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+    )
+    validate_fixed_plateau_kelvin(
+        config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN),
+        config.get(CONF_COLOR_TEMP_FIXED_PLATEAU_END),
+        config.get(CONF_COLOR_TEMP_FIXED_DESCENT_END),
+        config.get(CONF_MIN_COLOR_TEMP, DEFAULT_MIN_COLOR_TEMP),
+        config.get(CONF_MAX_COLOR_TEMP, DEFAULT_MAX_COLOR_TEMP),
+    )
+    return config
+
+
+_DOMAIN_SCHEMA = vol.All(
+    vol.Schema(
+        {
+            vol.Optional(
+                key,
+                default=replace_none_str(default, vol.UNDEFINED),
+            ): validation
+            for key, default, validation in _yaml_validation_tuples
+        },
+    ),
+    _validate_yaml_fixed_evening,
 )
 
 
@@ -525,6 +692,13 @@ def apply_service_schema() -> vol.Schema:
     )
 
 
+# The service takes the numbers of its selectors, where the options flow only
+# has a (serializable) string field; the strict check is made by `validate`.
+_SERVICE_VALIDATION: dict[str, Any] = {
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: vol.Any(vol.Coerce(int), str),
+}
+
+
 def change_switch_settings_schema() -> dict[vol.Marker, Any]:
     """Return the schema for the change_switch_settings service."""
     args: dict[vol.Marker, Any] = {
@@ -534,7 +708,7 @@ def change_switch_settings_schema() -> dict[vol.Marker, Any]:
     skip = (CONF_INTERVAL, CONF_NAME, CONF_LIGHTS)
     for k, _, valid in VALIDATION_TUPLES:
         if k not in skip:
-            args[vol.Optional(k)] = valid
+            args[vol.Optional(k)] = _SERVICE_VALIDATION.get(k, valid)
     return args
 
 

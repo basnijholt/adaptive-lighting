@@ -37,6 +37,11 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COLOR_TEMP_FIXED_DESCENT_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN,
+    CONF_COLOR_TEMP_PLATEAU_EVENING,
+    CONF_COLOR_TEMP_PLATEAU_MORNING,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
@@ -127,7 +132,7 @@ from homeassistant.const import (
     EntityCategory,
 )
 from homeassistant.core import Context, CoreState, Event, HomeAssistant, State
-from homeassistant.exceptions import Unauthorized
+from homeassistant.exceptions import ServiceValidationError, Unauthorized
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -2902,6 +2907,303 @@ async def test_change_switch_settings_service(hass):
     # testing with "configuration" should revert back to 2500
     await change_switch_settings(**{CONF_USE_DEFAULTS: "configuration"})
     assert switch._sun_light_settings.min_color_temp == 2500
+
+
+async def test_color_temp_plateau_defaults_and_service(hass):
+    """The plateau options default to 0 and can be changed at runtime."""
+    switch, _ = await setup_lights_and_switch(hass)
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(0)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(0)
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: switch.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await change_switch_settings(**{CONF_COLOR_TEMP_PLATEAU_EVENING: 7200})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_evening == datetime.timedelta(hours=2)
+    # the other side is untouched
+    assert settings.color_temp_plateau_morning == datetime.timedelta(0)
+
+    await change_switch_settings(**{CONF_COLOR_TEMP_PLATEAU_MORNING: 3600})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(hours=1)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(hours=2)
+
+    for key in (CONF_COLOR_TEMP_PLATEAU_MORNING, CONF_COLOR_TEMP_PLATEAU_EVENING):
+        for invalid in (-1, 43201):
+            with pytest.raises(voluptuous.error.MultipleInvalid):
+                await change_switch_settings(**{key: invalid})
+
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(0)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(0)
+
+
+async def test_color_temp_plateau_from_configuration(hass):
+    """The options from the config entry reach the sun light settings."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_COLOR_TEMP_PLATEAU_MORNING: 1800,
+            CONF_COLOR_TEMP_PLATEAU_EVENING: datetime.timedelta(hours=3),
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_plateau_morning == datetime.timedelta(minutes=30)
+    assert settings.color_temp_plateau_evening == datetime.timedelta(hours=3)
+
+
+@pytest.mark.parametrize("invalid", [-1, 43201])
+@pytest.mark.parametrize(
+    "key",
+    [CONF_COLOR_TEMP_PLATEAU_MORNING, CONF_COLOR_TEMP_PLATEAU_EVENING],
+)
+def test_color_temp_plateau_yaml_validation(invalid, key):
+    """Out of range plateaus are rejected in the YAML schema."""
+    from homeassistant.components.adaptive_lighting.const import _DOMAIN_SCHEMA
+
+    assert _DOMAIN_SCHEMA({key: 3600})[key] == 3600
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        _DOMAIN_SCHEMA({key: invalid})
+
+
+async def test_fixed_evening_defaults_and_service(hass):
+    """The fixed evening times are unset by default and settable at runtime."""
+    switch, _ = await setup_lights_and_switch(hass)
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end is None
+    assert settings.color_temp_fixed_descent_end is None
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: switch.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    await change_switch_settings(
+        **{
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+    assert settings.color_temp_fixed_descent_end == datetime.time(23, 0)
+
+    # unrelated changes keep the times ("current" defaults)
+    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 80})
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+
+    # an incoherent pair is rejected and leaves the settings untouched
+    for bad in (
+        {CONF_COLOR_TEMP_FIXED_DESCENT_END: "21:00:00"},  # no descent
+        {CONF_COLOR_TEMP_FIXED_PLATEAU_END: "11:00:00"},  # not an evening time
+        {CONF_COLOR_TEMP_FIXED_PLATEAU_END: "nonsense"},
+    ):
+        with pytest.raises((ServiceValidationError, voluptuous.error.Invalid)):
+            await change_switch_settings(**bad)
+        settings = switch._sun_light_settings
+        assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+        assert settings.color_temp_fixed_descent_end == datetime.time(23, 0)
+
+    # one time alone is rejected
+    with pytest.raises(ServiceValidationError):
+        await change_switch_settings(
+            **{CONF_COLOR_TEMP_FIXED_DESCENT_END: "None"},
+        )
+
+    # both can be cleared together
+    await change_switch_settings(
+        **{
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "None",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "None",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end is None
+    assert settings.color_temp_fixed_descent_end is None
+
+    await change_switch_settings(
+        **{
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+        },
+    )
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_end is None
+    assert switch._sun_light_settings.color_temp_fixed_descent_end is None
+
+
+async def test_fixed_evening_from_configuration(hass):
+    """The options from the config entry reach the sun light settings."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end == datetime.time(21, 0)
+    assert settings.color_temp_fixed_descent_end == datetime.time(23, 0)
+    # the brightness is not influenced by the evening times
+    default = switch._sun_light_settings.__class__(
+        **{
+            **{
+                f.name: getattr(settings, f.name)
+                for f in settings.__dataclass_fields__.values()
+            },
+            "color_temp_fixed_plateau_end": None,
+            "color_temp_fixed_descent_end": None,
+        },
+    )
+    now = dt_util.utcnow()
+    assert (
+        settings.brightness_and_color(now, False)["brightness_pct"]
+        == default.brightness_and_color(now, False)["brightness_pct"]
+    )
+
+
+async def test_fixed_evening_incoherent_stored_configuration_is_ignored(
+    hass,
+    caplog,
+):
+    """A hand edited stored pair does not break the setup: it is ignored and logged."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "21:00:00",
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_fixed_plateau_end is None
+    assert settings.color_temp_fixed_descent_end is None
+    assert "ignoring the incoherent fixed evening color temperature" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("plateau_end", "descent_end"),
+    [("21:00:00", None), ("21:00:00", "21:00:00"), ("08:00:00", "10:00:00")],
+)
+def test_fixed_evening_yaml_validation(plateau_end, descent_end):
+    """Incoherent pairs are rejected by the YAML schema."""
+    from homeassistant.components.adaptive_lighting.const import _DOMAIN_SCHEMA
+
+    config = {CONF_COLOR_TEMP_FIXED_PLATEAU_END: plateau_end}
+    if descent_end is not None:
+        config[CONF_COLOR_TEMP_FIXED_DESCENT_END] = descent_end
+    with pytest.raises(voluptuous.error.Invalid):
+        _DOMAIN_SCHEMA(config)
+
+
+async def test_fixed_plateau_kelvin_service(hass):
+    """The custom evening plateau temperature is settable at runtime."""
+    switch, _ = await setup_lights_and_switch(hass)
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin is None
+
+    async def change_switch_settings(**kwargs):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: switch.entity_id, **kwargs},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+    times = {
+        CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+        CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+    }
+    # needs the times
+    with pytest.raises(ServiceValidationError):
+        await change_switch_settings(**{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: 4000})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin is None
+
+    await change_switch_settings(
+        **{CONF_MAX_COLOR_TEMP: 5500, CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: 4000},
+        **times,
+    )
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin == 4000
+
+    # out of range or mistyped: rejected, settings untouched
+    for bad in (1999, 5501, 500, 10001, "warm"):
+        with pytest.raises((ServiceValidationError, voluptuous.error.Invalid)):
+            await change_switch_settings(**{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: bad})
+        assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin == 4000
+    # lowering the maximum below the target is rejected too
+    with pytest.raises(ServiceValidationError):
+        await change_switch_settings(**{CONF_MAX_COLOR_TEMP: 3500})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin == 4000
+
+    # unrelated changes keep it ("current" defaults)
+    await change_switch_settings(**{CONF_MAX_BRIGHTNESS: 80})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin == 4000
+
+    # clearing the times alone is rejected because the target needs them
+    with pytest.raises(ServiceValidationError):
+        await change_switch_settings(
+            **{
+                CONF_COLOR_TEMP_FIXED_PLATEAU_END: "None",
+                CONF_COLOR_TEMP_FIXED_DESCENT_END: "None",
+            },
+        )
+
+    await change_switch_settings(**{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: "None"})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin is None
+
+    await change_switch_settings(**{CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: 4000})
+    await change_switch_settings(**{CONF_USE_DEFAULTS: "factory"})
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin is None
+
+
+async def test_fixed_plateau_kelvin_from_configuration(hass):
+    """The option from the config entry reaches the sun light settings."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_MAX_COLOR_TEMP: 5500,
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+            CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: "4000",  # as stored by the UI
+        },
+    )
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin == 4000
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: 4000},  # no times
+        {
+            CONF_MAX_COLOR_TEMP: 3500,
+            CONF_COLOR_TEMP_FIXED_PLATEAU_END: "21:00:00",
+            CONF_COLOR_TEMP_FIXED_DESCENT_END: "23:00:00",
+            CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN: 4000,  # above max
+        },
+    ],
+)
+async def test_fixed_plateau_kelvin_incoherent_stored_configuration_is_ignored(
+    hass,
+    caplog,
+    options,
+):
+    """A hand edited stored target is ignored and logged, never fatal."""
+    _, switch = await setup_switch(hass, options)
+    assert switch._sun_light_settings.color_temp_fixed_plateau_kelvin is None
+    assert "ignoring the incoherent fixed evening plateau" in caplog.text
 
 
 @pytest.mark.parametrize("target", ["entity", "area", "device", "all"])

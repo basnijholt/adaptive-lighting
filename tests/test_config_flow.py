@@ -11,6 +11,11 @@ except ImportError:
     from voluptuous_serialize import convert as to_field_list
 from homeassistant.components.adaptive_lighting.const import (
     BASIC_OPTIONS,
+    CONF_COLOR_TEMP_FIXED_DESCENT_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_END,
+    CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN,
+    CONF_COLOR_TEMP_PLATEAU_EVENING,
+    CONF_COLOR_TEMP_PLATEAU_MORNING,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON,
@@ -108,8 +113,13 @@ async def test_options(hass):
     advanced_data = ADVANCED_DATA.copy()
     advanced_data[CONF_INITIAL_TRANSITION] = 23
     advanced_data[CONF_EXPAND_LIGHT_GROUPS] = False
+    advanced_data[CONF_COLOR_TEMP_PLATEAU_MORNING] = 1800
+    advanced_data[CONF_COLOR_TEMP_PLATEAU_EVENING] = 10800
     advanced_data[CONF_SUNRISE_TIME] = NONE_STR
     advanced_data[CONF_SUNSET_TIME] = NONE_STR
+    advanced_data[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = "21:00:00"
+    advanced_data[CONF_COLOR_TEMP_FIXED_DESCENT_END] = "23:00:00"
+    advanced_data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN] = "4000"
     basic_data = {**BASIC_DATA, "min_brightness": 12}
     user_input = {
         **basic_data,
@@ -218,6 +228,79 @@ async def test_incorrect_options(hass, lights):
     assert (
         _schema_defaults(_advanced_section(result).schema)[CONF_SUNRISE_TIME] == "yolo"
     )
+
+
+@pytest.mark.parametrize(
+    ("plateau_end", "descent_end"),
+    [
+        ("21:00:00", NONE_STR),  # only one of the two
+        ("21:00:00", "21:00:00"),  # no descent
+        ("23:00:00", "21:00:00"),  # more than 12 hours
+        ("09:00:00", "10:00:00"),  # not an evening time
+    ],
+)
+async def test_options_flow_rejects_incoherent_fixed_evening(
+    hass,
+    plateau_end,
+    descent_end,
+):
+    """An incoherent pair of fixed evening times is an error in the options flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=DEFAULT_NAME,
+        data={CONF_NAME: DEFAULT_NAME},
+        options={},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    advanced_data = ADVANCED_DATA.copy()
+    advanced_data[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = plateau_end
+    advanced_data[CONF_COLOR_TEMP_FIXED_DESCENT_END] = descent_end
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={**BASIC_DATA, "advanced": advanced_data},
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "option_error"}
+
+
+@pytest.mark.parametrize(
+    ("plateau_end", "descent_end", "plateau_kelvin"),
+    [
+        (NONE_STR, NONE_STR, "4000"),  # needs the times
+        ("21:00:00", "23:00:00", "1999"),  # below the default minimum (2000 K)
+        ("21:00:00", "23:00:00", "5501"),  # above the default maximum (5500 K)
+        ("21:00:00", "23:00:00", "warm"),
+        ("21:00:00", "23:00:00", ""),
+    ],
+)
+async def test_options_flow_rejects_incoherent_plateau_kelvin(
+    hass,
+    plateau_end,
+    descent_end,
+    plateau_kelvin,
+):
+    """An unusable custom evening plateau temperature is an options flow error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=DEFAULT_NAME,
+        data={CONF_NAME: DEFAULT_NAME},
+        options={},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    advanced_data = ADVANCED_DATA.copy()
+    advanced_data[CONF_COLOR_TEMP_FIXED_PLATEAU_END] = plateau_end
+    advanced_data[CONF_COLOR_TEMP_FIXED_DESCENT_END] = descent_end
+    advanced_data[CONF_COLOR_TEMP_FIXED_PLATEAU_KELVIN] = plateau_kelvin
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={**BASIC_DATA, "advanced": advanced_data},
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "option_error"}
 
 
 async def test_import_twice(hass):

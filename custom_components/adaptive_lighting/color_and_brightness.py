@@ -41,6 +41,16 @@ _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 _POLAR_SUN_EVENT_OFFSET = timedelta(minutes=30)
 _POLAR_SUN_EVENT_EPSILON = timedelta(seconds=1)
 
+# The color temperature plateau is limited to this fraction of the time between
+# solar noon and sunrise/sunset, such that the ramp never collapses.
+_PLATEAU_MAX_FRACTION = 0.9
+# A custom evening plateau temperature is held at least this long (on a long
+# enough afternoon) before the end of the fixed evening plateau.
+_FIXED_PLATEAU_MIN_HOLD = timedelta(hours=1)
+# ... and it is ignored (the maximum is held instead) on a day where the plateau
+# end is less than this after solar noon, as there is no room to ramp down.
+_FIXED_PLATEAU_MIN_AFTERNOON = timedelta(hours=1)
+
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
 utcnow.__doc__ = "Get now in UTC time."
 
@@ -243,15 +253,180 @@ class SunEvents:
         i_now = bisect.bisect([ts for _, ts in events], dt.timestamp())
         return events[i_now - 1 : i_now + 1]
 
-    def sun_position(self, dt: datetime.datetime) -> float:
-        """Calculate the position of the sun, between [-1, 1]."""
+    def fixed_evening_position(
+        self,
+        dt: datetime.datetime,
+        plateau_end: datetime.time,
+        descent_end: datetime.time,
+        plateau_level: float = 1.0,
+        plateau_evening: datetime.timedelta = datetime.timedelta(),
+    ) -> float | None:
+        """Position in [0, 1] for the fixed evening color temperature, or None.
+
+        `plateau_end` and `descent_end` are local wall-clock times. Starting at
+        the last solar noon before `dt`, the position is 1 until the first
+        `plateau_end` after that noon (or the noon itself if it is later), then
+        eases from 1 to 0 (cosine, so without kinks) until the `descent_end`
+        following it, and stays 0 until sunset if that is later. After that
+        (or before the noon) None is returned and the regular curve applies.
+
+        With a `plateau_level` below 1 (the position of a custom evening
+        temperature, needing `plateau_end` at least 1 hour after solar noon,
+        else it is ignored for that day) the position is
+        `plateau_level` for the last `_FIXED_PLATEAU_MIN_HOLD` before
+        `plateau_end` (less on a short afternoon) instead of 1. It reaches it
+        along the regular afternoon curve (which holds 1 for `plateau_evening`
+        after noon) as soon as that does, otherwise along the same curve sped
+        up so that it arrives in time. Hence the level is reached exactly and
+        held in every season, with no step, and the descent after `plateau_end`
+        starts from the level. Before the ramp nothing is capped.
+
+        The window is cut at the next sunrise, so the position reaches 0 no
+        later than the morning curve starts at 0, and it is ignored for a day
+        where it does not fit between noon and the next sunrise (None). The
+        times are wall-clock: across a DST change the real duration changes
+        by the shift, but the position stays continuous and monotonic.
+        """
         target_ts = dt.timestamp()
-        (_, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
+        events = sorted(
+            (event, ts)
+            for days in (-1, 0, 1)
+            for event, ts in self.sun_events(dt + timedelta(days=days))
+        )
+        noons = [ts for event, ts in events if event == SunEvent.NOON]
+        noon_ts = max((ts for ts in noons if ts <= target_ts), default=None)
+        if noon_ts is None:
+            return None
+        sunrise_ts = min(
+            (ts for e, ts in events if e == SunEvent.SUNRISE and ts > noon_ts),
+            default=None,
+        )
+        sunset_ts = min(
+            (ts for e, ts in events if e == SunEvent.SUNSET and ts > noon_ts),
+            default=None,
+        )
+        if sunrise_ts is None or sunset_ts is None:  # pragma: no cover
+            return None
+        local_day = datetime.datetime.fromtimestamp(noon_ts, self.timezone).date()
+        plateau_ts = self._replace_time(local_day, plateau_end).timestamp()
+        descent_day = local_day
+        if descent_end <= plateau_end:  # the descent ends after midnight
+            descent_day += timedelta(days=1)
+        descent_ts = self._replace_time(descent_day, descent_end).timestamp()
+        start = max(plateau_ts, noon_ts)
+        end = min(descent_ts, sunrise_ts)
+        if end <= start:
+            return None
+        # The custom level needs a long enough afternoon to ramp down to it
+        use_level = (
+            plateau_level < 1
+            and start - noon_ts >= _FIXED_PLATEAU_MIN_AFTERNOON.total_seconds()
+        )
+        if target_ts <= start:
+            return (
+                self._afternoon_to_level(
+                    target_ts,
+                    noon_ts,
+                    sunset_ts,
+                    start,
+                    plateau_level,
+                    plateau_evening,
+                )
+                if use_level
+                else 1.0
+            )
+        level = plateau_level if use_level else 1.0
+        if target_ts <= end:
+            return (
+                level
+                * 0.5
+                * (1 + math.cos(math.pi * (target_ts - start) / (end - start)))
+            )
+        # Past the descent: hold the minimum until sunset, where the regular
+        # curve (which is 0 at sunset) continues, so a descent finishing
+        # before sunset does not jump back up.
+        return 0.0 if target_ts <= sunset_ts else None
+
+    @staticmethod
+    def _afternoon_to_level(
+        target_ts: float,
+        noon_ts: float,
+        sunset_ts: float,
+        start: float,
+        level: float,
+        plateau_evening: datetime.timedelta,
+    ) -> float:
+        """Position from solar noon to `start`, holding `level` before `start`.
+
+        Follows the regular afternoon parabola (1 for the plateau after noon, then
+        falling to 0 at sunset) until it reaches `level`; when that would be too
+        late to hold `level` for `_FIXED_PLATEAU_MIN_HOLD` before `start`, the
+        same curve is traversed faster (and, if its own plateau is too long,
+        starting later within the afternoon) so that it reaches `level` in time.
+        """
+        half_day = sunset_ts - noon_ts
+        hold = min(plateau_evening.total_seconds(), _PLATEAU_MAX_FRACTION * half_day)
+        ramp = half_day - hold
+        # time at which the regular curve gets to `level`
+        natural_end = noon_ts + hold + ramp * math.sqrt(1 - level)
+        ramp_end = start - min(
+            _FIXED_PLATEAU_MIN_HOLD.total_seconds(),
+            (start - noon_ts) / 2,
+        )
+        ramp_start = noon_ts + hold
+        if natural_end > ramp_end:  # too late: compress the curve into the window
+            ramp_end = max(ramp_end, noon_ts)
+            ramp_start = min(ramp_start, (noon_ts + ramp_end) / 2)
+        else:
+            ramp_end = natural_end
+        if target_ts <= ramp_start:
+            return 1.0
+        if target_ts >= ramp_end:
+            return level
+        progress = (target_ts - ramp_start) / (ramp_end - ramp_start)
+        regular_ts = noon_ts + hold + progress * (natural_end - noon_ts - hold)
+        return 1 - ((regular_ts - noon_ts - hold) / ramp) ** 2
+
+    def sun_position(
+        self,
+        dt: datetime.datetime,
+        plateau_morning: datetime.timedelta = datetime.timedelta(),
+        plateau_evening: datetime.timedelta = datetime.timedelta(),
+    ) -> float:
+        """Calculate the position of the sun, between [-1, 1].
+
+        With a non-zero `plateau_morning` (`plateau_evening`) the position stays
+        at its maximum of 1 for that long before (after) solar noon, and the
+        parabola between sunrise (sunset) and the end of the plateau is
+        compressed to still start (end) at 0 at sunrise (sunset). This is a
+        monotonic and continuous remapping of the time axis that only applies
+        to the part of the day where the sun is up; the position below the
+        horizon is never changed. With both plateaus zero this is the
+        unmodified position.
+        """
+        target_ts = dt.timestamp()
+        (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
         h, x = (
             (prev_ts, next_ts)
             if next_event in (SunEvent.SUNSET, SunEvent.SUNRISE)
             else (next_ts, prev_ts)
         )
+        plateau = None
+        if next_event == SunEvent.NOON and prev_event == SunEvent.SUNRISE:
+            plateau = plateau_morning
+        elif next_event == SunEvent.SUNSET and prev_event == SunEvent.NOON:
+            plateau = plateau_evening
+        if plateau:
+            # `h` is solar noon and `x` the sunrise or sunset bounding this half
+            half_day = abs(h - x)
+            # Always keep part of the half-day for the ramp so that it has a
+            # non-zero duration, which also prevents dividing by zero.
+            hold = min(plateau.total_seconds(), _PLATEAU_MAX_FRACTION * half_day)
+            distance = abs(target_ts - h)
+            if hold > 0 and half_day > 0:
+                if distance <= hold:
+                    return 1.0
+                return 1 - ((distance - hold) / (half_day - hold)) ** 2
         # k = -1 between sunset and sunrise (sun below horizon)
         # k = 1 between sunrise and sunset (sun above horizon)
         k = 1 if next_event in (SunEvent.SUNSET, SunEvent.NOON) else -1
@@ -297,6 +472,11 @@ class SunLightSettings:
     brightness_mode_time_dark: datetime.timedelta
     brightness_mode_time_light: datetime.timedelta
     brightness_mode: Literal["default", "linear", "tanh"] = "default"
+    color_temp_plateau_morning: datetime.timedelta = datetime.timedelta()
+    color_temp_plateau_evening: datetime.timedelta = datetime.timedelta()
+    color_temp_fixed_plateau_end: datetime.time | None = None
+    color_temp_fixed_descent_end: datetime.time | None = None
+    color_temp_fixed_plateau_kelvin: int | None = None
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
@@ -395,6 +575,14 @@ class SunLightSettings:
             return self._brightness_pct_tanh(dt)
         return None
 
+    def _fixed_plateau_level(self) -> float:
+        """Position in [0, 1] of the custom evening temperature (1 if unset)."""
+        kelvin = self.color_temp_fixed_plateau_kelvin
+        delta = self.max_color_temp - self.min_color_temp
+        if kelvin is None or delta <= 0:
+            return 1.0
+        return min(max((kelvin - self.min_color_temp) / delta, 0.0), 1.0)
+
     def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""
         if sun_position > 0:
@@ -417,6 +605,29 @@ class SunLightSettings:
     ) -> dict[str, Any]:
         """Calculate the brightness and color."""
         sun_position = self.sun.sun_position(dt)
+        # Only the color temperature (not the brightness) has the plateaus.
+        color_sun_position = (
+            self.sun.sun_position(
+                dt,
+                self.color_temp_plateau_morning,
+                self.color_temp_plateau_evening,
+            )
+            if self.color_temp_plateau_morning or self.color_temp_plateau_evening
+            else sun_position
+        )
+        if (
+            self.color_temp_fixed_plateau_end is not None
+            and self.color_temp_fixed_descent_end is not None
+        ):
+            fixed_position = self.sun.fixed_evening_position(
+                dt,
+                self.color_temp_fixed_plateau_end,
+                self.color_temp_fixed_descent_end,
+                self._fixed_plateau_level(),
+                self.color_temp_plateau_evening,
+            )
+            if fixed_position is not None:
+                color_sun_position = fixed_position
         rgb_color: tuple[int, int, int]
         # Variable `force_rgb_color` is needed for RGB color after sunset (if enabled)
         force_rgb_color = False
@@ -428,6 +639,7 @@ class SunLightSettings:
             self.sleep_rgb_or_color_temp == "rgb_color"
             and self.adapt_until_sleep
             and sun_position < 0
+            and color_sun_position < 0
         ):
             # Feature requested in
             # https://github.com/basnijholt/adaptive-lighting/issues/624
@@ -439,10 +651,10 @@ class SunLightSettings:
                 self.sleep_rgb_color,
                 sun_position,
             )
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(color_sun_position)
             force_rgb_color = True
         else:
-            color_temp_kelvin = self.color_temp_kelvin(sun_position)
+            color_temp_kelvin = self.color_temp_kelvin(color_sun_position)
             r, g, b = color_temperature_to_rgb(color_temp_kelvin)
             rgb_color = (round(r), round(g), round(b))
         # backwards compatibility for versions < 1.3.1 - see #403
