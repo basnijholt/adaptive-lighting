@@ -69,6 +69,7 @@ from homeassistant.components.adaptive_lighting.const import (
     DEFAULT_SLEEP_COLOR_TEMP,
     DEFAULT_SLEEP_RGB_COLOR,
     DOMAIN,
+    INTENSITY_NUMBER,
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
@@ -103,6 +104,7 @@ from homeassistant.components.light import (
     LightEntityFeature,
 )
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.template import light as template_light
 from homeassistant.components.template.light import StateLightEntity as LightTemplate
@@ -422,6 +424,9 @@ async def test_adaptive_lighting_switches(hass):
         switch.adapt_color_switch.entity_id,
         switch.adapt_brightness_switch.entity_id,
     }
+    assert hass.states.async_entity_ids(NUMBER_DOMAIN) == [
+        "number.adaptive_lighting_default_intensity",
+    ]
     assert ATTR_ADAPTIVE_LIGHTING_MANAGER in hass.data[DOMAIN]
     assert entry.entry_id in hass.data[DOMAIN]
     assert len(hass.data[DOMAIN].keys()) == 2
@@ -432,8 +437,9 @@ async def test_adaptive_lighting_switches(hass):
     assert ADAPT_COLOR_SWITCH in data
     assert ADAPT_BRIGHTNESS_SWITCH in data
     assert UNDO_UPDATE_LISTENER in data
+    assert INTENSITY_NUMBER in data
 
-    assert len(data.keys()) == 5
+    assert len(data.keys()) == 6
 
 
 def async_process_ha_core_config(hass, config):
@@ -6344,3 +6350,173 @@ async def test_unloaded_polling_profile_preserves_other_split_adaptation(
     await hass.async_block_till_done()
     assert len(calls) == 2
     assert ATTR_COLOR_TEMP_KELVIN in calls[-1]
+
+
+@pytest.mark.parametrize("only_once", [False, True])
+async def test_intensity_restore_before_adaptation(hass, only_once):
+    """Restoration never emits a full-intensity command or overrides only_once."""
+    from tests.common import async_mock_service, mock_restore_cache
+
+    await setup_lights(hass)
+    mock_restore_cache(
+        hass,
+        [State("number.adaptive_lighting_default_intensity", "25")],
+    )
+    calls = async_mock_service(hass, LIGHT_DOMAIN, SERVICE_TURN_ON)
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_1],
+            CONF_MIN_BRIGHTNESS: 100,
+            CONF_MAX_BRIGHTNESS: 100,
+            "sleep_brightness": 4,
+            CONF_ONLY_ONCE: only_once,
+        },
+    )
+    assert switch.extra_state_attributes["intensity"] == 25
+    assert [call.data[ATTR_BRIGHTNESS] for call in calls] == ([] if only_once else [71])
+
+
+async def test_intensity_with_disabled_main_switch(hass):
+    """A disabled parent must not prevent its intensity entity from loading."""
+    from tests.common import mock_restore_cache
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_NAME: DEFAULT_NAME, CONF_INTERCEPT: False},
+    )
+    entry.add_to_hass(hass)
+    registry = entity_registry.async_get(hass)
+    registry.async_get_or_create(
+        SWITCH_DOMAIN,
+        DOMAIN,
+        DEFAULT_NAME,
+        config_entry=entry,
+        disabled_by=entity_registry.RegistryEntryDisabler.USER,
+    )
+    mock_restore_cache(
+        hass,
+        [State("number.adaptive_lighting_default_intensity", "25")],
+    )
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    number_id = "number.adaptive_lighting_default_intensity"
+    assert hass.states.get(number_id).state == "25.0"
+    await hass.services.async_call(
+        NUMBER_DOMAIN,
+        "set_value",
+        {ATTR_ENTITY_ID: number_id, "value": 50},
+        blocking=True,
+    )
+    assert hass.states.get(number_id).state == "50.0"
+
+
+@pytest.mark.parametrize(
+    ("color_modes", "floor", "intensity", "expected_attribute"),
+    [
+        ([ColorMode.COLOR_TEMP, ColorMode.RGB], "sleep", 0, ATTR_RGB_COLOR),
+        ([ColorMode.COLOR_TEMP, ColorMode.RGB], "sleep", 50, ATTR_RGB_COLOR),
+        ([ColorMode.COLOR_TEMP, ColorMode.RGB], "sleep", 100, ATTR_COLOR_TEMP_KELVIN),
+        ([ColorMode.COLOR_TEMP, ColorMode.RGB], "minimum", 0, ATTR_COLOR_TEMP_KELVIN),
+        ([ColorMode.COLOR_TEMP], "sleep", 0, ATTR_COLOR_TEMP_KELVIN),
+        ([ColorMode.RGB], "sleep", 0, ATTR_RGB_COLOR),
+    ],
+)
+async def test_intensity_uses_sleep_rgb_in_light_command(
+    hass,
+    color_modes,
+    floor,
+    intensity,
+    expected_attribute,
+):
+    """Select the blended RGB target on lights that also support Kelvin."""
+    entry, switch = await setup_switch(
+        hass,
+        {
+            "sleep_rgb_color": [255, 0, 0],
+            CONF_SLEEP_RGB_OR_COLOR_TEMP: "rgb_color",
+            "sleep_color_temp": 2000,
+            "intensity_floor": floor,
+            CONF_ADAPT_UNTIL_SLEEP: False,
+        },
+    )
+    hass.states.async_set(
+        ENTITY_LIGHT_1,
+        STATE_ON,
+        {
+            "supported_color_modes": color_modes,
+            "min_color_temp_kelvin": 2000,
+            "max_color_temp_kelvin": 6500,
+        },
+    )
+    await hass.data[DOMAIN][entry.entry_id][INTENSITY_NUMBER].async_set_native_value(
+        intensity,
+    )
+    data = await switch.prepare_adaptation_data(ENTITY_LIGHT_1, transition=0)
+    assert data is not None
+    command = await data.next_service_call_data()
+    assert expected_attribute in command
+    other_attribute = (
+        ATTR_RGB_COLOR
+        if expected_attribute == ATTR_COLOR_TEMP_KELVIN
+        else ATTR_COLOR_TEMP_KELVIN
+    )
+    assert other_attribute not in command
+    if expected_attribute == ATTR_RGB_COLOR and intensity == 0:
+        assert command[ATTR_RGB_COLOR] == (255, 0, 0)
+
+
+async def test_intensity_set_preserves_control_and_runtime_settings(hass):
+    """Dial changes affect on, adaptive lights and survive settings changes/reload."""
+    from tests.common import async_mock_service
+
+    await setup_lights(hass)
+    entry, switch = await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3],
+            CONF_MIN_BRIGHTNESS: 100,
+            CONF_MAX_BRIGHTNESS: 100,
+            "sleep_brightness": 4,
+            CONF_ONLY_ONCE: True,
+        },
+    )
+    switch.manager.set_manual_control_attributes(ENTITY_LIGHT_2)
+    calls = async_mock_service(hass, LIGHT_DOMAIN, SERVICE_TURN_ON)
+    number_id = "number.adaptive_lighting_default_intensity"
+    await hass.services.async_call(
+        NUMBER_DOMAIN,
+        "set_value",
+        {ATTR_ENTITY_ID: number_id, "value": 25},
+        blocking=True,
+    )
+    assert [
+        (call.data[ATTR_ENTITY_ID], call.data[ATTR_BRIGHTNESS]) for call in calls
+    ] == [
+        (ENTITY_LIGHT_1, 71),
+    ]
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_MIN_BRIGHTNESS: 80},
+        blocking=True,
+    )
+    assert switch.extra_state_attributes["intensity"] == 25
+    assert switch._sun_light_settings.intensity == 25
+    assert switch.manager.get_manual_control_attributes(ENTITY_LIGHT_2).has_all()
+    await switch.async_turn_off()
+    calls.clear()
+    await hass.services.async_call(
+        NUMBER_DOMAIN,
+        "set_value",
+        {ATTR_ENTITY_ID: number_id, "value": 50},
+        blocking=True,
+    )
+    assert not calls
+    assert switch.extra_state_attributes["intensity"] == 50
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    restored = hass.data[DOMAIN][entry.entry_id][SWITCH_DOMAIN]
+    assert restored.extra_state_attributes["intensity"] == 50
+    assert not restored.is_on
+    assert not calls

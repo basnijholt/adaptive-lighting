@@ -21,6 +21,7 @@ nav = [
   { "Troubleshooting" = "troubleshooting.md" },
   { "Advanced" = [
     { "Brightness Modes" = "advanced/brightness-modes.md" },
+    { "Intensity" = "advanced/intensity.md" },
     { "Manual Control" = "advanced/manual-control.md" },
     { "Sleep Mode" = "advanced/sleep-mode.md" },
   ] },
