@@ -1,5 +1,6 @@
 """Utility functions for HA core."""
 
+import inspect
 import logging
 from collections.abc import Awaitable, Callable
 
@@ -80,10 +81,9 @@ def setup_service_call_interceptor(
                 call.data,
             )
         # Call original service handler with processed data
-        import asyncio
 
         target = existing_service.job.target
-        if asyncio.iscoroutinefunction(target):
+        if inspect.iscoroutinefunction(target):
             await target(call)
         else:
             target(call)
