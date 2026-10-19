@@ -1004,6 +1004,60 @@ async def test_reload_cancels_old_manual_reset_and_keeps_service_tracking(hass):
     await hass.async_block_till_done()
 
 
+async def test_disabling_autoreset_takes_effect_on_reload(hass):
+    """Setting 'autoreset_control_seconds' to 0 must drop the old delay (#1631)."""
+    await setup_lights(hass)
+    entry, switch = await setup_switch(
+        hass,
+        {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_AUTORESET_CONTROL: 60},
+    )
+    # A second profile keeps the shared manager alive across the reload.
+    other_entry, _ = await setup_switch(
+        hass,
+        {CONF_NAME: "other", CONF_LIGHTS: [ENTITY_LIGHT_2]},
+    )
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 77},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert switch.manager.auto_reset_manual_control_times[ENTITY_LIGHT_1] == 60
+    old_timer = switch.manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1]
+    assert old_timer.is_running()
+
+    # Updating the options reloads the entry; the manager survives the reload.
+    hass.config_entries.async_update_entry(
+        entry,
+        options={CONF_AUTORESET_CONTROL: 0},
+    )
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    new_switch = hass.data[DOMAIN][entry.entry_id][SWITCH_DOMAIN]
+    assert new_switch is not switch
+    assert new_switch.manager is switch.manager
+    assert not old_timer.is_running()
+    assert ENTITY_LIGHT_1 not in new_switch.manager.auto_reset_manual_control_times
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1, ATTR_BRIGHTNESS: 99},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert new_switch.manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+    assert ENTITY_LIGHT_1 not in new_switch.manager.auto_reset_manual_control_timers
+    assert (
+        hass.states.get(new_switch.entity_id).attributes["autoreset_time_remaining"]
+        == {}
+    )
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert await hass.config_entries.async_unload(other_entry.entry_id)
+    await hass.async_block_till_done()
+
+
 async def test_manual_control_expiry_does_not_adapt_disabled_profile(hass):
     """Expiry clears ownership without sending light commands for a disabled profile."""
     switch, _ = await setup_lights_and_switch(

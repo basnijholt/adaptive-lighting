@@ -2390,9 +2390,11 @@ class AdaptiveLightingManager:
         lights: list[str],
         time: float,
     ) -> None:
-        """Set the time after which the lights are automatically reset."""
-        if time == 0:
-            return
+        """Set the time after which the lights are automatically reset.
+
+        A time of 0 disables the auto reset. The manager outlives config entry
+        reloads, so drop any previously stored time instead of keeping it.
+        """
         for light in lights:
             old_time = self.auto_reset_manual_control_times.get(light)
             if (old_time is not None) and (old_time != time):
@@ -2404,7 +2406,10 @@ class AdaptiveLightingManager:
                     old_time,
                     time,
                 )
-            self.auto_reset_manual_control_times[light] = time
+            if time == 0:
+                self.auto_reset_manual_control_times.pop(light, None)
+            else:
+                self.auto_reset_manual_control_times[light] = time
 
     def get_manual_control_attributes(
         self,
