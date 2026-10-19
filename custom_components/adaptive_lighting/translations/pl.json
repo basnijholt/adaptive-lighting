@@ -43,6 +43,8 @@
               "prefer_rgb_color": "prefer_rgb_color: Czy w miarę możliwości preferować regulację kolorów RGB zamiast regulacji temperatury barwowej światła. 🌈",
               "sleep_transition": "sleep_transition: When 'sleep_state' changes. (sekund)",
               "transition_until_sleep": "transition_until_sleep: Gdy włączone, Adaptacyjne oświetlenie będzie traktowało ustawienia spania jako minimalne i przejdzie do nich po zachodzie słońca. 🌙",
+              "transition_until_sleep_ct_mode": "transition_until_sleep_ct_mode",
+              "transition_until_sleep_ct_curve": "transition_until_sleep_ct_curve",
               "sunrise_time": "sunrise_time: Manual override of the sunrise time, if 'None', it uses the actual sunrise time at your location (HH:MM:SS)",
               "sunrise_offset": "sunrise_offset: How long before(-) or after(+) to define the sunrise point of the cycle (+/- sekund)",
               "sunset_time": "sunset_time: Manual override of the sunset time, if 'None', it uses the actual sunset time at your location (HH:MM:SS)",
@@ -62,6 +64,7 @@
               "sleep_rgb_or_color_temp": "Użyj `\"rgb_color\"` albo `\"color_temp\"` w trybie spania. 🌙",
               "sleep_rgb_color": "Kolor RGB w trybie spania (używane, gdy `sleep_rgb_or_color_temp` jest `rgb_color`). 🌈",
               "sleep_transition": "Długość przejścia, gdy nastąpi włączenie/wyłączenie \"trybu spania\" (w sekundach). 😴",
+              "transition_until_sleep_ct_curve": "Używane tylko z `transition_until_sleep_ct_mode: match_rgb`. Kalibruje, jak szybko żarówki CT ocieplają się w stronę `sleep_color_temp` względem CCT mieszanki RGB: `1` podąża za CCT, `>1` ociepla wcześniej (użyj, gdy żarówki CT nadal wyglądają chłodniej niż RGB), `<1` później. 🎛️",
               "sunrise_time": "Ustaw stały czas wschodu słońca (HH:MM:SS). 🌅",
               "min_sunrise_time": "Ustaw czas najwcześniejszego wirtualnego wschodu słońca (HH:MM:SS), pozwala na opóźnienie wschodu słońca. 🌅",
               "max_sunrise_time": "Ustaw czas najpóźniejszego wirtualnego wschodu słońca (HH:MM:SS), pozwala na przyspieszenie wschodu słońca. 🌅",
@@ -75,7 +78,8 @@
               "brightness_mode_time_light": "(Pomijany, gdy `brightness_mode='default'`). Czas w sekundach, kiedy jasność będzie zwiększana po wschodzie słońca/zmniejszana przed zachodem słońca. 📈📉",
               "autoreset_control_seconds": "Czas, po którym manualna kontrola zostanie wyłączona (w sekundach). Ustaw 0, aby wyłączyć. ⏲️",
               "send_split_delay": "Opóźnienie (w ms) pomiędzy `separate_turn_on_commands` dla świateł, które nie akceptują jednoczesnego ustawiania jasności i koloru. ⏲️",
-              "adapt_delay": "Czas (w sekundach) pomiędzy włączeniem światła, a rozpoczęciem adaptowania przez Adaptacyjne oświetlenie. Może pomóc zredukować migotanie. ⏲️"
+              "adapt_delay": "Czas (w sekundach) pomiędzy włączeniem światła, a rozpoczęciem adaptowania przez Adaptacyjne oświetlenie. Może pomóc zredukować migotanie. ⏲️",
+              "transition_until_sleep_ct_mode": "Jak żarówki obsługujące tylko temperaturę barwową zmieniają się po zachodzie słońca, gdy włączone jest `transition_until_sleep` a `sleep_rgb_or_color_temp` to `rgb_color`. `linear`: interpolacja `min_color_temp` → `sleep_color_temp` w kelwinach. `match_rgb`: temperatura barwowa mieszanki RGB, którą w tym momencie pokazują żarówki RGB — mieszane instalacje wyglądają jednolicie. 🌡️"
             }
           }
         }

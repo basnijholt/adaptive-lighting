@@ -58,8 +58,7 @@ DOCS[CONF_INCLUDE_CONFIG_IN_ATTRIBUTES] = (
 
 CONF_INITIAL_TRANSITION, DEFAULT_INITIAL_TRANSITION = "initial_transition", 1
 DOCS[CONF_INITIAL_TRANSITION] = (
-    "Duration of the first transition when lights turn "
-    "from `off` to `on` in seconds. ⏲️"
+    "Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️"
 )
 
 CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION = "sleep_transition", 1
@@ -162,8 +161,7 @@ DOCS[CONF_MIN_SUNRISE_TIME] = (
 
 CONF_MAX_SUNRISE_TIME = "max_sunrise_time"
 DOCS[CONF_MAX_SUNRISE_TIME] = (
-    "Set the latest virtual sunrise time (HH:MM:SS), allowing"
-    " for earlier sunrises. 🌅"
+    "Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier sunrises. 🌅"
 )
 
 CONF_SUNSET_OFFSET, DEFAULT_SUNSET_OFFSET = "sunset_offset", 0
@@ -233,6 +231,30 @@ CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP = (
 DOCS[CONF_ADAPT_UNTIL_SLEEP] = (
     "When enabled, Adaptive Lighting will treat sleep settings as the minimum, "
     "transitioning to these values after sunset. 🌙"
+)
+
+CONF_ADAPT_UNTIL_SLEEP_CT_MODE, DEFAULT_ADAPT_UNTIL_SLEEP_CT_MODE = (
+    "transition_until_sleep_ct_mode",
+    "linear",
+)
+DOCS[CONF_ADAPT_UNTIL_SLEEP_CT_MODE] = (
+    "How color-temperature-only lights transition after sunset when "
+    "`transition_until_sleep` is enabled and `sleep_rgb_or_color_temp` is "
+    "`rgb_color`. `linear`: interpolate `min_color_temp` → `sleep_color_temp` "
+    "in Kelvin. `match_rgb`: use the color temperature of the RGB blend that "
+    "RGB lights show at the same moment, so mixed setups look uniform. 🌡️"
+)
+
+CONF_ADAPT_UNTIL_SLEEP_CT_CURVE, DEFAULT_ADAPT_UNTIL_SLEEP_CT_CURVE = (
+    "transition_until_sleep_ct_curve",
+    1.0,
+)
+DOCS[CONF_ADAPT_UNTIL_SLEEP_CT_CURVE] = (
+    "Only used with `transition_until_sleep_ct_mode: match_rgb`. Calibrates how "
+    "fast color-temperature-only lights warm up towards `sleep_color_temp` "
+    "compared to the CCT of the RGB blend: `1` follows the CCT, `>1` warms up "
+    "earlier (use if your color-temp lights still look colder than your RGB "
+    "lights), `<1` later. 🎛️"
 )
 
 CONF_ADAPT_DELAY, DEFAULT_ADAPT_DELAY = "adapt_delay", 0
@@ -390,6 +412,22 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_SLEEP_TRANSITION, DEFAULT_SLEEP_TRANSITION, VALID_TRANSITION),
     (CONF_ADAPT_UNTIL_SLEEP, DEFAULT_ADAPT_UNTIL_SLEEP, bool),
+    (
+        CONF_ADAPT_UNTIL_SLEEP_CT_MODE,
+        DEFAULT_ADAPT_UNTIL_SLEEP_CT_MODE,
+        selector.SelectSelector(  # type: ignore[arg-type]
+            selector.SelectSelectorConfig(
+                options=["linear", "match_rgb"],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        ),
+    ),
+    (
+        CONF_ADAPT_UNTIL_SLEEP_CT_CURVE,
+        DEFAULT_ADAPT_UNTIL_SLEEP_CT_CURVE,
+        vol.All(vol.Coerce(float), vol.Range(min=0.1, max=10)),
+    ),
     (CONF_SUNRISE_TIME, NONE_STR, str),
     (CONF_MIN_SUNRISE_TIME, NONE_STR, str),
     (CONF_MAX_SUNRISE_TIME, NONE_STR, str),
