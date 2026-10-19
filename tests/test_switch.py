@@ -50,6 +50,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_ONLY_ONCE,
     CONF_PREFER_RGB_COLOR,
     CONF_RESET_MANUAL_CONTROL_ON_SLEEP_MODE_CHANGE,
+    CONF_RESTORE_MANUAL_CONTROL,
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
@@ -137,7 +138,7 @@ from homeassistant.util.color import (
     color_temperature_mired_to_kelvin,
 )
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, async_capture_events
 from tests.common import mock_area_registry as mock_ha_area_registry
 
 # HA 2026.6 removed the legacy `light: platform: template` YAML format
@@ -6344,3 +6345,361 @@ async def test_unloaded_polling_profile_preserves_other_split_adaptation(
     await hass.async_block_till_done()
     assert len(calls) == 2
     assert ATTR_COLOR_TEMP_KELVIN in calls[-1]
+
+
+MANUAL_CONTROL_STORE_KEY = f"{DOMAIN}.manual_control"
+UNAVAILABLE_LIGHT = "light.unavailable_bulb"
+
+
+def _stored_manual_control(manual_control: dict[str, int]) -> dict[str, Any]:
+    """Build the `.storage` payload the previous run would have written."""
+    return {
+        "version": 1,
+        "key": MANUAL_CONTROL_STORE_KEY,
+        "data": {"manual_control": manual_control},
+    }
+
+
+def _restore_profile(lights: list[str], **extra: Any) -> dict[str, Any]:
+    """Build a profile config for the restart tests."""
+    return {
+        CONF_LIGHTS: lights,
+        CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+        CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+        CONF_INITIAL_TRANSITION: 0,
+        CONF_TRANSITION: 0,
+        CONF_DETECT_NON_HA_CHANGES: True,
+        CONF_PREFER_RGB_COLOR: False,
+        CONF_MIN_COLOR_TEMP: 2500,
+        **extra,
+    }
+
+
+async def _turn_light_on(hass, light: str, **service_data: Any) -> None:
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light, **service_data},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+
+async def _restart(hass, *configs: dict[str, Any]) -> list[AdaptiveSwitch]:
+    """Set up profiles the way a restart does, before Home Assistant starts."""
+    hass.set_state(CoreState.not_running)
+    switches = []
+    for config in configs:
+        _, switch = await setup_switch(hass, config)
+        switches.append(switch)
+    await hass.async_start()
+    await hass.async_block_till_done()
+    return switches
+
+
+async def _set_hold(hass, switch, light, manual_control):
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_MANUAL_CONTROL,
+        {
+            ATTR_ENTITY_ID: switch.entity_id,
+            CONF_LIGHTS: [light],
+            CONF_MANUAL_CONTROL: manual_control,
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+
+async def test_manual_control_persistence_roundtrip(hass):
+    """Manual control is written to storage on set and on reset."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_RESTORE_MANUAL_CONTROL: True})
+    manager = switch.manager
+    with patch.object(manager._store, "async_delay_save") as delay_save:
+        await _set_hold(hass, switch, ENTITY_LIGHT_1, True)
+        assert delay_save.called
+        assert manager._manual_control_snapshot() == {
+            "manual_control": {ENTITY_LIGHT_1: int(LightControlAttributes.ALL)},
+        }
+        delay_save.reset_mock()
+        # brightness-only hold keeps its granularity
+        manager.set_manual_control_attributes(
+            ENTITY_LIGHT_2,
+            LightControlAttributes.BRIGHTNESS,
+        )
+        assert manager._manual_control_snapshot()["manual_control"][
+            ENTITY_LIGHT_2
+        ] == int(
+            LightControlAttributes.BRIGHTNESS,
+        )
+        # re-setting the same flags does not schedule another write
+        delay_save.reset_mock()
+        manager.set_manual_control_attributes(
+            ENTITY_LIGHT_2,
+            LightControlAttributes.BRIGHTNESS,
+        )
+        assert not delay_save.called
+        # clearing drops the key and persists
+        await _set_hold(hass, switch, ENTITY_LIGHT_1, False)
+        assert delay_save.called
+        assert (
+            ENTITY_LIGHT_1 not in manager._manual_control_snapshot()["manual_control"]
+        )
+
+
+async def test_manual_control_restored_on_startup(hass, hass_storage):
+    """Stored manual control survives the startup adaptation; off lights are pruned."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {
+            ENTITY_LIGHT_1: int(LightControlAttributes.ALL),
+            ENTITY_LIGHT_2: int(LightControlAttributes.BRIGHTNESS),
+            ENTITY_LIGHT_3: int(LightControlAttributes.ALL),  # will be off
+        },
+    )
+    await setup_lights(hass)
+    # Pre-restart state the bulbs are still holding: dinner-style dim levels.
+    for light in (ENTITY_LIGHT_1, ENTITY_LIGHT_2):
+        await _turn_light_on(hass, light, brightness=3, color_temp_kelvin=2500)
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+
+    manual_events = async_capture_events(hass, f"{DOMAIN}.manual_control")
+    (switch,) = await _restart(
+        hass,
+        _restore_profile(
+            [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3],
+            **{
+                CONF_RESTORE_MANUAL_CONTROL: True,
+                # pause_changed so a brightness-only hold still adapts color
+                CONF_TAKE_OVER_CONTROL_MODE: TakeOverControlMode.PAUSE_CHANGED.value,
+            },
+        ),
+    )
+    manager = switch.manager
+
+    # Holds seeded exactly; the off light was pruned; silent (no take-over event)
+    assert manager.manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert manager.manual_control[ENTITY_LIGHT_2] == LightControlAttributes.BRIGHTNESS
+    assert not manager.manual_control.get(ENTITY_LIGHT_3)
+    assert not manager.restored_lights
+    assert manual_events == []
+    assert set(hass.states.get(switch.entity_id).attributes["manual_control"]) == {
+        ENTITY_LIGHT_1,
+        ENTITY_LIGHT_2,
+    }
+
+    # Boot-time forced adapt already ran inside setup; run another forced pass
+    # to be sure: the full hold is untouched, the brightness-only hold keeps
+    # its brightness but gets the curve's color.
+    await switch._update_attrs_and_maybe_adapt_lights(
+        context=switch.create_context("test"),
+        transition=0,
+        force=True,
+    )
+    await hass.async_block_till_done()
+    s1 = hass.states.get(ENTITY_LIGHT_1).attributes
+    s2 = hass.states.get(ENTITY_LIGHT_2).attributes
+    assert s1[ATTR_BRIGHTNESS] == 3
+    assert s1[ATTR_COLOR_TEMP_KELVIN] == 2500
+    assert s2[ATTR_BRIGHTNESS] == 3
+    # curve value (the curve moves a few K between the adapt and this read)
+    assert abs(s2[ATTR_COLOR_TEMP_KELVIN] - switch._settings["color_temp_kelvin"]) < 50
+    assert s2[ATTR_COLOR_TEMP_KELVIN] != 2500
+
+    # The normal lifecycle still applies: off clears it
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert not manager.manual_control.get(ENTITY_LIGHT_1)
+
+
+async def test_manual_control_restore_prunes_unavailable_light(hass, hass_storage):
+    """A light that is unavailable at boot is pruned like a light that is off."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {
+            ENTITY_LIGHT_1: int(LightControlAttributes.ALL),
+            UNAVAILABLE_LIGHT: int(LightControlAttributes.ALL),
+        },
+    )
+    await setup_lights(hass)
+    await _turn_light_on(hass, ENTITY_LIGHT_1, brightness=3)
+    # Its integration has not come back yet, so the state carries no brightness.
+    hass.states.async_set(UNAVAILABLE_LIGHT, STATE_UNAVAILABLE)
+
+    (switch,) = await _restart(
+        hass,
+        _restore_profile(
+            [ENTITY_LIGHT_1, UNAVAILABLE_LIGHT],
+            **{CONF_RESTORE_MANUAL_CONTROL: True},
+        ),
+    )
+    manager = switch.manager
+    assert manager.manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert not manager.manual_control.get(UNAVAILABLE_LIGHT)
+    assert not manager.restored_lights
+    assert hass.states.get(switch.entity_id).attributes["manual_control"] == [
+        ENTITY_LIGHT_1,
+    ]
+
+
+async def test_manual_control_restore_drops_light_no_profile_controls(
+    hass,
+    hass_storage,
+):
+    """A stored light that was removed from the profiles is forgotten."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {
+            ENTITY_LIGHT_1: int(LightControlAttributes.ALL),
+            ENTITY_LIGHT_2: int(LightControlAttributes.ALL),
+        },
+    )
+    await setup_lights(hass)
+    for light in (ENTITY_LIGHT_1, ENTITY_LIGHT_2):
+        await _turn_light_on(hass, light, brightness=3)
+
+    # light_2 was taken out of the profile while Home Assistant was down.
+    (switch,) = await _restart(
+        hass,
+        _restore_profile([ENTITY_LIGHT_1], **{CONF_RESTORE_MANUAL_CONTROL: True}),
+    )
+    manager = switch.manager
+    assert manager.manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    assert ENTITY_LIGHT_2 not in manager.manual_control
+    assert ENTITY_LIGHT_2 not in manager._manual_control_snapshot()["manual_control"]
+    assert not manager.restored_lights
+
+
+@pytest.mark.parametrize("opted_in_first", [True, False])
+async def test_manual_control_restored_for_shared_profiles(
+    hass,
+    hass_storage,
+    opted_in_first,
+):
+    """Profiles share the light, so the setup order must not decide the outcome."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {ENTITY_LIGHT_1: int(LightControlAttributes.ALL)},
+    )
+    await setup_lights(hass)
+    await _turn_light_on(hass, ENTITY_LIGHT_1, brightness=3)
+
+    opted_in = _restore_profile(
+        [ENTITY_LIGHT_1],
+        **{CONF_NAME: "opted in", CONF_RESTORE_MANUAL_CONTROL: True},
+    )
+    plain = _restore_profile([ENTITY_LIGHT_1], **{CONF_NAME: "plain"})
+    order = [opted_in, plain] if opted_in_first else [plain, opted_in]
+    switches = await _restart(hass, *order)
+
+    manager = switches[0].manager
+    assert manager.manual_control[ENTITY_LIGHT_1] == LightControlAttributes.ALL
+    for switch in switches:
+        assert hass.states.get(switch.entity_id).attributes["manual_control"] == [
+            ENTITY_LIGHT_1,
+        ]
+
+
+async def test_manual_control_restored_across_autoreset_profile(hass, hass_storage):
+    """An opted-in profile keeps the hold even when another profile autoresets."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {ENTITY_LIGHT_1: int(LightControlAttributes.ALL)},
+    )
+    await setup_lights(hass)
+    await _turn_light_on(hass, ENTITY_LIGHT_1, brightness=3)
+
+    switches = await _restart(
+        hass,
+        _restore_profile(
+            [ENTITY_LIGHT_1],
+            **{CONF_NAME: "opted in", CONF_RESTORE_MANUAL_CONTROL: True},
+        ),
+        _restore_profile(
+            [ENTITY_LIGHT_1],
+            **{CONF_NAME: "autoreset", CONF_AUTORESET_CONTROL: 3600},
+        ),
+    )
+    assert switches[0].manager.manual_control[ENTITY_LIGHT_1] == (
+        LightControlAttributes.ALL
+    )
+
+
+async def test_manual_control_not_restored_with_autoreset(hass, hass_storage):
+    """Profiles with autoreset keep the default reset at startup."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {ENTITY_LIGHT_1: int(LightControlAttributes.ALL)},
+    )
+    await setup_lights(hass)
+    await _turn_light_on(hass, ENTITY_LIGHT_1, brightness=3)
+
+    (switch,) = await _restart(
+        hass,
+        _restore_profile(
+            [ENTITY_LIGHT_1],
+            **{CONF_RESTORE_MANUAL_CONTROL: True, CONF_AUTORESET_CONTROL: 3},
+        ),
+    )
+    assert not switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    assert not switch.manager.restored_lights
+
+
+async def test_manual_control_not_restored_by_default(hass, hass_storage):
+    """Without the option, stored manual control is ignored and nothing is written."""
+    hass_storage[MANUAL_CONTROL_STORE_KEY] = _stored_manual_control(
+        {ENTITY_LIGHT_1: int(LightControlAttributes.ALL)},
+    )
+    await setup_lights(hass)
+    await _turn_light_on(hass, ENTITY_LIGHT_1, brightness=3)
+
+    (switch,) = await _restart(hass, _restore_profile([ENTITY_LIGHT_1]))
+    assert not switch.manager.manual_control.get(ENTITY_LIGHT_1)
+    assert not switch.manager.restored_lights
+    with patch.object(switch.manager._store, "async_delay_save") as delay_save:
+        await _set_hold(hass, switch, ENTITY_LIGHT_1, True)
+        assert switch.manager.manual_control[ENTITY_LIGHT_1]
+        assert not delay_save.called
+
+
+async def test_manual_control_restore_empty_store(hass):
+    """No stored data behaves exactly like the default."""
+    await setup_lights(hass)
+    await _turn_light_on(hass, ENTITY_LIGHT_1, brightness=3)
+    (switch,) = await _restart(
+        hass,
+        _restore_profile([ENTITY_LIGHT_1], **{CONF_RESTORE_MANUAL_CONTROL: True}),
+    )
+    assert not switch.manager.restored_lights
+    assert not any(switch.manager.manual_control.values())
+    assert switch.manager._manual_control_snapshot() == {"manual_control": {}}
+
+
+async def test_manual_control_pending_save_flushed_on_unload(hass, hass_storage):
+    """Unloading the last profile writes the pending save and leaves no timer."""
+    await setup_lights(hass)
+    entry, switch = await setup_switch(
+        hass,
+        {CONF_LIGHTS: [ENTITY_LIGHT_1], CONF_RESTORE_MANUAL_CONTROL: True},
+    )
+    manager = switch.manager
+    store = manager._store
+    await _set_hold(hass, switch, ENTITY_LIGHT_1, True)
+    # The debounced write is still waiting when the entry goes away.
+    assert manager._save_scheduled
+    assert store._delay_handle is not None
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert store._delay_handle is None
+    assert not manager._save_scheduled
+    assert hass_storage[MANUAL_CONTROL_STORE_KEY]["data"] == {
+        "manual_control": {ENTITY_LIGHT_1: int(LightControlAttributes.ALL)},
+    }
+
+    with (
+        patch.object(store, "async_save") as save,
+        patch.object(store, "async_delay_save") as delay_save,
+    ):
+        await hass.async_block_till_done()
+        assert not save.called
+        assert not delay_save.called

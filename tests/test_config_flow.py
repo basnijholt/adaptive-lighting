@@ -14,10 +14,12 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INITIAL_TRANSITION,
     CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON,
+    CONF_RESTORE_MANUAL_CONTROL,
     CONF_SUNRISE_TIME,
     CONF_SUNSET_TIME,
     DEFAULT_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON,
     DEFAULT_NAME,
+    DEFAULT_RESTORE_MANUAL_CONTROL,
     DOMAIN,
     NONE_STR,
     VALIDATION_TUPLES,
@@ -110,6 +112,7 @@ async def test_options(hass):
     advanced_data[CONF_EXPAND_LIGHT_GROUPS] = False
     advanced_data[CONF_SUNRISE_TIME] = NONE_STR
     advanced_data[CONF_SUNSET_TIME] = NONE_STR
+    advanced_data[CONF_RESTORE_MANUAL_CONTROL] = True
     basic_data = {**BASIC_DATA, "min_brightness": 12}
     user_input = {
         **basic_data,
@@ -136,6 +139,10 @@ async def test_options(hass):
         _schema_defaults(_advanced_section(result).schema)[CONF_INITIAL_TRANSITION]
         == 23
     )
+    assert (
+        _schema_defaults(_advanced_section(result).schema)[CONF_RESTORE_MANUAL_CONTROL]
+        is True
+    )
 
 
 async def test_options_schema_has_each_setting_once(hass):
@@ -156,6 +163,10 @@ async def test_options_schema_has_each_setting_once(hass):
     assert (
         _schema_defaults(advanced.schema)[CONF_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON]
         is DEFAULT_MANUAL_CONTROL_ON_EXTERNAL_TURN_ON
+    )
+    assert (
+        _schema_defaults(advanced.schema)[CONF_RESTORE_MANUAL_CONTROL]
+        is DEFAULT_RESTORE_MANUAL_CONTROL
     )
     assert {key.schema for key in schema if key.schema != "advanced"} == BASIC_OPTIONS
     assert {key.schema for key in advanced.schema.schema} == set(
