@@ -167,10 +167,6 @@
           "description": "`true`로 설정하면 Home Assistant에서 스위치의 모든 옵션을 속성으로 표시합니다. 📝",
           "name": "include_config_in_attributes"
         },
-        "turn_on_lights": {
-          "description": "현재 꺼져 있는 조명을 켤지 여부. 🔆",
-          "name": "turn_on_lights"
-        },
         "initial_transition": {
           "description": "조명이 `off`에서 `on`으로 바뀔 때 첫 번째 전환의 지속 시간, 초 단위. ⏲️",
           "name": "initial_transition"

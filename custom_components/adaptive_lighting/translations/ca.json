@@ -98,9 +98,6 @@
         "entity_id": {
           "description": "ID de la entitat de l'interruptor. 📝"
         },
-        "turn_on_lights": {
-          "description": "Si s'encenen les llums que estan apagades en aquest moment. 🔆"
-        },
         "initial_transition": {
           "description": "Durada de la primera transició quan els llums canvien `off` a `on` en segons. ⏲️"
         },

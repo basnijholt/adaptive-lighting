@@ -117,9 +117,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "Usa uno tra `\"rgb_color\"` or`\"color_temp\"` in modalità notturna. 🌙"
         },
-        "turn_on_lights": {
-          "description": "Seleziona per accedere le luci, qualora fossero spente. 🔆"
-        },
         "initial_transition": {
           "description": "Durata della prima transizione quando le luci passano dallo stato `off` a `on`, espressa in secondi. ⏲️"
         },

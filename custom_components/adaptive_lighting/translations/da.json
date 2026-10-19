@@ -119,9 +119,6 @@
         "entity_id": {
           "description": "Entity ID af kontakten. 📝"
         },
-        "turn_on_lights": {
-          "description": "Om lys der i øjeblikket er slukket, skal tændes. 🔆"
-        },
         "sleep_transition": {
           "description": "Varigheden af overgangen, når \"sovetilstand\" skiftes, i sekunder. 😴"
         },

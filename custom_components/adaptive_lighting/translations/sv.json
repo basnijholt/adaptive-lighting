@@ -141,9 +141,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "Använd antingen`\"rgb_color\"` eller `\"color_temp\"` i sovläge. 🌙"
         },
-        "turn_on_lights": {
-          "description": "Om att tända lampor som är för närvarande släckta. 🔆"
-        },
         "initial_transition": {
           "description": "Den första övergångens varaktighet när lampan slås från ”av” till ”på” i sekunder. ⏲️"
         },

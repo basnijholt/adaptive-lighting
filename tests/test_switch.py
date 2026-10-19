@@ -53,6 +53,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
+    CONF_SLEEP_COLOR_TEMP,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
@@ -3252,7 +3253,7 @@ async def test_proactive_adaptation_toggle(hass):
         context=Context(id="test1"),
     )
 
-    assert switch.manager.is_proactively_adapting("test1")
+    assert switch.manager.is_proactively_adapting("test1", ENTITY_LIGHT_3)
 
     # Toggle OFF
     await hass.services.async_call(
@@ -3263,7 +3264,7 @@ async def test_proactive_adaptation_toggle(hass):
         context=Context(id="test2"),
     )
 
-    assert not switch.manager.is_proactively_adapting("test2")
+    assert not switch.manager.is_proactively_adapting("test2", ENTITY_LIGHT_3)
 
 
 async def test_proactive_adaptation_transition_override(hass):
@@ -3372,8 +3373,8 @@ async def test_proactive_multiple_lights_all_at_once(hass):
     assert events[2].data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
     assert ":skpp:" in events[2].context.id
 
-    assert switch1.manager.is_proactively_adapting("test1")
-    assert switch2.manager.is_proactively_adapting("test1")
+    assert switch1.manager.is_proactively_adapting("test1", ENTITY_LIGHT_1)
+    assert switch2.manager.is_proactively_adapting("test1", ENTITY_LIGHT_1)
 
     await hass.async_block_till_done()
 
@@ -3457,8 +3458,8 @@ async def test_proactive_multiple_lights_one_switch_and_one_skipped(hass):
     assert events[1].data["service_data"][ATTR_ENTITY_ID] == [ENTITY_LIGHT_3]
     assert ":skpp:" in events[1].context.id
 
-    assert switch1.manager.is_proactively_adapting("test1")
-    assert switch2.manager.is_proactively_adapting("test1")
+    assert switch1.manager.is_proactively_adapting("test1", ENTITY_LIGHT_1)
+    assert switch2.manager.is_proactively_adapting("test1", ENTITY_LIGHT_1)
 
     await hass.async_block_till_done()
 
@@ -3619,7 +3620,12 @@ def test_lerp_color_hsv():
     assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0) == (255, 0, 0)
     assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 1) == (0, 255, 0)
     assert lerp_color_hsv((255, 0, 0), (0, 255, 0), 0.5) == (255, 255, 0)
-    assert lerp_color_hsv((0, 0, 255), (255, 255, 255), 0.5) == (128, 255, 128)
+    # Fading to white keeps the hue of the colored end instead of passing through green
+    assert lerp_color_hsv((0, 0, 255), (255, 255, 255), 0.5) == (128, 128, 255)
+    # Hue takes the short way around the color wheel: orange -> pink, not via cyan
+    mid = lerp_color_hsv((255, 140, 40), (255, 0, 128), 0.5)
+    assert mid[0] == 255
+    assert mid[1] < 140
 
     # Tests that the interpolation is consistent
     for t in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]:
@@ -3792,8 +3798,12 @@ async def test_light_group(
         assert ":lght:" in events[2].context.id
         assert ":lght:" in events[3].context.id
         assert len(events) == 4
-        assert not switch.manager.is_proactively_adapting(events[0].context.id)
-        assert not switch.manager.is_proactively_adapting(events[1].context.id)
+        for event in events[:2]:
+            for light in ("light.light_4", "light.light_5"):
+                assert not switch.manager.is_proactively_adapting(
+                    event.context.id,
+                    light,
+                )
 
     # Turn off all lights, and then turn on all lights
     await hass.services.async_call(
@@ -6344,3 +6354,145 @@ async def test_unloaded_polling_profile_preserves_other_split_adaptation(
     await hass.async_block_till_done()
     assert len(calls) == 2
     assert ATTR_COLOR_TEMP_KELVIN in calls[-1]
+
+
+@pytest.mark.parametrize("brightness_mode", ["linear", "tanh"])
+async def test_zero_length_brightness_ramp_switches_instantly(hass, brightness_mode):
+    """A ramp of zero seconds must not divide by zero; brightness steps instead."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_SUNRISE_TIME: datetime.time(SUNRISE.hour),
+            CONF_SUNSET_TIME: datetime.time(SUNSET.hour),
+            CONF_BRIGHTNESS_MODE: brightness_mode,
+            CONF_BRIGHTNESS_MODE_TIME_DARK: datetime.timedelta(0),
+            CONF_BRIGHTNESS_MODE_TIME_LIGHT: datetime.timedelta(0),
+        },
+    )
+    settings = switch._sun_light_settings
+    second = datetime.timedelta(seconds=1)
+    sunset = SUNSET.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+    sunrise = SUNRISE.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE).astimezone(dt_util.UTC)
+    assert settings.brightness_pct(sunset - second, False) == settings.max_brightness
+    assert settings.brightness_pct(sunset + second, False) == settings.min_brightness
+    assert settings.brightness_pct(sunrise - second, False) == settings.min_brightness
+    assert settings.brightness_pct(sunrise + second, False) == settings.max_brightness
+
+
+async def test_adapt_until_sleep_with_sleep_color_temp_above_min(hass):
+    """Color temp must move smoothly from min to a cooler sleep color after sunset."""
+    _, switch = await setup_switch(
+        hass,
+        {
+            CONF_MIN_COLOR_TEMP: 2000,
+            CONF_SLEEP_COLOR_TEMP: 3000,
+            CONF_ADAPT_UNTIL_SLEEP: True,
+        },
+    )
+    settings = switch._sun_light_settings
+    assert settings.color_temp_kelvin(-0.0001) == 2000
+    assert settings.color_temp_kelvin(-0.5) == 2500
+    assert settings.color_temp_kelvin(-1) == 3000
+
+
+async def test_autoreset_control_seconds_zero_disables_existing_reset(hass):
+    """Changing autoreset_control_seconds to 0 must drop the old per-light delay."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_AUTORESET_CONTROL: 3600})
+    manager = switch.manager
+    assert manager.auto_reset_manual_control_times[ENTITY_LIGHT_1] == 3600
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_AUTORESET_CONTROL: 0},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert ENTITY_LIGHT_1 not in manager.auto_reset_manual_control_times
+    manager.set_manual_control_attributes(ENTITY_LIGHT_1)
+    assert ENTITY_LIGHT_1 not in manager.auto_reset_manual_control_timers
+
+
+async def test_autoreset_zero_keeps_other_profiles_reset(hass):
+    """A profile without auto-reset must not clear another profile's delay."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_AUTORESET_CONTROL: 3600})
+    await setup_switch(
+        hass,
+        {CONF_NAME: "other", CONF_LIGHTS: [ENTITY_LIGHT_1]},
+    )
+    assert switch.manager.auto_reset_manual_control_times[ENTITY_LIGHT_1] == 3600
+
+
+async def test_proactive_adapting_is_scoped_per_light(hass):
+    """A proactive turn-on of one light must not hide manual changes to another."""
+    switch, _ = await setup_lights_and_switch(hass)
+    manager = switch.manager
+    manager.set_proactively_adapting("ctx", ENTITY_LIGHT_1)
+    assert manager.is_proactively_adapting("ctx", ENTITY_LIGHT_1)
+    assert not manager.is_proactively_adapting("ctx", ENTITY_LIGHT_2)
+
+    # Several lights may share one context, e.g. one intercepted multi-light call
+    manager.set_proactively_adapting("ctx", ENTITY_LIGHT_2)
+    assert manager.is_proactively_adapting("ctx", ENTITY_LIGHT_1)
+    assert manager.is_proactively_adapting("ctx", ENTITY_LIGHT_2)
+
+    manager.clear_proactively_adapting(ENTITY_LIGHT_1)
+    assert not manager.is_proactively_adapting("ctx", ENTITY_LIGHT_1)
+    assert manager.is_proactively_adapting("ctx", ENTITY_LIGHT_2)
+    manager.clear_proactively_adapting(ENTITY_LIGHT_2)
+    assert "ctx" not in manager._proactively_adapting_contexts
+
+
+async def test_switch_turned_off_during_adapt_delay(hass, monkeypatch, caplog):
+    """Turning the switch off while adapt_delay waits must skip quietly."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {CONF_DETECT_NON_HA_CHANGES: True, CONF_ADAPT_DELAY: 0.1234},
+    )
+    state = hass.states.get(ENTITY_LIGHT_1)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    await hass.async_block_till_done()
+    monkeypatch.setattr(
+        switch.manager,
+        "just_turned_off",
+        AsyncMock(return_value=False),
+    )
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_sleep = asyncio.sleep
+
+    async def controlled_sleep(delay, *args, **kwargs):
+        if delay == 0.1234:
+            entered.set()
+            await release.wait()
+        else:
+            await original_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    calls = _track_adaptive_light_calls(hass)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, state.attributes)
+    await asyncio.wait_for(entered.wait(), 2)
+    # Don't wait for pending work here: the delayed handler is still paused
+    await switch.async_turn_off()
+    calls.clear()
+    caplog.clear()
+    release.set()
+    await hass.async_block_till_done()
+    assert calls == []
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+
+
+async def test_last_unload_disables_manager_after_yaml_import(hass):
+    """The manager must be disabled on the last unload even if YAML was used.
+
+    The YAML marker must survive so a later reload keeps the YAML switches.
+    """
+    entry, switch = await setup_switch(hass, {})
+    data = hass.data[DOMAIN]
+    data.setdefault("__yaml__", set()).add("some_yaml_switch")
+    manager = data[ATTR_ADAPTIVE_LIGHTING_MANAGER]
+    with patch.object(manager, "disable", wraps=manager.disable) as disable:
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    disable.assert_called_once()
+    assert ATTR_ADAPTIVE_LIGHTING_MANAGER not in hass.data[DOMAIN]
+    assert hass.data[DOMAIN]["__yaml__"] == {"some_yaml_switch"}

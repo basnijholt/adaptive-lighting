@@ -146,9 +146,6 @@
         "prefer_rgb_color": {
           "description": "Mümkün olduğunda ışık renk sıcaklığı yerine RGB renk ayarını tercih edip etmeyeceğini belirler. 🌈"
         },
-        "turn_on_lights": {
-          "description": "Şu anda kapalı olan ışıkların açılıp açılmayacağını belirler. 🔆"
-        },
         "adapt_delay": {
           "description": "Işık açıldıktan sonra Adaptive Lighting’in değişiklikleri uygulamasına kadar bekleme süresi (saniye cinsinden). Titremeyi önlemeye yardımcı olabilir. ⏲️"
         }

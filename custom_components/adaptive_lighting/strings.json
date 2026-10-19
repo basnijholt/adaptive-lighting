@@ -176,10 +176,6 @@
           "description": "Show all options as attributes on the switch in Home Assistant when set to `true`. 📝",
           "name": "include_config_in_attributes"
         },
-        "turn_on_lights": {
-          "description": "Whether to turn on lights that are currently off. 🔆",
-          "name": "turn_on_lights"
-        },
         "initial_transition": {
           "description": "Duration of the first transition when lights turn from `off` to `on` in seconds. ⏲️",
           "name": "initial_transition"

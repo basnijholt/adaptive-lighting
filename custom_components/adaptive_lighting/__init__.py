@@ -8,7 +8,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE, Platform
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import service
 
 from .const import (
@@ -47,15 +47,6 @@ CONFIG_SCHEMA = vol.Schema(
     {DOMAIN: vol.All(cv.ensure_list, [_DOMAIN_SCHEMA], _all_unique_names)},
     extra=vol.ALLOW_EXTRA,
 )
-
-
-async def reload_configuration_yaml(event: Event) -> None:
-    """Reload configuration.yaml."""
-    hass: HomeAssistant | None = event.data.get("hass")
-    if hass is not None:
-        await hass.services.async_call("homeassistant", "check_config", {})
-    else:
-        _LOGGER.error("HomeAssistant instance not found in event data.")
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -104,10 +95,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     """Set up the component."""
     data = hass.data.setdefault(DOMAIN, {})
 
-    # This will reload any changes the user made to any YAML configurations.
-    # Called during 'quick reload' or hass.reload_config_entry
-    hass.bus.async_listen("hass.config.entry_updated", reload_configuration_yaml)
-
     undo_listener = config_entry.add_update_listener(async_update_options)
     data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
@@ -126,12 +113,16 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         config_entry,
         "switch",
     )
-    data = hass.data[DOMAIN]
-    data[config_entry.entry_id][UNDO_UPDATE_LISTENER]()
-    if unload_ok:
-        data.pop(config_entry.entry_id)
+    if not unload_ok:
+        return False
 
-    if len(data) == 1 and ATTR_ADAPTIVE_LIGHTING_MANAGER in data:
+    data = hass.data[DOMAIN]
+    data.pop(config_entry.entry_id)[UNDO_UPDATE_LISTENER]()
+
+    # Keys that are not config entries; "__yaml__" must outlive the entries so
+    # a later reload can tell imported YAML switches from deleted ones.
+    non_entry_keys = {ATTR_ADAPTIVE_LIGHTING_MANAGER, "__yaml__"}
+    if ATTR_ADAPTIVE_LIGHTING_MANAGER in data and not set(data) - non_entry_keys:
         # no more config_entries
         manager = data.pop(ATTR_ADAPTIVE_LIGHTING_MANAGER)
         manager.disable()
