@@ -238,6 +238,11 @@ change_switch_settings:
           options:
           - pause_all
           - pause_changed
+    detect_color_mode_changes:
+      description: Treat a reported color-mode change alone as manual control when `detect_non_ha_changes` is enabled. Disable for lights that report requested color temperatures as RGB/HS; brightness and meaningful color changes are still detected. Equivalent-color mode-only changes will then be ignored.
+      required: false
+      selector:
+        boolean: null
     detect_non_ha_changes:
       description: 'Detects and halts adaptations for non-`light.turn_on` state changes. Needs `take_over_control` enabled. 🕵️ Caution: ⚠️ Some lights might falsely indicate an ''on'' state, which could result in lights turning on unexpectedly. Note that this calls `homeassistant.update_entity` every `interval`! Disable this feature if you encounter such issues.'
       required: false
