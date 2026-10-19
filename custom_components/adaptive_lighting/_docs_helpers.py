@@ -8,10 +8,12 @@ from homeassistant.helpers import selector
 from .const import (
     DOCS,
     DOCS_APPLY,
+    DOCS_GET_COMMANDS,
     DOCS_MANUAL_CONTROL,
     SET_MANUAL_CONTROL_SCHEMA,
     VALIDATION_TUPLES,
     apply_service_schema,
+    get_commands_service_schema,
 )
 
 
@@ -44,6 +46,8 @@ def _type_to_str(type_: Any) -> str:  # noqa: PLR0911
         return f"`{type_.__name__}`"
     if type_ == cv.boolean:
         return "bool"
+    if type_ == cv.time:
+        return "`str` (HH:MM[:SS])"
     if isinstance(type_, vol.All):
         return _format_voluptuous_instance(type_)
     if isinstance(type_, vol.Any):
@@ -107,6 +111,13 @@ def _generate_service_markdown_table(
 
 def generate_apply_markdown_table() -> str:
     return _generate_service_markdown_table(apply_service_schema(), DOCS_APPLY)
+
+
+def generate_get_commands_markdown_table() -> str:
+    return _generate_service_markdown_table(
+        get_commands_service_schema(),
+        DOCS_GET_COMMANDS,
+    )
 
 
 def generate_set_manual_control_markdown_table() -> str:

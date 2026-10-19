@@ -176,6 +176,19 @@ def _has_relevant_service_data_attributes(service_data: ServiceData) -> bool:
     return any(attr not in common_attrs for attr in service_data)
 
 
+def remove_redundant_service_data(
+    service_data: ServiceData,
+    state: State | None,
+) -> ServiceData | None:
+    """Remove what the light's `state` already has from the data of a service call.
+
+    Returns `None` if nothing is left that justifies the service call.
+    """
+    if state is not None:
+        service_data = _remove_redundant_attributes(service_data, state=state)
+    return service_data if _has_relevant_service_data_attributes(service_data) else None
+
+
 async def _create_service_call_data_iterator(
     hass: HomeAssistant,
     service_datas: list[ServiceData],
@@ -192,18 +205,12 @@ async def _create_service_call_data_iterator(
     """
     for service_data in service_datas:
         if filter_by_state and (entity_id := service_data.get(ATTR_ENTITY_ID)):
-            current_entity_state = hass.states.get(entity_id)
-
-            # Filter data to remove attributes that equal the current state
-            if current_entity_state is not None:
-                service_data = _remove_redundant_attributes(  # noqa: PLW2901
-                    service_data,
-                    state=current_entity_state,
-                )
-
             # Emit service data if it still contains relevant attributes (else try next)
-            if _has_relevant_service_data_attributes(service_data):
-                yield service_data
+            if filtered := remove_redundant_service_data(
+                service_data,
+                hass.states.get(entity_id),
+            ):
+                yield filtered
         else:
             yield service_data
 
@@ -265,6 +272,26 @@ def _identify_light_control_attributes(
     return parameters
 
 
+def plan_service_calls(
+    service_data: ServiceData,
+    transition: float | None,
+    split_delay: float,
+    *,
+    split: bool,
+) -> tuple[list[ServiceData], float]:
+    """Plan the `light.turn_on` calls for adapting a light with `service_data`.
+
+    Returns the service data of the calls in order, split into brightness and color
+    if `split`, and the time to wait before each call after the first.
+    """
+    service_datas = _split_service_call_data(service_data) if split else [service_data]
+    if transition is not None:
+        sleep_time = transition / max(1, len(service_datas)) + split_delay
+    else:
+        sleep_time = split_delay
+    return service_datas, sleep_time
+
+
 def prepare_adaptation_data(
     hass: HomeAssistant,
     entity_id: str,
@@ -283,15 +310,12 @@ def prepare_adaptation_data(
         entity_id,
         service_data,
     )
-    service_datas = _split_service_call_data(service_data) if split else [service_data]
-
-    service_datas_length = len(service_datas)
-
-    if transition is not None:
-        transition_duration_per_data = transition / max(1, service_datas_length)
-        sleep_time = transition_duration_per_data + split_delay
-    else:
-        sleep_time = split_delay
+    service_datas, sleep_time = plan_service_calls(
+        service_data,
+        transition,
+        split_delay,
+        split=split,
+    )
 
     # Keep the original split timing, but omit attributes carried by an
     # intercepted turn-on shared with other lights. Do this before state

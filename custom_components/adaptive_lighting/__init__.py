@@ -8,7 +8,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SOURCE, Platform
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.core import Event, HomeAssistant, SupportsResponse
 from homeassistant.helpers import service
 
 from .const import (
@@ -18,15 +18,18 @@ from .const import (
     DOMAIN,
     SERVICE_APPLY,
     SERVICE_CHANGE_SWITCH_SETTINGS,
+    SERVICE_GET_COMMANDS,
     SERVICE_SET_MANUAL_CONTROL,
     SET_MANUAL_CONTROL_SCHEMA,
     UNDO_UPDATE_LISTENER,
     apply_service_schema,
     change_switch_settings_schema,
+    get_commands_service_schema,
 )
 from .switch import (
     handle_apply_service,
     handle_change_switch_settings,
+    handle_get_commands_service,
     handle_set_manual_control_service,
 )
 
@@ -65,6 +68,14 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         service=SERVICE_APPLY,
         service_func=partial(handle_apply_service, hass),
         schema=apply_service_schema(),
+    )
+
+    hass.services.async_register(
+        domain=DOMAIN,
+        service=SERVICE_GET_COMMANDS,
+        service_func=partial(handle_get_commands_service, hass),
+        schema=get_commands_service_schema(),
+        supports_response=SupportsResponse.ONLY,
     )
 
     hass.services.async_register(

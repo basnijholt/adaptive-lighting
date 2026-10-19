@@ -316,6 +316,11 @@ DOCS[CONF_MANUAL_CONTROL] = "Whether to manually control the lights. 🔒"
 SERVICE_APPLY = "apply"
 CONF_TURN_ON_LIGHTS = "turn_on_lights"
 DOCS[CONF_TURN_ON_LIGHTS] = "Whether to turn on lights that are currently off. 🔆"
+SERVICE_GET_COMMANDS = "get_commands"
+CONF_COMMANDS_TIME = "time"
+DOCS[CONF_COMMANDS_TIME] = (
+    "Time of day (HH:MM:SS) to get the commands for, instead of now. 🕰️"
+)
 SERVICE_CHANGE_SWITCH_SETTINGS = "change_switch_settings"
 CONF_USE_DEFAULTS = "use_defaults"
 DOCS[CONF_USE_DEFAULTS] = (
@@ -339,6 +344,20 @@ DOCS_MANUAL_CONTROL = {
 DOCS_APPLY = {
     CONF_ENTITY_ID: "The `entity_id` of the switch with the settings to apply. 📝",
     CONF_LIGHTS: "A light (or list of lights) to apply the settings to. 💡",
+}
+
+DOCS_GET_COMMANDS = {
+    CONF_ENTITY_ID: "The `entity_id` of the switch whose settings to use. 📝",
+    CONF_LIGHTS: "Lights or light groups in the switch's `lights` to get the"
+    " commands for. 💡",
+    CONF_TRANSITION: "Duration of transition when lights change, in seconds"
+    " (default: the switch's `initial_transition`). 🕑",
+    ATTR_ADAPT_BRIGHTNESS: "Whether to adapt the brightness of the light"
+    " (default: the switch's Adapt Brightness switch). 🌞",
+    ATTR_ADAPT_COLOR: "Whether to adapt the color on supporting lights"
+    " (default: the switch's Adapt Color switch). 🌈",
+    CONF_PREFER_RGB_COLOR: "Whether to prefer RGB color adjustment over light color"
+    " temperature when possible (default: the switch's setting). 🌈",
 }
 
 # Basic options shown at top level in options flow (not in collapsed section)
@@ -521,6 +540,21 @@ def apply_service_schema() -> vol.Schema:
             vol.Optional(ATTR_ADAPT_COLOR, default=True): cv.boolean,
             vol.Optional(CONF_PREFER_RGB_COLOR, default=False): cv.boolean,
             vol.Optional(CONF_TURN_ON_LIGHTS, default=False): cv.boolean,
+        },
+    )
+
+
+def get_commands_service_schema() -> vol.Schema:
+    """Return the schema for the get_commands service."""
+    return vol.Schema(
+        {
+            vol.Optional(CONF_ENTITY_ID): cv.entity_ids,  # type: ignore[arg-type]
+            vol.Optional(CONF_LIGHTS, default=[]): cv.entity_ids,  # type: ignore[arg-type]
+            vol.Optional(CONF_COMMANDS_TIME): cv.time,
+            vol.Optional(CONF_TRANSITION): VALID_TRANSITION,
+            vol.Optional(ATTR_ADAPT_BRIGHTNESS): cv.boolean,
+            vol.Optional(ATTR_ADAPT_COLOR): cv.boolean,
+            vol.Optional(CONF_PREFER_RGB_COLOR): cv.boolean,
         },
     )
 

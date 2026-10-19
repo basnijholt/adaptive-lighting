@@ -57,6 +57,7 @@ from homeassistant.core import (
     Event,
     HomeAssistant,
     ServiceCall,
+    ServiceResponse,
     State,
     callback,
 )
@@ -84,7 +85,9 @@ from .adaptation_utils import (
     get_light_control_attributes,
     has_effect_attribute,
     manual_control_event_attribute_to_flags,
+    plan_service_calls,
     prepare_adaptation_data,
+    remove_redundant_service_data,
 )
 from .color_and_brightness import SunLightSettings
 from .const import (
@@ -100,6 +103,7 @@ from .const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COMMANDS_TIME,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -238,21 +242,81 @@ def is_our_context(context: Context | None, which: str | None = None) -> bool:
     return is_our_context_id(context.id, which)
 
 
+def _loaded_switches(hass: HomeAssistant) -> AdaptiveSwitches:
+    """Get the switches of all loaded config entries."""
+    data = hass.data.get(DOMAIN, {})
+    loaded_switches: AdaptiveSwitches = []
+    for config in hass.config_entries.async_entries(DOMAIN):
+        entry = data.get(config.entry_id)
+        if not isinstance(entry, dict) or SWITCH_DOMAIN not in entry:
+            continue
+        loaded_switches.append(entry[SWITCH_DOMAIN])
+    return loaded_switches
+
+
+def _not_configured_msg(
+    hass: HomeAssistant,
+    lights: list[str],
+    switches: AdaptiveSwitches,
+    *,
+    any_switch: bool,
+) -> str:
+    """Explain that `lights` aren't among the configured lights of `switches`.
+
+    With `any_switch`, `switches` are all switches, else the switch that was passed.
+    """
+    groups = {
+        light: configured
+        for switch in switches
+        for configured in switch._configured_lights
+        for light in lights
+        if light != configured and light in _expand_light_groups(hass, [configured])
+    }
+    where = (
+        "the lights of any switch"
+        if any_switch
+        else f"the lights of {', '.join(repr(switch.entity_id) for switch in switches)}"
+    )
+    verb = "isn't" if len(lights) == 1 else "aren't"
+    msg = f"adaptive-lighting: {', '.join(map(repr, lights))} {verb} among {where}."
+    if groups:
+        msg += " Pass the light group instead: " + ", ".join(
+            f"{group!r} for {light!r}" for light, group in groups.items()
+        )
+        msg += "."
+    return msg
+
+
+def _switch_configured_with(hass: HomeAssistant, light: str) -> AdaptiveSwitch:
+    """Get the switch with `light` (a light or group) among its configured lights.
+
+    Of several, the one that's on.
+    """
+    owners = [
+        switch
+        for switch in _loaded_switches(hass)
+        if light in switch._configured_lights
+    ]
+    if len(owners) > 1 and len(on := [s for s in owners if s.is_on]) == 1:
+        owners = on
+    if len(owners) == 1:
+        return owners[0]
+    msg = (
+        f"adaptive-lighting: '{light}' is among the lights of more than one switch,"
+        " and none, or more than one, of them is on. Pass one of them in 'entity_id'."
+        if owners
+        else _not_configured_msg(hass, [light], _loaded_switches(hass), any_switch=True)
+    )
+    raise ServiceValidationError(msg)
+
+
 def _switches_with_lights(
     hass: HomeAssistant,
     lights: list[str],
     expand_light_groups: bool = True,
 ) -> AdaptiveSwitches:
     """Get all switches that control at least one of the lights passed."""
-    config_entries = hass.config_entries.async_entries(DOMAIN)
-    data = hass.data.get(DOMAIN, {})
-    loaded_switches: AdaptiveSwitches = []
-    for config in config_entries:
-        entry = data.get(config.entry_id)
-        if not isinstance(entry, dict) or SWITCH_DOMAIN not in entry:
-            continue
-        loaded_switches.append(entry[SWITCH_DOMAIN])
-
+    loaded_switches = _loaded_switches(hass)
     if not loaded_switches:
         return []
 
@@ -411,6 +475,62 @@ async def handle_change_switch_settings(
             transition=switch.initial_transition,
             force=True,
         )
+
+
+async def handle_get_commands_service(
+    hass: HomeAssistant,
+    service_call: ServiceCall,
+) -> ServiceResponse:
+    """Handle the get_commands service, which only returns data.
+
+    Returns, for each light, the `light.turn_on` calls Adaptive Lighting would make to
+    adapt it now (or for the time of day given), without making them.
+    """
+    data = service_call.data
+    _LOGGER.debug(
+        "Called 'adaptive_lighting.get_commands' service with '%s'",
+        data,
+    )
+    lights: list[str] = data[CONF_LIGHTS]
+    if not lights and not data.get(ATTR_ENTITY_ID):
+        msg = "adaptive-lighting: Pass a switch in 'entity_id', 'lights', or both."
+        raise ServiceValidationError(msg)
+    # Only the lights (and groups) configured in the switches
+    targets: list[tuple[AdaptiveSwitch, list[str] | None]]
+    if data.get(ATTR_ENTITY_ID):
+        switches = _switches_from_service_call(hass, service_call)
+        for switch in switches if lights else ():
+            if others := [x for x in lights if x not in switch._configured_lights]:
+                raise ServiceValidationError(
+                    _not_configured_msg(hass, others, [switch], any_switch=False),
+                )
+        targets = [(switch, lights or None) for switch in switches]
+    else:
+        lights_by_switch: dict[str, tuple[AdaptiveSwitch, list[str]]] = {}
+        for light in lights:
+            switch = _switch_configured_with(hass, light)
+            _, owned = lights_by_switch.setdefault(switch.entity_id, (switch, []))
+            owned.append(light)
+        targets = list(lights_by_switch.values())
+    commands: dict[str, Any] = {}
+    for switch, switch_lights in targets:
+        switch_commands = switch.get_adaptation_commands(
+            switch_lights,
+            time=data.get(CONF_COMMANDS_TIME),
+            transition=data.get(CONF_TRANSITION),
+            adapt_brightness=data.get(ATTR_ADAPT_BRIGHTNESS),
+            adapt_color=data.get(ATTR_ADAPT_COLOR),
+            prefer_rgb_color=data.get(CONF_PREFER_RGB_COLOR),
+        )
+        if shared := set(commands) & set(switch_commands):
+            msg = (
+                f"adaptive-lighting: Lights {sorted(shared)} are in more than one of"
+                " the switches, so their commands would be ambiguous. Pass one of"
+                " the switches in 'entity_id'."
+            )
+            raise ServiceValidationError(msg)
+        commands.update(switch_commands)
+    return commands
 
 
 async def handle_apply_service(hass: HomeAssistant, service_call: ServiceCall) -> None:
@@ -1305,6 +1425,153 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             force=False,
         )
 
+    def _build_service_data(
+        self,
+        light: str,
+        transition: float,
+        *,
+        adapt_brightness: bool,
+        adapt_color: bool,
+        prefer_rgb_color: bool,
+        settings: dict[str, Any],
+    ) -> tuple[dict[str, Any], float] | None:
+        """Build the `light.turn_on` service data for adapting a light to `settings`.
+
+        Returns the service data and the transition it uses (0 if the light doesn't
+        support transitions), or `None` if there's nothing to adapt.
+        """
+        service_data: dict[str, Any] = {ATTR_ENTITY_ID: light}
+        features = _supported_features(self.hass, light)
+
+        # Check transition == 0 to fix #378
+        use_transition = "transition" in features and transition > 0
+        if use_transition:
+            service_data[ATTR_TRANSITION] = transition
+
+        if "brightness" in features and adapt_brightness:
+            brightness = round(255 * settings["brightness_pct"] / 100)
+            service_data[ATTR_BRIGHTNESS] = brightness
+
+        sleep_rgb = (
+            self.sleep_mode_switch.is_on
+            and self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
+        )
+        if (
+            "color_temp" in features
+            and adapt_color
+            and not (prefer_rgb_color and "color" in features)
+            and not (sleep_rgb and "color" in features)
+            and not (settings["force_rgb_color"] and "color" in features)
+        ):
+            _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
+            state = self.hass.states.get(light)
+            assert isinstance(state, State)
+            attributes = state.attributes
+            min_kelvin = attributes["min_color_temp_kelvin"]
+            max_kelvin = attributes["max_color_temp_kelvin"]
+            color_temp_kelvin = settings["color_temp_kelvin"]
+            color_temp_kelvin = clamp(color_temp_kelvin, min_kelvin, max_kelvin)
+            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
+        elif "color" in features and adapt_color:
+            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
+            service_data[ATTR_RGB_COLOR] = settings["rgb_color"]
+
+        required_attrs = [ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, ATTR_BRIGHTNESS]
+        if not any(attr in service_data for attr in required_attrs):
+            _LOGGER.debug(
+                "%s: Skipping adaptation of %s because no relevant attributes"
+                " are set in service_data: %s",
+                self._name,
+                light,
+                service_data,
+            )
+            return None
+        return service_data, transition if use_transition else 0
+
+    def get_adaptation_commands(
+        self,
+        lights: list[str] | None,
+        *,
+        time: datetime.time | None = None,
+        transition: float | None = None,
+        adapt_brightness: bool | None = None,
+        adapt_color: bool | None = None,
+        prefer_rgb_color: bool | None = None,
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Get the `light.turn_on` calls this switch would make to adapt lights.
+
+        For each light (all of the switch's if `lights` is `None`), the calls in
+        order, each with its service data and the time to wait before it, adapting
+        now or at the `time` of day today (lights without a state are left out). With
+        `skip_redundant_commands`, what a light already has (now) is left out.
+        Omitted options default to the switch's settings (unlike for `apply`), and
+        `transition` to its `initial_transition` (like for `apply`). Manual control
+        doesn't change the calls, and nothing is sent.
+        """
+        if transition is None:
+            transition = self.initial_transition
+        if adapt_brightness is None:
+            adapt_brightness = bool(self.adapt_brightness_switch.is_on)
+        if adapt_color is None:
+            adapt_color = bool(self.adapt_color_switch.is_on)
+        if prefer_rgb_color is None:
+            prefer_rgb_color = self._prefer_rgb_color
+        at_time = None
+        if time is not None:
+            tz = self._sun_light_settings.timezone
+            # In UTC, like the time the regular adaptation calculates for
+            at_time = dt_util.as_utc(
+                datetime.datetime.combine(dt_util.now(tz).date(), time, tzinfo=tz),
+            )
+        settings = self._sun_light_settings.get_settings(
+            bool(self.sleep_mode_switch.is_on),
+            transition,
+            at_time,
+        )
+        commands: dict[str, list[dict[str, Any]]] = {}
+        for light in self._resolve_lights(lights):
+            if self.hass.states.get(light) is None:
+                continue
+            commands[light] = []
+            if not (adapt_brightness or adapt_color):
+                continue
+            built = self._build_service_data(
+                light,
+                transition,
+                adapt_brightness=adapt_brightness,
+                adapt_color=adapt_color,
+                prefer_rgb_color=prefer_rgb_color,
+                settings=settings,
+            )
+            if built is None:
+                continue
+            service_data, light_transition = built
+            service_datas, sleep_time = plan_service_calls(
+                service_data,
+                light_transition,
+                self._send_split_delay / 1000.0,
+                split=self._separate_turn_on_commands,
+            )
+            if self._skip_redundant_commands:
+                # Leave out what the light already has, as when adapting it
+                state = self.hass.states.get(light)
+                service_datas = [
+                    filtered
+                    for data in service_datas
+                    if (filtered := remove_redundant_service_data(data, state))
+                ]
+            commands[light] = [
+                {
+                    "service_data": {
+                        key: list(value) if isinstance(value, (list, tuple)) else value
+                        for key, value in data.items()
+                    },
+                    "delay": round(sleep_time, 3) if index else 0,
+                }
+                for index, data in enumerate(service_datas)
+            ]
+        return commands
+
     async def prepare_adaptation_data(
         self,
         light: str,
@@ -1348,53 +1615,17 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             transition,
         )
 
-        # Build service data.
-        service_data: dict[str, Any] = {ATTR_ENTITY_ID: light}
-        features = _supported_features(self.hass, light)
-
-        # Check transition == 0 to fix #378
-        use_transition = "transition" in features and transition > 0
-        if use_transition:
-            service_data[ATTR_TRANSITION] = transition
-
-        if "brightness" in features and adapt_brightness:
-            brightness = round(255 * self._settings["brightness_pct"] / 100)
-            service_data[ATTR_BRIGHTNESS] = brightness
-
-        sleep_rgb = (
-            self.sleep_mode_switch.is_on
-            and self._sun_light_settings.sleep_rgb_or_color_temp == "rgb_color"
+        built = self._build_service_data(
+            light,
+            transition,
+            adapt_brightness=adapt_brightness,
+            adapt_color=adapt_color,
+            prefer_rgb_color=prefer_rgb_color,
+            settings=self._settings,
         )
-        if (
-            "color_temp" in features
-            and adapt_color
-            and not (prefer_rgb_color and "color" in features)
-            and not (sleep_rgb and "color" in features)
-            and not (self._settings["force_rgb_color"] and "color" in features)
-        ):
-            _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)
-            state = self.hass.states.get(light)
-            assert isinstance(state, State)
-            attributes = state.attributes
-            min_kelvin = attributes["min_color_temp_kelvin"]
-            max_kelvin = attributes["max_color_temp_kelvin"]
-            color_temp_kelvin = self._settings["color_temp_kelvin"]
-            color_temp_kelvin = clamp(color_temp_kelvin, min_kelvin, max_kelvin)
-            service_data[ATTR_COLOR_TEMP_KELVIN] = color_temp_kelvin
-        elif "color" in features and adapt_color:
-            _LOGGER.debug("%s: Setting rgb_color of light %s", self._name, light)
-            service_data[ATTR_RGB_COLOR] = self._settings["rgb_color"]
-
-        required_attrs = [ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, ATTR_BRIGHTNESS]
-        if not any(attr in service_data for attr in required_attrs):
-            _LOGGER.debug(
-                "%s: Skipping adaptation of %s because no relevant attributes"
-                " are set in service_data: %s",
-                self._name,
-                light,
-                service_data,
-            )
+        if built is None:
             return None
+        service_data, adapted_transition = built
 
         context = context or self.create_context("adapt_lights")
 
@@ -1402,7 +1633,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self.hass,
             light,
             context,
-            transition if use_transition else 0,
+            adapted_transition,
             self._send_split_delay / 1000.0,
             service_data,
             split=self._separate_turn_on_commands,

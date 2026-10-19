@@ -146,6 +146,40 @@
         }
       }
     },
+    "get_commands": {
+      "name": "get_commands",
+      "description": "Returns the `light.turn_on` calls Adaptive Lighting would make to adapt lights, now or for a given time of day, without making them.",
+      "fields": {
+        "entity_id": {
+          "description": "The `entity_id` of the switch whose settings to use. 📝",
+          "name": "entity_id"
+        },
+        "lights": {
+          "description": "Lights or light groups in the switch's `lights` to get the commands for. 💡",
+          "name": "lights"
+        },
+        "time": {
+          "description": "Time of day (HH:MM:SS) to get the commands for, instead of now. 🕰️",
+          "name": "time"
+        },
+        "transition": {
+          "description": "Duration of transition when lights change, in seconds (default: the switch's `initial_transition`). 🕑",
+          "name": "transition"
+        },
+        "adapt_brightness": {
+          "description": "Whether to adapt the brightness of the light (default: the switch's Adapt Brightness switch). 🌞",
+          "name": "adapt_brightness"
+        },
+        "adapt_color": {
+          "description": "Whether to adapt the color on supporting lights (default: the switch's Adapt Color switch). 🌈",
+          "name": "adapt_color"
+        },
+        "prefer_rgb_color": {
+          "description": "Whether to prefer RGB color adjustment over light color temperature when possible (default: the switch's setting). 🌈",
+          "name": "prefer_rgb_color"
+        }
+      }
+    },
     "set_manual_control": {
       "name": "set_manual_control",
       "description": "Mark whether a light is 'manually controlled'.",
