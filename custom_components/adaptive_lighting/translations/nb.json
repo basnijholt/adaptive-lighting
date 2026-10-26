@@ -169,9 +169,6 @@
         "adapt_delay": {
           "description": "Ventetid (sekunder) mellom at lyset skrues på og Adaptive Lightning sender endringer. Kan hjelpe til for å unngå blinking."
         },
-        "turn_on_lights": {
-          "description": "Skru på lys som fortiden er skrudd av."
-        },
         "take_over_control": {
           "description": "Skrur av Adaptive Lightning hvis en annen kilde kaller `light.turn_on` mens lysene er på og blir styrt. Merk  at dette kaller `homeassistant.update_entity` hvert eneste`interval`!"
         }

@@ -326,6 +326,22 @@ class SunLightSettings:
         delta_brightness = self.max_brightness - self.min_brightness
         return (delta_brightness * (1 + sun_position)) + self.min_brightness
 
+    def _brightness_ramp_seconds(self) -> float:
+        return (
+            self.brightness_mode_time_dark.total_seconds()
+            + self.brightness_mode_time_light.total_seconds()
+        )
+
+    def _brightness_pct_step(self, dt: datetime.datetime) -> float:
+        event, ts_event = self.sun.closest_event(dt)
+        after_event = dt.timestamp() >= ts_event
+        if event == SunEvent.SUNRISE:
+            return self.max_brightness if after_event else self.min_brightness
+        if event == SunEvent.SUNSET:
+            return self.min_brightness if after_event else self.max_brightness
+        msg = "Unsupported sun event"
+        raise ValueError(msg)
+
     def _brightness_pct_tanh(self, dt: datetime.datetime) -> float:
         event, ts_event = self.sun.closest_event(dt)
         dark = self.brightness_mode_time_dark.total_seconds()
@@ -387,6 +403,10 @@ class SunLightSettings:
         if is_sleep:
             return self.sleep_brightness
         assert self.brightness_mode in ("default", "linear", "tanh")
+        if self.brightness_mode != "default" and self._brightness_ramp_seconds() <= 0:
+            # A zero-length (or negative) ramp leaves nothing to interpolate
+            # over, so switch instantly at sunrise/sunset instead.
+            return self._brightness_pct_step(dt)
         if self.brightness_mode == "default":
             return self._brightness_pct_default(dt)
         if self.brightness_mode == "linear":
@@ -404,8 +424,8 @@ class SunLightSettings:
         if sun_position == 0 or not self.adapt_until_sleep:
             return self.min_color_temp
         if self.adapt_until_sleep and sun_position < 0:
-            delta = abs(self.min_color_temp - self.sleep_color_temp)
-            ct = (delta * abs(1 + sun_position)) + self.sleep_color_temp
+            delta = self.min_color_temp - self.sleep_color_temp
+            ct = (delta * (1 + sun_position)) + self.sleep_color_temp
             return 5 * round(ct / 5)  # round to nearest 5
         msg = "Should not happen"
         raise ValueError(msg)
@@ -581,9 +601,13 @@ def lerp_color_hsv(
     hsv1 = colorsys.rgb_to_hsv(*[x / 255.0 for x in rgb1])
     hsv2 = colorsys.rgb_to_hsv(*[x / 255.0 for x in rgb2])
 
-    # Linear interpolation in HSV space
+    # White/grey has no hue, so fade along the other color's hue instead
+    hue1 = hsv2[0] if hsv1[1] == 0 else hsv1[0]
+    hue2 = hsv1[0] if hsv2[1] == 0 else hsv2[0]
+    # Linear interpolation in HSV space, taking the short way around the hue circle
+    hue_delta = (hue2 - hue1 + 0.5) % 1.0 - 0.5
     hsv = (
-        hsv1[0] + t * (hsv2[0] - hsv1[0]),
+        (hue1 + t * hue_delta) % 1.0,
         hsv1[1] + t * (hsv2[1] - hsv1[1]),
         hsv1[2] + t * (hsv2[2] - hsv1[2]),
     )

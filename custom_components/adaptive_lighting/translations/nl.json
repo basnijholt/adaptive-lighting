@@ -154,9 +154,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "Gebruik één van beide `\"rgb_color\"` of `\"color_temp\"` in slaapstand. 🌙"
         },
-        "turn_on_lights": {
-          "description": "Of de lampen moeten worden aangezet die momenteel uit zijn.🔆"
-        },
         "sunrise_time": {
           "description": "Stel een vaste tijd (HH:MM:SS) in voor zonsopkomst. 🌅"
         },

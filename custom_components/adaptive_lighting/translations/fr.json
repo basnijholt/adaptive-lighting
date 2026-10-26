@@ -162,9 +162,6 @@
         "sleep_rgb_or_color_temp": {
           "description": "Utilisez soit \"rgb_color\" soit \"color_temp\" en mode nuit. 🌙"
         },
-        "turn_on_lights": {
-          "description": "Indique s'il faut allumer les lumières qui sont actuellement éteintes. 🔆"
-        },
         "include_config_in_attributes": {
           "description": "Afficher toutes les options en tant qu'attributs sur l'interrupteur dans Home Assistant lorsqu'il est défini sur \"true\". 📝"
         },
