@@ -6414,6 +6414,31 @@ async def test_autoreset_control_seconds_zero_disables_existing_reset(hass):
     assert ENTITY_LIGHT_1 not in manager.auto_reset_manual_control_timers
 
 
+async def test_autoreset_zero_cancels_running_reset_timer(hass):
+    """Disabling auto-reset must also stop a timer that is already running."""
+    switch, _ = await setup_lights_and_switch(hass, {CONF_AUTORESET_CONTROL: 0.2})
+    manager = switch.manager
+    manager.set_manual_control_attributes(ENTITY_LIGHT_1)
+    timer = manager.auto_reset_manual_control_timers[ENTITY_LIGHT_1]
+    assert timer.is_running()
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHANGE_SWITCH_SETTINGS,
+        {ATTR_ENTITY_ID: switch.entity_id, CONF_AUTORESET_CONTROL: 0},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert not timer.is_running()
+    assert ENTITY_LIGHT_1 not in manager.auto_reset_manual_control_timers
+    await asyncio.sleep(0.4)  # longer than the old delay
+    await hass.async_block_till_done()
+    # The light stays manually controlled instead of being reset and re-adapted.
+    assert manager.get_manual_control_attributes(ENTITY_LIGHT_1)
+    assert switch.extra_state_attributes["autoreset_time_remaining"] == {}
+
+
 async def test_autoreset_zero_keeps_other_profiles_reset(hass):
     """A profile without auto-reset must not clear another profile's delay."""
     switch, _ = await setup_lights_and_switch(hass, {CONF_AUTORESET_CONTROL: 3600})

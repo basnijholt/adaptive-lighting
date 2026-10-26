@@ -1130,8 +1130,12 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                     and switch._auto_reset_manual_control_time
                 ):
                     still_reset.update(switch._resolve_lights())
+            timers = self.manager.auto_reset_manual_control_timers
             for light in set(all_lights) - still_reset:
                 self.manager.auto_reset_manual_control_times.pop(light, None)
+                # A timer started under the old delay must not reset the light.
+                if timer := timers.pop(light, None):
+                    timer.cancel()
 
     async def _setup_listeners(self, _: Event[NoEventData] | None = None) -> None:
         _LOGGER.debug("%s: Called '_setup_listeners'", self._name)
