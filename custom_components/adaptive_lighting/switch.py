@@ -1239,7 +1239,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         """Return the attributes of the switch."""
         extra_state_attributes: dict[str, Any] = {
             "configuration": self._config,
-            "original_configuration": self._original_config,
+            "original_configuration": (
+                self._original_config if self._include_config_in_attributes else {}
+            ),
         }
         if not self.is_on:
             for key in self._settings:
