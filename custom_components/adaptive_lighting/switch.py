@@ -967,7 +967,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 elif isinstance(v, datetime.timedelta):
                     attrdata[k] = v.total_seconds()
             self._config.update(attrdata)
-            
+
             # Format original configuration for attribute exposure (only once during init)
             if not self._original_config:
                 original_attrdata = deepcopy(self._config_backup)
