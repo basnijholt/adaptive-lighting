@@ -913,6 +913,8 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
         # backup data for use in change_switch_settings "configuration" CONF_USE_DEFAULTS
         self._config_backup = deepcopy(data)
+        # Store formatted original configuration for attribute exposure
+        self._original_config: dict[str, Any] = {}
         self._set_changeable_settings(data=data, defaults=None)
 
         # Set other attributes
@@ -965,6 +967,16 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 elif isinstance(v, datetime.timedelta):
                     attrdata[k] = v.total_seconds()
             self._config.update(attrdata)
+            
+            # Format original configuration for attribute exposure (only once during init)
+            if not self._original_config:
+                original_attrdata = deepcopy(self._config_backup)
+                for k, v in original_attrdata.items():
+                    if isinstance(v, datetime.date | datetime.datetime):
+                        original_attrdata[k] = v.isoformat()
+                    elif isinstance(v, datetime.timedelta):
+                        original_attrdata[k] = v.total_seconds()
+                self._original_config.update(original_attrdata)
 
         self.initial_transition = data[CONF_INITIAL_TRANSITION]
         self._sleep_transition = data[CONF_SLEEP_TRANSITION]
@@ -1225,7 +1237,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the attributes of the switch."""
-        extra_state_attributes: dict[str, Any] = {"configuration": self._config}
+        extra_state_attributes: dict[str, Any] = {
+            "configuration": self._config,
+            "original_configuration": self._original_config,
+        }
         if not self.is_on:
             for key in self._settings:
                 extra_state_attributes[key] = None
