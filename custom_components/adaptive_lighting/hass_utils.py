@@ -4,13 +4,11 @@ import logging
 from collections.abc import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers.target import async_extract_referenced_entity_ids
+from homeassistant.helpers.target import (
+    TargetSelection,
+    async_extract_referenced_entity_ids,
+)
 from homeassistant.util.read_only_dict import ReadOnlyDict
-
-try:
-    from homeassistant.helpers.target import TargetSelection
-except ImportError:  # Compatibility with older Home Assistant releases
-    from homeassistant.helpers.target import TargetSelectorData as TargetSelection
 
 from .adaptation_utils import ServiceData
 
