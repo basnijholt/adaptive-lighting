@@ -53,6 +53,7 @@ from homeassistant.components.adaptive_lighting.const import (
     CONF_SEND_SPLIT_DELAY,
     CONF_SEPARATE_TURN_ON_COMMANDS,
     CONF_SKIP_REDUNDANT_COMMANDS,
+    CONF_SLEEP_RGB_COLOR,
     CONF_SLEEP_RGB_OR_COLOR_TEMP,
     CONF_SLEEP_TRANSITION,
     CONF_SUNRISE_OFFSET,
@@ -94,6 +95,7 @@ from homeassistant.components.adaptive_lighting.switch import (
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
+    ATTR_COLOR_MODE,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_RGB_COLOR,
     ATTR_TRANSITION,
@@ -6344,3 +6346,50 @@ async def test_unloaded_polling_profile_preserves_other_split_adaptation(
     await hass.async_block_till_done()
     assert len(calls) == 2
     assert ATTR_COLOR_TEMP_KELVIN in calls[-1]
+
+
+async def test_skip_redundant_commands_sleep_rgb_color(hass):
+    """A sleep RGB color the light already shows is not re-sent every interval."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_SKIP_REDUNDANT_COMMANDS: True,
+            CONF_DETECT_NON_HA_CHANGES: False,
+            CONF_SLEEP_RGB_OR_COLOR_TEMP: "rgb_color",
+            # The config entry stores the color as a list; the state holds tuples.
+            CONF_SLEEP_RGB_COLOR: [255, 38, 0],
+        },
+    )
+    await switch.sleep_mode_switch.async_turn_on()
+
+    async def adapt_and_track_calls() -> list[Event]:
+        calls: list[Event] = []
+        remove_listener = hass.bus.async_listen(EVENT_CALL_SERVICE, calls.append)
+        await switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("interval"),
+        )
+        await asyncio.gather(*switch.manager.adaptation_tasks)
+        await hass.async_block_till_done()
+        remove_listener()
+        return [event for event in calls if event.data["domain"] == LIGHT_DOMAIN]
+
+    assert await adapt_and_track_calls()
+
+    # What an xy light (e.g., IKEA TRADFRI via ZHA) reports after receiving the
+    # sleep color: its native xy matches, the derived RGB is a few units off.
+    for light in switch.lights:
+        state = hass.states.get(light)
+        hass.states.async_set(
+            light,
+            STATE_ON,
+            {
+                **state.attributes,
+                ATTR_COLOR_MODE: ColorMode.XY,
+                ATTR_BRIGHTNESS: 3,
+                ATTR_RGB_COLOR: (255, 42, 3),
+                ATTR_XY_COLOR: (0.691, 0.307),
+            },
+        )
+    await hass.async_block_till_done()
+
+    assert not await adapt_and_track_calls()

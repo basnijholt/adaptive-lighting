@@ -1,7 +1,7 @@
 """Utility functions for adaptation commands."""
 
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Sequence
 from dataclasses import dataclass
 from enum import IntFlag, auto
 from typing import Any
@@ -24,6 +24,7 @@ from homeassistant.components.light import (
 )
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.util.color import color_RGB_to_xy
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +54,16 @@ BRIGHTNESS_ATTRS = {
 # far below the manual-control-detection threshold (BRIGHTNESS_CHANGE = 25), so
 # it cannot mask a genuine user change.
 BRIGHTNESS_TOLERANCE = 2
+
+# Tolerance per xy coordinate when comparing an RGB target with the light's
+# reported chromaticity. Home Assistant hands an RGB target to xy- and hs-based
+# lights as 'color_RGB_to_xy(*rgb)', rounded to 3 decimals, and derives the
+# reported 'rgb_color' back from the device's xy, which drifts by a few units
+# per channel (e.g., (255, 38, 0) -> xy (0.691, 0.307) -> (255, 42, 3)). Comparing
+# in xy only has to absorb the 3-decimal rounding on each side plus the device's
+# own resolution (1/65535 for Zigbee), well below 0.002. A change this small is
+# far below the manual-control-detection threshold (RGB_REDMEAN_CHANGE = 80).
+XY_COLOR_TOLERANCE = 0.002
 
 ServiceData = dict[str, Any]
 
@@ -122,11 +133,37 @@ def _split_service_call_data(service_data: ServiceData) -> list[ServiceData]:
     return service_datas
 
 
+def _is_rgb_color_satisfied(
+    value: Sequence[int],
+    current: Sequence[int],
+    current_xy: Sequence[float] | None,
+) -> bool:
+    """Whether the light's reported color already matches an RGB target.
+
+    The target may be a list (e.g., 'sleep_rgb_color' from the config entry)
+    while the state holds a tuple, so values are compared element-wise. The
+    reported 'rgb_color' of an xy- or hs-based light is derived from its native
+    color and rarely equals the target exactly, so the chromaticity is compared
+    instead, preferring the reported 'xy_color' over one derived from RGB.
+    """
+    if tuple(value) == tuple(current):
+        return True
+    if current_xy is None:
+        current_xy = color_RGB_to_xy(*current)
+    target_xy = color_RGB_to_xy(*value)
+    return all(
+        abs(target - reported) <= XY_COLOR_TOLERANCE
+        for target, reported in zip(target_xy, current_xy, strict=True)
+    )
+
+
 def _is_attribute_satisfied(key: str, value: Any, attributes: dict[str, Any]) -> bool:
     """Whether the light's current state already satisfies this target value."""
     if key not in attributes:
         return False
     current = attributes[key]
+    if key == ATTR_RGB_COLOR and current is not None:
+        return _is_rgb_color_satisfied(value, current, attributes.get(ATTR_XY_COLOR))
     if not isinstance(current, (int, float)) or not isinstance(value, (int, float)):
         return value == current
     if key == ATTR_BRIGHTNESS:
@@ -155,7 +192,8 @@ def _remove_redundant_attributes(
     in the target entity's state. Quantized attributes (brightness, color temp) are
     compared with a small tolerance: a light whose resolution is coarser than Home
     Assistant's cannot report back the exact value it was given, so exact equality
-    would never hold and the attribute would never be filtered.
+    would never hold and the attribute would never be filtered. RGB colors are
+    compared by chromaticity for the same reason.
     """
     attributes: dict[str, Any] = dict(state.attributes)
     return {
