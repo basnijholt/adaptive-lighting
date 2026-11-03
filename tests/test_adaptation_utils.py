@@ -24,7 +24,9 @@ from homeassistant.components.light import (
     ATTR_EFFECT,
     ATTR_FLASH,
     ATTR_HS_COLOR,
+    ATTR_RGB_COLOR,
     ATTR_TRANSITION,
+    ATTR_XY_COLOR,
 )
 from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
 from homeassistant.core import Context, State
@@ -158,6 +160,39 @@ async def test_split_service_call_data(input_data, expected_data_list):
             State("light.test", STATE_ON, {ATTR_BRIGHTNESS: None}),
             {ATTR_ENTITY_ID: "light.test", ATTR_BRIGHTNESS: 10},
         ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: [255, 38, 0]},
+            State("light.test", STATE_ON, {ATTR_RGB_COLOR: (255, 38, 0)}),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: [255, 38, 0]},
+            State(
+                "light.test",
+                STATE_ON,
+                {ATTR_RGB_COLOR: (255, 42, 3), ATTR_XY_COLOR: (0.691, 0.307)},
+            ),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State(
+                "light.test",
+                STATE_ON,
+                {ATTR_RGB_COLOR: (255, 56, 0), ATTR_XY_COLOR: (0.682, 0.315)},
+            ),
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State("light.test", STATE_ON, {ATTR_RGB_COLOR: (255, 56, 0)}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State("light.test", STATE_ON, {ATTR_RGB_COLOR: None}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+        ),
     ],
     ids=[
         "pass all attributes on empty state",
@@ -171,6 +206,11 @@ async def test_split_service_call_data(input_data, expected_data_list):
         "keep color temp more than one mired away",
         "remove non-numeric attributes on exact equality",
         "keep attribute when state value is None",
+        "remove rgb color given as a list on equal tuple",
+        "remove rgb color whose reported xy matches (xy light rounds rgb)",
+        "keep rgb color whose reported xy differs",
+        "keep rgb color whose chromaticity differs (no reported xy)",
+        "keep rgb color when state value is None",
     ],
 )
 async def test_remove_redundant_attributes(
