@@ -185,6 +185,43 @@ async def test_split_service_call_data(input_data, expected_data_list):
         ),
         (
             {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State(
+                "light.test",
+                STATE_ON,
+                {ATTR_RGB_COLOR: (255, 42, 3), ATTR_XY_COLOR: (0.6925, 0.3055)},
+            ),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State(
+                "light.test",
+                STATE_ON,
+                {ATTR_RGB_COLOR: (255, 42, 3), ATTR_XY_COLOR: (0.694, 0.304)},
+            ),
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State("light.test", STATE_ON, {ATTR_RGB_COLOR: (255, 40, 1)}),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State(
+                "light.test",
+                STATE_ON,
+                {ATTR_RGB_COLOR: (255, 40, 1), ATTR_XY_COLOR: None},
+            ),
+            {ATTR_ENTITY_ID: "light.test"},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+            State("light.test", STATE_ON, {ATTR_RGB_COLOR: (255, 44, 0)}),
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
+        ),
+        (
+            {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
             State("light.test", STATE_ON, {ATTR_RGB_COLOR: (255, 56, 0)}),
             {ATTR_ENTITY_ID: "light.test", ATTR_RGB_COLOR: (255, 38, 0)},
         ),
@@ -209,6 +246,11 @@ async def test_split_service_call_data(input_data, expected_data_list):
         "remove rgb color given as a list on equal tuple",
         "remove rgb color whose reported xy matches (xy light rounds rgb)",
         "keep rgb color whose reported xy differs",
+        "remove rgb color whose reported xy is within tolerance",
+        "keep rgb color whose reported xy is just outside tolerance",
+        "remove nearby rgb color through derived xy (no reported xy)",
+        "remove nearby rgb color through derived xy (reported xy is None)",
+        "keep rgb color just outside tolerance through derived xy",
         "keep rgb color whose chromaticity differs (no reported xy)",
         "keep rgb color when state value is None",
     ],
