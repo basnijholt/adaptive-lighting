@@ -17,7 +17,7 @@ from pathlib import Path
 
 # Keep the latest stable release month and the preceding 12 monthly release lines.
 # Update this explicit floor when dropping another supported release month.
-MIN_VERSION = (2025, 9)
+MIN_VERSION = (2026, 1)
 
 
 def get_ha_core_versions() -> list[str]:
