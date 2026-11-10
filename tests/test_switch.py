@@ -76,6 +76,9 @@ from homeassistant.components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
     TakeOverControlMode,
 )
+from homeassistant.components.adaptive_lighting.hass_utils import (
+    setup_service_call_interceptor,
+)
 from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveLightingManager,
@@ -126,9 +129,17 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     EntityCategory,
 )
-from homeassistant.core import Context, CoreState, Event, HomeAssistant, State
+from homeassistant.core import (
+    Context,
+    CoreState,
+    Event,
+    HomeAssistant,
+    ServiceCall,
+    State,
+)
 from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers import target as target_helper
 from homeassistant.helpers.entity_platform import async_get_platforms
@@ -5702,6 +5713,23 @@ async def test_intercept_honors_target_exclude(
         blocking=True,
     )
     await hass.async_block_till_done()
+
+    # Registered before the switch, so the interceptor wraps this recorder and
+    # it sees every call as Adaptive Lighting forwards it: the rewritten
+    # original call and the follow-up `light.turn_on` for skipped lights.
+    forwarded: list[tuple[Context, list[str]]] = []
+
+    def record_forwarded(call: ServiceCall, data: dict[str, Any]) -> None:
+        forwarded.append((call.context, cv.ensure_list(data.get(ATTR_ENTITY_ID))))
+
+    for intercepted_service in (SERVICE_TURN_ON, SERVICE_TOGGLE):
+        setup_service_call_interceptor(
+            hass,
+            LIGHT_DOMAIN,
+            intercepted_service,
+            record_forwarded,
+        )
+
     await setup_switch(
         hass,
         {
@@ -5720,12 +5748,36 @@ async def test_intercept_honors_target_exclude(
 
     target = {ATTR_ENTITY_ID: lights} if explicit else {ATTR_AREA_ID: "test-area"}
     target["exclude"] = {ATTR_ENTITY_ID: [ENTITY_LIGHT_3]}
-    await hass.services.async_call(LIGHT_DOMAIN, service, target, blocking=True)
+    context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        service,
+        target,
+        blocking=True,
+        context=context,
+    )
     await hass.async_block_till_done()
 
+    # The original call reached the light service rewritten to the lights
+    # Adaptive Lighting resolved, so the interceptor handled it.
+    original = [eids for ctx, eids in forwarded if ctx.id == context.id]
+    assert len(original) == 1
+    # Every light Adaptive Lighting forwarded, in the rewritten call or its
+    # own follow-up calls, is a targeted light that isn't excluded.
+    from_call = [
+        eids for ctx, eids in forwarded if context.id in (ctx.id, ctx.parent_id)
+    ]
+    assert {eid for eids in from_call for eid in eids} == {
+        ENTITY_LIGHT_1,
+        ENTITY_LIGHT_2,
+    }
+
+    # Managed light: adapted. Unmanaged targeted light: on, not adapted.
+    # Excluded light: untouched.
     assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
     assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 128
     assert hass.states.get(ENTITY_LIGHT_2).state == STATE_ON
+    assert hass.states.get(ENTITY_LIGHT_2).attributes.get(ATTR_BRIGHTNESS) != 128
     assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
 
 
