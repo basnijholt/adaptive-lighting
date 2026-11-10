@@ -7,7 +7,7 @@ from typing import Any
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-from homeassistant.const import CONF_SOURCE, Platform
+from homeassistant.const import CONF_SOURCE, MAJOR_VERSION, MINOR_VERSION, Platform
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers import service
 
@@ -33,6 +33,17 @@ from .switch import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["switch"]
+
+# HA 2026.11 expects config entry methods to return None on success; older
+# releases treat anything but a boolean as a failure.
+_ENTRY_METHODS_RETURN_NONE = (MAJOR_VERSION, MINOR_VERSION) >= (2026, 11)
+
+
+def _entry_result(*, ok: bool) -> bool | None:
+    """Return a config entry method result in the form this HA release expects."""
+    if ok and _ENTRY_METHODS_RETURN_NONE:
+        return None
+    return ok
 
 
 def _all_unique_names(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -100,7 +111,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+) -> bool | None:
     """Set up the component."""
     data = hass.data.setdefault(DOMAIN, {})
 
@@ -112,7 +126,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     data[config_entry.entry_id] = {UNDO_UPDATE_LISTENER: undo_listener}
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
-    return True
+    return _entry_result(ok=True)
 
 
 async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
@@ -120,7 +134,10 @@ async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry) -
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+) -> bool | None:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_forward_entry_unload(
         config_entry,
@@ -139,4 +156,4 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     if not data:
         hass.data.pop(DOMAIN)
 
-    return unload_ok
+    return _entry_result(ok=unload_ok)

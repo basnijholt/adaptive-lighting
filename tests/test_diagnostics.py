@@ -43,8 +43,15 @@ from homeassistant.const import (
 )
 from homeassistant.core import State
 
-from tests.common import MockConfigEntry
-from tests.components.diagnostics import get_diagnostics_for_config_entry
+# HA 2026.11 moved the test helpers from `tests` into the `pytest_homeassistant` package.
+try:
+    from pytest_homeassistant.common import MockConfigEntry
+    from pytest_homeassistant.components.diagnostics import (
+        get_diagnostics_for_config_entry,
+    )
+except ImportError:
+    from tests.common import MockConfigEntry
+    from tests.components.diagnostics import get_diagnostics_for_config_entry
 
 from .test_switch import (
     ENTITY_LIGHT_1,

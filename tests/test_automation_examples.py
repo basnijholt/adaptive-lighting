@@ -61,7 +61,11 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from homeassistant.util import yaml as yaml_util
 
-from tests.common import async_fire_time_changed
+# HA 2026.11 moved the test helpers from `tests` into the `pytest_homeassistant` package.
+try:
+    from pytest_homeassistant.common import async_fire_time_changed
+except ImportError:
+    from tests.common import async_fire_time_changed
 
 from .test_switch import setup_switch
 

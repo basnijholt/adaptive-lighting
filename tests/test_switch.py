@@ -137,8 +137,15 @@ from homeassistant.util.color import (
     color_temperature_mired_to_kelvin,
 )
 
-from tests.common import MockConfigEntry
-from tests.common import mock_area_registry as mock_ha_area_registry
+# HA 2026.11 moved the test helpers from `tests` into the `pytest_homeassistant` package.
+try:
+    from pytest_homeassistant.common import MockConfigEntry
+    from pytest_homeassistant.common import (
+        mock_area_registry as mock_ha_area_registry,
+    )
+except ImportError:
+    from tests.common import MockConfigEntry
+    from tests.common import mock_area_registry as mock_ha_area_registry
 
 # HA 2026.6 removed the legacy `light: platform: template` YAML format
 # (home-assistant/core#169615); use the modern `template:` format there.

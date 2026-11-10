@@ -38,6 +38,12 @@ for strings_file in core/homeassistant/components/*/strings.json; do
 done
 
 uv pip install -e core/
+
+# HA 2026.11+ moved the test helpers (`tests.common` etc.) into a local
+# `pytest-homeassistant` package that requirements_test.txt doesn't install.
+if [[ -d core/packages/pytest-homeassistant ]]; then
+  uv pip install -e core/packages/pytest-homeassistant
+fi
 uv pip install ulid-transform # this is in Adaptive-lighting's manifest.json
 uv pip install $(python3 test_dependencies.py)
 
