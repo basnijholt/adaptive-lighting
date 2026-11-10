@@ -76,6 +76,9 @@ from homeassistant.components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
     TakeOverControlMode,
 )
+from homeassistant.components.adaptive_lighting.hass_utils import (
+    setup_service_call_interceptor,
+)
 from homeassistant.components.adaptive_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveLightingManager,
@@ -126,10 +129,19 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     EntityCategory,
 )
-from homeassistant.core import Context, CoreState, Event, HomeAssistant, State
+from homeassistant.core import (
+    Context,
+    CoreState,
+    Event,
+    HomeAssistant,
+    ServiceCall,
+    State,
+)
 from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry
+from homeassistant.helpers import target as target_helper
 from homeassistant.helpers.entity_platform import async_get_platforms
 from homeassistant.setup import async_setup_component
 from homeassistant.util.color import (
@@ -143,6 +155,9 @@ from tests.common import mock_area_registry as mock_ha_area_registry
 # HA 2026.6 removed the legacy `light: platform: template` YAML format
 # (home-assistant/core#169615); use the modern `template:` format there.
 LEGACY_TEMPLATE_LIGHTS = hasattr(template_light, "PLATFORM_SCHEMA")
+
+# HA 2026.11 added an `exclude` block to service call targets.
+TARGET_EXCLUDE = hasattr(target_helper, "async_extract_excluded_entity_ids")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -5663,6 +5678,100 @@ async def test_intercept_preserves_area_target_exclusions(
             assert target_state.attributes[ATTR_BRIGHTNESS] == 128
         else:
             assert target_state.attributes.get(ATTR_BRIGHTNESS) != 128
+
+
+@pytest.mark.skipif(not TARGET_EXCLUDE, reason="Target `exclude` needs HA 2026.11+")
+@pytest.mark.parametrize("service", [SERVICE_TURN_ON, SERVICE_TOGGLE])
+@pytest.mark.parametrize("explicit", [False, True], ids=["area", "direct"])
+@pytest.mark.parametrize("managed", [False, True], ids=["unmanaged", "managed"])
+@pytest.mark.parametrize("multi_light_intercept", [False, True])
+async def test_intercept_honors_target_exclude(
+    hass: HomeAssistant,
+    service: str,
+    explicit: bool,
+    managed: bool,
+    multi_light_intercept: bool,
+):
+    """Lights in a target's `exclude` block stay off when the call is intercepted."""
+    await setup_lights(hass)
+    mock_area_registry(hass)
+    registry = entity_registry.async_get(hass)
+    lights = [ENTITY_LIGHT_1, ENTITY_LIGHT_2, ENTITY_LIGHT_3]
+    for light in lights:
+        registry.async_update_entity(light, area_id="test-area")
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: lights},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    # Registered before the switch, so the interceptor wraps this recorder and
+    # it sees every call as Adaptive Lighting forwards it: the rewritten
+    # original call and the follow-up `light.turn_on` for skipped lights.
+    forwarded: list[tuple[Context, list[str]]] = []
+
+    def record_forwarded(call: ServiceCall, data: dict[str, Any]) -> None:
+        forwarded.append((call.context, cv.ensure_list(data.get(ATTR_ENTITY_ID))))
+
+    for intercepted_service in (SERVICE_TURN_ON, SERVICE_TOGGLE):
+        setup_service_call_interceptor(
+            hass,
+            LIGHT_DOMAIN,
+            intercepted_service,
+            record_forwarded,
+        )
+
+    await setup_switch(
+        hass,
+        {
+            CONF_LIGHTS: (
+                [ENTITY_LIGHT_1, ENTITY_LIGHT_3] if managed else [ENTITY_LIGHT_1]
+            ),
+            CONF_INTERCEPT: True,
+            CONF_MULTI_LIGHT_INTERCEPT: multi_light_intercept,
+            CONF_INITIAL_TRANSITION: 0,
+            CONF_TRANSITION: 0,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+        },
+    )
+    assert all(hass.states.get(light).state == STATE_OFF for light in lights)
+
+    target = {ATTR_ENTITY_ID: lights} if explicit else {ATTR_AREA_ID: "test-area"}
+    target["exclude"] = {ATTR_ENTITY_ID: [ENTITY_LIGHT_3]}
+    context = Context()
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        service,
+        target,
+        blocking=True,
+        context=context,
+    )
+    await hass.async_block_till_done()
+
+    # The original call reached the light service rewritten to the lights
+    # Adaptive Lighting resolved, so the interceptor handled it.
+    original = [eids for ctx, eids in forwarded if ctx.id == context.id]
+    assert len(original) == 1
+    # Every light Adaptive Lighting forwarded, in the rewritten call or its
+    # own follow-up calls, is a targeted light that isn't excluded.
+    from_call = [
+        eids for ctx, eids in forwarded if context.id in (ctx.id, ctx.parent_id)
+    ]
+    assert {eid for eids in from_call for eid in eids} == {
+        ENTITY_LIGHT_1,
+        ENTITY_LIGHT_2,
+    }
+
+    # Managed light: adapted. Unmanaged targeted light: on, not adapted.
+    # Excluded light: untouched.
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    assert hass.states.get(ENTITY_LIGHT_1).attributes[ATTR_BRIGHTNESS] == 128
+    assert hass.states.get(ENTITY_LIGHT_2).state == STATE_ON
+    assert hass.states.get(ENTITY_LIGHT_2).attributes.get(ATTR_BRIGHTNESS) != 128
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
 
 
 @pytest.mark.parametrize("split", [False, True])
