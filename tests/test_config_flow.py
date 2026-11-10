@@ -27,7 +27,11 @@ from homeassistant.const import CONF_NAME
 from homeassistant.data_entry_flow import FlowResultType, section
 from homeassistant.helpers import config_validation as cv
 
-from tests.common import MockConfigEntry
+# HA 2026.11 moved the test helpers from `tests` into the `pytest_homeassistant` package.
+try:
+    from pytest_homeassistant.common import MockConfigEntry
+except ImportError:
+    from tests.common import MockConfigEntry
 
 DEFAULT_DATA = {key: default for key, default, _ in VALIDATION_TUPLES}
 
