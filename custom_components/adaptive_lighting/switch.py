@@ -1532,6 +1532,29 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 data,
             )
 
+    def _without_lights_turning_off(
+        self,
+        lights: list[str],
+        context: Context,
+    ) -> list[str]:
+        """Remove lights that still report 'on' while a 'light.turn_off' is in flight.
+
+        A forced adaptation must not turn such a light back on, see #1654.
+        """
+        filtered_lights = []
+        for light in lights:
+            if self.manager.turn_off_in_progress(light):
+                _LOGGER.debug(
+                    "%s: Light '%s' is still turning off, skip forced"
+                    " adaptation, context.id='%s'",
+                    self._name,
+                    light,
+                    context.id,
+                )
+            else:
+                filtered_lights.append(light)
+        return filtered_lights
+
     async def _update_attrs_and_maybe_adapt_lights(
         self,
         *,
@@ -1569,7 +1592,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         on_lights = [light for light in lights if is_on(self.hass, light)]
 
         if force:
-            filtered_lights = on_lights
+            filtered_lights = self._without_lights_turning_off(on_lights, context)
         else:
             filtered_lights: list[str] = []
             for light in on_lights:
@@ -3093,6 +3116,33 @@ class AdaptiveLightingManager:
                 )
                 return True
         return False
+
+    def turn_off_in_progress(self, entity_id: str) -> bool:
+        """Check if a 'light.turn_off' was sent but the light still reports 'on'.
+
+        Some lights report 'off' only seconds after the command, so for that
+        time the state still shows 'on' from before the 'light.turn_off'.
+        """
+        turn_off_event = self.turn_off_event.get(entity_id)
+        if turn_off_event is None:
+            return False
+
+        turn_on_event = self.turn_on_event.get(entity_id)
+        if (
+            turn_on_event is not None
+            and turn_on_event.time_fired >= turn_off_event.time_fired
+        ):
+            return False
+
+        state = self.hass.states.get(entity_id)
+        if state is None or state.last_changed >= turn_off_event.time_fired:
+            # The light reported a new state after the 'light.turn_off'.
+            return False
+
+        transition = _turn_off_transition(turn_off_event)
+        delay: float = max(transition or 0, TURNING_OFF_DELAY)
+        elapsed: float = (dt_util.utcnow() - turn_off_event.time_fired).total_seconds()
+        return 0 <= elapsed <= delay
 
     def _off_to_on_event_is_during_turn_off(
         self,
