@@ -769,7 +769,8 @@ def test_color_temp_mode_rgb_follows_ramp_after_sunset():
     """During the dark ramp the RGB sleep blend must not kick in yet."""
     settings = _fixed_day_settings("linear", 3600, 3600, rgb=True)
     during = settings.brightness_and_color(
-        _DAY + dt.timedelta(hours=18, minutes=30), is_sleep=False
+        _DAY + dt.timedelta(hours=18, minutes=30),
+        is_sleep=False,
     )
     assert not during["force_rgb_color"]
     after = settings.brightness_and_color(_DAY + dt.timedelta(hours=20), is_sleep=False)
