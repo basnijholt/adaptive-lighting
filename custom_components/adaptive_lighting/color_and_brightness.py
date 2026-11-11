@@ -356,7 +356,9 @@ class SunLightSettings:
         else:
             msg = "Unsupported sun event"
             raise ValueError(msg)
-        if mode == "linear":
+        if x2 <= x1:  # both durations zero: switch at the event itself
+            value = at_x2 if x >= x2 else at_x1
+        elif mode == "linear":
             value = lerp(x, x1=x1, x2=x2, y1=at_x1, y2=at_x2)
         else:
             rising = event == SunEvent.SUNRISE
@@ -370,6 +372,44 @@ class SunLightSettings:
                 y_max=y_max,
             )
         return clamp(value, y_min, y_max)
+
+    def _color_temp_ramp(self, dt: datetime.datetime) -> float:
+        """Color temperature on the `color_temp_mode` sunrise/sunset ramp."""
+        assert self.color_temp_mode in ("linear", "tanh")
+        return self._sun_event_ramp(
+            dt,
+            self.color_temp_mode,
+            self.color_temp_mode_time_dark,
+            self.color_temp_mode_time_light,
+            self.min_color_temp,
+            self.max_color_temp,
+        )
+
+    def _night_fraction(
+        self,
+        dt: datetime.datetime,
+        time_dark: datetime.timedelta,
+    ) -> float | None:
+        """How much of the evening/morning color is left at night, past the dark ramp.
+
+        Returns 1.0 where the ramp ends (`time_dark` after sunset or before
+        sunrise), falling to 0.0 at solar midnight with the same quadratic shape
+        as the default night curve. Returns None during the day and while the
+        ramp is still running, so the handoff is decided by time rather than by
+        the ramp reaching an exact value (a tanh ramp never quite does).
+        """
+        (prev_event, prev_ts), (next_event, next_ts) = self.sun.prev_and_next_events(dt)
+        if prev_event == SunEvent.SUNSET and next_event == SunEvent.MIDNIGHT:
+            edge_ts, midnight_ts = prev_ts, next_ts
+        elif prev_event == SunEvent.MIDNIGHT and next_event == SunEvent.SUNRISE:
+            edge_ts, midnight_ts = next_ts, prev_ts
+        else:
+            return None
+        dark = time_dark.total_seconds()
+        span = abs(midnight_ts - edge_ts) - dark
+        if span <= 0 or abs(dt.timestamp() - edge_ts) <= dark:
+            return None
+        return min(1.0, (abs(dt.timestamp() - midnight_ts) / span) ** 2)
 
     def _brightness_pct_tanh(self, dt: datetime.datetime) -> float:
         return self._sun_event_ramp(
@@ -415,23 +455,18 @@ class SunLightSettings:
         value ramps from `min_color_temp` to `max_color_temp` over
         `color_temp_mode_time_light` after sunrise, holds at `max_color_temp`,
         and ramps back before sunset, like `brightness_mode` does for brightness.
-        After the ramp ends at night, `adapt_until_sleep` behaves as in "default".
+        With `adapt_until_sleep`, the night curve toward `sleep_color_temp` takes
+        over where the dark ramp ends and starts from the ramp's value.
         """
         if self.color_temp_mode != "default" and dt is not None:
-            ct = self._sun_event_ramp(
-                dt,
-                self.color_temp_mode,
-                self.color_temp_mode_time_dark,
-                self.color_temp_mode_time_light,
-                self.min_color_temp,
-                self.max_color_temp,
-            )
-            if not (
-                self.adapt_until_sleep
-                and sun_position < 0
-                and ct <= self.min_color_temp
-            ):
-                return 5 * round(ct / 5)  # round to nearest 5
+            ct = self._color_temp_ramp(dt)
+            if self.adapt_until_sleep:
+                fraction = self._night_fraction(dt, self.color_temp_mode_time_dark)
+                if fraction is not None:
+                    # start the night curve from wherever the ramp is, so the
+                    # two meet without a jump
+                    ct = self.sleep_color_temp + (ct - self.sleep_color_temp) * fraction
+            return 5 * round(ct / 5)  # round to nearest 5
         if sun_position > 0:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * sun_position) + self.min_color_temp
@@ -444,6 +479,30 @@ class SunLightSettings:
             return 5 * round(ct / 5)  # round to nearest 5
         msg = "Should not happen"
         raise ValueError(msg)
+
+    def _night_rgb_base(
+        self,
+        dt: datetime.datetime,
+        sun_position: float,
+    ) -> tuple[float, float] | None:
+        """(color temp to blend from, progress toward sleep_rgb_color) at night.
+
+        None when the RGB sleep blend does not apply: it needs
+        `sleep_rgb_or_color_temp="rgb_color"` and `adapt_until_sleep`, the sun
+        below the horizon, and (in a ramp mode) the dark ramp to be over.
+        """
+        if not (
+            self.sleep_rgb_or_color_temp == "rgb_color"
+            and self.adapt_until_sleep
+            and sun_position < 0
+        ):
+            return None
+        if self.color_temp_mode == "default":
+            return self.min_color_temp, sun_position
+        fraction = self._night_fraction(dt, self.color_temp_mode_time_dark)
+        if fraction is None:
+            return None
+        return self._color_temp_ramp(dt), 1 - fraction
 
     def brightness_and_color(
         self,
@@ -459,20 +518,16 @@ class SunLightSettings:
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
-        elif (
-            self.sleep_rgb_or_color_temp == "rgb_color"
-            and self.adapt_until_sleep
-            and sun_position < 0
-        ):
+        elif (night_rgb := self._night_rgb_base(dt, sun_position)) is not None:
             # Feature requested in
             # https://github.com/basnijholt/adaptive-lighting/issues/624
             # This will result in a perceptible jump in color at sunset and sunrise
             # because the `color_temperature_to_rgb` function is not 100% accurate.
-            min_color_rgb = color_temperature_to_rgb(self.min_color_temp)
+            base_color_temp, progress = night_rgb
             rgb_color = lerp_color_hsv(
-                min_color_rgb,
+                color_temperature_to_rgb(base_color_temp),
                 self.sleep_rgb_color,
-                sun_position,
+                progress,
             )
             color_temp_kelvin = self.color_temp_kelvin(sun_position, dt)
             force_rgb_color = True

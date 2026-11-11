@@ -1,3 +1,4 @@
+import dataclasses
 import datetime as dt
 import zoneinfo
 
@@ -687,3 +688,106 @@ def test_color_temp_mode_adapt_until_sleep_at_night(tzinfo_and_location):
         when = sunset + dt.timedelta(hours=hours)
         assert _ct(linear, when) == _ct(default, when)
         assert _ct(linear, when) < 2700
+
+
+def _fixed_day_settings(color_temp_mode, dark, light, *, rgb=False):
+    """Fixed sunrise 06:00 / sunset 18:00, adapt_until_sleep on, sleep 1000 K."""
+    location = Location(LocationInfo("n", "r", "UTC", 52.0, 4.9))
+    return SunLightSettings(
+        name="test",
+        astral_observer=location.observer,
+        adapt_until_sleep=True,
+        max_brightness=100,
+        max_color_temp=6500,
+        min_brightness=1,
+        min_color_temp=2700,
+        sleep_brightness=1,
+        sleep_rgb_or_color_temp="rgb_color" if rgb else "color_temp",
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=dt.time(6),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=dt.time(18),
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=30),
+        brightness_mode_time_light=dt.timedelta(minutes=30),
+        color_temp_mode=color_temp_mode,
+        color_temp_mode_time_dark=dt.timedelta(seconds=dark),
+        color_temp_mode_time_light=dt.timedelta(seconds=light),
+        timezone=dt.UTC,
+    )
+
+
+_DAY = dt.datetime(2022, 3, 21, tzinfo=dt.UTC)
+
+
+@pytest.mark.parametrize("color_temp_mode", ["linear", "tanh"])
+def test_color_temp_mode_reaches_sleep_color_temp_at_midnight(color_temp_mode):
+    """The night handoff is by time, so a tanh ramp (which never reaches
+    min_color_temp exactly) still walks to sleep_color_temp.
+    """
+    settings = _fixed_day_settings(color_temp_mode, 900, 3600)
+    assert _ct(settings, _DAY + dt.timedelta(hours=24)) == 1000
+
+
+@pytest.mark.parametrize(
+    ("color_temp_mode", "dark", "rgb"),
+    [
+        ("linear", 3600, False),
+        ("tanh", 900, False),
+        ("linear", 3600, True),
+        ("tanh", 900, True),
+        ("linear", 0, False),
+    ],
+)
+def test_color_temp_mode_evening_and_morning_have_no_jumps(color_temp_mode, dark, rgb):
+    """Sampled every minute from 16:00 to 08:00: no step in color temperature or
+    RGB, including where the dark ramp hands over to the night curve.
+    """
+    settings = _fixed_day_settings(color_temp_mode, dark, 3600, rgb=rgb)
+    prev = None
+    for minute in range(16 * 60, 32 * 60):
+        cur = settings.brightness_and_color(
+            _DAY + dt.timedelta(minutes=minute),
+            is_sleep=False,
+        )
+        if prev is not None:
+            assert abs(cur["color_temp_kelvin"] - prev["color_temp_kelvin"]) <= 100
+            assert (
+                max(
+                    abs(a - b)
+                    for a, b in zip(cur["rgb_color"], prev["rgb_color"], strict=True)
+                )
+                <= 10
+            )
+        prev = cur
+
+
+def test_color_temp_mode_rgb_follows_ramp_after_sunset():
+    """During the dark ramp the RGB sleep blend must not kick in yet."""
+    settings = _fixed_day_settings("linear", 3600, 3600, rgb=True)
+    during = settings.brightness_and_color(
+        _DAY + dt.timedelta(hours=18, minutes=30), is_sleep=False
+    )
+    assert not during["force_rgb_color"]
+    after = settings.brightness_and_color(_DAY + dt.timedelta(hours=20), is_sleep=False)
+    assert after["force_rgb_color"]
+
+
+@pytest.mark.parametrize("mode", ["linear", "tanh"])
+def test_zero_ramp_durations_switch_at_the_event(mode):
+    """Both durations zero used to divide by zero; now it is a step at the event."""
+    settings = _fixed_day_settings(mode, 0, 0)
+    settings = dataclasses.replace(
+        settings,
+        adapt_until_sleep=False,
+        brightness_mode=mode,
+        brightness_mode_time_dark=dt.timedelta(0),
+        brightness_mode_time_light=dt.timedelta(0),
+    )
+    noon = settings.brightness_and_color(_DAY + dt.timedelta(hours=12), is_sleep=False)
+    night = settings.brightness_and_color(_DAY + dt.timedelta(hours=22), is_sleep=False)
+    assert (noon["color_temp_kelvin"], noon["brightness_pct"]) == (6500, 100)
+    assert (night["color_temp_kelvin"], night["brightness_pct"]) == (2700, 1)
