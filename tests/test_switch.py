@@ -73,6 +73,7 @@ from homeassistant.components.adaptive_lighting.const import (
     SERVICE_CHANGE_SWITCH_SETTINGS,
     SERVICE_SET_MANUAL_CONTROL,
     SLEEP_MODE_SWITCH,
+    TURNING_OFF_DELAY,
     UNDO_UPDATE_LISTENER,
     TakeOverControlMode,
 )
@@ -4279,6 +4280,110 @@ def _turn_off_service_event(
         time_fired_timestamp=ts,
         context=context,
     )
+
+
+async def _turn_off_but_still_report_on(hass, light, **service_data):
+    """Send 'light.turn_off' while the light keeps reporting 'on'.
+
+    Some devices (e.g. Matter lights) report 'off' only seconds after the command.
+    """
+    with patch.object(light, "async_turn_off", new=AsyncMock()):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: light.entity_id, **service_data},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert hass.states.get(light.entity_id).state == STATE_ON
+
+
+def _calls_for(calls, entity_id):
+    return [call for call in calls if entity_id in str(call.get(ATTR_ENTITY_ID))]
+
+
+async def _force_adapt(hass, switch, trigger):
+    if trigger == "change_switch_settings":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CHANGE_SWITCH_SETTINGS,
+            {ATTR_ENTITY_ID: switch.entity_id, CONF_MAX_BRIGHTNESS: 50},
+            blocking=True,
+        )
+    else:
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize("trigger", ["change_switch_settings", "sleep_mode"])
+async def test_forced_adaptation_skips_light_still_turning_off(
+    hass,
+    freezer,
+    trigger,
+):
+    """A forced adaptation must not turn on a light that is turning off (#1654)."""
+    switch, lights = await setup_lights_and_switch(hass)
+    light = lights[0]
+    assert light.entity_id == ENTITY_LIGHT_1
+    assert hass.states.get(ENTITY_LIGHT_1).state == STATE_ON
+    freezer.tick(1)  # the 'on' state must be older than the 'light.turn_off'
+    await _turn_off_but_still_report_on(hass, light, **{ATTR_TRANSITION: 2})
+
+    calls = _track_adaptive_light_calls(hass)
+    await _force_adapt(hass, switch, trigger)
+    assert not _calls_for(calls, ENTITY_LIGHT_1)
+
+    # The protection ends with the turn-off window, max(transition, delay).
+    freezer.tick(TURNING_OFF_DELAY + 1)
+    if trigger == "sleep_mode":
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: switch.sleep_mode_switch.entity_id},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        calls.clear()
+    await _force_adapt(hass, switch, trigger)
+    assert _calls_for(calls, ENTITY_LIGHT_1)
+
+
+async def test_forced_adaptation_adapts_light_turned_on_after_turn_off(hass):
+    """A 'light.turn_on' after the 'light.turn_off' ends the protection (#1654)."""
+    switch, lights = await setup_lights_and_switch(hass)
+    await _turn_off_but_still_report_on(hass, lights[0])
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_1},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert not switch.manager.turn_off_in_progress(ENTITY_LIGHT_1)
+
+    calls = _track_adaptive_light_calls(hass)
+    await _force_adapt(hass, switch, "change_switch_settings")
+    assert _calls_for(calls, ENTITY_LIGHT_1)
+
+
+async def test_turn_off_in_progress_ends_when_light_reports_new_state(hass):
+    """The protection only covers the state from before the 'light.turn_off'."""
+    switch, lights = await setup_lights_and_switch(hass)
+    await _turn_off_but_still_report_on(hass, lights[0])
+    assert switch.manager.turn_off_in_progress(ENTITY_LIGHT_1)
+
+    state = hass.states.get(ENTITY_LIGHT_1)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_OFF, state.attributes)
+    hass.states.async_set(ENTITY_LIGHT_1, STATE_ON, state.attributes)
+    await hass.async_block_till_done()
+    assert not switch.manager.turn_off_in_progress(ENTITY_LIGHT_1)
 
 
 async def test_just_turned_off_group_context_reuse(hass, cleanup):
