@@ -206,6 +206,30 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
     "the brightness after/before sunrise/sunset. 📈📉."
 )
 
+CONF_COLOR_TEMP_MODE, DEFAULT_COLOR_TEMP_MODE = "color_temp_mode", "default"
+DOCS[CONF_COLOR_TEMP_MODE] = (
+    "Color temperature mode to use. `default` follows the sun's position (coldest only "
+    "at solar noon); `linear` and `tanh` ramp between `min_color_temp` and "
+    "`max_color_temp` around sunrise/sunset and hold `max_color_temp` in between "
+    "(uses `color_temp_mode_time_dark` and `color_temp_mode_time_light`). 🌡️"
+)
+CONF_COLOR_TEMP_MODE_TIME_DARK, DEFAULT_COLOR_TEMP_MODE_TIME_DARK = (
+    "color_temp_mode_time_dark",
+    900,
+)
+DOCS[CONF_COLOR_TEMP_MODE_TIME_DARK] = (
+    "(Ignored if `color_temp_mode='default'`) The duration in seconds to ramp the "
+    "color temperature before sunrise/after sunset. 🌡️"
+)
+CONF_COLOR_TEMP_MODE_TIME_LIGHT, DEFAULT_COLOR_TEMP_MODE_TIME_LIGHT = (
+    "color_temp_mode_time_light",
+    3600,
+)
+DOCS[CONF_COLOR_TEMP_MODE_TIME_LIGHT] = (
+    "(Ignored if `color_temp_mode='default'`) The duration in seconds to ramp the "
+    "color temperature after sunrise/before sunset. 🌡️"
+)
+
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
     "Pause adaptation of individual lights and hand over (manual) control to other sources that "
@@ -411,6 +435,19 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     ),
     (CONF_BRIGHTNESS_MODE_TIME_DARK, DEFAULT_BRIGHTNESS_MODE_TIME_DARK, int),
     (CONF_BRIGHTNESS_MODE_TIME_LIGHT, DEFAULT_BRIGHTNESS_MODE_TIME_LIGHT, int),
+    (
+        CONF_COLOR_TEMP_MODE,
+        DEFAULT_COLOR_TEMP_MODE,
+        selector.SelectSelector(  # type: ignore[arg-type]
+            selector.SelectSelectorConfig(
+                options=["default", "linear", "tanh"],
+                multiple=False,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            ),
+        ),
+    ),
+    (CONF_COLOR_TEMP_MODE_TIME_DARK, DEFAULT_COLOR_TEMP_MODE_TIME_DARK, int),
+    (CONF_COLOR_TEMP_MODE_TIME_LIGHT, DEFAULT_COLOR_TEMP_MODE_TIME_LIGHT, int),
     (CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL, bool),
     (
         CONF_TAKE_OVER_CONTROL_MODE,
@@ -481,6 +518,8 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_TEMP_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
+    CONF_COLOR_TEMP_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
 }
 
 

@@ -100,6 +100,9 @@ from .const import (
     CONF_BRIGHTNESS_MODE,
     CONF_BRIGHTNESS_MODE_TIME_DARK,
     CONF_BRIGHTNESS_MODE_TIME_LIGHT,
+    CONF_COLOR_TEMP_MODE,
+    CONF_COLOR_TEMP_MODE_TIME_DARK,
+    CONF_COLOR_TEMP_MODE_TIME_LIGHT,
     CONF_DETECT_NON_HA_CHANGES,
     CONF_EXPAND_LIGHT_GROUPS,
     CONF_INCLUDE_CONFIG_IN_ATTRIBUTES,
@@ -1037,6 +1040,9 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
+            color_temp_mode=data[CONF_COLOR_TEMP_MODE],
+            color_temp_mode_time_dark=data[CONF_COLOR_TEMP_MODE_TIME_DARK],
+            color_temp_mode_time_light=data[CONF_COLOR_TEMP_MODE_TIME_LIGHT],
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
         )
         _LOGGER.debug(
