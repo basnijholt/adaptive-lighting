@@ -84,6 +84,28 @@ adaptive_lighting:
     brightness_mode_time_light: 3600  # 1 hour
 ```
 
+## Color Temperature Modes
+
+`color_temp_mode` applies the same `linear` / `tanh` ramps to color temperature, using
+`color_temp_mode_time_dark` and `color_temp_mode_time_light`. In `default` mode the color
+temperature follows the sun's position and only reaches `max_color_temp` at solar noon;
+with a ramp mode it reaches `max_color_temp` at `sunrise + color_temp_mode_time_light`,
+holds it until `sunset - color_temp_mode_time_light`, and returns to `min_color_temp` by
+`sunset + color_temp_mode_time_dark`. With `adapt_until_sleep`, the night-time walk toward
+`sleep_color_temp` starts once the ramp has reached `min_color_temp`.
+
+### Coldest From Two Hours After Sunrise Until Two Hours Before Sunset
+
+```yaml
+adaptive_lighting:
+  - name: "Daylight white"
+    lights:
+      - light.kitchen
+    color_temp_mode: linear
+    color_temp_mode_time_dark: 0
+    color_temp_mode_time_light: 7200  # 2 hours
+```
+
 ## Graphs
 
 These graphs show how brightness changes throughout the day based on calculated values:

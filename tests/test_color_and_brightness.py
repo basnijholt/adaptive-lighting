@@ -1,3 +1,4 @@
+import dataclasses
 import datetime as dt
 import zoneinfo
 
@@ -547,3 +548,247 @@ def test_brightness_and_color_on_polar_days(date):
     at_midnight = settings.brightness_and_color(midnight, is_sleep=False)
     assert at_midnight["brightness_pct"] == 30
     assert at_midnight["color_temp_kelvin"] == 2000
+
+
+def _make_color_settings(
+    tzinfo,
+    location,
+    *,
+    color_temp_mode,
+    time_dark=dt.timedelta(0),
+    time_light=dt.timedelta(hours=2),
+    adapt_until_sleep=False,
+):
+    """Build a SunLightSettings for color_temp_mode tests (2700-6500 K)."""
+    return SunLightSettings(
+        name="test",
+        astral_observer=location.observer,
+        adapt_until_sleep=adapt_until_sleep,
+        max_brightness=100,
+        max_color_temp=6500,
+        min_brightness=1,
+        min_color_temp=2700,
+        sleep_brightness=1,
+        sleep_rgb_or_color_temp="color_temp",
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=None,
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=None,
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=30),
+        brightness_mode_time_light=dt.timedelta(minutes=30),
+        color_temp_mode=color_temp_mode,
+        color_temp_mode_time_dark=time_dark,
+        color_temp_mode_time_light=time_light,
+        timezone=tzinfo,
+    )
+
+
+def _ct(settings, when):
+    return settings.brightness_and_color(when, is_sleep=False)["color_temp_kelvin"]
+
+
+def test_color_temp_mode_linear_holds_max_between_ramps(tzinfo_and_location):
+    """Linear mode: min at sunrise, max from sunrise+time_light until
+    sunset-time_light, back to min at sunset (time_dark=0).
+    """
+    tzinfo, location = tzinfo_and_location
+    settings = _make_color_settings(tzinfo, location, color_temp_mode="linear")
+    date = dt.datetime(2022, 3, 21, tzinfo=tzinfo)
+    sunrise = settings.sun.sunrise(date)
+    sunset = settings.sun.sunset(date)
+    hour = dt.timedelta(hours=1)
+
+    assert _ct(settings, sunrise) == 2700
+    assert _ct(settings, sunrise + hour) == 4600  # halfway up the 2 h ramp
+    assert _ct(settings, sunrise + 2 * hour) == 6500
+    assert _ct(settings, sunrise + 3 * hour) == 6500
+    assert _ct(settings, sunset - 3 * hour) == 6500
+    assert _ct(settings, sunset - 2 * hour) == 6500
+    assert _ct(settings, sunset - hour) == 4600
+    assert _ct(settings, sunset) == 2700
+    assert _ct(settings, sunset + hour) == 2700
+    assert _ct(settings, sunrise - hour) == 2700
+
+
+def test_color_temp_mode_time_dark_extends_ramp_into_night(tzinfo_and_location):
+    """time_dark moves the warm end of the ramp before sunrise / after sunset."""
+    tzinfo, location = tzinfo_and_location
+    settings = _make_color_settings(
+        tzinfo,
+        location,
+        color_temp_mode="linear",
+        time_dark=dt.timedelta(hours=1),
+        time_light=dt.timedelta(hours=1),
+    )
+    date = dt.datetime(2022, 3, 21, tzinfo=tzinfo)
+    sunrise = settings.sun.sunrise(date)
+    sunset = settings.sun.sunset(date)
+    hour = dt.timedelta(hours=1)
+    assert _ct(settings, sunrise - hour) == 2700
+    assert _ct(settings, sunrise) == 4600
+    assert _ct(settings, sunrise + hour) == 6500
+    assert _ct(settings, sunset - hour) == 6500
+    assert _ct(settings, sunset) == 4600
+    assert _ct(settings, sunset + hour) == 2700
+
+
+def test_color_temp_mode_tanh_is_monotonic_and_holds(tzinfo_and_location):
+    tzinfo, location = tzinfo_and_location
+    settings = _make_color_settings(tzinfo, location, color_temp_mode="tanh")
+    date = dt.datetime(2022, 3, 21, tzinfo=tzinfo)
+    sunrise = settings.sun.sunrise(date)
+    sunset = settings.sun.sunset(date)
+    up = [_ct(settings, sunrise + dt.timedelta(minutes=m)) for m in range(0, 121, 10)]
+    assert up == sorted(up)
+    assert up[0] < 3000  # ~5 % of the range at sunrise
+    assert up[-1] > 6200  # ~95 % of the range at sunrise + time_light
+    assert _ct(settings, sunrise + dt.timedelta(hours=4)) == 6500
+    down = [
+        _ct(settings, sunset - dt.timedelta(minutes=m)) for m in range(120, -1, -10)
+    ]
+    assert down == sorted(down, reverse=True)
+
+
+def test_color_temp_mode_default_is_unchanged(tzinfo_and_location):
+    """Default mode ignores dt: same values as the sun-position curve."""
+    tzinfo, location = tzinfo_and_location
+    settings = _make_color_settings(tzinfo, location, color_temp_mode="default")
+    date = dt.datetime(2022, 3, 21, tzinfo=tzinfo)
+    sunrise = settings.sun.sunrise(date)
+    for minutes in range(-120, 15 * 60, 37):
+        when = sunrise + dt.timedelta(minutes=minutes)
+        pos = settings.sun.sun_position(when)
+        assert _ct(settings, when) == settings.color_temp_kelvin(pos)
+
+
+def test_color_temp_mode_adapt_until_sleep_at_night(tzinfo_and_location):
+    """After the ramp has reached min_color_temp, adapt_until_sleep still
+    walks toward sleep_color_temp at night, as in default mode.
+    """
+    tzinfo, location = tzinfo_and_location
+    linear = _make_color_settings(
+        tzinfo,
+        location,
+        color_temp_mode="linear",
+        adapt_until_sleep=True,
+    )
+    default = _make_color_settings(
+        tzinfo,
+        location,
+        color_temp_mode="default",
+        adapt_until_sleep=True,
+    )
+    date = dt.datetime(2022, 3, 21, tzinfo=tzinfo)
+    sunset = linear.sun.sunset(date)
+    for hours in (1, 3, 5):
+        when = sunset + dt.timedelta(hours=hours)
+        assert _ct(linear, when) == _ct(default, when)
+        assert _ct(linear, when) < 2700
+
+
+def _fixed_day_settings(color_temp_mode, dark, light, *, rgb=False):
+    """Fixed sunrise 06:00 / sunset 18:00, adapt_until_sleep on, sleep 1000 K."""
+    location = Location(LocationInfo("n", "r", "UTC", 52.0, 4.9))
+    return SunLightSettings(
+        name="test",
+        astral_observer=location.observer,
+        adapt_until_sleep=True,
+        max_brightness=100,
+        max_color_temp=6500,
+        min_brightness=1,
+        min_color_temp=2700,
+        sleep_brightness=1,
+        sleep_rgb_or_color_temp="rgb_color" if rgb else "color_temp",
+        sleep_color_temp=1000,
+        sleep_rgb_color=(255, 56, 0),
+        sunrise_time=dt.time(6),
+        min_sunrise_time=None,
+        max_sunrise_time=None,
+        sunset_time=dt.time(18),
+        min_sunset_time=None,
+        max_sunset_time=None,
+        brightness_mode_time_dark=dt.timedelta(minutes=30),
+        brightness_mode_time_light=dt.timedelta(minutes=30),
+        color_temp_mode=color_temp_mode,
+        color_temp_mode_time_dark=dt.timedelta(seconds=dark),
+        color_temp_mode_time_light=dt.timedelta(seconds=light),
+        timezone=dt.UTC,
+    )
+
+
+_DAY = dt.datetime(2022, 3, 21, tzinfo=dt.UTC)
+
+
+@pytest.mark.parametrize("color_temp_mode", ["linear", "tanh"])
+def test_color_temp_mode_reaches_sleep_color_temp_at_midnight(color_temp_mode):
+    """The night handoff is by time, so a tanh ramp (which never reaches
+    min_color_temp exactly) still walks to sleep_color_temp.
+    """
+    settings = _fixed_day_settings(color_temp_mode, 900, 3600)
+    assert _ct(settings, _DAY + dt.timedelta(hours=24)) == 1000
+
+
+@pytest.mark.parametrize(
+    ("color_temp_mode", "dark", "rgb"),
+    [
+        ("linear", 3600, False),
+        ("tanh", 900, False),
+        ("linear", 3600, True),
+        ("tanh", 900, True),
+        ("linear", 0, False),
+    ],
+)
+def test_color_temp_mode_evening_and_morning_have_no_jumps(color_temp_mode, dark, rgb):
+    """Sampled every minute from 16:00 to 08:00: no step in color temperature or
+    RGB, including where the dark ramp hands over to the night curve.
+    """
+    settings = _fixed_day_settings(color_temp_mode, dark, 3600, rgb=rgb)
+    prev = None
+    for minute in range(16 * 60, 32 * 60):
+        cur = settings.brightness_and_color(
+            _DAY + dt.timedelta(minutes=minute),
+            is_sleep=False,
+        )
+        if prev is not None:
+            assert abs(cur["color_temp_kelvin"] - prev["color_temp_kelvin"]) <= 100
+            assert (
+                max(
+                    abs(a - b)
+                    for a, b in zip(cur["rgb_color"], prev["rgb_color"], strict=True)
+                )
+                <= 10
+            )
+        prev = cur
+
+
+def test_color_temp_mode_rgb_follows_ramp_after_sunset():
+    """During the dark ramp the RGB sleep blend must not kick in yet."""
+    settings = _fixed_day_settings("linear", 3600, 3600, rgb=True)
+    during = settings.brightness_and_color(
+        _DAY + dt.timedelta(hours=18, minutes=30),
+        is_sleep=False,
+    )
+    assert not during["force_rgb_color"]
+    after = settings.brightness_and_color(_DAY + dt.timedelta(hours=20), is_sleep=False)
+    assert after["force_rgb_color"]
+
+
+@pytest.mark.parametrize("mode", ["linear", "tanh"])
+def test_zero_ramp_durations_switch_at_the_event(mode):
+    """Both durations zero used to divide by zero; now it is a step at the event."""
+    settings = _fixed_day_settings(mode, 0, 0)
+    settings = dataclasses.replace(
+        settings,
+        adapt_until_sleep=False,
+        brightness_mode=mode,
+        brightness_mode_time_dark=dt.timedelta(0),
+        brightness_mode_time_light=dt.timedelta(0),
+    )
+    noon = settings.brightness_and_color(_DAY + dt.timedelta(hours=12), is_sleep=False)
+    night = settings.brightness_and_color(_DAY + dt.timedelta(hours=22), is_sleep=False)
+    assert (noon["color_temp_kelvin"], noon["brightness_pct"]) == (6500, 100)
+    assert (night["color_temp_kelvin"], night["brightness_pct"]) == (2700, 1)
