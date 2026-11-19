@@ -6344,3 +6344,131 @@ async def test_unloaded_polling_profile_preserves_other_split_adaptation(
     await hass.async_block_till_done()
     assert len(calls) == 2
     assert ATTR_COLOR_TEMP_KELVIN in calls[-1]
+
+
+@pytest.mark.parametrize("mode", list(TakeOverControlMode))
+async def test_intercepted_turn_on_detects_later_non_ha_change(hass, mode):
+    """A bare turn_on that the interceptor adapts must be remembered.
+
+    The interceptor applies the adaptation inside the original call, so nothing is
+    scheduled afterwards. Without recording what it applied, a later physical change
+    cannot be compared with anything and is never flagged as manual control.
+    """
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_INTERCEPT: True,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_TAKE_OVER_CONTROL_MODE: mode,
+            CONF_ADAPT_ONLY_ON_BARE_TURN_ON: False,
+        },
+        all_lights=True,
+    )
+    light = lights[2]
+    assert light.entity_id == ENTITY_LIGHT_3
+    assert not switch.manager.last_service_data.get(light.entity_id)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: light.entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    applied = switch.manager.last_service_data[light.entity_id]
+    assert applied[ATTR_ENTITY_ID] == light.entity_id
+    assert applied[ATTR_BRIGHTNESS] == light.brightness
+    assert (
+        switch.manager.get_manual_control_attributes(light.entity_id)
+        == LightControlAttributes.NONE
+    )
+
+    async def flush_physical_state(hass, entity_id):
+        light.async_write_ha_state()
+
+    with patch(
+        "homeassistant.components.adaptive_lighting.switch.async_update_entity",
+        new=AsyncMock(side_effect=flush_physical_state),
+    ):
+        # The user changes the brightness at the device, outside of Home Assistant.
+        set_light_brightness(light, 40 if light.brightness > 120 else 220)
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+
+    assert (
+        switch.manager.get_manual_control_attributes(light.entity_id)
+        == LightControlAttributes.BRIGHTNESS
+    )
+
+
+async def test_intercepted_turn_on_records_each_targeted_light(hass):
+    """Every light of one intercepted call gets its own last_service_data entry."""
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {CONF_INTERCEPT: True},
+        all_lights=True,
+    )
+    targets = [lights[1].entity_id, lights[2].entity_id]
+    # Lights that are already on are skipped by the interceptor, so start from off.
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: targets},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    for light in lights:
+        switch.manager.last_service_data.pop(light.entity_id, None)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: targets},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    for target in targets:
+        assert switch.manager.last_service_data[target][ATTR_ENTITY_ID] == target
+        assert ATTR_BRIGHTNESS in switch.manager.last_service_data[target]
+    assert lights[0].entity_id not in switch.manager.last_service_data
+
+
+async def test_intercepted_split_turn_on_keeps_first_command_in_last_service_data(
+    hass,
+):
+    """Scheduled follow-up commands extend the entry the interceptor created."""
+    switch, _ = await setup_lights_and_switch(
+        hass,
+        {CONF_INTERCEPT: True, CONF_SEPARATE_TURN_ON_COMMANDS: True},
+        all_lights=True,
+    )
+    _mock_sun_light_settings(
+        switch,
+        {
+            ATTR_BRIGHTNESS_PCT: 67,
+            ATTR_COLOR_TEMP_KELVIN: 3448,
+            "force_rgb_color": False,
+        },
+    )
+    switch.manager.last_service_data.pop(ENTITY_LIGHT_3, None)
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        SERVICE_TURN_ON,
+        {ATTR_ENTITY_ID: ENTITY_LIGHT_3},
+        blocking=True,
+    )
+    # Only the brightness command was part of the intercepted call.
+    first = switch.manager.last_service_data[ENTITY_LIGHT_3]
+    assert ATTR_BRIGHTNESS in first
+    assert ATTR_COLOR_TEMP_KELVIN not in first
+
+    await hass.async_block_till_done()
+    await asyncio.gather(*switch.manager.adaptation_tasks)
+    await hass.async_block_till_done()
+
+    final = switch.manager.last_service_data[ENTITY_LIGHT_3]
+    assert final[ATTR_BRIGHTNESS] == first[ATTR_BRIGHTNESS]
+    assert final[ATTR_COLOR_TEMP_KELVIN] == 3448

@@ -2295,6 +2295,20 @@ class AdaptiveLightingManager:
         preprocess_turn_on_alternatives(self.hass, first_service_data)
         data[CONF_PARAMS].update(first_service_data)
 
+        # The scheduled adaptation calls record what they applied in
+        # `last_service_data` (see `execute_cancellable_adaptation_calls`), but when
+        # this intercepted call carries the whole adaptation nothing gets scheduled.
+        # `reset()` above dropped the old entry, so without this the light would have
+        # nothing to compare against and later non-HA changes would go unnoticed.
+        applied_attributes = get_light_control_attributes(first_service_data)
+        for eid in entity_ids:
+            self.invalidate_manual_control_state(eid, applied_attributes)
+            self.last_service_data[eid] = {
+                **self.last_service_data.get(eid, {}),
+                **first_service_data,
+                ATTR_ENTITY_ID: eid,
+            }
+
         # Schedule additional service calls for the remaining adaptation data.
         # We cannot know here whether there is another call to follow (since the
         # state can change until the next call), so we just schedule it and let
