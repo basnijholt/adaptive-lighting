@@ -2595,6 +2595,96 @@ async def test_unload_cancels_pending_light_transition(hass):
         await asyncio.gather(timer.task, return_exceptions=True)
 
 
+@contextlib.asynccontextmanager
+async def _turn_on_light_that_reports_late(hass):
+    """Turn on a light that hasn't reported the adaptation yet, see #1655."""
+    switch, lights = await setup_lights_and_switch(
+        hass,
+        {
+            CONF_LIGHTS: [ENTITY_LIGHT_3],
+            CONF_INITIAL_TRANSITION: 1,
+            CONF_MIN_BRIGHTNESS: 50,
+            CONF_MAX_BRIGHTNESS: 50,
+            CONF_MIN_COLOR_TEMP: 2500,
+            CONF_MAX_COLOR_TEMP: 2500,
+            CONF_DETECT_NON_HA_CHANGES: True,
+            CONF_TAKE_OVER_CONTROL: True,
+        },
+    )
+    light = lights[2]
+    assert light.entity_id == ENTITY_LIGHT_3
+    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+    sent = []
+    original_turn_on = light.async_turn_on
+
+    async def turn_on(**kwargs):
+        # Real lights (e.g., Hue) can report a command a second or so later,
+        # so drop the adaptation without updating the light's state.
+        if is_our_context(light._context):
+            sent.append(kwargs)
+            return
+        await original_turn_on(**kwargs)
+
+    with patch.object(light, "async_turn_on", side_effect=turn_on):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {
+                ATTR_ENTITY_ID: ENTITY_LIGHT_3,
+                ATTR_BRIGHTNESS: 255,
+                ATTR_COLOR_TEMP_KELVIN: 4000,
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        assert len(sent) == 1
+        assert sent[0][ATTR_TRANSITION] == 1
+        assert sent[0][ATTR_BRIGHTNESS] == 128
+        assert sent[0][ATTR_COLOR_TEMP_KELVIN] == 2500
+        state = hass.states.get(ENTITY_LIGHT_3)
+        assert state.state == STATE_ON
+        assert state.attributes[ATTR_BRIGHTNESS] == 255
+        assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 4000
+        yield switch, sent
+
+
+async def test_interval_update_before_light_reports_adaptation(hass, cleanup):
+    """An adaptation the light hasn't reported yet is not a manual change."""
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    async with _turn_on_light_that_reports_late(hass) as (switch, sent):
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert len(sent) == 1
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_3)
+        == LightControlAttributes.NONE
+    )
+    assert not events
+
+
+async def test_interval_update_after_transition_detects_unreported_adaptation(
+    hass,
+    cleanup,
+):
+    """A light that still differs after the transition is manually controlled."""
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
+    async with _turn_on_light_that_reports_late(hass) as (switch, sent):
+        timer = switch.manager.transition_timers[ENTITY_LIGHT_3]
+        await timer.task  # Wait for the 1 second transition to end.
+        assert not timer.is_running()
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert len(sent) == 1
+    assert (
+        switch.manager.get_manual_control_attributes(ENTITY_LIGHT_3)
+        == LightControlAttributes.ALL
+    )
+    assert len(events) == 1
+    assert events[0].data[ATTR_ENTITY_ID] == ENTITY_LIGHT_3
+
+
 @pytest.mark.parametrize("state", [STATE_ON, STATE_OFF, None])
 async def test_restore_off_state(hass, state):
     """Test that the 'off' and 'on' states are propoperly restored."""

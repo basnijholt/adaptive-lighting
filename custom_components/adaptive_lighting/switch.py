@@ -1490,6 +1490,10 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
                 **self.manager.last_service_data.get(light, {}),
                 **service_data,
             }
+            # Start the transition timer now instead of only when the light
+            # reports the new state, so an interval update in between doesn't
+            # compare the new target with the old state, see #1655.
+            self.manager.start_transition_timer(light)
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
