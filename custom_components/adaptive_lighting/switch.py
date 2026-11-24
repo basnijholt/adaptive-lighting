@@ -191,6 +191,11 @@ BRIGHTNESS_CHANGE = 25  # ≈10% of total range
 COLOR_TEMP_CHANGE = 100  # ≈3% of total range (2000-6500)
 RGB_REDMEAN_CHANGE = 80  # ≈10% of total range
 
+# Extra seconds the transition timer lasts when an adaptation is sent, because
+# lights can report the new state later than the transition itself takes, see
+# #1655 (a Hue light took up to ~1.4 s to report a 1 s transition).
+SEND_TRANSITION_GRACE = 1
+
 
 # Keep a short domain version for the context instances (which can only be 36 chars)
 _DOMAIN_SHORT = "al"
@@ -1492,8 +1497,13 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             }
             # Start the transition timer now instead of only when the light
             # reports the new state, so an interval update in between doesn't
-            # compare the new target with the old state, see #1655.
-            self.manager.start_transition_timer(light)
+            # compare the new target with the old state, see #1655. Lights can
+            # report later than the transition lasts, so allow some extra time.
+            # The timer restarts without it once the light reports. Only start it
+            # when this command has a transition, because `last_service_data` may
+            # still hold the transition of an earlier command.
+            if ATTR_TRANSITION in service_data:
+                self.manager.start_transition_timer(light, SEND_TRANSITION_GRACE)
             await self.hass.services.async_call(
                 LIGHT_DOMAIN,
                 SERVICE_TURN_ON,
@@ -2356,8 +2366,11 @@ class AdaptiveLightingManager:
             timers_dict[light] = timer
             timer.start()
 
-    def start_transition_timer(self, light: str) -> None:
-        """Mark a light as manually controlled."""
+    def start_transition_timer(self, light: str, extra_delay: float = 0) -> None:
+        """Start the transition timer for a light.
+
+        The timer lasts the transition of the last adaptation plus `extra_delay`.
+        """
         last_service_data = self.last_service_data.get(light)
         if last_service_data is None:
             _LOGGER.debug(
@@ -2376,7 +2389,7 @@ class AdaptiveLightingManager:
 
         _LOGGER.debug(
             "Start transition timer of %s seconds for light %s",
-            last_transition,
+            last_transition + extra_delay,
             light,
         )
 
@@ -2387,7 +2400,12 @@ class AdaptiveLightingManager:
                 light,
             )
 
-        self._handle_timer(light, self.transition_timers, last_transition, reset)
+        self._handle_timer(
+            light,
+            self.transition_timers,
+            last_transition + extra_delay,
+            reset,
+        )
 
     def set_auto_reset_manual_control_times(
         self,

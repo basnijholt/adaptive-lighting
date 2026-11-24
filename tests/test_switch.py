@@ -81,6 +81,7 @@ from homeassistant.components.adaptive_lighting.switch import (
     AdaptiveLightingManager,
     AdaptiveSwitch,
     SimpleSwitch,
+    _AsyncSingleShotTimer,
     _attributes_have_changed,
     _expand_light_groups,
     _turn_off_transition,
@@ -2595,64 +2596,199 @@ async def test_unload_cancels_pending_light_transition(hass):
         await asyncio.gather(timer.task, return_exceptions=True)
 
 
+class _TransitionClock:
+    """Simulated clock for the transition timers, controlled by the test.
+
+    The timers stay real (``start``, ``is_running`` and ``cancel`` are
+    untouched, and so is the callback that runs when they end), but instead
+    of sleeping they wait until ``advance`` moves this clock past their end.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the clock at 0 seconds without timers."""
+        self.now = 0.0
+        self.delays: list[float] = []  # Delay of every timer start, in order
+        self._timers: list[tuple[float, asyncio.Event, asyncio.Task]] = []
+
+    def start(self, timer: _AsyncSingleShotTimer, real_start) -> None:
+        """Wrap ``_AsyncSingleShotTimer.start`` to record the delay it starts with."""
+        self.delays.append(timer.delay)
+        real_start(timer)
+
+    async def run(self, timer: _AsyncSingleShotTimer) -> None:
+        """Replace ``_AsyncSingleShotTimer._run``, sleeping on this clock."""
+        done = asyncio.Event()
+        self._timers.append(
+            (self.now + timer.delay, done, asyncio.current_task()),
+        )
+        await done.wait()
+        if timer.callback:
+            await timer.callback()
+
+    async def advance(self, seconds: float) -> None:
+        """Move the clock forward and end the timers that are due."""
+        self.now += seconds
+        due = [
+            (done, task) for ends_at, done, task in self._timers if ends_at <= self.now
+        ]
+        for done, _ in due:
+            done.set()
+        await asyncio.gather(*(task for _, task in due), return_exceptions=True)
+
+
 @contextlib.asynccontextmanager
-async def _turn_on_light_that_reports_late(hass):
-    """Turn on a light that hasn't reported the adaptation yet, see #1655."""
-    switch, lights = await setup_lights_and_switch(
-        hass,
-        {
-            CONF_LIGHTS: [ENTITY_LIGHT_3],
-            CONF_INITIAL_TRANSITION: 1,
-            CONF_MIN_BRIGHTNESS: 50,
-            CONF_MAX_BRIGHTNESS: 50,
-            CONF_MIN_COLOR_TEMP: 2500,
-            CONF_MAX_COLOR_TEMP: 2500,
-            CONF_DETECT_NON_HA_CHANGES: True,
-            CONF_TAKE_OVER_CONTROL: True,
-        },
-    )
-    light = lights[2]
-    assert light.entity_id == ENTITY_LIGHT_3
-    assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
-    sent = []
-    original_turn_on = light.async_turn_on
+async def _turn_on_light_with_transition(hass, *, reports_late):
+    """Turn on a light with a 1 second transition and control its timers.
 
-    async def turn_on(**kwargs):
-        # Real lights (e.g., Hue) can report a command a second or so later,
-        # so drop the adaptation without updating the light's state.
-        if is_our_context(light._context):
-            sent.append(kwargs)
-            return
-        await original_turn_on(**kwargs)
+    The timers are controlled before the adaptation is sent, because the
+    transition timer starts when it is sent, see #1655. The light either
+    reports the adaptation (right away) or not yet (when ``reports_late``).
+    """
+    clock = _TransitionClock()
 
-    with patch.object(light, "async_turn_on", side_effect=turn_on):
-        await hass.services.async_call(
-            LIGHT_DOMAIN,
-            SERVICE_TURN_ON,
+    async def run(timer):
+        await clock.run(timer)
+
+    real_start = _AsyncSingleShotTimer.start
+
+    def start(timer):
+        clock.start(timer, real_start)
+
+    with (
+        patch.object(_AsyncSingleShotTimer, "_run", run),
+        patch.object(_AsyncSingleShotTimer, "start", start),
+    ):
+        switch, lights = await setup_lights_and_switch(
+            hass,
             {
-                ATTR_ENTITY_ID: ENTITY_LIGHT_3,
-                ATTR_BRIGHTNESS: 255,
-                ATTR_COLOR_TEMP_KELVIN: 4000,
+                CONF_LIGHTS: [ENTITY_LIGHT_3],
+                CONF_INITIAL_TRANSITION: 1,
+                CONF_MIN_BRIGHTNESS: 50,
+                CONF_MAX_BRIGHTNESS: 50,
+                CONF_MIN_COLOR_TEMP: 2500,
+                CONF_MAX_COLOR_TEMP: 2500,
+                CONF_DETECT_NON_HA_CHANGES: True,
+                CONF_TAKE_OVER_CONTROL: True,
             },
-            blocking=True,
+        )
+        light = lights[2]
+        assert light.entity_id == ENTITY_LIGHT_3
+        assert hass.states.get(ENTITY_LIGHT_3).state == STATE_OFF
+        sent = []
+        original_turn_on = light.async_turn_on
+
+        async def turn_on(**kwargs):
+            # Real lights (e.g., Hue) can report a command a second or so
+            # later, so drop the adaptation without updating the light's state.
+            if reports_late and is_our_context(light._context):
+                sent.append(kwargs)
+                return
+            if is_our_context(light._context):
+                sent.append(kwargs)
+            await original_turn_on(**kwargs)
+
+        try:
+            with patch.object(light, "async_turn_on", side_effect=turn_on):
+                await hass.services.async_call(
+                    LIGHT_DOMAIN,
+                    SERVICE_TURN_ON,
+                    {
+                        ATTR_ENTITY_ID: ENTITY_LIGHT_3,
+                        ATTR_BRIGHTNESS: 255,
+                        ATTR_COLOR_TEMP_KELVIN: 4000,
+                    },
+                    blocking=True,
+                )
+                await hass.async_block_till_done()
+                assert len(sent) == 1
+                assert sent[0][ATTR_TRANSITION] == 1
+                assert sent[0][ATTR_BRIGHTNESS] == 128
+                assert sent[0][ATTR_COLOR_TEMP_KELVIN] == 2500
+                state = hass.states.get(ENTITY_LIGHT_3)
+                assert state.state == STATE_ON
+                if reports_late:
+                    assert state.attributes[ATTR_BRIGHTNESS] == 255
+                    assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 4000
+                yield switch, sent, clock
+        finally:
+            for _, _, task in clock._timers:
+                task.cancel()
+            await asyncio.gather(
+                *(task for _, _, task in clock._timers),
+                return_exceptions=True,
+            )
+
+
+async def test_transition_timer_lasts_transition_plus_grace_when_sent(hass, cleanup):
+    """The timer starts with extra time when sent, and without it on a report."""
+    async with _turn_on_light_with_transition(hass, reports_late=False) as (
+        switch,
+        sent,
+        clock,
+    ):
+        # Started when the adaptation was sent: the 1 second transition plus the
+        # extra second, then restarted when the light reported it: the transition.
+        assert clock.delays == [2, 1]
+        assert switch.manager.transition_timers[ENTITY_LIGHT_3].is_running()
+
+
+async def test_transition_timer_lasts_transition_plus_grace_without_report(
+    hass,
+    cleanup,
+):
+    """A light that doesn't report keeps the timer of the extra second."""
+    async with _turn_on_light_with_transition(hass, reports_late=True) as (
+        switch,
+        sent,
+        clock,
+    ):
+        assert clock.delays == [2]
+        assert switch.manager.transition_timers[ENTITY_LIGHT_3].is_running()
+
+
+async def test_adaptation_without_transition_starts_no_transition_timer(
+    hass,
+    cleanup,
+):
+    """A command without a transition doesn't reuse the transition of an old one."""
+    async with _turn_on_light_with_transition(hass, reports_late=True) as (
+        switch,
+        sent,
+        clock,
+    ):
+        timer = switch.manager.transition_timers[ENTITY_LIGHT_3]
+        await clock.advance(2)  # The timer of the 1 second transition ends.
+        assert not timer.is_running()
+        assert clock.delays == [2]
+        await switch._adapt_light(
+            ENTITY_LIGHT_3,
+            switch.create_context("test"),
+            0,
+            force=True,
         )
         await hass.async_block_till_done()
-        assert len(sent) == 1
-        assert sent[0][ATTR_TRANSITION] == 1
-        assert sent[0][ATTR_BRIGHTNESS] == 128
-        assert sent[0][ATTR_COLOR_TEMP_KELVIN] == 2500
-        state = hass.states.get(ENTITY_LIGHT_3)
-        assert state.state == STATE_ON
-        assert state.attributes[ATTR_BRIGHTNESS] == 255
-        assert state.attributes[ATTR_COLOR_TEMP_KELVIN] == 4000
-        yield switch, sent
+        assert len(sent) == 2
+        assert ATTR_TRANSITION not in sent[1]
+        assert clock.delays == [2]
+        assert not timer.is_running()
 
 
 async def test_interval_update_before_light_reports_adaptation(hass, cleanup):
     """An adaptation the light hasn't reported yet is not a manual change."""
     events = []
     hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
-    async with _turn_on_light_that_reports_late(hass) as (switch, sent):
+    async with _turn_on_light_with_transition(hass, reports_late=True) as (
+        switch,
+        sent,
+        clock,
+    ):
+        await switch._async_update_at_interval_action()
+        await hass.async_block_till_done()
+        assert len(sent) == 1
+        # The light is slower than its 1 second transition, but reports within
+        # the extra second the timer allows for that.
+        await clock.advance(1.4)
+        assert switch.manager.transition_timers[ENTITY_LIGHT_3].is_running()
         await switch._async_update_at_interval_action()
         await hass.async_block_till_done()
         assert len(sent) == 1
@@ -2670,9 +2806,13 @@ async def test_interval_update_after_transition_detects_unreported_adaptation(
     """A light that still differs after the transition is manually controlled."""
     events = []
     hass.bus.async_listen(f"{DOMAIN}.manual_control", events.append)
-    async with _turn_on_light_that_reports_late(hass) as (switch, sent):
+    async with _turn_on_light_with_transition(hass, reports_late=True) as (
+        switch,
+        sent,
+        clock,
+    ):
         timer = switch.manager.transition_timers[ENTITY_LIGHT_3]
-        await timer.task  # Wait for the 1 second transition to end.
+        await clock.advance(2)  # The transition and the extra second end.
         assert not timer.is_running()
         await switch._async_update_at_interval_action()
         await hass.async_block_till_done()
